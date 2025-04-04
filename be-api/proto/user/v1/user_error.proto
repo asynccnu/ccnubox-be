@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package user.v1;
+import "errors/errors.proto";
+
+option go_package="github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1;userv1";
+
+enum UserErrorReason {
+  // 设置缺省错误码
+  option (errors.default_code) = 500;
+
+  USER_NOT_FOUND_ERROR = 0 [(errors.code) = 404];
+  DEFAULT_DAO_ERROR=1 [(errors.code) = 501];
+  SAVE_USER_ERROR =2 [(errors.code) = 502];
+  CCNU_GETCOOKIE_ERROR=3 [(errors.code) = 503];
+  ENCRYPT_ERROR=4  [(errors.code) = 504];
+  DECRYPT_ERROR=5  [(errors.code) = 505];
+}

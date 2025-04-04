@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package feed.v1;
+
+import "errors/errors.proto";
+option go_package="github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1;feedv1";
+
+enum ErrorReason {
+  // 设置缺省错误码
+  option (errors.default_code) = 500;
+  TOKEN_ALREADY_EXIST = 0 [(errors.code) = 501];
+  USER_NOT_FOUND = 1 [(errors.code) = 502];
+  GET_FEED_EVENT_ERROR =2 [(errors.code) = 503];
+  CLEAR_FEED_EVENT_ERROR =3 [(errors.code) = 504];
+  PUBLIC_FEED_EVENT_ERROR =4 [(errors.code) = 505];
+  FIND_CONFIG_OR_TOKEN_ERROR =5  [(errors.code) = 506];
+  CHANGE_CONFIG_OR_TOKEN_ERROR =6 [(errors.code) = 507];
+  REMOVE_CONFIG_OR_TOKEN_ERROR =7[(errors.code) = 508];
+  GET_MUXI_FEED_ERROR=8 [(errors.code) = 509];
+  INSERT_MUXI_FEED_ERROR=9 [(errors.code) = 510];
+  REMOVE_MUXI_FEED_ERROR=10 [(errors.code) = 511];
+}

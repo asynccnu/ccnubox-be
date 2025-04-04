@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package api.card.v1;
+
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/card/v1;cardv1";
+
+import "google/protobuf/timestamp.proto";
+
+service card{
+  rpc CreateUser (CreateUserRequest) returns (OperationResponse);
+
+  rpc UpdateUserKey (UpdateUserKeyRequest) returns (OperationResponse);
+
+  rpc GetRecordOfConsumption (GetRecordOfConsumptionRequest) returns (GetRecordOfConsumptionResponse);
+}
+
+message CreateUserRequest {
+  string student_id = 1;
+  string key = 2;
+}
+
+message UpdateUserKeyRequest{
+  string student_id = 1;
+  string key = 2;
+}
+
+message GetRecordOfConsumptionRequest{
+  string student_id = 1;
+  string key = 2;
+  string start_time = 3;
+  string type = 4;
+}
+
+message GetRecordOfConsumptionResponse{
+  repeated RecordOfConsumption records = 1;
+}
+
+message RecordOfConsumption{
+  uint32 SMT_TIMES = 1;
+  google.protobuf.Timestamp SMT_DEALDATETIME = 2;
+  string SMT_ORG_NAME = 3;  //消费窗口
+  string SMT_DEALNAME = 4;  //消费方式
+  float after_money = 5;
+  float money = 6;
+}
+
+message OperationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+
+

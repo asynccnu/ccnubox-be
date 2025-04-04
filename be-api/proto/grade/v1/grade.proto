@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package grade.v1;
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/grade/v1;gradev1";
+//import "google/protobuf/any.proto";
+
+// 查询成绩的接口定义
+service GradeService {
+  rpc GetGradeByTerm (GetGradeByTermReq) returns (GetGradeByTermResp) ;
+  rpc GetGradeScore(GetGradeScoreReq)returns(GetGradeScoreResp);
+}
+
+// 请求体
+message GetGradeByTermReq{
+  string studentId =1;//学号
+  int64 xnm =2;//学年名:例如2024表示2024-2025学年
+  int64 xqm =3;//学期名
+}
+
+// 响应体
+message GetGradeByTermResp{
+  repeated  Grade  grades = 1; // 课程详细信息
+}
+
+//成绩结构体
+message Grade{
+  string  Kcmc  =1 ;  //课程名
+  float  Xf =2 ;  //学分
+  float  Cj =3;   //总成绩
+  string  kcxzmc=4; //课程性质名称 比如专业主干课程/通识必修课
+  string  Kclbmc=5; //课程类别名称，比如专业课/公共课
+  string  kcbj=6; //课程标记，比如主修/辅修
+  float jd=7; // 绩点
+  string regularGradePercent=8; //平时成绩占比
+  float regularGrade=9;//平时成绩
+  string finalGradePercent=10;//期末成绩占比
+  float finalGrade=11;//期末成绩
+}
+
+message GetGradeScoreReq{
+  string studentId=1;
+}
+
+message GetGradeScoreResp{
+  repeated TypeOfGradeScore typeOfGradeScore =1;
+}
+
+message TypeOfGradeScore{
+  string kcxzmc = 1;
+  repeated GradeScore gradeScoreList=2;
+}
+
+message GradeScore{
+  string Kcmc   =1 ;  //课程名
+  float Xf  =2 ;  //学分
+}

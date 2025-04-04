@@ -1,0 +1,209 @@
+syntax = "proto3";
+
+package classer.v1;
+
+//import "google/protobuf/any.proto";
+
+
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classer/v1;classerv1";
+
+service Classer {
+    //获取课表
+    rpc GetClass (GetClassRequest) returns (GetClassResponse) ;
+    //添加课程
+    rpc AddClass(AddClassRequest) returns (AddClassResponse) ;
+    //删除课程
+    rpc DeleteClass(DeleteClassRequest) returns (DeleteClassResponse);
+    //更新课程
+    rpc UpdateClass(UpdateClassRequest) returns (UpdateClassResponse) ;
+    //获取回收站的课程(回收站的课程只能保存2个月)
+    rpc GetRecycleBinClassInfos(GetRecycleBinClassRequest) returns (GetRecycleBinClassResponse) ;
+    //恢复课程
+    rpc RecoverClass(RecoverClassRequest) returns (RecoverClassResponse) ;
+    //获取所有课程信息(为其他服务设置的)
+    rpc GetAllClassInfo(GetAllClassInfoRequest) returns (GetAllClassInfoResponse) ;
+    //获取教学班中的所有学生ID
+    rpc GetStuIdByJxbId(GetStuIdByJxbIdRequest) returns (GetStuIdByJxbIdResponse);
+    //获取相关日期
+    rpc GetSchoolDay(GetSchoolDayReq) returns (GetSchoolDayResp) {};
+}
+
+message GetClassRequest {
+//    //周几的课表
+//    int64 week=1 ;
+    //学号
+    string stu_id=1;
+    // 学期
+    string semester=2;
+    //学年
+    string year=3;
+
+    //是否直接从学校官网直接爬取
+    bool refresh = 4;
+}
+message GetClassResponse {
+    //课表
+    repeated Class classes=1;
+}
+
+
+message AddClassRequest {
+    //学号
+    string stu_id=1 ;
+    //课程名称
+    string name=2 ;
+    //第几节 '形如 "1-3","1-1"'
+    string dur_class=3 ;
+    //地点
+    string where=4 ;
+    //教师
+    string teacher=5 ;
+    //哪些周
+    int64  weeks=6 ;
+    // 学期
+    string semester=7 ;
+    //学年
+    string year=8;
+    //星期几
+    int64 day=9;
+    //学分
+    optional double credit=10;
+}
+
+message AddClassResponse {
+    //添加的课程ID
+    string id=1;
+    string msg=2;
+}
+
+message DeleteClassRequest {
+    //要被删的课程id
+    string id=1 ;
+    //学号
+    string stuId=2;
+    //学年  "2024" -> 代表"2024-2025学年"
+    string year=3;
+    //学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+    string semester=4;
+}
+message DeleteClassResponse {
+    string msg=1;
+}
+message UpdateClassRequest {
+    //学号
+    string stu_id=1;
+    //课程名称
+    optional string name=2;
+    //第几节 '形如 "1-3","1-1"'
+    optional string dur_class=3;
+    //地点
+    optional string where=4;
+    //教师
+    optional string teacher=5;
+    //哪些周
+    optional int64  weeks=6;
+    // 学期
+    string semester=7;
+    //学年
+    string year=8;
+    //星期几
+    optional int64 day=9;
+    //学分
+    optional double credit=10;
+    // 课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回
+    string classId=11;
+
+}
+message UpdateClassResponse {
+    string msg=1;
+    //更新后的课程的ID（唯一标识）
+    string classId=2;
+}
+message GetAllClassInfoRequest {
+    //学年  "2024" 代表"2024-2025学年"
+    string year=1;
+    //学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+    string semester=2;
+    //避免一次性获取太多class[每次只获取100个]
+    //最后一个课程的时间戳，时区为UTC
+    // "2023-09-03T01:01:01.000000"
+    string cursor =3;
+}
+message GetAllClassInfoResponse {
+    repeated ClassInfo class_infos = 1;
+    //最后一个课程的时间戳，时区为UTC
+    // "2023-09-03T01:01:01.000000"
+    string lastTime = 2;
+}
+message GetRecycleBinClassRequest{
+    //学号
+    string stuId=1;
+    //学年  "2024" 代表"2024-2025学年"
+    string year=2;
+    //学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+    string semester=3;
+}
+message GetRecycleBinClassResponse {
+    //回收站的课程
+    repeated ClassInfo class_infos = 1;
+}
+message RecoverClassRequest {
+    //学号
+    string stuId=1;
+    //学年  "2024" 代表"2024-2025学年"
+    string year=2;
+    //学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+    string semester=3;
+    // 课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回
+    string classId=11;
+}
+message RecoverClassResponse {
+    string msg=1;
+}
+
+message GetStuIdByJxbIdRequest{
+    string jxb_id = 1;
+}
+message GetStuIdByJxbIdResponse{
+    repeated string stu_id = 1;
+}
+
+message  ClassInfo {
+    //星期几
+    int64 day=1;
+    //任课教师
+    string teacher=2;
+    //上课地点
+    string where=3;
+    //上课是第几节（如1-2,3,4）
+    string class_when=4;
+    //上课的周数(文字描述,如1-9周)
+    string week_duration=5;
+    //课程名称
+    string classname=6;
+    //学分
+    double credit=7;
+    //哪些周 这个是一个64位的数字,如果有第一周,那么该数的二进制从右往左的第一位为1,以此类推
+    //比如该数的二进制是000000101,就代表第一周和第三周有课.
+    int64 weeks=9;
+    //学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+    string semester=10;
+    //学年  "2024" 代表"2024-2025学年"
+    string year=11;
+    //课程唯一标识id
+    string id=12;
+}
+
+message Class {
+    //课程信息
+    ClassInfo info =1;
+//    //是否是本周
+//    bool thisweek=2;
+}
+
+message  GetSchoolDayReq {}
+
+message GetSchoolDayResp {
+    string holidayTime = 1; //形式:"2025-07-05"
+    string schoolTime = 2;  //形式:"2025-02-17"
+}

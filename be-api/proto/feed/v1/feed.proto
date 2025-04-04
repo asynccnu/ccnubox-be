@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package feed.v1;
+option go_package="github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1;feedv1";
+
+service FeedService {
+  rpc GetFeedEvents (GetFeedEventsReq) returns (GetFeedEventsResp);//获取所有的消息,包括已读和未读两部分
+  rpc ReadFeedEvent(ReadFeedEventReq)returns(ReadFeedEventResp);//用来更新信息的已读取状态
+  rpc ClearFeedEvent (ClearFeedEventReq) returns (ClearFeedEventResp);//清除当前的消息,如果包括已读和未读两部分
+  rpc ChangeFeedAllowList (ChangeFeedAllowListReq)returns(ChangeFeedAllowListResp);//更改当前的推送的消息数量
+  rpc GetFeedAllowList (GetFeedAllowListReq)returns(GetFeedAllowListResp);//获取feed推送许可配置
+  rpc SaveFeedToken (SaveFeedTokenReq)returns(SaveFeedTokenResp);//存储用户的token
+  rpc RemoveFeedToken(RemoveFeedTokenReq)returns(RemoveFeedTokenResp);//清除当前账号的token
+  rpc PublicMuxiOfficialMSG(PublicMuxiOfficialMSGReq)returns(PublicMuxiOfficialMSGResp);//发布木犀官方消息
+  rpc StopMuxiOfficialMSG(StopMuxiOfficialMSGReq)returns(StopMuxiOfficialMSGResp);//停止发布木犀官方消息
+  rpc GetToBePublicOfficialMSG(GetToBePublicOfficialMSGReq)returns(GetToBePublicOfficialMSGResp);//获取当前还没发布的消息列表
+  rpc PublicFeedEvent(PublicFeedEventReq)returns(PublicFeedEventResp);//用于发布feed消息
+}
+
+message PublicFeedEventReq {
+   string studentId =1;//单人推送时提供的学号
+   bool isAll =2;//是否推送给全体成员,默认为推送给单人
+   FeedEvent event = 3;
+}
+
+
+message PublicFeedEventResp{}
+
+message FeedEvent {
+  int64 id = 1;
+  string type = 2;
+  string title = 3;
+  string content = 4;
+  map<string, string> ExtendFields=5;
+  int64 created_at = 6;//创建时间
+}
+
+message FeedEventVO {
+  int64 id = 1;
+  string type = 2;
+  string title = 3;
+  string content = 4;
+  bool read =5;
+  map<string, string> ExtendFields=6;
+  int64 created_at = 7;//创建时间
+}
+
+message GetFeedEventsReq {
+  string studentId = 1;
+}
+
+message GetFeedEventsResp {
+  repeated FeedEventVO feedEvents=1;
+}
+
+
+message ReadFeedEventReq{
+  int64 feedId = 1;
+}
+
+message ReadFeedEventResp{}
+
+message ClearFeedEventReq {
+  string studentId = 1;
+  int64 feedId = 2; //feedEventIndex的id,事实上不是实际存储的feed的消息内容的id
+  string status =3;
+}
+
+message ClearFeedEventResp {}
+
+message ChangeFeedAllowListReq {
+  AllowList allowList =2;
+}
+
+message ChangeFeedAllowListResp {}
+
+message GetFeedAllowListReq{
+  string studentId =1;
+}
+
+message GetFeedAllowListResp{
+  AllowList allowList =1;
+}
+
+message AllowList{
+  string studentId = 1;
+  bool grade = 2;
+  bool muxi = 3;
+  bool holiday = 4;
+  bool energy = 5;
+}
+
+
+message RemoveFeedTokenReq{
+  string studentId =1;
+  string token = 2;
+}
+
+message RemoveFeedTokenResp{}
+
+message SaveFeedTokenReq{
+  string studentId = 1;
+  string token = 2;
+}
+
+message SaveFeedTokenResp{}
+
+message PublicMuxiOfficialMSGReq{
+  MuxiOfficialMSG muxiOfficialMSG =1;
+}
+
+
+message PublicMuxiOfficialMSGResp{}
+
+message MuxiOfficialMSG{
+  string title =1;
+  string content=2;
+  map<string, string> extendFields=3;
+  int64 publicTime =4;
+  string id=5;
+}
+
+message StopMuxiOfficialMSGReq{
+  string id=1;
+}
+
+message StopMuxiOfficialMSGResp{}
+
+message GetToBePublicOfficialMSGReq{}
+message GetToBePublicOfficialMSGResp{
+  repeated MuxiOfficialMSG msgList=1;
+}

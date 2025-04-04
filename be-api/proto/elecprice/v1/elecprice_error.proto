@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package elecprice.v1;
+
+import "errors/errors.proto";
+option go_package="github.com/asynccnu/ccnubox-be/be-api/gen/proto/elecprice/v1;elecpricev1";
+
+enum ErrorReason {
+  // 设置缺省错误码
+  option (errors.default_code) = 500;
+  INTERNET_ERROR = 0 [(errors.code) = 501];
+  FIND_CONFIG_ERROR = 1 [(errors.code) = 502];
+  SAVE_CONFIG_ERROR = 2 [(errors.code) = 503];
+}

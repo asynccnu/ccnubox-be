@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package api.feedback_help.v1;
+
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feedback_help/v1;feedback_helpv1";
+
+import "google/protobuf/timestamp.proto";
+
+service FeedbackHelp {
+  // 获取所有常见问题
+  rpc GetQuestions (EmptyRequest) returns (GetQuestionsResponse);
+
+  // 通过问题名称查找问题
+  rpc FindQuestionByName (FindQuestionByNameRequest) returns (FindQuestionByNameResponse);
+
+  // 创建新的常见问题
+  rpc CreateQuestion (CreateQuestionRequest) returns (OperationResponse);
+
+  // 更新常见问题
+  rpc ChangeQuestion (UpdateQuestionRequest) returns (OperationResponse);
+
+  // 删除常见问题
+  rpc DeleteQuestion (DeleteQuestionRequest) returns (OperationResponse);
+
+  // 记录问题解决情况
+  rpc NoteQuestion (NoteQuestionRequest) returns (OperationResponse);
+
+  // 记录用户事件
+  rpc NoteEventTracking (NoteEventTrackingRequest) returns (OperationResponse);
+
+  // 记录搜索问题的反馈 放在FindQuestionByName
+  //rpc NoteMoreFeedbackSearch (NoteMoreFeedbackSearchRequest) returns (OperationResponse);
+
+  // 记录跳过问题的反馈
+  rpc NoteMoreFeedbackSearchSkip (NoteMoreFeedbackSearchSkipRequest) returns (OperationResponse);
+
+}
+
+message EmptyRequest {}
+
+message GetQuestionsResponse{
+  repeated FrequentlyAskedQuestion questions = 1;
+}
+
+message FindQuestionByNameRequest{
+  string question = 1;
+}
+message FindQuestionByNameResponse{
+  repeated FrequentlyAskedQuestion questions = 1;
+}
+
+
+message CreateQuestionRequest {
+  string question = 1;
+  string anwser = 2;
+}
+
+
+message UpdateQuestionRequest{
+  int64 question_id = 1;
+  string question = 2;
+  string anwser = 3;
+}
+
+message DeleteQuestionRequest{
+  int64 question_id = 1;
+}
+
+message NoteQuestionRequest{
+  int64 question_id = 1;
+  bool if_over = 2;
+}
+
+message NoteEventTrackingRequest{
+  int32 event = 1;
+}
+
+message NoteMoreFeedbackSearchSkipRequest{
+  int64 question_id = 1;
+}
+
+
+message OperationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message FrequentlyAskedQuestion {
+  int64 id = 1;
+  string question = 2;
+  string answer = 3;
+  int64 click_times = 4;
+  google.protobuf.Timestamp ctime = 5;  // 使用 Timestamp 类型来表示时间
+  google.protobuf.Timestamp utime = 6;
+}

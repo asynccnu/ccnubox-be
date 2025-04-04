@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package classService.v1;
+
+import "errors/errors.proto";
+
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1;classServicev1";
+
+enum ErrorReason {
+  ES_AddClassFailed = 0[(errors.code) = 450];
+  ES_SearchClassFailed = 1[(errors.code) =451];
+}

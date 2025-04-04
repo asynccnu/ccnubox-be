@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package banner.v1;
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/banner/v1;bannerv1";
+
+//import "google/protobuf/any.proto";
+
+service BannerService {
+  rpc GetBanners(GetBannersRequest)returns(GetBannersResponse);
+  rpc SaveBanner(SaveBannerRequest)returns(SaveBannerResponse);
+  rpc DelBanner(DelBannerRequest)returns(DelBannerResponse);
+}
+
+//banner
+message Banner {
+  int64 id =1;
+  string webLink =2;
+  string pictureLink =3;
+}
+
+message GetBannersRequest {}
+
+message GetBannersResponse {
+  repeated Banner banners = 1;
+}
+
+message SaveBannerRequest {
+  int64 id =1;
+  string webLink =2;
+  string pictureLink =3;
+}
+
+message SaveBannerResponse {}
+
+message DelBannerRequest {
+  int64 id = 1;
+}
+
+message DelBannerResponse {}

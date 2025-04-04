@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package infoSum.v1;
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/infoSum/v1;infoSumv1";
+
+//import "google/protobuf/any.proto";
+
+service InfoSumService {
+  rpc GetInfoSums(GetInfoSumsRequest)returns(GetInfoSumsResponse);
+  rpc SaveInfoSum(SaveInfoSumRequest)returns(SaveInfoSumResponse);
+  rpc DelInfoSum(DelInfoSumRequest)returns(DelInfoSumResponse);
+}
+
+//web
+message InfoSum {
+  int64 id =1;
+  string link =2;
+  string name =3;
+  string image = 4;
+  string description =5;
+}
+
+message GetInfoSumsRequest {}
+
+message GetInfoSumsResponse {
+  repeated InfoSum InfoSums = 1;
+}
+
+message SaveInfoSumRequest {
+  InfoSum InfoSum = 1;
+}
+
+message SaveInfoSumResponse {
+  repeated InfoSum InfoSums = 1;
+}
+
+message DelInfoSumRequest {
+  int64 id=1;
+}
+
+message DelInfoSumResponse {
+  repeated InfoSum InfoSums = 1;
+}

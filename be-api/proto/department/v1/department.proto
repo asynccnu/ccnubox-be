@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package department.v1;
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/department/v1;departmentv1";
+
+//import "google/protobuf/any.proto";
+
+service DepartmentService {
+  rpc GetDepartments(GetDepartmentsRequest)returns(GetDepartmentsResponse);
+  rpc SaveDepartment(SaveDepartmentRequest)returns(SaveDepartmentResponse);
+  rpc DelDepartment(DelDepartmentRequest)returns(DelDepartmentResponse);
+}
+
+//department
+message Department {
+  int64 id = 1;
+  string name = 2;
+  string phone = 3;
+  string place = 4;
+  string  time =5;
+}
+
+message GetDepartmentsRequest {}
+
+message GetDepartmentsResponse {
+  repeated Department departments = 1;//列表使用的是repeated好奇妙诶
+}
+
+message SaveDepartmentRequest {
+  Department department = 1;
+}
+
+message SaveDepartmentResponse {}
+
+message DelDepartmentRequest {
+  int64 id = 1;
+}
+
+message DelDepartmentResponse {}
+

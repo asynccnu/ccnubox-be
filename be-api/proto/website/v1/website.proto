@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package website.v1;
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/website/v1;websitev1";
+
+//import "google/protobuf/any.proto";
+
+service WebsiteService {
+  rpc GetWebsites(GetWebsitesRequest)returns(GetWebsitesResponse);
+  rpc SaveWebsite(SaveWebsiteRequest)returns(SaveWebsiteResponse);
+  rpc DelWebsite(DelWebsiteRequest)returns(DelWebsiteResponse);
+}
+
+//web
+message Website {
+  int64 id =1;
+  string link =2;
+  string name =3;
+  string image = 4;
+  string description =5;
+}
+
+message GetWebsitesRequest {}
+
+message GetWebsitesResponse {
+  repeated Website websites = 1;
+}
+
+message SaveWebsiteRequest {
+  Website website = 1;
+}
+
+message SaveWebsiteResponse {
+  repeated Website websites = 1;
+}
+
+message DelWebsiteRequest {
+  int64 id=1;
+}
+
+message DelWebsiteResponse {
+  repeated Website websites = 1;
+}

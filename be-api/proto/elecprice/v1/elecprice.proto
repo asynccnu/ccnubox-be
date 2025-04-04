@@ -1,0 +1,131 @@
+//syntax = "proto3";
+//package elecprice.v1;
+//option go_package = "github.com/asynccnu/be-api/gen/proto/elecprice/v1;elecpricev1";
+//import "google/protobuf/any.proto";
+
+//// 查询电费的接口定义
+//service ElecpriceService {
+//  rpc Check (CheckRequest) returns (CheckResponse);
+//  rpc SetStandard (SetStandardRequest) returns (SetStandardResponse);
+//}
+//
+//// 请求体
+//message CheckRequest {
+//  Place place =1; //房间具体信息
+//}
+//
+//// 响应体
+//message CheckResponse {
+//  Price  price = 1; // 电费
+//}
+//
+//// 电费结构体
+//message Price{
+//  string LightingRemainMoney = 1; // 剩余照明电费
+//  string LightingYesterdayUseValue = 2; // 昨日花费照明电量
+//  string LightingYesterdayUseMoney      = 3; // 昨日花费照明电费
+//  string AirRemainMoney      = 4; // 昨日空调电费
+//  string AirYesterdayUseValue  = 5; // 昨日花费空调电量
+//  string AirYesterdayUseMoney       = 6; // 昨日花费空调电费
+//}
+//
+//// 请求体
+//message SetStandardRequest {
+//  string studentId =1;
+//  int64 money       = 2;  //金额
+//  Place place = 3;
+//}
+//
+//message Place{
+//  string area       = 2;  //区域
+//  string building   = 3;  //建筑
+//  string room       = 4;  //房间号
+//}
+//
+//// 响应体
+//message SetStandardResponse{}
+
+syntax = "proto3";
+package elecprice.v1;
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/elecprice/v1;elecpricev1";
+//import "google/protobuf/any.proto";
+
+// 查询电费的接口定义
+service ElecpriceService {
+  rpc GetArchitecture (GetArchitectureRequest) returns (GetArchitectureResponse);
+  rpc GetRoomInfo (GetRoomInfoRequest) returns (GetRoomInfoResponse);
+  rpc GetPrice (GetPriceRequest) returns (GetPriceResponse);
+
+  rpc SetStandard (SetStandardRequest) returns (SetStandardResponse);
+  rpc GetStandardList (GetStandardListRequest) returns (GetStandardListResponse);
+  rpc CancelStandard (CancelStandardRequest) returns (CancelStandardResponse);
+}
+
+message GetArchitectureRequest {
+  string AreaName = 1;
+}
+
+message GetArchitectureResponse {
+  message Architecture {
+    string ArchitectureID = 1;
+    string ArchitectureName = 2;
+    string BaseFloor = 3;
+    string TopFloor = 4;
+  }
+  repeated Architecture ArchitectureList = 1;
+}
+
+message GetRoomInfoRequest {
+  string ArchitectureID = 1;
+  string Floor = 2;
+}
+
+message GetRoomInfoResponse {
+  message Room {
+    string RoomName = 1;
+    string RoomID = 2;
+  }
+  repeated Room RoomList = 1;
+}
+
+message GetPriceRequest {
+  string room_id = 1;
+}
+
+message GetPriceResponse {
+  message Price {
+    string RemainMoney = 1; // 剩余电费
+    string YesterdayUseValue = 2; // 昨日花费电量
+    string YesterdayUseMoney = 3; // 昨日花费电费
+  }
+  Price price = 1;
+}
+
+//有一个id对应两个状态和一个状态
+message Standard {
+  int64 limit = 1;
+  string room_id = 2;
+  string room_name = 3;
+}
+
+message SetStandardRequest {
+  string studentId = 1;
+  Standard standard = 2;
+}
+
+message SetStandardResponse{}
+
+message GetStandardListRequest {
+  string studentId = 1;
+}
+
+message GetStandardListResponse {
+  repeated  Standard standards = 1;
+}
+
+message CancelStandardRequest {
+  string studentId = 1;
+  string room_id = 2;
+}
+
+message CancelStandardResponse{}

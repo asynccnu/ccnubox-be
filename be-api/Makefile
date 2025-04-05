@@ -21,6 +21,8 @@ endif
 api:
 	protoc --proto_path=./proto \
            --proto_path=./third_party \
+           --experimental_allow_proto3_optional \
+           --go-errors_out=paths=source_relative:./gen/proto \
  	       --go_out=paths=source_relative:./gen/proto \
  	       --go-http_out=paths=source_relative:./gen/proto \
  	       --go-grpc_out=paths=source_relative:./gen/proto \

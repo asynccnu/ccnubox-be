@@ -1,0 +1,89 @@
+http:
+  addr: ":8080"
+
+redis:
+  addr: "localhost:6379"
+  password: "12345678"
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+etcd:
+  endpoints:
+    - "localhost:2379"
+  username: root
+  password: "12345678"
+
+administrators:
+  - "1234123456"
+
+grpc:
+  client:
+    ccnu:
+      endpoint: "discovery:///ccnu"
+      retryCnt: 3    # 具备重试装饰时的重试次数
+    user:
+      endpoint: "discovery:///user"
+    static:
+      endpoint: "discovery:///static"
+    feed:
+      endpoint: "discovery:///feed"
+    banner:
+      endpoint: "discovery:///banner"
+    calendar:
+      endpoint: "discovery:///calendar"
+    department:
+      endpoint: "discovery:///department"
+    website:
+      endpoint: "discovery:///website"
+    elecprice:
+      endpoint: "discovery:///elecprice"
+    classlist:
+      endpoint: "discovery:///MuXi_ClassList"
+    classService:
+      endpoint: "discovery:///classService"
+    feedbackHelp:
+      endpoint: "discovery:///feedback_help"
+    grade:
+      endpoint: "discovery:///grade"
+    infoSum:
+      endpoint: "discovery:///info_sum"
+    counter:
+      endpoint: "discovery:///counter"
+    card:
+      endpoint: "discovery:///card"
+
+jwt:
+  jwtKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  refreshKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+oss:
+  accessKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  secretKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  bucketName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  domainName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # CDN 域名
+
+# 日志配置
+log:
+  path: "./logs/app.log"  # 日志文件路径
+  maxSize: 100           # 单个日志文件的最大大小（MB）
+  maxBackups: 7          # 保留旧日志文件的最大数量
+  maxAge: 30             # 日志文件保留天数
+  compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+
+# Prometheus 配置
+prometheus:
+  namespace: "ccnubox" # Prometheus 命名空间，通常为项目名称
+
+  routerCounter:
+    name: "http_requests_total"  # 路由请求总数指标名称
+    help: "Total number of HTTP requests" # 指标说明
+
+  activeConnections:
+    name: "active_connections"  # 活跃连接指标名称
+    help: "Number of active connections per route" # 指标说明
+
+  durationTime:
+    name: "http_request_duration_seconds"  # 请求时长直方图名称
+    help: "Histogram of response times for HTTP requests" # 指标说明

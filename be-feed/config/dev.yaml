@@ -1,0 +1,17 @@
+mysql:
+  dsn: "root:root@tcp(localhost:3306)/ccnubox"
+
+etcd:
+  endpoints:
+    - "localhost:12379"
+
+grpc:
+  server:
+    name: "feed"
+    weight: 100
+    addr: ":19096"
+    etcdTTL: 60
+
+kafka:
+  addrs:
+    - "localhost:9094"

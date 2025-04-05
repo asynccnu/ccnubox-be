@@ -1,0 +1,3610 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/InfoSum/delInfoSum": {
+            "delete": {
+                "description": "删除信息整合信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "信息整合"
+                ],
+                "summary": "删除信息整合信息",
+                "parameters": [
+                    {
+                        "description": "删除信息整合信息请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infoSum.DelInfoSumRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/InfoSum/getInfoSums": {
+            "get": {
+                "description": "获取所有信息整合的列表",
+                "tags": [
+                    "信息整合"
+                ],
+                "summary": "获取信息整合列表",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/infoSum.GetInfoSumsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/InfoSum/saveInfoSum": {
+            "post": {
+                "description": "保存信息整合信息,id是可选字段,如果有就是替换原来的列表里的,如果没有就是存储新的值",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "信息整合"
+                ],
+                "summary": "保存信息整合信息",
+                "parameters": [
+                    {
+                        "description": "保存信息整合信息请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/infoSum.SaveInfoSumRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/banner/delBanner": {
+            "delete": {
+                "description": "删除 banner 内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "banner横幅"
+                ],
+                "summary": "删除 banner 内容",
+                "parameters": [
+                    {
+                        "description": "删除 banner 内容请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/banner.DelBannerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/banner/getBanners": {
+            "get": {
+                "description": "获取 banner 列表",
+                "tags": [
+                    "banner横幅"
+                ],
+                "summary": "获取 banner 列表",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/banner.GetBannersResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/banner/saveBanner": {
+            "post": {
+                "description": "保存 banner 内容,如果不添加id字段表示添加一个新的banner",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "banner横幅"
+                ],
+                "summary": "保存 banner 内容",
+                "parameters": [
+                    {
+                        "description": "保存 banner 内容请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/banner.SaveBannerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/calendar/delCalendar": {
+            "delete": {
+                "description": "删除日历内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "日历"
+                ],
+                "summary": "删除日历内容",
+                "parameters": [
+                    {
+                        "description": "删除日历内容请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/calendar.DelCalendarRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/calendar/getCalendar": {
+            "get": {
+                "description": "获取日历列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "日历"
+                ],
+                "summary": "获取日历列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "年份",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/calendar.GetCalendarResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/calendar/saveCalendar": {
+            "post": {
+                "description": "保存日历内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "日历"
+                ],
+                "summary": "保存日历内容",
+                "parameters": [
+                    {
+                        "description": "保存日历内容请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/calendar.SaveCalendarRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/getRecords": {
+            "post": {
+                "description": "获取用户消费记录，student_id, start_time, type 必须存在，type 分为 \"card\"（实体卡）与 \"virtual\"（虚拟卡）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "校园卡"
+                ],
+                "summary": "获取消费记录",
+                "parameters": [
+                    {
+                        "description": "获取消费记录",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/card.GetRecordOfConsumptionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/card.GetRecordOfConsumptionResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "创建失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/noteUserKey": {
+            "post": {
+                "description": "记录用户的key",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "校园卡"
+                ],
+                "summary": "删除用户的key",
+                "parameters": [
+                    {
+                        "description": "记录用户的key",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/card.NoteUserKeyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "创建失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/card/updateUserKey": {
+            "post": {
+                "description": "更新用户的key",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "校园卡"
+                ],
+                "summary": "更新用户的key",
+                "parameters": [
+                    {
+                        "description": "更新用户的key",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/card.UpdateUserKeyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "创建失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/class/add": {
+            "post": {
+                "description": "添加新的课表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "课表"
+                ],
+                "summary": "添加课表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "课表信息",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/class.AddClassRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功添加课表",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/class/day/get": {
+            "get": {
+                "description": "获取当前周",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "课表"
+                ],
+                "summary": "获取当前周",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功获取到当前周",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/class.GetSchoolDayResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/class/delete": {
+            "delete": {
+                "description": "根据课表ID删除课表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "课表"
+                ],
+                "summary": "删除课表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "删除课表请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/class.DeleteClassRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功删除课表",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/class/get": {
+            "get": {
+                "description": "根据学期、学年等条件获取课表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "课表"
+                ],
+                "summary": "获取课表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "学年",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学期",
+                        "name": "semester",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否强制从华师获取最新版本",
+                        "name": "refresh",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "获取课表请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/class.GetClassListRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回课表",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/class.GetClassListResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/class/getRecycle": {
+            "get": {
+                "description": "获取已删除但未彻底清除的课表信息",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "课表"
+                ],
+                "summary": "获取回收站课表信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "学年",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学期",
+                        "name": "semester",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功获取回收站课表信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/class.GetRecycleBinClassInfosResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/class/recover": {
+            "put": {
+                "description": "从回收站恢复课表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "课表"
+                ],
+                "summary": "恢复课表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "恢复课表请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/class.RecoverClassRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功恢复课表",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/class/search": {
+            "get": {
+                "description": "根据关键词[教师或者课程名]搜索课程",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "课表"
+                ],
+                "summary": "搜索课程",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "学年",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学期",
+                        "name": "semester",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词",
+                        "name": "searchKeyWords",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功搜索到课程",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/class.SearchClassResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/class/update": {
+            "put": {
+                "description": "根据课表ID更新课表信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "课表"
+                ],
+                "summary": "更新课表信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "更新课表请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/class.UpdateClassRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功更新课表",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/department/delDepartment": {
+            "delete": {
+                "description": "删除部门信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "部门"
+                ],
+                "summary": "删除部门信息",
+                "parameters": [
+                    {
+                        "description": "删除部门信息请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/department.DelDepartmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/department/getDepartments": {
+            "get": {
+                "description": "获取部门列表",
+                "tags": [
+                    "部门"
+                ],
+                "summary": "获取部门列表",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/department.GetDepartmentsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/department/saveDepartment": {
+            "post": {
+                "description": "保存部门信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "部门"
+                ],
+                "summary": "保存部门信息",
+                "parameters": [
+                    {
+                        "description": "保存部门信息请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/department.SaveDepartmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/elecprice/cancelStandard": {
+            "delete": {
+                "description": "取消自己订阅的电费提醒",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "电费"
+                ],
+                "summary": "取消电费提醒标准",
+                "parameters": [
+                    {
+                        "description": "取消电费提醒请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/elecprice.CancelStandardRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "取消成功的返回信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/elecprice/getArchitecture": {
+            "get": {
+                "description": "通过区域获取楼栋信息",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "电费"
+                ],
+                "summary": "获取楼栋信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "area_name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "设置成功的返回信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "$ref": "#/definitions/elecprice.GetArchitectureResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/elecprice/getPrice": {
+            "get": {
+                "description": "根据房间号获取电费信息",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "电费"
+                ],
+                "summary": "获取电费",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "room_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功的返回信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "$ref": "#/definitions/elecprice.GetPriceResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/elecprice/getRoomInfo": {
+            "get": {
+                "description": "根据房间号和空调/照明id",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "电费"
+                ],
+                "summary": "获取房间号和id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "architecture_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "floor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功的返回信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "$ref": "#/definitions/elecprice.GetRoomInfoResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/elecprice/getStandardList": {
+            "get": {
+                "description": "获取自己订阅的电费提醒标准",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "电费"
+                ],
+                "summary": "获取电费提醒标准",
+                "responses": {
+                    "200": {
+                        "description": "获取成功的返回信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "$ref": "#/definitions/elecprice.GetStandardListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/elecprice/setStandard": {
+            "put": {
+                "description": "根据区域、楼栋和房间号设置电费提醒的金额标准",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "电费"
+                ],
+                "summary": "设置电费提醒标准",
+                "parameters": [
+                    {
+                        "description": "设置电费提醒请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/elecprice.SetStandardRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "设置成功的返回信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/changeFeedAllowList": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "修改已登录用户的feed订阅白名单设置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed订阅"
+                ],
+                "summary": "修改feed订阅白名单",
+                "parameters": [
+                    {
+                        "description": "白名单设置",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feed.ChangeFeedAllowListReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/clearFeedEvent": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "清除指定用户的feed订阅事件,都是可选字段",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed订阅"
+                ],
+                "summary": "清除feed订阅事件",
+                "parameters": [
+                    {
+                        "description": "feed订阅事件ID",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feed.ClearFeedEventReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/getFeedAllowList": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取已登录用户的feed订阅白名单设置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed订阅"
+                ],
+                "summary": "获取feed订阅白名单",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/feed.GetFeedAllowListResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/getFeedEvents": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer Auth": []
+                    }
+                ],
+                "description": "获取已登录用户的所有feed订阅事件（包括已读和未读）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed订阅"
+                ],
+                "summary": "获取feed订阅事件",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/feed.GetFeedEventsResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/getToBePublicOfficialMSG": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取计划发布的官方消息，仅限管理员操作",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed订阅"
+                ],
+                "summary": "获取待发布的官方消息",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/feed.GetToBePublicMuxiOfficialMSGResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "没有访问权限",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/publicMuxiOfficialMSG": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "发布木犀官方消息，仅限管理员操作",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed订阅"
+                ],
+                "summary": "发布木犀官方消息",
+                "parameters": [
+                    {
+                        "description": "木犀官方消息",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feed.PublicMuxiOfficialMSGReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/feed.PublicMuxiOfficialMSGResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "没有访问权限",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/readFeedEvent": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer Auth": []
+                    }
+                ],
+                "description": "标注feed订阅事件为已读",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed订阅"
+                ],
+                "summary": "标注feed订阅事件为已读",
+                "parameters": [
+                    {
+                        "description": "feed订阅事件ID",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feed.ReadFeedEventReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/removeFeedToken": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "删除已登录用户的feed订阅Token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed订阅"
+                ],
+                "summary": "删除feed订阅Token",
+                "parameters": [
+                    {
+                        "description": "feed订阅Token",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feed.RemoveFeedTokenReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/saveFeedToken": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "保存已登录用户的feed订阅Token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed订阅"
+                ],
+                "summary": "保存feed订阅Token",
+                "parameters": [
+                    {
+                        "description": "feed订阅Token",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feed.SaveFeedTokenReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/stopMuxiOfficialMSG": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "停止木犀官方消息，仅限管理员操作",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed订阅"
+                ],
+                "summary": "停止木犀官方消息",
+                "parameters": [
+                    {
+                        "description": "停止消息请求",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feed.StopMuxiOfficialMSGReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "没有访问权限",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feedback_help/changeQuestion": {
+            "post": {
+                "description": "修改一个常见问题的内容与答复",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "帮助与反馈"
+                ],
+                "summary": "修改一个问题与答复",
+                "parameters": [
+                    {
+                        "description": "修改常见问题",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feedback_help.ChangeQuestionReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feedback_help/createQuestion": {
+            "post": {
+                "description": "创建一个常见问题的内容与答复",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "帮助与反馈"
+                ],
+                "summary": "创建一个问题与答复",
+                "parameters": [
+                    {
+                        "description": "创建一个常见问题",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feedback_help.CreateQuestionReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feedback_help/deleteQuestion": {
+            "post": {
+                "description": "删除一个常见问题的内容与答复",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "帮助与反馈"
+                ],
+                "summary": "删除一个问题与答复",
+                "parameters": [
+                    {
+                        "description": "删除常见问题",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feedback_help.DeleteQuestionReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feedback_help/findQuestionsByName": {
+            "get": {
+                "description": "对常见问题进行模糊搜索",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "帮助与反馈"
+                ],
+                "summary": "搜取问题",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "问题名称",
+                        "name": "question",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "date": {
+                                            "$ref": "#/definitions/feedback_help.FindQuestionsByNameResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feedback_help/getQuestion": {
+            "get": {
+                "description": "获取点击数量最多的10个常见问题",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "帮助与反馈"
+                ],
+                "summary": "获取常见问题",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/feedback_help.GetQuestionsResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/feedback_help/noteQuestion": {
+            "post": {
+                "description": "标记问题解决状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "帮助与反馈"
+                ],
+                "summary": "标记问题解决状态",
+                "parameters": [
+                    {
+                        "description": "标记问题解决状态",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feedback_help.NoteQuestionReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/grade/getGradeByTerm": {
+            "get": {
+                "description": "根据学年号和学期号获取用户的成绩",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "成绩"
+                ],
+                "summary": "查询按学年和学期的成绩",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "学年号（如 2023 表示 2023~2024 学年）",
+                        "name": "xnm",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "学期号（1 表示第一学期，2 表示第二学期）",
+                        "name": "xqm",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回学年和学期的成绩信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/grade.GetGradeByTermResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，获取失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/grade/getGradeScore": {
+            "get": {
+                "description": "查询学分",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "成绩"
+                ],
+                "summary": "查询学分",
+                "responses": {
+                    "200": {
+                        "description": "成功返回学分",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/grade.GetGradeScoreResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，获取失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics/:eventName": {
+            "post": {
+                "description": "用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/kstack)表示跳转访问课栈,使用这一路由必须携带Auth请求头",
+                "tags": [
+                    "打点"
+                ],
+                "summary": "用于打点的路由",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/statics": {
+            "get": {
+                "description": "根据静态资源名称获取静态资源的内容。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "静态"
+                ],
+                "summary": "获取静态资源[精确名称]",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "静态资源名称",
+                        "name": "static_name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/static.StaticVo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/statics/match/labels": {
+            "get": {
+                "description": "根据静labels匹配合适的静态资源",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "静态"
+                ],
+                "summary": "获取静态资源[标签匹配]",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "标签：标明匹配哪一类的资源",
+                        "name": "labels[type]",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/static.GetStaticByLabelsResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/statics/save": {
+            "post": {
+                "description": "保存静态内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "静态"
+                ],
+                "summary": "保存静态内容",
+                "parameters": [
+                    {
+                        "description": "保存静态内容请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/static.SaveStaticReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/tube/access_token": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "图床"
+                ],
+                "summary": "获取图床访问令牌",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/tube.GetTubeTokenData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/users/login_ccnu": {
+            "post": {
+                "description": "通过学号和密码进行登录认证",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "ccnu登录",
+                "parameters": [
+                    {
+                        "description": "登录请求体",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.LoginByCCNUReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/logout": {
+            "post": {
+                "description": "通过短token登出",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "登出(销毁token)",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/refresh_token": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer Auth": []
+                    }
+                ],
+                "description": "通过长token刷新短token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "刷新短token",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/website/delWebsite": {
+            "delete": {
+                "description": "删除网站信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "网站"
+                ],
+                "summary": "删除网站信息",
+                "parameters": [
+                    {
+                        "description": "删除网站信息请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/website.DelWebsiteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/website/getWebsites": {
+            "get": {
+                "description": "获取所有网站的列表",
+                "tags": [
+                    "网站"
+                ],
+                "summary": "获取网站列表",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/website.GetWebsitesResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/website/saveWebsite": {
+            "post": {
+                "description": "保存网站信息,id是可选字段,如果有就是替换原来的列表里的,如果没有就是存储新的值",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "网站"
+                ],
+                "summary": "保存网站信息",
+                "parameters": [
+                    {
+                        "description": "保存网站信息请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/website.SaveWebsiteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "banner.Banner": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "picture_link": {
+                    "type": "string"
+                },
+                "web_link": {
+                    "type": "string"
+                }
+            }
+        },
+        "banner.DelBannerRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "banner.GetBannersResponse": {
+            "type": "object",
+            "properties": {
+                "banners": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/banner.Banner"
+                    }
+                }
+            }
+        },
+        "banner.SaveBannerRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "picture_link": {
+                    "type": "string"
+                },
+                "web_link": {
+                    "type": "string"
+                }
+            }
+        },
+        "calendar.DelCalendarRequest": {
+            "type": "object",
+            "properties": {
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "calendar.GetCalendarResponse": {
+            "type": "object",
+            "properties": {
+                "link": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "calendar.SaveCalendarRequest": {
+            "type": "object",
+            "properties": {
+                "link": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "card.GetRecordOfConsumptionRequest": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "card.GetRecordOfConsumptionResponse": {
+            "type": "object",
+            "properties": {
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/card.Records"
+                    }
+                }
+            }
+        },
+        "card.NoteUserKeyRequest": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                }
+            }
+        },
+        "card.Records": {
+            "type": "object",
+            "properties": {
+                "SMT_DEALDATETIME": {
+                    "type": "string"
+                },
+                "SMT_DEALNAME": {
+                    "type": "string"
+                },
+                "SMT_ORG_NAME": {
+                    "type": "string"
+                },
+                "SMT_TIMES": {
+                    "type": "integer"
+                },
+                "after_money": {
+                    "type": "number"
+                },
+                "money": {
+                    "type": "number"
+                }
+            }
+        },
+        "card.UpdateUserKeyRequest": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                }
+            }
+        },
+        "class.AddClassRequest": {
+            "type": "object",
+            "properties": {
+                "credit": {
+                    "description": "学分",
+                    "type": "number"
+                },
+                "day": {
+                    "description": "星期几",
+                    "type": "integer"
+                },
+                "dur_class": {
+                    "description": "第几节 '形如 \"1-3\",\"1-1\"'",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "课程名称",
+                    "type": "string"
+                },
+                "semester": {
+                    "description": "学期",
+                    "type": "string"
+                },
+                "teacher": {
+                    "description": "教师",
+                    "type": "string"
+                },
+                "weeks": {
+                    "description": "哪些周",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "where": {
+                    "description": "地点",
+                    "type": "string"
+                },
+                "year": {
+                    "description": "学年",
+                    "type": "string"
+                }
+            }
+        },
+        "class.ClassInfo": {
+            "type": "object",
+            "properties": {
+                "class_when": {
+                    "description": "上课是第几节（如1-2,3-4）",
+                    "type": "string"
+                },
+                "classname": {
+                    "description": "课程名称",
+                    "type": "string"
+                },
+                "credit": {
+                    "description": "学分",
+                    "type": "number"
+                },
+                "day": {
+                    "description": "星期几",
+                    "type": "integer"
+                },
+                "id": {
+                    "description": "集合了课程信息的字符串，便于标识（课程ID）",
+                    "type": "string"
+                },
+                "semester": {
+                    "description": "学期",
+                    "type": "string"
+                },
+                "teacher": {
+                    "description": "任课教师",
+                    "type": "string"
+                },
+                "week_duration": {
+                    "description": "上课的周数",
+                    "type": "string"
+                },
+                "weeks": {
+                    "description": "哪些周",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "where": {
+                    "description": "上课地点",
+                    "type": "string"
+                },
+                "year": {
+                    "description": "学年",
+                    "type": "string"
+                }
+            }
+        },
+        "class.DeleteClassRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "要被删的课程id",
+                    "type": "string"
+                },
+                "semester": {
+                    "description": "学期 \"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
+                    "type": "string"
+                },
+                "year": {
+                    "description": "学年  \"2024\" -\u003e 代表\"2024-2025学年\"",
+                    "type": "string"
+                }
+            }
+        },
+        "class.GetClassListRequest": {
+            "type": "object",
+            "properties": {
+                "refresh": {
+                    "type": "boolean"
+                },
+                "semester": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "string"
+                }
+            }
+        },
+        "class.GetClassListResp": {
+            "type": "object",
+            "properties": {
+                "classes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassInfo"
+                    }
+                }
+            }
+        },
+        "class.GetRecycleBinClassInfosResp": {
+            "type": "object",
+            "properties": {
+                "classInfos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassInfo"
+                    }
+                }
+            }
+        },
+        "class.GetSchoolDayResp": {
+            "type": "object",
+            "properties": {
+                "holiday_time": {
+                    "type": "integer"
+                },
+                "school_time": {
+                    "type": "integer"
+                }
+            }
+        },
+        "class.RecoverClassRequest": {
+            "type": "object",
+            "properties": {
+                "classId": {
+                    "description": "课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回",
+                    "type": "string"
+                },
+                "semester": {
+                    "description": "学期 \"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
+                    "type": "string"
+                },
+                "year": {
+                    "description": "学年  \"2024\" 代表\"2024-2025学年\"",
+                    "type": "string"
+                }
+            }
+        },
+        "class.SearchClassResp": {
+            "type": "object",
+            "properties": {
+                "classInfos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassInfo"
+                    }
+                }
+            }
+        },
+        "class.UpdateClassRequest": {
+            "type": "object",
+            "properties": {
+                "classId": {
+                    "description": "课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回",
+                    "type": "string"
+                },
+                "credit": {
+                    "description": "学分",
+                    "type": "number"
+                },
+                "day": {
+                    "description": "星期几",
+                    "type": "integer"
+                },
+                "dur_class": {
+                    "description": "第几节 '形如 \"1-3\",\"1-1\"'",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "课程名称",
+                    "type": "string"
+                },
+                "semester": {
+                    "description": "学期",
+                    "type": "string"
+                },
+                "teacher": {
+                    "description": "教师",
+                    "type": "string"
+                },
+                "weeks": {
+                    "description": "哪些周",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "where": {
+                    "description": "地点",
+                    "type": "string"
+                },
+                "year": {
+                    "description": "学年",
+                    "type": "string"
+                }
+            }
+        },
+        "department.DelDepartmentRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "department.Department": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "place": {
+                    "type": "string"
+                },
+                "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "department.GetDepartmentsResponse": {
+            "type": "object",
+            "properties": {
+                "departments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/department.Department"
+                    }
+                }
+            }
+        },
+        "department.SaveDepartmentRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "place": {
+                    "type": "string"
+                },
+                "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "elecprice.Architecture": {
+            "type": "object",
+            "properties": {
+                "architecture_id": {
+                    "type": "string"
+                },
+                "architecture_name": {
+                    "type": "string"
+                },
+                "base_floor": {
+                    "type": "string"
+                },
+                "top_floor": {
+                    "type": "string"
+                }
+            }
+        },
+        "elecprice.CancelStandardRequest": {
+            "type": "object",
+            "properties": {
+                "room_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "elecprice.GetArchitectureResponse": {
+            "type": "object",
+            "properties": {
+                "architecture_list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/elecprice.Architecture"
+                    }
+                }
+            }
+        },
+        "elecprice.GetPriceResponse": {
+            "type": "object",
+            "properties": {
+                "price": {
+                    "$ref": "#/definitions/elecprice.Price"
+                }
+            }
+        },
+        "elecprice.GetRoomInfoResponse": {
+            "type": "object",
+            "properties": {
+                "room_list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/elecprice.Room"
+                    }
+                }
+            }
+        },
+        "elecprice.GetStandardListResponse": {
+            "type": "object",
+            "properties": {
+                "standard_list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/elecprice.StandardResp"
+                    }
+                }
+            }
+        },
+        "elecprice.Price": {
+            "type": "object",
+            "properties": {
+                "remain_money": {
+                    "type": "string"
+                },
+                "yesterday_use_money": {
+                    "type": "string"
+                },
+                "yesterday_use_value": {
+                    "type": "string"
+                }
+            }
+        },
+        "elecprice.Room": {
+            "type": "object",
+            "properties": {
+                "room_id": {
+                    "type": "string"
+                },
+                "room_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "elecprice.SetStandardRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "room_id": {
+                    "type": "string"
+                },
+                "room_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "elecprice.StandardResp": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "room_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "feed.ChangeFeedAllowListReq": {
+            "type": "object",
+            "properties": {
+                "energy": {
+                    "type": "boolean"
+                },
+                "grade": {
+                    "type": "boolean"
+                },
+                "holiday": {
+                    "type": "boolean"
+                },
+                "muxi": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "feed.ClearFeedEventReq": {
+            "type": "object",
+            "properties": {
+                "feed_id": {
+                    "description": "如果feedid和status都被填写了,那么就会清除当前的feedid代表的feed消息且状态为设置的status的",
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "有三个可选字段all表示清除所有消息,read表示清除所有已读消息,unread表示清除所有未读消息",
+                    "type": "string"
+                }
+            }
+        },
+        "feed.FeedEventVO": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "description": "Unix时间戳",
+                    "type": "integer"
+                },
+                "extend_fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "read": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "feed.GetFeedAllowListResp": {
+            "type": "object",
+            "properties": {
+                "energy": {
+                    "type": "boolean"
+                },
+                "grade": {
+                    "type": "boolean"
+                },
+                "holiday": {
+                    "type": "boolean"
+                },
+                "muxi": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "feed.GetFeedEventsResp": {
+            "type": "object",
+            "properties": {
+                "feed_events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/feed.FeedEventVO"
+                    }
+                }
+            }
+        },
+        "feed.GetToBePublicMuxiOfficialMSGResp": {
+            "type": "object",
+            "properties": {
+                "msg_list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/feed.MuxiOfficialMSG"
+                    }
+                }
+            }
+        },
+        "feed.MuxiOfficialMSG": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "extend_fields": {
+                    "description": "自定义拓展字段",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "public_time": {
+                    "description": "发布的时间",
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "feed.PublicMuxiOfficialMSGReq": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "extend_fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "later_time": {
+                    "description": "延迟多久发布(单位是秒)",
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "feed.PublicMuxiOfficialMSGResp": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "extend_fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "public_time": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "feed.ReadFeedEventReq": {
+            "type": "object",
+            "properties": {
+                "feed_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "feed.RemoveFeedTokenReq": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "feed.SaveFeedTokenReq": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "feed.StopMuxiOfficialMSGReq": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "feedback_help.ChangeQuestionReq": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "string"
+                },
+                "question": {
+                    "type": "string"
+                },
+                "question_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "feedback_help.CreateQuestionReq": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "string"
+                },
+                "question": {
+                    "type": "string"
+                }
+            }
+        },
+        "feedback_help.DeleteQuestionReq": {
+            "type": "object",
+            "properties": {
+                "question_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "feedback_help.FindQuestionsByNameResp": {
+            "type": "object",
+            "properties": {
+                "questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/feedback_help.FrequentlyAskedQuestion"
+                    }
+                }
+            }
+        },
+        "feedback_help.FrequentlyAskedQuestion": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "string"
+                },
+                "clickTimes": {
+                    "description": "Utime      time.Time\nCtime      time.Time",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "question": {
+                    "type": "string"
+                }
+            }
+        },
+        "feedback_help.GetQuestionsResp": {
+            "type": "object",
+            "properties": {
+                "questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/feedback_help.FrequentlyAskedQuestion"
+                    }
+                }
+            }
+        },
+        "feedback_help.NoteQuestionReq": {
+            "type": "object",
+            "properties": {
+                "if_over": {
+                    "type": "boolean"
+                },
+                "question_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "grade.GetGradeByTermResp": {
+            "type": "object",
+            "properties": {
+                "grades": {
+                    "description": "课程信息",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/grade.Grade"
+                    }
+                }
+            }
+        },
+        "grade.GetGradeScoreResp": {
+            "type": "object",
+            "properties": {
+                "type_of_grade_scores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/grade.TypeOfGradeScore"
+                    }
+                }
+            }
+        },
+        "grade.Grade": {
+            "type": "object",
+            "properties": {
+                "Kclbmc": {
+                    "description": "课程类别名称",
+                    "type": "string"
+                },
+                "cj": {
+                    "description": "最终成绩",
+                    "type": "number"
+                },
+                "finalGrade": {
+                    "description": "期末成绩分数",
+                    "type": "number"
+                },
+                "finalGradePercent": {
+                    "description": "/期末成绩占比",
+                    "type": "string"
+                },
+                "jd": {
+                    "description": "绩点",
+                    "type": "number"
+                },
+                "kcbj": {
+                    "description": "课程标记(主修/辅修)",
+                    "type": "string"
+                },
+                "kcmc": {
+                    "description": "课程名称",
+                    "type": "string"
+                },
+                "kcxzmc": {
+                    "description": "课程性质名称",
+                    "type": "string"
+                },
+                "regularGrade": {
+                    "description": "平时成绩分数",
+                    "type": "number"
+                },
+                "regularGradePercent": {
+                    "description": "平时成绩占比",
+                    "type": "string"
+                },
+                "xf": {
+                    "description": "学分",
+                    "type": "number"
+                }
+            }
+        },
+        "grade.GradeScore": {
+            "type": "object",
+            "properties": {
+                "kcmc": {
+                    "description": "课程名称",
+                    "type": "string"
+                },
+                "xf": {
+                    "description": "学分",
+                    "type": "number"
+                }
+            }
+        },
+        "grade.TypeOfGradeScore": {
+            "type": "object",
+            "properties": {
+                "grade_score_list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/grade.GradeScore"
+                    }
+                },
+                "kcxzmc": {
+                    "description": "课程性质名称",
+                    "type": "string"
+                }
+            }
+        },
+        "infoSum.DelInfoSumRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "infoSum.GetInfoSumsResponse": {
+            "type": "object",
+            "properties": {
+                "info_sums": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/infoSum.InfoSum"
+                    }
+                }
+            }
+        },
+        "infoSum.InfoSum": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "infoSum.SaveInfoSumRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "static.GetStaticByLabelsResp": {
+            "type": "object",
+            "properties": {
+                "statics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/static.StaticVo"
+                    }
+                }
+            }
+        },
+        "static.SaveStaticReq": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "static.StaticVo": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "tube.GetTubeTokenData": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "domain_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.LoginByCCNUReq": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "description": "密码",
+                    "type": "string"
+                },
+                "student_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "web.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "website.DelWebsiteRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "website.GetWebsitesResponse": {
+            "type": "object",
+            "properties": {
+                "websites": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/website.Website"
+                    }
+                }
+            }
+        },
+        "website.SaveWebsiteRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "website.Website": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

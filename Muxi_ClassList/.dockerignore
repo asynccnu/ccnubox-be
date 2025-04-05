@@ -1,6 +1,0 @@
-*_test.go
-# 忽略所有子目录中的 mock 文件夹
-**/mock/
- ./deploy/mysql/
- ./deploy/redis/
- ./log/

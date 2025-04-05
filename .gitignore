@@ -13,7 +13,8 @@
 vendor/
 
 # Go workspace file
-go.work
+./go.work
+./go.work.sum
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o

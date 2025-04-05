@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package helloworld.v1;
+
+import "errors/errors.proto";
+
+option go_package = "class/api/classer/v1;v1";
+option java_multiple_files = true;
+option java_package = "classer.v1";
+option objc_class_prefix = "APICLASSERV1";
+
+enum ErrorReason {
+  // 设置缺省错误码
+  option (errors.default_code) = 500;
+  DB_NOTFOUND = 0;
+  DB_FINDERR =1 ;
+  DB_UPDATEERR=2  ;
+  Param_Err = 3 ;
+  DB_SAVEERROR = 4;
+  DB_DELETEERROR = 5;
+  Crawler_Error = 6 ;
+  CCNULogin_Error = 7 ;
+  SCIDNOTEXIST_Erroe = 8 ;
+  RECYCLEBINDONOTHAVETHECLASS = 9 ;
+  RECOVERFAILED = 10 ;
+  GETSTUIDBYJXBID = 11;
+  CLASSISEXIST = 12;
+}

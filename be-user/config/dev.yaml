@@ -1,0 +1,19 @@
+mysql:
+  dsn: "root:root@tcp(localhost:3306)/ccnubox"
+
+redis:
+  addr: "localhost:6379"
+
+etcd:
+  endpoints:
+    - "localhost:12379"
+
+grpc:
+  server:
+    name: "user"
+    weight: 100
+    addr: ":8081"
+    etcdTTL: 60
+  client:
+    ccnu:
+      endpoint: "discovery:///ccnu"

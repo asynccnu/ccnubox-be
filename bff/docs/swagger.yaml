@@ -1,0 +1,2261 @@
+definitions:
+  banner.Banner:
+    properties:
+      id:
+        type: integer
+      picture_link:
+        type: string
+      web_link:
+        type: string
+    type: object
+  banner.DelBannerRequest:
+    properties:
+      id:
+        type: integer
+    type: object
+  banner.GetBannersResponse:
+    properties:
+      banners:
+        items:
+          $ref: '#/definitions/banner.Banner'
+        type: array
+    type: object
+  banner.SaveBannerRequest:
+    properties:
+      id:
+        type: integer
+      picture_link:
+        type: string
+      web_link:
+        type: string
+    type: object
+  calendar.DelCalendarRequest:
+    properties:
+      year:
+        type: integer
+    type: object
+  calendar.GetCalendarResponse:
+    properties:
+      link:
+        type: string
+      year:
+        type: integer
+    type: object
+  calendar.SaveCalendarRequest:
+    properties:
+      link:
+        type: string
+      year:
+        type: integer
+    type: object
+  card.GetRecordOfConsumptionRequest:
+    properties:
+      key:
+        type: string
+      start_time:
+        type: string
+      type:
+        type: string
+    type: object
+  card.GetRecordOfConsumptionResponse:
+    properties:
+      records:
+        items:
+          $ref: '#/definitions/card.Records'
+        type: array
+    type: object
+  card.NoteUserKeyRequest:
+    properties:
+      key:
+        type: string
+    type: object
+  card.Records:
+    properties:
+      SMT_DEALDATETIME:
+        type: string
+      SMT_DEALNAME:
+        type: string
+      SMT_ORG_NAME:
+        type: string
+      SMT_TIMES:
+        type: integer
+      after_money:
+        type: number
+      money:
+        type: number
+    type: object
+  card.UpdateUserKeyRequest:
+    properties:
+      key:
+        type: string
+    type: object
+  class.AddClassRequest:
+    properties:
+      credit:
+        description: 学分
+        type: number
+      day:
+        description: 星期几
+        type: integer
+      dur_class:
+        description: 第几节 '形如 "1-3","1-1"'
+        type: string
+      name:
+        description: 课程名称
+        type: string
+      semester:
+        description: 学期
+        type: string
+      teacher:
+        description: 教师
+        type: string
+      weeks:
+        description: 哪些周
+        items:
+          type: integer
+        type: array
+      where:
+        description: 地点
+        type: string
+      year:
+        description: 学年
+        type: string
+    type: object
+  class.ClassInfo:
+    properties:
+      class_when:
+        description: 上课是第几节（如1-2,3-4）
+        type: string
+      classname:
+        description: 课程名称
+        type: string
+      credit:
+        description: 学分
+        type: number
+      day:
+        description: 星期几
+        type: integer
+      id:
+        description: 集合了课程信息的字符串，便于标识（课程ID）
+        type: string
+      semester:
+        description: 学期
+        type: string
+      teacher:
+        description: 任课教师
+        type: string
+      week_duration:
+        description: 上课的周数
+        type: string
+      weeks:
+        description: 哪些周
+        items:
+          type: integer
+        type: array
+      where:
+        description: 上课地点
+        type: string
+      year:
+        description: 学年
+        type: string
+    type: object
+  class.DeleteClassRequest:
+    properties:
+      id:
+        description: 要被删的课程id
+        type: string
+      semester:
+        description: 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+        type: string
+      year:
+        description: 学年  "2024" -> 代表"2024-2025学年"
+        type: string
+    type: object
+  class.GetClassListRequest:
+    properties:
+      refresh:
+        type: boolean
+      semester:
+        type: string
+      year:
+        type: string
+    type: object
+  class.GetClassListResp:
+    properties:
+      classes:
+        items:
+          $ref: '#/definitions/class.ClassInfo'
+        type: array
+    type: object
+  class.GetRecycleBinClassInfosResp:
+    properties:
+      classInfos:
+        items:
+          $ref: '#/definitions/class.ClassInfo'
+        type: array
+    type: object
+  class.GetSchoolDayResp:
+    properties:
+      holiday_time:
+        type: integer
+      school_time:
+        type: integer
+    type: object
+  class.RecoverClassRequest:
+    properties:
+      classId:
+        description: 课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回
+        type: string
+      semester:
+        description: 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+        type: string
+      year:
+        description: 学年  "2024" 代表"2024-2025学年"
+        type: string
+    type: object
+  class.SearchClassResp:
+    properties:
+      classInfos:
+        items:
+          $ref: '#/definitions/class.ClassInfo'
+        type: array
+    type: object
+  class.UpdateClassRequest:
+    properties:
+      classId:
+        description: 课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回
+        type: string
+      credit:
+        description: 学分
+        type: number
+      day:
+        description: 星期几
+        type: integer
+      dur_class:
+        description: 第几节 '形如 "1-3","1-1"'
+        type: string
+      name:
+        description: 课程名称
+        type: string
+      semester:
+        description: 学期
+        type: string
+      teacher:
+        description: 教师
+        type: string
+      weeks:
+        description: 哪些周
+        items:
+          type: integer
+        type: array
+      where:
+        description: 地点
+        type: string
+      year:
+        description: 学年
+        type: string
+    type: object
+  department.DelDepartmentRequest:
+    properties:
+      id:
+        type: integer
+    type: object
+  department.Department:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      place:
+        type: string
+      time:
+        type: string
+    type: object
+  department.GetDepartmentsResponse:
+    properties:
+      departments:
+        items:
+          $ref: '#/definitions/department.Department'
+        type: array
+    type: object
+  department.SaveDepartmentRequest:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      place:
+        type: string
+      time:
+        type: string
+    type: object
+  elecprice.Architecture:
+    properties:
+      architecture_id:
+        type: string
+      architecture_name:
+        type: string
+      base_floor:
+        type: string
+      top_floor:
+        type: string
+    type: object
+  elecprice.CancelStandardRequest:
+    properties:
+      room_id:
+        type: string
+    type: object
+  elecprice.GetArchitectureResponse:
+    properties:
+      architecture_list:
+        items:
+          $ref: '#/definitions/elecprice.Architecture'
+        type: array
+    type: object
+  elecprice.GetPriceResponse:
+    properties:
+      price:
+        $ref: '#/definitions/elecprice.Price'
+    type: object
+  elecprice.GetRoomInfoResponse:
+    properties:
+      room_list:
+        items:
+          $ref: '#/definitions/elecprice.Room'
+        type: array
+    type: object
+  elecprice.GetStandardListResponse:
+    properties:
+      standard_list:
+        items:
+          $ref: '#/definitions/elecprice.StandardResp'
+        type: array
+    type: object
+  elecprice.Price:
+    properties:
+      remain_money:
+        type: string
+      yesterday_use_money:
+        type: string
+      yesterday_use_value:
+        type: string
+    type: object
+  elecprice.Room:
+    properties:
+      room_id:
+        type: string
+      room_name:
+        type: string
+    type: object
+  elecprice.SetStandardRequest:
+    properties:
+      limit:
+        type: integer
+      room_id:
+        type: string
+      room_name:
+        type: string
+    type: object
+  elecprice.StandardResp:
+    properties:
+      limit:
+        type: integer
+      room_name:
+        type: string
+    type: object
+  feed.ChangeFeedAllowListReq:
+    properties:
+      energy:
+        type: boolean
+      grade:
+        type: boolean
+      holiday:
+        type: boolean
+      muxi:
+        type: boolean
+    type: object
+  feed.ClearFeedEventReq:
+    properties:
+      feed_id:
+        description: 如果feedid和status都被填写了,那么就会清除当前的feedid代表的feed消息且状态为设置的status的
+        type: integer
+      status:
+        description: 有三个可选字段all表示清除所有消息,read表示清除所有已读消息,unread表示清除所有未读消息
+        type: string
+    type: object
+  feed.FeedEventVO:
+    properties:
+      content:
+        type: string
+      created_at:
+        description: Unix时间戳
+        type: integer
+      extend_fields:
+        additionalProperties:
+          type: string
+        type: object
+      id:
+        type: integer
+      read:
+        type: boolean
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  feed.GetFeedAllowListResp:
+    properties:
+      energy:
+        type: boolean
+      grade:
+        type: boolean
+      holiday:
+        type: boolean
+      muxi:
+        type: boolean
+    type: object
+  feed.GetFeedEventsResp:
+    properties:
+      feed_events:
+        items:
+          $ref: '#/definitions/feed.FeedEventVO'
+        type: array
+    type: object
+  feed.GetToBePublicMuxiOfficialMSGResp:
+    properties:
+      msg_list:
+        items:
+          $ref: '#/definitions/feed.MuxiOfficialMSG'
+        type: array
+    type: object
+  feed.MuxiOfficialMSG:
+    properties:
+      content:
+        type: string
+      extend_fields:
+        additionalProperties:
+          type: string
+        description: 自定义拓展字段
+        type: object
+      id:
+        type: string
+      public_time:
+        description: 发布的时间
+        type: integer
+      title:
+        type: string
+    type: object
+  feed.PublicMuxiOfficialMSGReq:
+    properties:
+      content:
+        type: string
+      extend_fields:
+        additionalProperties:
+          type: string
+        type: object
+      later_time:
+        description: 延迟多久发布(单位是秒)
+        type: integer
+      title:
+        type: string
+    type: object
+  feed.PublicMuxiOfficialMSGResp:
+    properties:
+      content:
+        type: string
+      extend_fields:
+        additionalProperties:
+          type: string
+        type: object
+      id:
+        type: string
+      public_time:
+        type: string
+      title:
+        type: string
+    type: object
+  feed.ReadFeedEventReq:
+    properties:
+      feed_id:
+        type: integer
+    type: object
+  feed.RemoveFeedTokenReq:
+    properties:
+      token:
+        type: string
+    type: object
+  feed.SaveFeedTokenReq:
+    properties:
+      token:
+        type: string
+    type: object
+  feed.StopMuxiOfficialMSGReq:
+    properties:
+      id:
+        type: string
+    type: object
+  feedback_help.ChangeQuestionReq:
+    properties:
+      answer:
+        type: string
+      question:
+        type: string
+      question_id:
+        type: integer
+    type: object
+  feedback_help.CreateQuestionReq:
+    properties:
+      answer:
+        type: string
+      question:
+        type: string
+    type: object
+  feedback_help.DeleteQuestionReq:
+    properties:
+      question_id:
+        type: integer
+    type: object
+  feedback_help.FindQuestionsByNameResp:
+    properties:
+      questions:
+        items:
+          $ref: '#/definitions/feedback_help.FrequentlyAskedQuestion'
+        type: array
+    type: object
+  feedback_help.FrequentlyAskedQuestion:
+    properties:
+      answer:
+        type: string
+      clickTimes:
+        description: |-
+          Utime      time.Time
+          Ctime      time.Time
+        type: integer
+      id:
+        type: integer
+      question:
+        type: string
+    type: object
+  feedback_help.GetQuestionsResp:
+    properties:
+      questions:
+        items:
+          $ref: '#/definitions/feedback_help.FrequentlyAskedQuestion'
+        type: array
+    type: object
+  feedback_help.NoteQuestionReq:
+    properties:
+      if_over:
+        type: boolean
+      question_id:
+        type: integer
+    type: object
+  grade.GetGradeByTermResp:
+    properties:
+      grades:
+        description: 课程信息
+        items:
+          $ref: '#/definitions/grade.Grade'
+        type: array
+    type: object
+  grade.GetGradeScoreResp:
+    properties:
+      type_of_grade_scores:
+        items:
+          $ref: '#/definitions/grade.TypeOfGradeScore'
+        type: array
+    type: object
+  grade.Grade:
+    properties:
+      Kclbmc:
+        description: 课程类别名称
+        type: string
+      cj:
+        description: 最终成绩
+        type: number
+      finalGrade:
+        description: 期末成绩分数
+        type: number
+      finalGradePercent:
+        description: /期末成绩占比
+        type: string
+      jd:
+        description: 绩点
+        type: number
+      kcbj:
+        description: 课程标记(主修/辅修)
+        type: string
+      kcmc:
+        description: 课程名称
+        type: string
+      kcxzmc:
+        description: 课程性质名称
+        type: string
+      regularGrade:
+        description: 平时成绩分数
+        type: number
+      regularGradePercent:
+        description: 平时成绩占比
+        type: string
+      xf:
+        description: 学分
+        type: number
+    type: object
+  grade.GradeScore:
+    properties:
+      kcmc:
+        description: 课程名称
+        type: string
+      xf:
+        description: 学分
+        type: number
+    type: object
+  grade.TypeOfGradeScore:
+    properties:
+      grade_score_list:
+        items:
+          $ref: '#/definitions/grade.GradeScore'
+        type: array
+      kcxzmc:
+        description: 课程性质名称
+        type: string
+    type: object
+  infoSum.DelInfoSumRequest:
+    properties:
+      id:
+        type: integer
+    type: object
+  infoSum.GetInfoSumsResponse:
+    properties:
+      info_sums:
+        items:
+          $ref: '#/definitions/infoSum.InfoSum'
+        type: array
+    type: object
+  infoSum.InfoSum:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
+    type: object
+  infoSum.SaveInfoSumRequest:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
+    type: object
+  static.GetStaticByLabelsResp:
+    properties:
+      statics:
+        items:
+          $ref: '#/definitions/static.StaticVo'
+        type: array
+    type: object
+  static.SaveStaticReq:
+    properties:
+      content:
+        type: string
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+    type: object
+  static.StaticVo:
+    properties:
+      content:
+        type: string
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+    type: object
+  tube.GetTubeTokenData:
+    properties:
+      access_token:
+        type: string
+      domain_name:
+        type: string
+    type: object
+  user.LoginByCCNUReq:
+    properties:
+      password:
+        description: 密码
+        type: string
+      student_id:
+        type: string
+    type: object
+  web.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+  website.DelWebsiteRequest:
+    properties:
+      id:
+        type: integer
+    type: object
+  website.GetWebsitesResponse:
+    properties:
+      websites:
+        items:
+          $ref: '#/definitions/website.Website'
+        type: array
+    type: object
+  website.SaveWebsiteRequest:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
+    type: object
+  website.Website:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /InfoSum/delInfoSum:
+    delete:
+      consumes:
+      - application/json
+      description: 删除信息整合信息
+      parameters:
+      - description: 删除信息整合信息请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/infoSum.DelInfoSumRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 删除信息整合信息
+      tags:
+      - 信息整合
+  /InfoSum/getInfoSums:
+    get:
+      description: 获取所有信息整合的列表
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/infoSum.GetInfoSumsResponse'
+              type: object
+      summary: 获取信息整合列表
+      tags:
+      - 信息整合
+  /InfoSum/saveInfoSum:
+    post:
+      consumes:
+      - application/json
+      description: 保存信息整合信息,id是可选字段,如果有就是替换原来的列表里的,如果没有就是存储新的值
+      parameters:
+      - description: 保存信息整合信息请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/infoSum.SaveInfoSumRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 保存信息整合信息
+      tags:
+      - 信息整合
+  /banner/delBanner:
+    delete:
+      consumes:
+      - application/json
+      description: 删除 banner 内容
+      parameters:
+      - description: 删除 banner 内容请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/banner.DelBannerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 删除 banner 内容
+      tags:
+      - banner横幅
+  /banner/getBanners:
+    get:
+      description: 获取 banner 列表
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/banner.GetBannersResponse'
+              type: object
+      summary: 获取 banner 列表
+      tags:
+      - banner横幅
+  /banner/saveBanner:
+    post:
+      consumes:
+      - application/json
+      description: 保存 banner 内容,如果不添加id字段表示添加一个新的banner
+      parameters:
+      - description: 保存 banner 内容请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/banner.SaveBannerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 保存 banner 内容
+      tags:
+      - banner横幅
+  /calendar/delCalendar:
+    delete:
+      consumes:
+      - application/json
+      description: 删除日历内容
+      parameters:
+      - description: 删除日历内容请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/calendar.DelCalendarRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 删除日历内容
+      tags:
+      - 日历
+  /calendar/getCalendar:
+    get:
+      consumes:
+      - application/json
+      description: 获取日历列表
+      parameters:
+      - description: 年份
+        in: query
+        name: year
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/calendar.GetCalendarResponse'
+              type: object
+      summary: 获取日历列表
+      tags:
+      - 日历
+  /calendar/saveCalendar:
+    post:
+      consumes:
+      - application/json
+      description: 保存日历内容
+      parameters:
+      - description: 保存日历内容请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/calendar.SaveCalendarRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 保存日历内容
+      tags:
+      - 日历
+  /card/getRecords:
+    post:
+      consumes:
+      - application/json
+      description: 获取用户消费记录，student_id, start_time, type 必须存在，type 分为 "card"（实体卡）与
+        "virtual"（虚拟卡）
+      parameters:
+      - description: 获取消费记录
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/card.GetRecordOfConsumptionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/card.GetRecordOfConsumptionResponse'
+              type: object
+        "500":
+          description: 创建失败
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 获取消费记录
+      tags:
+      - 校园卡
+  /card/noteUserKey:
+    post:
+      consumes:
+      - application/json
+      description: 记录用户的key
+      parameters:
+      - description: 记录用户的key
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/card.NoteUserKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 创建失败
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 删除用户的key
+      tags:
+      - 校园卡
+  /card/updateUserKey:
+    post:
+      consumes:
+      - application/json
+      description: 更新用户的key
+      parameters:
+      - description: 更新用户的key
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/card.UpdateUserKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 创建失败
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 更新用户的key
+      tags:
+      - 校园卡
+  /class/add:
+    post:
+      consumes:
+      - application/json
+      description: 添加新的课表
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 课表信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/class.AddClassRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功添加课表
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 添加课表
+      tags:
+      - 课表
+  /class/day/get:
+    get:
+      description: 获取当前周
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取到当前周
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.GetSchoolDayResp'
+              type: object
+      summary: 获取当前周
+      tags:
+      - 课表
+  /class/delete:
+    delete:
+      consumes:
+      - application/json
+      description: 根据课表ID删除课表
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 删除课表请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/class.DeleteClassRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功删除课表
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 删除课表
+      tags:
+      - 课表
+  /class/get:
+    get:
+      description: 根据学期、学年等条件获取课表
+      parameters:
+      - description: 学年
+        in: query
+        name: year
+        required: true
+        type: string
+      - description: 学期
+        in: query
+        name: semester
+        required: true
+        type: string
+      - description: 是否强制从华师获取最新版本
+        in: query
+        name: refresh
+        required: true
+        type: boolean
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 获取课表请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/class.GetClassListRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回课表
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.GetClassListResp'
+              type: object
+      summary: 获取课表
+      tags:
+      - 课表
+  /class/getRecycle:
+    get:
+      description: 获取已删除但未彻底清除的课表信息
+      parameters:
+      - description: 学年
+        in: query
+        name: year
+        required: true
+        type: string
+      - description: 学期
+        in: query
+        name: semester
+        required: true
+        type: string
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取回收站课表信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.GetRecycleBinClassInfosResp'
+              type: object
+      summary: 获取回收站课表信息
+      tags:
+      - 课表
+  /class/recover:
+    put:
+      consumes:
+      - application/json
+      description: 从回收站恢复课表
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 恢复课表请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/class.RecoverClassRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功恢复课表
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 恢复课表
+      tags:
+      - 课表
+  /class/search:
+    get:
+      description: 根据关键词[教师或者课程名]搜索课程
+      parameters:
+      - description: 学年
+        in: query
+        name: year
+        required: true
+        type: string
+      - description: 学期
+        in: query
+        name: semester
+        required: true
+        type: string
+      - description: 搜索关键词
+        in: query
+        name: searchKeyWords
+        required: true
+        type: string
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功搜索到课程
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.SearchClassResp'
+              type: object
+      summary: 搜索课程
+      tags:
+      - 课表
+  /class/update:
+    put:
+      consumes:
+      - application/json
+      description: 根据课表ID更新课表信息
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 更新课表请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/class.UpdateClassRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功更新课表
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 更新课表信息
+      tags:
+      - 课表
+  /department/delDepartment:
+    delete:
+      consumes:
+      - application/json
+      description: 删除部门信息
+      parameters:
+      - description: 删除部门信息请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/department.DelDepartmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 删除部门信息
+      tags:
+      - 部门
+  /department/getDepartments:
+    get:
+      description: 获取部门列表
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/department.GetDepartmentsResponse'
+              type: object
+      summary: 获取部门列表
+      tags:
+      - 部门
+  /department/saveDepartment:
+    post:
+      consumes:
+      - application/json
+      description: 保存部门信息
+      parameters:
+      - description: 保存部门信息请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/department.SaveDepartmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 保存部门信息
+      tags:
+      - 部门
+  /elecprice/cancelStandard:
+    delete:
+      consumes:
+      - application/json
+      description: 取消自己订阅的电费提醒
+      parameters:
+      - description: 取消电费提醒请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/elecprice.CancelStandardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取消成功的返回信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+      summary: 取消电费提醒标准
+      tags:
+      - 电费
+  /elecprice/getArchitecture:
+    get:
+      description: 通过区域获取楼栋信息
+      parameters:
+      - in: query
+        name: area_name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设置成功的返回信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  $ref: '#/definitions/elecprice.GetArchitectureResponse'
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+      summary: 获取楼栋信息
+      tags:
+      - 电费
+  /elecprice/getPrice:
+    get:
+      description: 根据房间号获取电费信息
+      parameters:
+      - in: query
+        name: room_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功的返回信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  $ref: '#/definitions/elecprice.GetPriceResponse'
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+      summary: 获取电费
+      tags:
+      - 电费
+  /elecprice/getRoomInfo:
+    get:
+      description: 根据房间号和空调/照明id
+      parameters:
+      - in: query
+        name: architecture_id
+        type: string
+      - in: query
+        name: floor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功的返回信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  $ref: '#/definitions/elecprice.GetRoomInfoResponse'
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+      summary: 获取房间号和id
+      tags:
+      - 电费
+  /elecprice/getStandardList:
+    get:
+      description: 获取自己订阅的电费提醒标准
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功的返回信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  $ref: '#/definitions/elecprice.GetStandardListResponse'
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+      summary: 获取电费提醒标准
+      tags:
+      - 电费
+  /elecprice/setStandard:
+    put:
+      consumes:
+      - application/json
+      description: 根据区域、楼栋和房间号设置电费提醒的金额标准
+      parameters:
+      - description: 设置电费提醒请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/elecprice.SetStandardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设置成功的返回信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+      summary: 设置电费提醒标准
+      tags:
+      - 电费
+  /feed/changeFeedAllowList:
+    post:
+      consumes:
+      - application/json
+      description: 修改已登录用户的feed订阅白名单设置
+      parameters:
+      - description: 白名单设置
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feed.ChangeFeedAllowListReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - BearerAuth: []
+      summary: 修改feed订阅白名单
+      tags:
+      - feed订阅
+  /feed/clearFeedEvent:
+    post:
+      consumes:
+      - application/json
+      description: 清除指定用户的feed订阅事件,都是可选字段
+      parameters:
+      - description: feed订阅事件ID
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feed.ClearFeedEventReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - BearerAuth: []
+      summary: 清除feed订阅事件
+      tags:
+      - feed订阅
+  /feed/getFeedAllowList:
+    get:
+      consumes:
+      - application/json
+      description: 获取已登录用户的feed订阅白名单设置
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/feed.GetFeedAllowListResp'
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取feed订阅白名单
+      tags:
+      - feed订阅
+  /feed/getFeedEvents:
+    get:
+      description: 获取已登录用户的所有feed订阅事件（包括已读和未读）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/feed.GetFeedEventsResp'
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - Bearer Auth: []
+      summary: 获取feed订阅事件
+      tags:
+      - feed订阅
+  /feed/getToBePublicOfficialMSG:
+    get:
+      consumes:
+      - application/json
+      description: 获取计划发布的官方消息，仅限管理员操作
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/feed.GetToBePublicMuxiOfficialMSGResp'
+              type: object
+        "403":
+          description: 没有访问权限
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取待发布的官方消息
+      tags:
+      - feed订阅
+  /feed/publicMuxiOfficialMSG:
+    post:
+      consumes:
+      - application/json
+      description: 发布木犀官方消息，仅限管理员操作
+      parameters:
+      - description: 木犀官方消息
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feed.PublicMuxiOfficialMSGReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/feed.PublicMuxiOfficialMSGResp'
+              type: object
+        "403":
+          description: 没有访问权限
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - BearerAuth: []
+      summary: 发布木犀官方消息
+      tags:
+      - feed订阅
+  /feed/readFeedEvent:
+    post:
+      consumes:
+      - application/json
+      description: 标注feed订阅事件为已读
+      parameters:
+      - description: feed订阅事件ID
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feed.ReadFeedEventReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - Bearer Auth: []
+      summary: 标注feed订阅事件为已读
+      tags:
+      - feed订阅
+  /feed/removeFeedToken:
+    post:
+      consumes:
+      - application/json
+      description: 删除已登录用户的feed订阅Token
+      parameters:
+      - description: feed订阅Token
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feed.RemoveFeedTokenReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - BearerAuth: []
+      summary: 删除feed订阅Token
+      tags:
+      - feed订阅
+  /feed/saveFeedToken:
+    post:
+      consumes:
+      - application/json
+      description: 保存已登录用户的feed订阅Token
+      parameters:
+      - description: feed订阅Token
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feed.SaveFeedTokenReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - BearerAuth: []
+      summary: 保存feed订阅Token
+      tags:
+      - feed订阅
+  /feed/stopMuxiOfficialMSG:
+    post:
+      consumes:
+      - application/json
+      description: 停止木犀官方消息，仅限管理员操作
+      parameters:
+      - description: 停止消息请求
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feed.StopMuxiOfficialMSGReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "403":
+          description: 没有访问权限
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - BearerAuth: []
+      summary: 停止木犀官方消息
+      tags:
+      - feed订阅
+  /feedback_help/changeQuestion:
+    post:
+      consumes:
+      - application/json
+      description: 修改一个常见问题的内容与答复
+      parameters:
+      - description: 修改常见问题
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feedback_help.ChangeQuestionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 修改一个问题与答复
+      tags:
+      - 帮助与反馈
+  /feedback_help/createQuestion:
+    post:
+      consumes:
+      - application/json
+      description: 创建一个常见问题的内容与答复
+      parameters:
+      - description: 创建一个常见问题
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feedback_help.CreateQuestionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 创建一个问题与答复
+      tags:
+      - 帮助与反馈
+  /feedback_help/deleteQuestion:
+    post:
+      consumes:
+      - application/json
+      description: 删除一个常见问题的内容与答复
+      parameters:
+      - description: 删除常见问题
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feedback_help.DeleteQuestionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 删除一个问题与答复
+      tags:
+      - 帮助与反馈
+  /feedback_help/findQuestionsByName:
+    get:
+      consumes:
+      - application/json
+      description: 对常见问题进行模糊搜索
+      parameters:
+      - description: 问题名称
+        in: query
+        name: question
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                date:
+                  $ref: '#/definitions/feedback_help.FindQuestionsByNameResp'
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 搜取问题
+      tags:
+      - 帮助与反馈
+  /feedback_help/getQuestion:
+    get:
+      consumes:
+      - application/json
+      description: 获取点击数量最多的10个常见问题
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/feedback_help.GetQuestionsResp'
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 获取常见问题
+      tags:
+      - 帮助与反馈
+  /feedback_help/noteQuestion:
+    post:
+      consumes:
+      - application/json
+      description: 标记问题解决状态
+      parameters:
+      - description: 标记问题解决状态
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feedback_help.NoteQuestionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 标记问题解决状态
+      tags:
+      - 帮助与反馈
+  /grade/getGradeByTerm:
+    get:
+      consumes:
+      - application/json
+      description: 根据学年号和学期号获取用户的成绩
+      parameters:
+      - description: 学年号（如 2023 表示 2023~2024 学年）
+        in: query
+        name: xnm
+        required: true
+        type: integer
+      - description: 学期号（1 表示第一学期，2 表示第二学期）
+        in: query
+        name: xqm
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回学年和学期的成绩信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/grade.GetGradeByTermResp'
+              type: object
+        "500":
+          description: 系统异常，获取失败
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 查询按学年和学期的成绩
+      tags:
+      - 成绩
+  /grade/getGradeScore:
+    get:
+      consumes:
+      - application/json
+      description: 查询学分
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回学分
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/grade.GetGradeScoreResp'
+              type: object
+        "500":
+          description: 系统异常，获取失败
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 查询学分
+      tags:
+      - 成绩
+  /metrics/:eventName:
+    post:
+      description: 用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/kstack)表示跳转访问课栈,使用这一路由必须携带Auth请求头
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 用于打点的路由
+      tags:
+      - 打点
+  /statics:
+    get:
+      consumes:
+      - application/json
+      description: 根据静态资源名称获取静态资源的内容。
+      parameters:
+      - description: 静态资源名称
+        in: query
+        name: static_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/static.StaticVo'
+              type: object
+      summary: 获取静态资源[精确名称]
+      tags:
+      - 静态
+  /statics/match/labels:
+    get:
+      consumes:
+      - multipart/form-data
+      description: 根据静labels匹配合适的静态资源
+      parameters:
+      - description: 标签：标明匹配哪一类的资源
+        in: query
+        name: labels[type]
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/static.GetStaticByLabelsResp'
+              type: object
+      summary: 获取静态资源[标签匹配]
+      tags:
+      - 静态
+  /statics/save:
+    post:
+      consumes:
+      - application/json
+      description: 保存静态内容
+      parameters:
+      - description: 保存静态内容请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/static.SaveStaticReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 保存静态内容
+      tags:
+      - 静态
+  /tube/access_token:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/tube.GetTubeTokenData'
+              type: object
+      summary: 获取图床访问令牌
+      tags:
+      - 图床
+  /users/login_ccnu:
+    post:
+      consumes:
+      - application/json
+      description: 通过学号和密码进行登录认证
+      parameters:
+      - description: 登录请求体
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.LoginByCCNUReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: ccnu登录
+      tags:
+      - 用户
+  /users/logout:
+    post:
+      consumes:
+      - application/json
+      description: 通过短token登出
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 登出(销毁token)
+      tags:
+      - 用户
+  /users/refresh_token:
+    get:
+      consumes:
+      - application/json
+      description: 通过长token刷新短token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - Bearer Auth: []
+      summary: 刷新短token
+      tags:
+      - 用户
+  /website/delWebsite:
+    delete:
+      consumes:
+      - application/json
+      description: 删除网站信息
+      parameters:
+      - description: 删除网站信息请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/website.DelWebsiteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 删除网站信息
+      tags:
+      - 网站
+  /website/getWebsites:
+    get:
+      description: 获取所有网站的列表
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/website.GetWebsitesResponse'
+              type: object
+      summary: 获取网站列表
+      tags:
+      - 网站
+  /website/saveWebsite:
+    post:
+      consumes:
+      - application/json
+      description: 保存网站信息,id是可选字段,如果有就是替换原来的列表里的,如果没有就是存储新的值
+      parameters:
+      - description: 保存网站信息请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/website.SaveWebsiteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 保存网站信息
+      tags:
+      - 网站
+swagger: "2.0"

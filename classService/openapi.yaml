@@ -1,0 +1,161 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ClassService API
+    description: The greeting service definition.
+    version: 0.0.1
+paths:
+    /class/add:
+        post:
+            tags:
+                - ClassService
+            description: 添加课程
+            operationId: ClassService_AddClass
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/classService.v1.AddClassRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/classService.v1.AddClassReply'
+    /class/search/{year}/{semester}/{searchKeyWords}:
+        get:
+            tags:
+                - ClassService
+            description: 数据源是所有使用匣子的用户的课表，从其中搜索相应的课程
+            operationId: ClassService_SearchClass
+            parameters:
+                - name: year
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: semester
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: searchKeyWords
+                  in: path
+                  description: 搜索关键词,匹配的是课程名称和教师姓名
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/classService.v1.SearchReply'
+components:
+    schemas:
+        classService.v1.AddClassReply:
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: 添加的课程ID
+                msg:
+                    type: string
+        classService.v1.AddClassRequest:
+            required:
+                - stu_id
+                - name
+                - dur_class
+                - where
+                - teacher
+                - weeks
+                - semester
+                - year
+                - day
+            type: object
+            properties:
+                stu_id:
+                    type: string
+                    description: 学号
+                name:
+                    type: string
+                    description: 课程名称
+                dur_class:
+                    type: string
+                    description: 第几节 '形如 "1-3","1-1"'
+                where:
+                    type: string
+                    description: 地点
+                teacher:
+                    type: string
+                    description: 教师
+                weeks:
+                    type: string
+                    description: 哪些周
+                semester:
+                    type: string
+                    description: 学期
+                year:
+                    type: string
+                    description: 学年
+                day:
+                    type: string
+                    description: 星期几
+                credit:
+                    type: number
+                    description: 学分
+                    format: double
+        classService.v1.ClassInfo:
+            type: object
+            properties:
+                day:
+                    type: string
+                    description: 星期几
+                teacher:
+                    type: string
+                    description: 任课教师
+                where:
+                    type: string
+                    description: 上课地点
+                class_when:
+                    type: string
+                    description: 上课是第几节（如1-2,3,4）
+                week_duration:
+                    type: string
+                    description: 上课的周数(文字描述,如1-9周)
+                classname:
+                    type: string
+                    description: 课程名称
+                credit:
+                    type: number
+                    description: 学分
+                    format: double
+                weeks:
+                    type: string
+                    description: |-
+                        哪些周 这个是一个64位的数字,如果有第一周,那么该数的二进制从右往左的第一位为1,以此类推
+                        比如该数的二进制是000000101,就代表第一周和第三周有课.
+                semester:
+                    type: string
+                    description: 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+                year:
+                    type: string
+                    description: 学年  "2024" 代表"2024-2025学年"
+                id:
+                    type: string
+                    description: 课程唯一标识id
+        classService.v1.SearchReply:
+            type: object
+            properties:
+                class_infos:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/classService.v1.ClassInfo'
+                    description: 课程信息
+tags:
+    - name: ClassService

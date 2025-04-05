@@ -1,0 +1,44 @@
+mysql:
+  dsn: "root:12345678@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+
+
+redis:
+  addr: "localhost:6379"
+
+etcd:
+  endpoints:
+    - "localhost:2379"
+  username: root
+  password: "12345678"
+
+grpc:
+  server:
+    name: "grade"
+    weight: 100
+    addr: ":19085"
+    etcdTTL: 60
+  client:
+    classlist:
+      endpoint: "discovery:///MuXi_ClassList"
+    user:
+      endpoint: "discovery:///user"
+    counter:
+      endpoint: "discovery:///counter"
+    feed:
+      endpoint: "discovery:///feed"
+    ccnu:
+      endpoint: "discovery:///ccnu"
+
+#成绩自动提醒
+gradeController:
+  high: 1  #单位是分钟
+  middle: 30 #单位是分钟
+  low: 60 #单位是分钟
+  
+log:
+  path: "./logs/app.log"  # 日志文件路径
+  maxSize: 100           # 单个日志文件的最大大小（MB）
+  maxBackups: 7          # 保留旧日志文件的最大数量
+  maxAge: 30             # 日志文件保留天数
+  compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+

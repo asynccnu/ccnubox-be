@@ -29,8 +29,12 @@ Thumbs.db
 *.key
 *.log
 bin/
+**/config.yaml
 
 # Develop tools
 .vscode/
 .idea/
 *.swp
+
+# deploy 
+/deploy/

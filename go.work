@@ -1,0 +1,20 @@
+go 1.23.7
+
+use (
+	be-api
+	be-banner
+	be-calendar
+	be-ccnu
+	be-class
+	be-classlist
+	be-counter
+	be-department
+	be-elecprice
+	be-feed
+	be-grade
+	be-infosum
+	be-static
+	be-user
+	be-website
+	bff
+)

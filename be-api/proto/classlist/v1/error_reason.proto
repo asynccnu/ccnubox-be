@@ -4,7 +4,7 @@ package classer.v1;
 
 import "errors/errors.proto";
 
-option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classer/v1;classerv1";
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1;classerv1";
 
 enum ErrorReason {
   // 设置缺省错误码

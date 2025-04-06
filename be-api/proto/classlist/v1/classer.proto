@@ -5,7 +5,7 @@ package classer.v1;
 //import "google/protobuf/any.proto";
 
 
-option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classer/v1;classerv1";
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1;classerv1";
 
 service Classer {
     //获取课表

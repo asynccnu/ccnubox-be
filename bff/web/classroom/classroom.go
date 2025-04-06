@@ -11,8 +11,7 @@ type ClassRoomHandler struct {
 	ClassRoomClient cs.FreeClassroomSvcClient
 }
 
-func NewClassListHandler(
-	ClassRoomClient cs.FreeClassroomSvcClient) *ClassRoomHandler {
+func NewClassRoomHandler(ClassRoomClient cs.FreeClassroomSvcClient) *ClassRoomHandler {
 	return &ClassRoomHandler{
 		ClassRoomClient: ClassRoomClient,
 	}

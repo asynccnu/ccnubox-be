@@ -453,7 +453,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/classlist/add": {
+        "/class/add": {
             "post": {
                 "description": "添加新的课表",
                 "consumes": [
@@ -480,7 +480,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/classlist.AddClassRequest"
+                            "$ref": "#/definitions/class.AddClassRequest"
                         }
                     }
                 ],
@@ -494,7 +494,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/classlist/day/get": {
+        "/class/day/get": {
             "get": {
                 "description": "获取当前周",
                 "produces": [
@@ -525,7 +525,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/classlist.GetSchoolDayResp"
+                                            "$ref": "#/definitions/class.GetSchoolDayResp"
                                         }
                                     }
                                 }
@@ -535,7 +535,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/classlist/delete": {
+        "/class/delete": {
             "delete": {
                 "description": "根据课表ID删除课表",
                 "consumes": [
@@ -562,7 +562,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/classlist.DeleteClassRequest"
+                            "$ref": "#/definitions/class.DeleteClassRequest"
                         }
                     }
                 ],
@@ -576,7 +576,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/classlist/get": {
+        "/class/get": {
             "get": {
                 "description": "根据学期、学年等条件获取课表",
                 "produces": [
@@ -621,7 +621,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/classlist.GetClassListRequest"
+                            "$ref": "#/definitions/class.GetClassListRequest"
                         }
                     }
                 ],
@@ -637,7 +637,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/classlist.GetClassListResp"
+                                            "$ref": "#/definitions/class.GetClassListResp"
                                         }
                                     }
                                 }
@@ -647,7 +647,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/classlist/getRecycle": {
+        "/class/getRecycle": {
             "get": {
                 "description": "获取已删除但未彻底清除的课表信息",
                 "produces": [
@@ -692,7 +692,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/classlist.GetRecycleBinClassInfosResp"
+                                            "$ref": "#/definitions/class.GetRecycleBinClassInfosResp"
                                         }
                                     }
                                 }
@@ -702,7 +702,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/classlist/recover": {
+        "/class/recover": {
             "put": {
                 "description": "从回收站恢复课表",
                 "consumes": [
@@ -729,7 +729,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/classlist.RecoverClassRequest"
+                            "$ref": "#/definitions/class.RecoverClassRequest"
                         }
                     }
                 ],
@@ -743,7 +743,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/classlist/search": {
+        "/class/search": {
             "get": {
                 "description": "根据关键词[教师或者课程名]搜索课程",
                 "produces": [
@@ -795,7 +795,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/classlist.SearchClassResp"
+                                            "$ref": "#/definitions/class.SearchClassResp"
                                         }
                                     }
                                 }
@@ -805,7 +805,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/classlist/update": {
+        "/class/update": {
             "put": {
                 "description": "根据课表ID更新课表信息",
                 "consumes": [
@@ -832,7 +832,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/classlist.UpdateClassRequest"
+                            "$ref": "#/definitions/class.UpdateClassRequest"
                         }
                     }
                 ],
@@ -841,6 +841,103 @@ const docTemplate = `{
                         "description": "成功更新课表",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/classroom/getFreeClassRoom": {
+            "get": {
+                "description": "根据学年、学期、周次、节次、地点等信息查询空闲教室列表",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "教室"
+                ],
+                "summary": "查询空闲教室",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学年，如：2024-2025",
+                        "name": "year",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学期，如：1 或 2",
+                        "name": "semester",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "第几周",
+                        "name": "week",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "星期几，1-7",
+                        "name": "day",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "第几节课（可多选）",
+                        "name": "sections",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "地点前缀，如 n1 表示南湖一楼",
+                        "name": "wherePrefix",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学号",
+                        "name": "stuID",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/classroom.GetFreeClassRoomResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -2624,7 +2721,7 @@ const docTemplate = `{
                 }
             }
         },
-        "classlist.AddClassRequest": {
+        "class.AddClassRequest": {
             "type": "object",
             "properties": {
                 "credit": {
@@ -2668,7 +2765,7 @@ const docTemplate = `{
                 }
             }
         },
-        "classlist.ClassInfo": {
+        "class.ClassInfo": {
             "type": "object",
             "properties": {
                 "class_when": {
@@ -2720,7 +2817,7 @@ const docTemplate = `{
                 }
             }
         },
-        "classlist.DeleteClassRequest": {
+        "class.DeleteClassRequest": {
             "type": "object",
             "properties": {
                 "id": {
@@ -2737,7 +2834,7 @@ const docTemplate = `{
                 }
             }
         },
-        "classlist.GetClassListRequest": {
+        "class.GetClassListRequest": {
             "type": "object",
             "properties": {
                 "refresh": {
@@ -2751,29 +2848,29 @@ const docTemplate = `{
                 }
             }
         },
-        "classlist.GetClassListResp": {
+        "class.GetClassListResp": {
             "type": "object",
             "properties": {
                 "classes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/classlist.ClassInfo"
+                        "$ref": "#/definitions/class.ClassInfo"
                     }
                 }
             }
         },
-        "classlist.GetRecycleBinClassInfosResp": {
+        "class.GetRecycleBinClassInfosResp": {
             "type": "object",
             "properties": {
                 "classInfos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/classlist.ClassInfo"
+                        "$ref": "#/definitions/class.ClassInfo"
                     }
                 }
             }
         },
-        "classlist.GetSchoolDayResp": {
+        "class.GetSchoolDayResp": {
             "type": "object",
             "properties": {
                 "holiday_time": {
@@ -2784,7 +2881,7 @@ const docTemplate = `{
                 }
             }
         },
-        "classlist.RecoverClassRequest": {
+        "class.RecoverClassRequest": {
             "type": "object",
             "properties": {
                 "classId": {
@@ -2801,18 +2898,18 @@ const docTemplate = `{
                 }
             }
         },
-        "classlist.SearchClassResp": {
+        "class.SearchClassResp": {
             "type": "object",
             "properties": {
                 "classInfos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/classlist.ClassInfo"
+                        "$ref": "#/definitions/class.ClassInfo"
                     }
                 }
             }
         },
-        "classlist.UpdateClassRequest": {
+        "class.UpdateClassRequest": {
             "type": "object",
             "properties": {
                 "classId": {
@@ -2857,6 +2954,34 @@ const docTemplate = `{
                 "year": {
                     "description": "学年",
                     "type": "string"
+                }
+            }
+        },
+        "classroom.ClassroomAvailableStat": {
+            "type": "object",
+            "properties": {
+                "availableStat": {
+                    "description": "空闲情况（与sections一一对应）",
+                    "type": "array",
+                    "items": {
+                        "type": "boolean"
+                    }
+                },
+                "classroom": {
+                    "description": "教室名",
+                    "type": "string"
+                }
+            }
+        },
+        "classroom.GetFreeClassRoomResp": {
+            "type": "object",
+            "properties": {
+                "stat": {
+                    "description": "各教室的空闲情况",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/classroom.ClassroomAvailableStat"
+                    }
                 }
             }
         },

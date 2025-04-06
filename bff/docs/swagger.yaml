@@ -255,6 +255,25 @@ definitions:
         description: 学年
         type: string
     type: object
+  classroom.ClassroomAvailableStat:
+    properties:
+      availableStat:
+        description: 空闲情况（与sections一一对应）
+        items:
+          type: boolean
+        type: array
+      classroom:
+        description: 教室名
+        type: string
+    type: object
+  classroom.GetFreeClassRoomResp:
+    properties:
+      stat:
+        description: 各教室的空闲情况
+        items:
+          $ref: '#/definitions/classroom.ClassroomAvailableStat'
+        type: array
+    type: object
   department.DelDepartmentRequest:
     properties:
       id:
@@ -1279,6 +1298,70 @@ paths:
       summary: 更新课表信息
       tags:
       - 课表
+  /classroom/getFreeClassRoom:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 根据学年、学期、周次、节次、地点等信息查询空闲教室列表
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 学年，如：2024-2025
+        in: formData
+        name: year
+        required: true
+        type: string
+      - description: 学期，如：1 或 2
+        in: formData
+        name: semester
+        required: true
+        type: string
+      - description: 第几周
+        in: formData
+        name: week
+        required: true
+        type: integer
+      - description: 星期几，1-7
+        in: formData
+        name: day
+        required: true
+        type: integer
+      - collectionFormat: csv
+        description: 第几节课（可多选）
+        in: formData
+        items:
+          type: integer
+        name: sections
+        required: true
+        type: array
+      - description: 地点前缀，如 n1 表示南湖一楼
+        in: formData
+        name: wherePrefix
+        required: true
+        type: string
+      - description: 学号
+        in: formData
+        name: stuID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/classroom.GetFreeClassRoomResp'
+              type: object
+      summary: 查询空闲教室
+      tags:
+      - 教室
   /department/delDepartment:
     delete:
       consumes:

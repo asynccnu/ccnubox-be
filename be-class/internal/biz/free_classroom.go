@@ -16,7 +16,7 @@ import (
 type FreeClassRoomData interface {
 	AddClassroomOccupancy(ctx context.Context, year, semester string, cwtPairs ...model.CTWPair) error
 	ClearClassroomOccupancy(ctx context.Context, year, semester string) error
-	GetAllClassroom(ctx context.Context, year, semester, wherePrefix string) ([]string, error)
+	GetAllClassroom(ctx context.Context, wherePrefix string) ([]string, error)
 	QueryAvailableClassrooms(ctx context.Context, year, semester string, week, day, section int, wherePrefix string) (map[string]bool, error)
 }
 
@@ -130,7 +130,7 @@ func (f *FreeClassroomBiz) SearchAvailableClassroom(ctx context.Context, year, s
 	)
 
 	//先获取全部的教室
-	classroomSet, err := f.freeClassRoomData.GetAllClassroom(ctx, year, semester, wherePrefix)
+	classroomSet, err := f.freeClassRoomData.GetAllClassroom(ctx, wherePrefix)
 	if err != nil {
 		return nil, err
 	}

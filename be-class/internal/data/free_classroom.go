@@ -33,8 +33,8 @@ func NewFreeClassroomData(cli *elastic.Client) *FreeClassroomData {
 		cli: cli,
 	}
 }
-func (f *FreeClassroomData) GetAllClassroom(ctx context.Context, year, semester, wherePrefix string) ([]string, error) {
-	return f.getAllWheres(ctx, year, semester, wherePrefix)
+func (f *FreeClassroomData) GetAllClassroom(ctx context.Context, wherePrefix string) ([]string, error) {
+	return f.getAllWheres(ctx, wherePrefix)
 }
 
 func (f *FreeClassroomData) AddClassroomOccupancy(ctx context.Context, year, semester string, cwtPairs ...model.CTWPair) error {
@@ -166,7 +166,7 @@ func (f *FreeClassroomData) ClearClassroomOccupancy(ctx context.Context, year, s
 
 func (f *FreeClassroomData) QueryAvailableClassrooms(ctx context.Context, year, semester string, week, day, section int, wherePrefix string) (map[string]bool, error) {
 
-	allWheres, err := f.getAllWheres(ctx, year, semester, wherePrefix)
+	allWheres, err := f.getAllWheres(ctx, wherePrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -187,18 +187,16 @@ func (f *FreeClassroomData) QueryAvailableClassrooms(ctx context.Context, year, 
 
 	return occupancyStat, nil
 }
-func (f *FreeClassroomData) getAllWheres(ctx context.Context, year, semester, wherePrefix string) ([]string, error) {
+func (f *FreeClassroomData) getAllWheres(ctx context.Context, wherePrefix string) ([]string, error) {
 	boolQuery := elastic.NewBoolQuery().
 		Must(
-			elastic.NewTermQuery("year", year),
-			elastic.NewTermQuery("semester", semester),
 			elastic.NewPrefixQuery("where", wherePrefix),
 		)
 	termsAgg := elastic.NewTermsAggregation().Field("where").Size(10000)
 
 	//只关心聚合结果，不需要文档内容 size设置为0
 	searchResult, err := f.cli.Search().
-		Index(freeClassroomIndex).
+		Index(classroomIndex).
 		Query(boolQuery).
 		Aggregation("unique_wheres", termsAgg).
 		Size(0).

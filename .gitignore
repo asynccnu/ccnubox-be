@@ -12,9 +12,9 @@
 # Dependency directories (remove the comment below to include it)
 vendor/
 
-# Go workspace file
-*go.work
-*go.work.sum
+## Go workspace file
+#go.work
+#go.work.sum
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
@@ -39,3 +39,5 @@ bin/
 
 # deploy 
 /deploy/
+
+*.xlsx

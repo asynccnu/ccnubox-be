@@ -453,7 +453,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/class/add": {
+        "/classlist/add": {
             "post": {
                 "description": "添加新的课表",
                 "consumes": [
@@ -480,7 +480,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/class.AddClassRequest"
+                            "$ref": "#/definitions/classlist.AddClassRequest"
                         }
                     }
                 ],
@@ -494,7 +494,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/class/day/get": {
+        "/classlist/day/get": {
             "get": {
                 "description": "获取当前周",
                 "produces": [
@@ -525,7 +525,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/class.GetSchoolDayResp"
+                                            "$ref": "#/definitions/classlist.GetSchoolDayResp"
                                         }
                                     }
                                 }
@@ -535,7 +535,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/class/delete": {
+        "/classlist/delete": {
             "delete": {
                 "description": "根据课表ID删除课表",
                 "consumes": [
@@ -562,7 +562,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/class.DeleteClassRequest"
+                            "$ref": "#/definitions/classlist.DeleteClassRequest"
                         }
                     }
                 ],
@@ -576,7 +576,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/class/get": {
+        "/classlist/get": {
             "get": {
                 "description": "根据学期、学年等条件获取课表",
                 "produces": [
@@ -621,7 +621,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/class.GetClassListRequest"
+                            "$ref": "#/definitions/classlist.GetClassListRequest"
                         }
                     }
                 ],
@@ -637,7 +637,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/class.GetClassListResp"
+                                            "$ref": "#/definitions/classlist.GetClassListResp"
                                         }
                                     }
                                 }
@@ -647,7 +647,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/class/getRecycle": {
+        "/classlist/getRecycle": {
             "get": {
                 "description": "获取已删除但未彻底清除的课表信息",
                 "produces": [
@@ -692,7 +692,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/class.GetRecycleBinClassInfosResp"
+                                            "$ref": "#/definitions/classlist.GetRecycleBinClassInfosResp"
                                         }
                                     }
                                 }
@@ -702,7 +702,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/class/recover": {
+        "/classlist/recover": {
             "put": {
                 "description": "从回收站恢复课表",
                 "consumes": [
@@ -729,7 +729,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/class.RecoverClassRequest"
+                            "$ref": "#/definitions/classlist.RecoverClassRequest"
                         }
                     }
                 ],
@@ -743,7 +743,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/class/search": {
+        "/classlist/search": {
             "get": {
                 "description": "根据关键词[教师或者课程名]搜索课程",
                 "produces": [
@@ -795,7 +795,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/class.SearchClassResp"
+                                            "$ref": "#/definitions/classlist.SearchClassResp"
                                         }
                                     }
                                 }
@@ -805,7 +805,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/class/update": {
+        "/classlist/update": {
             "put": {
                 "description": "根据课表ID更新课表信息",
                 "consumes": [
@@ -832,7 +832,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/class.UpdateClassRequest"
+                            "$ref": "#/definitions/classlist.UpdateClassRequest"
                         }
                     }
                 ],
@@ -2624,7 +2624,7 @@ const docTemplate = `{
                 }
             }
         },
-        "class.AddClassRequest": {
+        "classlist.AddClassRequest": {
             "type": "object",
             "properties": {
                 "credit": {
@@ -2668,7 +2668,7 @@ const docTemplate = `{
                 }
             }
         },
-        "class.ClassInfo": {
+        "classlist.ClassInfo": {
             "type": "object",
             "properties": {
                 "class_when": {
@@ -2720,7 +2720,7 @@ const docTemplate = `{
                 }
             }
         },
-        "class.DeleteClassRequest": {
+        "classlist.DeleteClassRequest": {
             "type": "object",
             "properties": {
                 "id": {
@@ -2737,7 +2737,7 @@ const docTemplate = `{
                 }
             }
         },
-        "class.GetClassListRequest": {
+        "classlist.GetClassListRequest": {
             "type": "object",
             "properties": {
                 "refresh": {
@@ -2751,29 +2751,29 @@ const docTemplate = `{
                 }
             }
         },
-        "class.GetClassListResp": {
+        "classlist.GetClassListResp": {
             "type": "object",
             "properties": {
                 "classes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/class.ClassInfo"
+                        "$ref": "#/definitions/classlist.ClassInfo"
                     }
                 }
             }
         },
-        "class.GetRecycleBinClassInfosResp": {
+        "classlist.GetRecycleBinClassInfosResp": {
             "type": "object",
             "properties": {
                 "classInfos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/class.ClassInfo"
+                        "$ref": "#/definitions/classlist.ClassInfo"
                     }
                 }
             }
         },
-        "class.GetSchoolDayResp": {
+        "classlist.GetSchoolDayResp": {
             "type": "object",
             "properties": {
                 "holiday_time": {
@@ -2784,7 +2784,7 @@ const docTemplate = `{
                 }
             }
         },
-        "class.RecoverClassRequest": {
+        "classlist.RecoverClassRequest": {
             "type": "object",
             "properties": {
                 "classId": {
@@ -2801,18 +2801,18 @@ const docTemplate = `{
                 }
             }
         },
-        "class.SearchClassResp": {
+        "classlist.SearchClassResp": {
             "type": "object",
             "properties": {
                 "classInfos": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/class.ClassInfo"
+                        "$ref": "#/definitions/classlist.ClassInfo"
                     }
                 }
             }
         },
-        "class.UpdateClassRequest": {
+        "classlist.UpdateClassRequest": {
             "type": "object",
             "properties": {
                 "classId": {

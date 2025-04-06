@@ -1,0 +1,68 @@
+syntax = "proto3";
+package kratos.api;
+
+option go_package = "classlist/internal/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+  Registry registry = 3;
+  ZapLogConfigs zaplog = 4;
+  SchoolDay schoolday = 5;
+}
+
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
+
+message Data {
+  message Database {
+    string source = 1;
+    string log_path = 2;//gorm日志文件路径
+    string log_file_name = 3;//gorm日志文件名称
+  }
+  message Redis {
+    string addr = 1;
+    string password =2;
+    google.protobuf.Duration read_timeout = 3;
+    google.protobuf.Duration write_timeout = 4;
+  }
+  Database database = 1;
+  Redis redis = 2;
+}
+message Etcd {
+  string addr = 1;
+  string username = 2;
+  string password = 3;
+}
+message Registry {
+  Etcd etcd = 1;
+}
+message ZapLogConfigs {
+  string log_level = 1;          // 日志打印级别 debug, info, warning, error
+  string log_format = 2;         // 输出日志格式 logfmt, json
+  string log_path = 3;           // 输出日志文件路径
+  string log_file_name = 4;      // 输出日志文件名称
+  int32 log_file_max_size = 5;   // 【日志分割】单个日志文件最多存储量 单位(mb)
+  int32 log_file_max_backups = 6;// 【日志分割】日志备份文件最多数量
+  int32 log_max_age = 7;         // 日志保留时间，单位: 天 (day)
+  bool log_compress = 8;         // 是否压缩日志
+  bool log_stdout = 9;           // 是否输出到控制台
+}
+message SchoolDay{
+  string holidayTime = 1; //放假日期(正式放假的第一天)
+  string schoolTime = 2;  //上学日期(正式上学的第一天)
+}

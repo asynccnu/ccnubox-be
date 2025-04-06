@@ -1,11 +1,10 @@
 module github.com/asynccnu/ccnubox-be/be-ccnu
 
-go 1.22.5
+go 1.23.0
 
-
+toolchain go1.23.6
 
 require (
-
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20250403070952-9580f086e326
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/google/wire v0.6.0

@@ -2,12 +2,13 @@ package ioc
 
 import (
 	"context"
+	"time"
+
 	cs "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"time"
 )
 
 func InitFreeClassroomService(ecli *clientv3.Client) cs.FreeClassroomSvcClient {

@@ -33,6 +33,7 @@ message Data {
     string username = 3;
     string password = 4;
     bool keepDataAfterRestart = 5;//重启后是否保留数据
+    string classroom = 6; //classroom的文件位置
   }
   ES es = 1;
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/calendar"
 	"github.com/asynccnu/ccnubox-be/bff/web/card"
 	"github.com/asynccnu/ccnubox-be/bff/web/class"
+	"github.com/asynccnu/ccnubox-be/bff/web/classroom"
 	"github.com/asynccnu/ccnubox-be/bff/web/department"
 	"github.com/asynccnu/ccnubox-be/bff/web/elecprice"
 	"github.com/asynccnu/ccnubox-be/bff/web/feed"
@@ -28,6 +29,7 @@ func InitGinServer(
 	loggerMiddleware *middleware.LoggerMiddleware,
 	loginMiddleware *middleware.LoginMiddleware,
 	corsMiddleware *middleware.CorsMiddleware,
+	classroom *classroom.ClassRoomHandler,
 	tube *tube.TubeHandler,
 	user *user.UserHandler,
 	static *static.StaticHandler,
@@ -82,6 +84,7 @@ func InitGinServer(
 	card.RegisterRoute(api, authMiddleware)
 	tube.RegisterRoutes(api, authMiddleware)
 	metrics.RegisterRoutes(api, authMiddleware)
+	classroom.RegisterRoutes(api, authMiddleware)
 	//返回路由
 	return engine
 }

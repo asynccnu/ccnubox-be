@@ -835,6 +835,96 @@
                 }
             }
         },
+        "/classroom/getFreeClassRoom": {
+            "get": {
+                "description": "根据学年、学期、周次、节次、地点等信息查询空闲教室列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "教室"
+                ],
+                "summary": "查询空闲教室",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学年，如：2024-2025",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学期，如：1 或 2",
+                        "name": "semester",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "第几周",
+                        "name": "week",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "星期几，1-7",
+                        "name": "day",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "第几节课（可多选）",
+                        "name": "sections",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "地点前缀，如 n1 表示南湖一楼",
+                        "name": "wherePrefix",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/classroom.GetFreeClassRoomResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/department/delDepartment": {
             "delete": {
                 "description": "删除部门信息",
@@ -2846,6 +2936,34 @@
                 "year": {
                     "description": "学年",
                     "type": "string"
+                }
+            }
+        },
+        "classroom.ClassroomAvailableStat": {
+            "type": "object",
+            "properties": {
+                "availableStat": {
+                    "description": "空闲情况（与sections一一对应）",
+                    "type": "array",
+                    "items": {
+                        "type": "boolean"
+                    }
+                },
+                "classroom": {
+                    "description": "教室名",
+                    "type": "string"
+                }
+            }
+        },
+        "classroom.GetFreeClassRoomResp": {
+            "type": "object",
+            "properties": {
+                "stat": {
+                    "description": "各教室的空闲情况",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/classroom.ClassroomAvailableStat"
+                    }
                 }
             }
         },

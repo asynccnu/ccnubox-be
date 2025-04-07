@@ -23,6 +23,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/calendar"
 	"github.com/asynccnu/ccnubox-be/bff/web/card"
 	"github.com/asynccnu/ccnubox-be/bff/web/class"
+	"github.com/asynccnu/ccnubox-be/bff/web/classroom"
 	"github.com/asynccnu/ccnubox-be/bff/web/department"
 	"github.com/asynccnu/ccnubox-be/bff/web/elecprice"
 	"github.com/asynccnu/ccnubox-be/bff/web/feed"
@@ -162,6 +163,9 @@ func InitClassHandler(client1 classlistv1.ClasserClient, client2 cs.ClassService
 		}))
 }
 
+func InitClassRoomHandler(client cs.FreeClassroomSvcClient) *classroom.ClassRoomHandler {
+	return classroom.NewClassListHandler(client)
+}
 func InitGradeHandler(l logger.Logger, gradeClient gradev1.GradeServiceClient, counterServiceClient counterv1.CounterServiceClient) *grade.GradeHandler {
 	var administrators []string
 	err := viper.UnmarshalKey("administrators", &administrators)

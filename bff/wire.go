@@ -35,11 +35,12 @@ func InitApp() *App {
 		//基于kratos的微服务
 		ioc.InitClassList,
 		ioc.InitClassService,
-		ioc.InitFreeClassroomService,
+		ioc.InitFreeClassroomClient,
 
 		//http服务
 		ioc.InitPutPolicy,
 		ioc.InitMac,
+		ioc.InitClassRoomHandler,
 		ioc.InitTubeHandler,
 		ioc.InitUserHandler,
 		ioc.InitBannerHandler,

@@ -21,10 +21,12 @@ func InitApp() *App {
 	handler := ioc.InitJwtHandler(cmdable)
 	loginMiddleware := middleware.NewLoginMiddleWare(handler)
 	corsMiddleware := middleware.NewCorsMiddleware()
+	client := ioc.InitEtcdClient()
+	freeClassroomSvcClient := ioc.InitFreeClassroomClient(client)
+	classRoomHandler := ioc.InitClassRoomHandler(freeClassroomSvcClient)
 	putPolicy := ioc.InitPutPolicy()
 	credentials := ioc.InitMac()
 	tubeHandler := ioc.InitTubeHandler(putPolicy, credentials)
-	client := ioc.InitEtcdClient()
 	userServiceClient := ioc.InitUserClient(client)
 	ccnuServiceClient := ioc.InitCCNUClient(client)
 	userHandler := ioc.InitUserHandler(handler, userServiceClient, ccnuServiceClient)
@@ -55,7 +57,7 @@ func InitApp() *App {
 	cardClient := ioc.InitCardClient(client)
 	cardHandler := ioc.InitCardHandler(cardClient)
 	metricsHandler := ioc.InitMetricsHandel()
-	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, tubeHandler, userHandler, staticHandler, bannerHandler, departmentHandler, websiteHandler, calendarHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, feedbackHelpHandler, infoSumHandler, cardHandler, metricsHandler)
+	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, classRoomHandler, tubeHandler, userHandler, staticHandler, bannerHandler, departmentHandler, websiteHandler, calendarHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, feedbackHelpHandler, infoSumHandler, cardHandler, metricsHandler)
 	app := NewApp(engine)
 	return app
 }

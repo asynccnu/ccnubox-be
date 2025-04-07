@@ -11,7 +11,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func InitFreeClassroomService(ecli *clientv3.Client) cs.FreeClassroomSvcClient {
+func InitFreeClassroomClient(ecli *clientv3.Client) cs.FreeClassroomSvcClient {
 	//配置etcd的路由
 	type Config struct {
 		Endpoint string `yaml:"endpoint"`

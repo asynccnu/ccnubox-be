@@ -839,7 +839,11 @@
             "get": {
                 "description": "根据学年、学期、周次、节次、地点等信息查询空闲教室列表",
                 "consumes": [
+<<<<<<< HEAD
                     "application/json"
+=======
+                    "application/x-www-form-urlencoded"
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
                 ],
                 "produces": [
                     "application/json"
@@ -860,28 +864,44 @@
                         "type": "string",
                         "description": "学年，如：2024-2025",
                         "name": "year",
+<<<<<<< HEAD
                         "in": "query",
+=======
+                        "in": "formData",
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
                         "required": true
                     },
                     {
                         "type": "string",
                         "description": "学期，如：1 或 2",
                         "name": "semester",
+<<<<<<< HEAD
                         "in": "query",
+=======
+                        "in": "formData",
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
                         "required": true
                     },
                     {
                         "type": "integer",
                         "description": "第几周",
                         "name": "week",
+<<<<<<< HEAD
                         "in": "query",
+=======
+                        "in": "formData",
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
                         "required": true
                     },
                     {
                         "type": "integer",
                         "description": "星期几，1-7",
                         "name": "day",
+<<<<<<< HEAD
                         "in": "query",
+=======
+                        "in": "formData",
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
                         "required": true
                     },
                     {
@@ -892,14 +912,29 @@
                         "collectionFormat": "csv",
                         "description": "第几节课（可多选）",
                         "name": "sections",
+<<<<<<< HEAD
                         "in": "query",
+=======
+                        "in": "formData",
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
                         "required": true
                     },
                     {
                         "type": "string",
                         "description": "地点前缀，如 n1 表示南湖一楼",
                         "name": "wherePrefix",
+<<<<<<< HEAD
                         "in": "query",
+=======
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学号",
+                        "name": "stuID",
+                        "in": "formData",
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
                         "required": true
                     }
                 ],

@@ -1301,7 +1301,11 @@ paths:
   /classroom/getFreeClassRoom:
     get:
       consumes:
+<<<<<<< HEAD
       - application/json
+=======
+      - application/x-www-form-urlencoded
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
       description: 根据学年、学期、周次、节次、地点等信息查询空闲教室列表
       parameters:
       - description: Bearer Token
@@ -1310,38 +1314,70 @@ paths:
         required: true
         type: string
       - description: 学年，如：2024-2025
+<<<<<<< HEAD
         in: query
+=======
+        in: formData
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
         name: year
         required: true
         type: string
       - description: 学期，如：1 或 2
+<<<<<<< HEAD
         in: query
+=======
+        in: formData
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
         name: semester
         required: true
         type: string
       - description: 第几周
+<<<<<<< HEAD
         in: query
+=======
+        in: formData
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
         name: week
         required: true
         type: integer
       - description: 星期几，1-7
+<<<<<<< HEAD
         in: query
+=======
+        in: formData
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
         name: day
         required: true
         type: integer
       - collectionFormat: csv
         description: 第几节课（可多选）
+<<<<<<< HEAD
         in: query
+=======
+        in: formData
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
         items:
           type: integer
         name: sections
         required: true
         type: array
       - description: 地点前缀，如 n1 表示南湖一楼
+<<<<<<< HEAD
         in: query
         name: wherePrefix
         required: true
         type: string
+=======
+        in: formData
+        name: wherePrefix
+        required: true
+        type: string
+      - description: 学号
+        in: formData
+        name: stuID
+        required: true
+        type: string
+>>>>>>> 4bb79c2110115c0dbc508c45959cbb70e00b1561
       produces:
       - application/json
       responses:

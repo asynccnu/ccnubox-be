@@ -1,0 +1,47 @@
+syntax = "proto3";
+package kratos.api;
+
+option go_package = "classlist/internal/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+  Registry registry = 3;
+}
+
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
+
+message Data {
+  message ES {
+    string url = 1;
+    bool setsniff = 2;
+    string username = 3;
+    string password = 4;
+    bool keepDataAfterRestart = 5;//重启后是否保留数据
+    string classroom = 6; //classroom的文件位置
+  }
+  ES es = 1;
+}
+message Etcd {
+  string addr = 1;
+  string username = 2;
+  string password = 3;
+}
+message Registry {
+  Etcd etcd = 1;
+}

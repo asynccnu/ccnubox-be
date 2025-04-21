@@ -2,7 +2,7 @@ grpc:
   server:
     name: "website"
     weight: 100
-    addr: ":19094"
+    addr: ":19093"
     etcdTTL: 60
 
 etcd:

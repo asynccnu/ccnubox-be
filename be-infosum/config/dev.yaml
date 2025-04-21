@@ -2,7 +2,7 @@ grpc:
   server:
     name: "info_sum"
     weight: 100
-    addr: ":19083"
+    addr: ":19090"
     etcdTTL: 60
 
 etcd:

@@ -12,7 +12,7 @@ grpc:
   server:
     name: "user"
     weight: 100
-    addr: ":8081"
+    addr: ":19092"
     etcdTTL: 60
   client:
     ccnu:

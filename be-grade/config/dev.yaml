@@ -15,7 +15,7 @@ grpc:
   server:
     name: "grade"
     weight: 100
-    addr: ":19085"
+    addr: ":19089"
     etcdTTL: 60
   client:
     classlist:

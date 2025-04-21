@@ -9,7 +9,7 @@ grpc:
   server:
     name: "feed"
     weight: 100
-    addr: ":19096"
+    addr: ":19088"
     etcdTTL: 60
 
 kafka:

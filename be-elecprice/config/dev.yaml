@@ -15,7 +15,7 @@ grpc:
   server:
     name: "elecprice"
     weight: 100
-    addr: ":19089"
+    addr: ":19087"
     etcdTTL: 60
   client:
     feed:

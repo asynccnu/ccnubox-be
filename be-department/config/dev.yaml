@@ -2,7 +2,7 @@ grpc:
   server:
     name: "department"
     weight: 100
-    addr: ":19093"
+    addr: ":19086"
     etcdTTL: 60
 
 redis:

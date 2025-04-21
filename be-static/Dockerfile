@@ -1,10 +1,11 @@
-FROM golang:1.22 AS builder
+FROM golang:1.23.7 AS builder
 
 COPY . /src
 
-WORKDIR /src/be-class
+WORKDIR /src/be-static
+RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-class ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-static  ./...
 
 FROM debian:stable-slim
 
@@ -14,13 +15,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         && rm -rf /var/lib/apt/lists/ \
         && apt-get autoremove -y && apt-get autoclean -y
 
-COPY --from=builder /src/be-class/bin /app
+
+COPY --from=builder /src/be-static/bin /app
 
 WORKDIR /app
 
-EXPOSE 18000
-EXPOSE 19083
+EXPOSE 19091
 
 VOLUME /data/conf
 
-CMD ["./be-class", "-conf", "/data/conf/config.yaml"]
+CMD ["./be-static", "-config", "/data/conf/config.yaml"]

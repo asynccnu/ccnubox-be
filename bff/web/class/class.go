@@ -1,6 +1,7 @@
 package class
 
 import (
+	"errors"
 	cs "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
 	classlistv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
@@ -250,7 +251,7 @@ func (c *ClassHandler) RecoverClass(ctx *gin.Context, req RecoverClassRequest, u
 
 // SearchClass 查询课程
 // @Summary 搜索课程
-// @Description 根据关键词[教师或者课程名]搜索课程
+// @Description 根据关键词[教师或者课程名]搜索课程,**注意,但当返回的结果数量大于page_size时,代表还有下一页**,最开始请求的是第一页
 // @Tags 课表
 // @Param year query string true "学年"
 // @Param semester query string true "学期"
@@ -260,10 +261,16 @@ func (c *ClassHandler) RecoverClass(ctx *gin.Context, req RecoverClassRequest, u
 // @Success 200 {object} web.Response{data=SearchClassResp} "成功搜索到课程"
 // @Router /class/search [get]
 func (c *ClassHandler) SearchClass(ctx *gin.Context, req SearchRequest) (web.Response, error) {
+	if req.Page <= 0 || req.PageSize <= 0 {
+		return web.Response{}, errs.INVALID_PARAM_VALUE_ERROR(errors.New("page or pageSize must be greater than 0"))
+	}
+
 	classes, err := c.ClassServiceClinet.SearchClass(ctx, &cs.SearchRequest{
 		Year:           req.Year,
 		Semester:       req.Semester,
 		SearchKeyWords: req.SearchKeyWords,
+		Page:           int32(req.Page),
+		PageSize:       int32(req.PageSize),
 	})
 
 	if err != nil {

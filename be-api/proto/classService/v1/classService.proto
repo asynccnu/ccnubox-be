@@ -18,6 +18,8 @@ message SearchRequest {
   string searchKeyWords = 1;
   string year = 2 ;
   string semester = 3 ;
+  int32 page = 4 ;
+  int32 page_size = 5 ;
 }
 
 message SearchReply {

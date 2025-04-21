@@ -113,6 +113,11 @@ func (f *FreeClassroomBiz) SaveFreeClassRoomFromLocal(ctx context.Context, year,
 }
 
 func (f *FreeClassroomBiz) SaveFreeClassRoomInfo(ctx context.Context, year, semester string, cwtPairs []model.CTWPair) error {
+	if len(cwtPairs) == 0 {
+		clog.LogPrinter.Warnf("no classroom occupancy data to save")
+		return nil
+	}
+
 	//添加新数据
 	err := f.freeClassRoomData.AddClassroomOccupancy(ctx, year, semester, cwtPairs...)
 	if err != nil {

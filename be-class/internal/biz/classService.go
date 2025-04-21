@@ -10,7 +10,7 @@ import (
 type EsProxy interface {
 	AddClassInfo(ctx context.Context, classInfo ...model.ClassInfo) error
 	ClearClassInfo(ctx context.Context, xnm, xqm string)
-	SearchClassInfo(ctx context.Context, keyWords string, xnm, xqm string) ([]model.ClassInfo, error)
+	SearchClassInfo(ctx context.Context, keyWords string, xnm, xqm string, page, pageSize int) ([]model.ClassInfo, error)
 }
 
 type ClassListService interface {
@@ -33,8 +33,8 @@ func (c *ClassSerivceUserCase) AddClassInfoToClassListService(ctx context.Contex
 	return c.cs.AddClassInfoToClassListService(ctx, request)
 }
 
-func (c *ClassSerivceUserCase) SearchClassInfo(ctx context.Context, keyWords string, xnm, xqm string) ([]model.ClassInfo, error) {
-	return c.es.SearchClassInfo(ctx, keyWords, xnm, xqm)
+func (c *ClassSerivceUserCase) SearchClassInfo(ctx context.Context, keyWords string, xnm, xqm string, page, pageSize int) ([]model.ClassInfo, error) {
+	return c.es.SearchClassInfo(ctx, keyWords, xnm, xqm, page, pageSize)
 }
 
 func (c *ClassSerivceUserCase) AddClassInfosToES(ctx context.Context, xnm, xqm string) {
@@ -43,6 +43,7 @@ func (c *ClassSerivceUserCase) AddClassInfosToES(ctx context.Context, xnm, xqm s
 	for {
 		classInfos, lastTime, err := c.cs.GetAllSchoolClassInfos(ctx, xnm, xqm, reqTime)
 		if len(classInfos) == 0 {
+			clog.LogPrinter.Infof("request other service but get 0 classes")
 			return
 		}
 		if err != nil {

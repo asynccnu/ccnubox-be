@@ -76,27 +76,6 @@ func main() {
 		panic(err)
 	}
 
-	//if err := c.Watch("schoolday.holidayTime", func(key string, value config.Value) {
-	//	res, err1 := value.String()
-	//	if err1 != nil {
-	//		log.Info("config change failed: %s\n", key)
-	//	}
-	//	bc.Schoolday.HolidayTime = res
-	//	fmt.Printf("config changed: %s = %v\n", key, value)
-	//}); err != nil {
-	//	log.Error(err)
-	//}
-	//if err := c.Watch("schoolday.schoolTime", func(key string, value config.Value) {
-	//	res, err1 := value.String()
-	//	if err1 != nil {
-	//		log.Info("config change failed: %s\n", key)
-	//	}
-	//	bc.Schoolday.SchoolTime = res
-	//	fmt.Printf("config changed: %s = %v\n", key, value)
-	//}); err != nil {
-	//	log.Error(err)
-	//}
-
 	logger := classLog.Logger(bc.Zaplog)
 	logger = log.With(logger,
 		"service.id", id,

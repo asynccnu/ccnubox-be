@@ -17,12 +17,22 @@ const classMapping = `{
     "number_of_replicas": 1,
     "analysis": {
       "analyzer": {
+        "ngram_analyzer": {
+          "tokenizer": "ngram_tk",
+          "filter": ["lowercase"]
+        },
         "edge_ngram_analyzer": {
           "tokenizer": "edge_ngram_tk",
           "filter": ["lowercase"]
         }
       },
       "tokenizer": {
+        "ngram_tk": {
+          "type": "ngram",
+          "min_gram": 1,
+          "max_gram": 2,
+          "token_chars": ["letter", "digit"]
+        },
         "edge_ngram_tk": {
           "type": "edge_ngram",
           "min_gram": 1,
@@ -34,47 +44,37 @@ const classMapping = `{
   },
   "mappings": {
     "properties": {
-      "id": {
-        "type": "keyword"
-      },
-      "day": {
-        "type": "integer"
-      },
+      "id": { "type": "keyword" },
+      "day": { "type": "integer" },
       "teacher": {
         "type": "text",
-        "analyzer": "edge_ngram_analyzer"
-      },
-      "where": {
-        "type": "text"
-      },
-      "class_when": {
-        "type": "text"
-      },
-      "week_duration": {
-        "type": "text"
-      },
-      "classname": {
-        "type": "text",
-        "analyzer": "edge_ngram_analyzer",
+        "analyzer": "ngram_analyzer",
         "fields": {
           "keyword": { "type": "keyword" }
         }
       },
-      "credit": {
-        "type": "float"
+      "where": { "type": "text" },
+      "class_when": { "type": "text" },
+      "week_duration": { "type": "text" },
+      "classname": {
+        "type": "text",
+        "analyzer": "ngram_analyzer",
+        "fields": {
+          "keyword": { "type": "keyword" }, 
+          "standard": { 
+            "type": "text",
+            "analyzer": "standard" 
+          }
+        }
       },
-      "weeks": {
-        "type": "integer"
-      },
-      "semester": {
-        "type": "keyword"
-      },
-      "year": {
-        "type": "keyword"
-      }
+      "credit": { "type": "float" },
+      "weeks": { "type": "integer" },
+      "semester": { "type": "keyword" },
+      "year": { "type": "keyword" }
     }
   }
-}`
+}
+`
 
 const classIndexName = "class_info"
 
@@ -97,17 +97,7 @@ func NewClassData(cli *elastic.Client) (*ClassData, func(), error) {
 }
 
 func (d ClassData) AddClassInfo(ctx context.Context, classInfos ...model.ClassInfo) error {
-	//// 创建文档
-	//_, err := d.cli.Index().
-	//	Index(classIndexName).
-	//	Id(classInfo.ID).
-	//	BodyJson(classInfo).
-	//	Refresh("true").
-	//	Do(ctx)
-	//if err != nil {
-	//	clog.LogPrinter.Errorf("es: failed to add class_info[%+v]: %v", classInfo, err)
-	//	return errcode.Err_EsAddClassInfo
-	//}
+
 	if len(classInfos) == 0 {
 		return nil
 	}
@@ -163,31 +153,36 @@ func (d ClassData) ClearClassInfo(ctx context.Context, xnm, xqm string) {
 	clog.LogPrinter.Infof("Deleted %d documents", deleteResponse.Deleted)
 }
 
-func (d ClassData) SearchClassInfo(ctx context.Context, keyWords string, xnm, xqm string) ([]model.ClassInfo, error) {
+func (d ClassData) SearchClassInfo(ctx context.Context, keyWords string, xnm, xqm string, page, pageSize int) ([]model.ClassInfo, error) {
 	var classInfos = make([]model.ClassInfo, 0)
+	offset := (page - 1) * pageSize
 	searchResult, err := d.cli.Search().
-		Index(classIndexName). // 指定索引名称
+		Index(classIndexName).
 		Query(
 			elastic.NewBoolQuery().
 				Should(
-					elastic.NewMatchPhrasePrefixQuery("classname", keyWords).Boost(2),
-					elastic.NewMatchPhrasePrefixQuery("teacher", keyWords).Boost(1.5),
+					// 改为 MatchQuery 支持任意片段匹配（"算机"可匹配"计算机科学"）
+					elastic.NewMatchPhraseQuery("classname", keyWords).Boost(2),
+					elastic.NewMatchPhraseQuery("teacher", keyWords).Boost(1.5),
 				).
-				MinimumShouldMatch("1"). // 至少匹配一个条件
+				MinimumShouldMatch("1").
 				Filter(
-					elastic.NewTermQuery("year", xnm),     // year 精确匹配 xnm
-					elastic.NewTermQuery("semester", xqm), // semester 精确匹配 xqm
+					elastic.NewTermQuery("year", xnm),
+					elastic.NewTermQuery("semester", xqm),
 				),
-		).Do(ctx)
+		).
+		From(offset).
+		Size(pageSize + 1).
+		Do(ctx)
 
 	if err != nil {
 		clog.LogPrinter.Errorf("es: failed to search class_info[keywords:%v xnm:%v xqm:%v]: %v", keyWords, xnm, xqm, err)
 		return nil, errcode.Err_EsSearchClassInfo
 	}
+
 	for _, hit := range searchResult.Hits.Hits {
 		var classInfo model.ClassInfo
-		err := json.Unmarshal(hit.Source, &classInfo)
-		if err != nil {
+		if err := json.Unmarshal(hit.Source, &classInfo); err != nil {
 			clog.LogPrinter.Errorf("json unmarshal %v failed: %v", hit.Source, err)
 			continue
 		}

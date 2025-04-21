@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	pb "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
 	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/model"
@@ -9,7 +10,7 @@ import (
 
 type ClassInfoProxy interface {
 	AddClassInfoToClassListService(ctx context.Context, request *v1.AddClassRequest) (*v1.AddClassResponse, error)
-	SearchClassInfo(ctx context.Context, keyWords string, xnm, xqm string) ([]model.ClassInfo, error)
+	SearchClassInfo(ctx context.Context, keyWords string, xnm, xqm string, page, pageSize int) ([]model.ClassInfo, error)
 }
 
 type ClassServiceService struct {
@@ -24,7 +25,10 @@ func NewClassServiceService(cp ClassInfoProxy) *ClassServiceService {
 }
 
 func (s *ClassServiceService) SearchClass(ctx context.Context, req *pb.SearchRequest) (*pb.SearchReply, error) {
-	classInfos, err := s.cp.SearchClassInfo(ctx, req.GetSearchKeyWords(), req.GetYear(), req.GetSemester())
+	if req.Page <= 0 || req.PageSize <= 0 {
+		return &pb.SearchReply{}, errors.New("page and pageSize must be greater than 0")
+	}
+	classInfos, err := s.cp.SearchClassInfo(ctx, req.SearchKeyWords, req.Year, req.Semester, int(req.Page), int(req.PageSize))
 	if err != nil {
 		return &pb.SearchReply{}, err
 	}

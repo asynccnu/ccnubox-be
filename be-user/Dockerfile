@@ -9,6 +9,8 @@ RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-user  ./...
 
 FROM debian:stable-slim
 
+ENV TZ=Asia/Shanghai
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		ca-certificates  \
         netbase \
@@ -20,7 +22,7 @@ COPY --from=builder /src/be-user/bin /app
 
 WORKDIR /app
 
-EXPOSE 19092
+EXPOSE 19091
 
 VOLUME /data/conf
 

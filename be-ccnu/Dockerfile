@@ -9,6 +9,8 @@ RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-ccnu  ./...
 
 FROM debian:stable-slim
 
+ENV TZ=Asia/Shanghai
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		ca-certificates  \
         netbase \

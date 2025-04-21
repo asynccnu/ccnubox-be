@@ -13,7 +13,6 @@ use (
 	be-feed
 	be-grade
 	be-infosum
-	be-static
 	be-user
 	be-website
 	bff

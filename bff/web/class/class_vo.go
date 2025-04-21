@@ -94,11 +94,9 @@ type SearchRequest struct {
 	SearchKeyWords string `form:"searchKeyWords,omitempty"`
 	Year           string `form:"year,omitempty"`
 	Semester       string `form:"semester,omitempty"`
+	Page           int    `form:"page,omitempty"`
+	PageSize       int    `form:"page_size,omitempty"`
 }
-
-//type Class struct {
-//	Info     []*ClassInfo `json:"info"`
-//}
 
 type GetClassListResp struct {
 	Classes []*ClassInfo `json:"classes"`

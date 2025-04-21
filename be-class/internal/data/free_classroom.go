@@ -38,33 +38,6 @@ func (f *FreeClassroomData) GetAllClassroom(ctx context.Context, wherePrefix str
 }
 
 func (f *FreeClassroomData) AddClassroomOccupancy(ctx context.Context, year, semester string, cwtPairs ...model.CTWPair) error {
-	//type ClassroomOccupancy struct {
-	//	Year     string `json:"year"`
-	//	Semester string `json:"semester"`
-	//	Where    string `json:"where"`
-	//	Weeks    []int  `json:"weeks"`
-	//	Day      int    `json:"day"`
-	//	Sections []int  `json:"sections"`
-	//}
-	//co := ClassroomOccupancy{
-	//	Year:     year,
-	//	Semester: semester,
-	//	Where:    cwtPair.Where,
-	//	Weeks:    cwtPair.CT.Weeks,
-	//	Day:      cwtPair.CT.Day,
-	//	Sections: cwtPair.CT.Sections,
-	//}
-	//_, err := f.cli.Index().
-	//	Index(freeClassroomIndex).
-	//	Id(fmt.Sprintf("%v-%v-%v", year, semester, cwtPair)).
-	//	BodyJson(co).
-	//	Refresh("true").
-	//	Do(ctx)
-	//if err != nil {
-	//	clog.LogPrinter.Errorf("es: failed to add classroom_occupancy[%+v]: %v", co, err)
-	//	return err
-	//}
-	//return nil
 	// 定义文档结构
 	type ClassroomOccupancy struct {
 		Year     string `json:"year"`

@@ -1,7 +1,7 @@
 package errcode
 
 import (
-	v1 "github.com/asynccnu/be-api/gen/proto/classlist/v1" //此处改成了be-api的部分
+	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1" //此处改成了be-api的部分
 	"github.com/go-kratos/kratos/v2/errors"
 )
 

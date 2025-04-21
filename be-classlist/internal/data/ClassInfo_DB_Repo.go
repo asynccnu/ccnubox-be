@@ -72,7 +72,7 @@ func (c ClassInfoDBRepo) GetClassInfos(ctx context.Context, stuId, xnm, xqm stri
 	var (
 		cla = make([]*model.ClassInfo, 0)
 	)
-	err := db.Table(model.ClassInfoTableName).
+	err := db.Table(model.ClassInfoTableName).Select(fmt.Sprintf("%s.*", model.ClassInfoTableName)).
 		Joins(fmt.Sprintf(
 			`LEFT JOIN %s ON %s.id = %s.cla_id`, model.StudentCourseTableName, model.ClassInfoTableName, model.StudentCourseTableName,
 		)).
@@ -124,7 +124,7 @@ func (c ClassInfoDBRepo) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm
 	var (
 		cla = make([]*model.ClassInfo, 0)
 	)
-	err := db.Table(model.ClassInfoTableName).
+	err := db.Table(model.ClassInfoTableName).Select(fmt.Sprintf("%s.*", model.ClassInfoTableName)).
 		Joins(fmt.Sprintf(
 			`LEFT JOIN %s ON %s.id = %s.cla_id`, model.StudentCourseTableName, model.ClassInfoTableName, model.StudentCourseTableName,
 		)).

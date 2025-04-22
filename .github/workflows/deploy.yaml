@@ -29,7 +29,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-calendar.sh
+          chmod +x ./build-be-calendar.sh
           ./build-be-calendar.sh  ${{ secrets.IMAGE_REPO }}
   build-be-ccnu:
     runs-on: ubuntu-latest
@@ -41,7 +41,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-ccnu.sh
+          chmod +x ./build-be-ccnu.sh
           ./build-be-ccnu.sh  ${{ secrets.IMAGE_REPO }}
   build-be-class:
     runs-on: ubuntu-latest
@@ -53,7 +53,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-class.sh
+          chmod +x ./build-be-class.sh
           ./build-be-class.sh  ${{ secrets.IMAGE_REPO }}
   build-be-classlist:
     runs-on: ubuntu-latest
@@ -65,7 +65,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-classlist.sh
+          chmod +x ./build-be-classlist.sh
           ./build-be-classlist.sh  ${{ secrets.IMAGE_REPO }}
   build-be-counter:
     runs-on: ubuntu-latest
@@ -77,7 +77,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-counter.sh
+          chmod +x ./build-be-counter.sh
           ./build-be-counter.sh  ${{ secrets.IMAGE_REPO }}
   build-be-department:
     runs-on: ubuntu-latest
@@ -89,7 +89,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-department.sh
+          chmod +x ./build-be-department.sh
           ./build-be-department.sh  ${{ secrets.IMAGE_REPO }}
   build-be-elecprice:
     runs-on: ubuntu-latest
@@ -101,7 +101,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-elecprice.sh
+          chmod +x ./build-be-elecprice.sh
           ./build-be-elecprice.sh  ${{ secrets.IMAGE_REPO }}
   build-be-feed:
     runs-on: ubuntu-latest
@@ -113,7 +113,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-feed.sh
+          chmod +x ./build-be-feed.sh
           ./build-be-feed.sh  ${{ secrets.IMAGE_REPO }}
   build-be-grade:
     runs-on: ubuntu-latest
@@ -125,7 +125,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-grade.sh
+          chmod +x ./build-be-grade.sh
           ./build-be-grade.sh  ${{ secrets.IMAGE_REPO }}
   build-be-infosum:
     runs-on: ubuntu-latest
@@ -137,7 +137,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-infosum.sh
+          chmod +x ./build-be-infosum.sh
           ./build-be-infosum.sh  ${{ secrets.IMAGE_REPO }}
   build-be-website:
     runs-on: ubuntu-latest
@@ -149,7 +149,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-website.sh
+          chmod +x ./build-be-website.sh
           ./build-be-website.sh  ${{ secrets.IMAGE_REPO }}
   build-bff:
     runs-on: ubuntu-latest
@@ -161,7 +161,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-bff.sh
+          chmod +x ./build-bff.sh
           ./build-bff.sh  ${{ secrets.IMAGE_REPO }}
   build-be-user:
     runs-on: ubuntu-latest
@@ -173,7 +173,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
       - name: build and push image
         run: |
-            chmod +x ./build-be-user.sh
+          chmod +x ./build-be-user.sh
           ./build-be-user.sh  ${{ secrets.IMAGE_REPO }}  ${{ secrets.CRYPTO_KEY }}
   deploy:
     runs-on: ubuntu-latest

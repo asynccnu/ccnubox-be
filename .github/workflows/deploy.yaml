@@ -15,6 +15,13 @@ jobs:
           # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+          # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-banner.sh
@@ -27,6 +34,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-calendar.sh
@@ -39,6 +53,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-ccnu.sh
@@ -51,6 +72,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-class.sh
@@ -63,6 +91,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-classlist.sh
@@ -75,6 +110,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-counter.sh
@@ -87,6 +129,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-department.sh
@@ -99,6 +148,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-elecprice.sh
@@ -111,6 +167,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-feed.sh
@@ -123,6 +186,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-grade.sh
@@ -135,6 +205,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-infosum.sh
@@ -147,6 +224,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-website.sh
@@ -159,6 +243,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-bff.sh
@@ -171,6 +262,13 @@ jobs:
         # 设置 Docker Buildx（支持多平台构建）
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        # 登录阿里云 Docker Registry
+      - name: Log in to Aliyun Docker Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
       - name: build and push image
         run: |
           chmod +x ./build-be-user.sh

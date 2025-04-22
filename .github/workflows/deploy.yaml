@@ -2,8 +2,8 @@ name: 部署各个服务到集群
 
 
 on:
-  push:
-    branches: [ "main" ]
+#  push:
+#    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 jobs:
@@ -293,11 +293,9 @@ jobs:
     steps:
       # 设置 SSH 密钥以便进行无密码登录
       - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_ADDR }} >> ~/.ssh/known_hosts
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       - name: SSH into server and deploy
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_ADDR }} << 'EOF'
@@ -309,9 +307,9 @@ jobs:
             kubectl apply -f es-svc.yaml
             kubectl apply -f kafka-svc.yaml
             kubectl apply -f etcd-svc.yaml
-            kubectl exec -it etcd-0 -n ccnube -- etcdctl user add root:muxistudio304
-            kubectl exec -it etcd-0 -n ccnube -- etcdctl role add root
-            kubectl exec -it etcd-0 -n ccnube -- etcdctl user grant-role root root
-            kubectl exec -it etcd-0 -n ccnube -- etcdctl auth enable
+            kubectl exec -it etcd-0 -n ccnube -- etcdctl user add root:muxistudio304 || true
+            kubectl exec -it etcd-0 -n ccnube -- etcdctl role add root || true
+            kubectl exec -it etcd-0 -n ccnube -- etcdctl user grant-role root root || true
+            kubectl exec -it etcd-0 -n ccnube -- etcdctl auth enable || true
             kubectl apply -f be-svc.yaml
           EOF

@@ -2,7 +2,7 @@ grpc:
   server:
     name: "banner"
     weight: 100
-    addr: ":19097"
+    addr: ":19080"
     etcdTTL: 60
 
 etcd:

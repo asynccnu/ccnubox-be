@@ -3,7 +3,7 @@ server:
     addr: 0.0.0.0:18000
     timeout: 10s
   grpc:
-    addr: 0.0.0.0:19000
+    addr: 0.0.0.0:19083
     timeout: 10s
 data:
   es:
@@ -13,7 +13,7 @@ data:
     password: "12345678"
     #重启后是否保留数据
     keepDataAfterRestart: true
-    classroom: "configs/classrooms.json"
+    classroom: "/data/conf/classrooms.json"
 registry:
   etcd:
     addr: "127.0.0.1:2379"

@@ -2,6 +2,7 @@ module github.com/asynccnu/ccnubox-be/be-feed
 
 go 1.23.7
 
+replace github.com/asynccnu/ccnubox-be/be-api => ../be-api
 
 require (
 	github.com/IBM/sarama v1.45.1

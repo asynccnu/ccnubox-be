@@ -2,7 +2,7 @@ grpc:
   server:
     name: "calendar"
     weight: 100
-    addr: ":19096"
+    addr: ":19081"
     etcdTTL: 60
   client:
     feed:

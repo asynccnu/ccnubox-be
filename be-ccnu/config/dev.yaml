@@ -1,12 +1,14 @@
 etcd:
   endpoints:
     - "localhost:12379"
+  username: root
+  password: "12345678"
 
 grpc:
   server:
     name: "ccnu"
     weight: 100
-    addr: ":8092"
+    addr: ":19082"
     etcdTTL: 60
 
 

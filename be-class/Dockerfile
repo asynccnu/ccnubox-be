@@ -1,11 +1,14 @@
-FROM golang:1.22 AS builder
+FROM golang:1.23.7 AS builder
 
 COPY . /src
-WORKDIR /src
 
-RUN GOPROXY=https://goproxy.cn make build
+WORKDIR /src/be-class
+
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-class ./cmd/class
 
 FROM debian:stable-slim
+
+ENV TZ=Asia/Shanghai
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		ca-certificates  \
@@ -13,12 +16,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         && rm -rf /var/lib/apt/lists/ \
         && apt-get autoremove -y && apt-get autoclean -y
 
-COPY --from=builder /src/bin /app
+COPY --from=builder /src/be-class/bin /app
 
 WORKDIR /app
 
 EXPOSE 18000
-EXPOSE 19000
+EXPOSE 19083
+
 VOLUME /data/conf
 
-CMD ["./classService", "-conf", "/data/conf/config.yaml"]
+CMD ["./be-class", "-conf", "/data/conf/config.yaml"]

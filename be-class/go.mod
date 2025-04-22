@@ -2,6 +2,8 @@ module github.com/asynccnu/ccnubox-be/be-class
 
 go 1.23.7
 
+replace github.com/asynccnu/ccnubox-be/be-api => ../be-api
+
 require (
 	github.com/asynccnu/ccnubox-be/be-api v0.0.0-20250405084424-22872348780a
 	github.com/go-kratos/kratos/contrib/log/zap/v2 v2.0.0-20250403070952-9580f086e326

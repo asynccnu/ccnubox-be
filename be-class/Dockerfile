@@ -1,10 +1,10 @@
-FROM golang:1.22 AS builder
+FROM golang:1.23.7 AS builder
 
 COPY . /src
 
 WORKDIR /src/be-class
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-class ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-class ./cmd/class
 
 FROM debian:stable-slim
 

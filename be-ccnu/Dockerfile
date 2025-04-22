@@ -5,7 +5,7 @@ COPY . /src
 WORKDIR /src/be-ccnu
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-ccnu  ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-ccnu  .
 
 FROM debian:stable-slim
 
@@ -26,4 +26,4 @@ EXPOSE 19082
 
 VOLUME /data/conf
 
-CMD ["./be-ccnu", "-config", "/data/conf/config.yaml"]
+CMD ["./be-ccnu", "--config", "/data/conf/config.yaml"]

@@ -5,7 +5,7 @@ COPY . /src
 WORKDIR /src/be-department
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-department  ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-department  .
 
 FROM debian:stable-slim
 
@@ -26,4 +26,4 @@ EXPOSE 19086
 
 VOLUME /data/conf
 
-CMD ["./be-department", "-config", "/data/conf/config.yaml"]
+CMD ["./be-department", "--config", "/data/conf/config.yaml"]

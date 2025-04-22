@@ -5,7 +5,7 @@ COPY . /src
 WORKDIR /src/be-elecprice
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-elecprice  ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-elecprice  .
 
 FROM debian:stable-slim
 
@@ -26,4 +26,4 @@ EXPOSE 19087
 
 VOLUME /data/conf
 
-CMD ["./be-elecprice", "-config", "/data/conf/config.yaml"]
+CMD ["./be-elecprice", "--config", "/data/conf/config.yaml"]

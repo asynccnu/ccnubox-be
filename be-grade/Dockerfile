@@ -5,7 +5,7 @@ COPY . /src
 WORKDIR /src/be-grade
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-grade  ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-grade  .
 
 FROM debian:stable-slim
 
@@ -26,4 +26,4 @@ EXPOSE 19089
 
 VOLUME /data/conf
 
-CMD ["./be-grade", "-config", "/data/conf/config.yaml"]
+CMD ["./be-grade", "--config", "/data/conf/config.yaml"]

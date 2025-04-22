@@ -5,7 +5,7 @@ COPY . /src
 WORKDIR /src/be-infosum
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-infosum  ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-infosum  .
 
 FROM debian:stable-slim
 
@@ -26,4 +26,4 @@ EXPOSE 19090
 
 VOLUME /data/conf
 
-CMD ["./be-infosum", "-config", "/data/conf/config.yaml"]
+CMD ["./be-infosum", "--config", "/data/conf/config.yaml"]

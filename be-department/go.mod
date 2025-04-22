@@ -2,6 +2,7 @@ module github.com/asynccnu/ccnubox-be/be-department
 
 go 1.23.7
 
+replace github.com/asynccnu/ccnubox-be/be-api => ../be-api
 
 require (
 	github.com/asynccnu/ccnubox-be/be-api v0.0.0-00010101000000-000000000000

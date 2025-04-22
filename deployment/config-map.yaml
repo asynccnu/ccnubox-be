@@ -1,0 +1,810 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccnube-config
+  namespace: ccnube
+data:
+  be-banner.yaml: |
+    grpc:
+      server:
+        name: "banner"
+        weight: 100
+        addr: ":19080"
+        etcdTTL: 60
+
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:2379"
+      username: root
+      password: "muxistudio304"
+
+    redis:
+      addr: "redis-0.redis:6379"
+      password: "muxistudio304"
+
+    mysql:
+      dsn: "root:muxistudio304@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+    
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+
+  be-calendar.yaml: |
+    grpc:
+      server:
+        name: "calendar"
+        weight: 100
+        addr: ":19081"
+        etcdTTL: 60
+      client:
+        feed:
+          endpoint: "discovery:///feed"
+
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:2379"
+      username: root
+      password: "muxistudio304"
+
+    redis:
+      addr: "redis-0.redis:6379"
+      password: "muxistudio304"
+
+    mysql:
+      dsn: "root:muxistudio304@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+
+    qiniu:
+      accessKey : "xxxxxxxxxxx"#秘钥
+      secretKey : "xxxxxxxxxxx"#秘钥x2
+      bucket: "xxxxxxxxxxx"#仓库名
+      domain : "xxxxxxxxxxx"#默认域名
+      baseName : "ccnuCalendar"
+
+    calendarController:
+      durationTime: 24 #爬取频率,单位是小时
+
+    #假期自动提醒
+    holidayController:
+      durationTime: 1 #单位是小时,每多少小时尝试去获取一次,这个应该是写死的,不要更改,一天一次很合理
+      advanceDay: 4 #提前四天进行提醒
+    
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  be-ccnu.yaml: |
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:2379"
+      username: root
+      password: "muxistudio304"
+
+    grpc:
+      server:
+        name: "ccnu"
+        weight: 100
+        addr: ":19082"
+        etcdTTL: 60
+
+
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  be-class.yaml: |
+    server:
+      http:
+        addr: 0.0.0.0:18000
+        timeout: 10s
+      grpc:
+        addr: 0.0.0.0:19083
+        timeout: 10s
+    data:
+      es:
+        url: "http://elasticsearch-0.elasticsearch:9200"
+        setsniff: false
+        username: "elastic"
+        password: "muxistudio304"
+        #重启后是否保留数据
+        keepDataAfterRestart: true
+        classroom: "/data/conf/classrooms.json"
+    registry:
+      etcd:
+        addr: "etcd-0.etcd:2379"
+        username: root
+        password: "muxistudio304"
+
+  be-classlist.yaml: |
+    server:
+      grpc:
+        addr: 0.0.0.0:19084
+        timeout: 2s
+    data:
+      database:
+        source: "root:muxistudio304@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+        logPath: "/var/log/sql_log"
+        logFileName: "sql.log"
+      redis:
+        addr: "redis-0.redis:6379"
+        password: "muxistudio304"
+        read_timeout: 1s
+        write_timeout: 2s
+    registry:
+      etcd:
+        addr: "etcd-0.etcd:2379"
+        username: root
+        password: "muxistudio304"
+    zaplog:
+      # 日志等级
+      log_level: "info"
+      # 日志的格式
+      log_format: "json"
+      # 日志文件的路径
+      log_path: "/var/log/app_log"
+      # 日志文件的名字
+      log_file_name: "app.log"
+      # 日志文件的最大大小MB
+      log_file_max_size: 100
+      # 【日志分割】日志备份文件最多数量
+      log_file_max_backups: 5
+      # 日志保留时间，单位: 天 (day)
+      log_max_age: 30
+      # 日志是否压缩
+      log_compress: false
+      # 日志是否输出到控制台
+      log_stdout: false
+    schoolday:  # 相关时间,格式"2025-07-05"
+      holidayTime: "2025-07-05" #放假第一天
+      schoolTime: "2025-02-17" #上学第一天
+  be-counter.yaml: |
+    grpc:
+      server:
+        name: "Counter"
+        weight: 100
+        addr: ":19085"
+        etcdTTL: 60
+
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:2379"
+      username: root
+      password: "muxistudio304"
+
+    redis:
+      addr: "redis-0.redis:6379"
+      password: "muxistudio304"
+
+    countLevel:
+      low: 0 #轮询低位起始点
+      middle: 3 #轮询中位起始点
+      high: 6 #轮询高位起始点
+      step: 3 #轮询降级与升级步数,即一次更改一级
+
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  be-department.yaml: |
+    grpc:
+      server:
+        name: "department"
+        weight: 100
+        addr: ":19086"
+        etcdTTL: 60
+
+    redis:
+      addr: "redis-0.redis:6379"
+      password: "muxistudio304"
+
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:12379"
+      username: root
+      password: "muxistudio304"
+
+    mysql:
+      dsn: "root:muxistudio304@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  be-elecprice.yaml: |
+    mysql:
+      dsn: "root:muxistudio304@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:2379"
+      username: root
+      password: "muxistudio304"
+
+    grpc:
+      server:
+        name: "elecprice"
+        weight: 100
+        addr: ":19087"
+        etcdTTL: 60
+      client:
+        feed:
+          endpoint: "discovery:///feed"
+
+    #电费成绩
+    elecpriceController:
+      durationTime: 24 # 检查周期,每24小时检查一次
+
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  be-feed.yaml: |
+    mysql:
+      dsn: "root:muxistudio304@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+    etcd:
+      endpoints:
+        - "localhost:12379"
+      username: root
+      password: "muxistudio304"
+
+    grpc:
+      server:
+        name: "feed"
+        weight: 100
+        addr: ":19088"
+        etcdTTL: 60
+      client:
+        feedUserCount:
+          endpoint: "discovery:///feedUserCount"
+        classlist:
+          endpoint: "discovery:///MuXi_ClassList"
+        grade:
+          endpoint: "discovery:///grade"
+        user:
+          endpoint: "discovery:///user"
+
+    kafka:
+      addrs:
+        - "kafka-0.kafka:9092"
+
+    redis:
+      addr: "redis-0.redis:6379"
+      password: "muxistudio304"
+
+    muxiController:
+      durationTime: 86400
+
+    #消费者的消费配置
+    consume:
+      consumeTime: 1 #强制插入的时间(如果长期没有消息被消费的话),单位是分钟
+      consumeNum: 2 #批量存入,每次最多一次存入500条数据(设置最大值不能超过一千,否则请自行修改dao层的gorm插入feedEvent的最大上限值)
+
+    #极光推送配置
+    jpushConfig:
+      appKey: "xxx"
+      masterSecret: "xxx"
+
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  be-grade.yaml: |
+    mysql:
+      dsn: "root:muxistudio304@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:2379"
+      username: root
+      password: "muxistudio304"
+
+    grpc:
+      server:
+        name: "grade"
+        weight: 100
+        addr: ":19089"
+        etcdTTL: 60
+      client:
+        classlist:
+          endpoint: "discovery:///MuXi_ClassList"
+        user:
+          endpoint: "discovery:///user"
+        counter:
+          endpoint: "discovery:///counter"
+        feed:
+          endpoint: "discovery:///feed"
+        ccnu:
+          endpoint: "discovery:///ccnu"
+
+    #成绩自动提醒
+    gradeController:
+      high: 1  #单位是分钟
+      middle: 30 #单位是分钟
+      low: 60 #单位是分钟
+
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  be-infosum.yaml: |
+    grpc:
+      server:
+        name: "info_sum"
+        weight: 100
+        addr: ":19090"
+        etcdTTL: 60
+
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:2379"
+      username: root
+      password: "muxistudio304"
+
+    redis:
+      addr: "redis-0.redis:6379"
+      password: "muxistudio304"
+
+    mysql:
+      dsn: "root:muxistudio304@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+
+  be-user.yaml: |
+    mysql:
+      dsn: "root:muxistudio304@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+
+    redis:
+      addr: "redis-0.redis:6379"
+      password: "muxistudio304"
+
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:12379"
+      username: root
+      password: "muxistudio304"
+    log:
+      path: "./logs/user.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+
+    grpc:
+      server:
+        name: "user"
+        weight: 100
+        addr: ":19091"
+        etcdTTL: 60
+      client:
+        ccnu:
+          endpoint: "discovery:///ccnu"
+
+  be-website.yaml: |
+    grpc:
+      server:
+        name: "website"
+        weight: 100
+        addr: ":19092"
+        etcdTTL: 60
+
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:12379"
+      username: root
+      password: "muxistudio304"
+
+    redis:
+      addr: "redis-0.redis:6379"
+      password: "muxistudio304"
+
+    mysql:
+      dsn: "root:muxistudio304@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+
+  bff.yaml: |
+    http:
+      addr: ":8080"
+
+    redis:
+      addr: "redis-0.redis:6379"
+      password: "muxistudio304"
+
+
+    etcd:
+      endpoints:
+        - "etcd-0.etcd:2379"
+      username: root
+      password: "muxistudio304"
+
+    rootistrators:
+      - "1234123456"
+
+    grpc:
+      client:
+        ccnu:
+          endpoint: "discovery:///ccnu"
+          retryCnt: 3    # 具备重试装饰时的重试次数
+        user:
+          endpoint: "discovery:///user"
+        static:
+          endpoint: "discovery:///static"
+        feed:
+          endpoint: "discovery:///feed"
+        banner:
+          endpoint: "discovery:///banner"
+        calendar:
+          endpoint: "discovery:///calendar"
+        department:
+          endpoint: "discovery:///department"
+        website:
+          endpoint: "discovery:///website"
+        elecprice:
+          endpoint: "discovery:///elecprice"
+        classlist:
+          endpoint: "discovery:///MuXi_ClassList"
+        classService:
+          endpoint: "discovery:///classService"
+        feedbackHelp:
+          endpoint: "discovery:///feedback_help"
+        grade:
+          endpoint: "discovery:///grade"
+        infoSum:
+          endpoint: "discovery:///info_sum"
+        counter:
+          endpoint: "discovery:///counter"
+        card:
+          endpoint: "discovery:///card"
+
+    jwt:
+      jwtKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      refreshKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+    oss:
+      accessKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      secretKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      bucketName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      domainName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # CDN 域名
+
+    # 日志配置
+    log:
+      path: "./logs/app.log"  # 日志文件路径
+      maxSize: 100           # 单个日志文件的最大大小（MB）
+      maxBackups: 7          # 保留旧日志文件的最大数量
+      maxAge: 30             # 日志文件保留天数
+      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+
+    # Prometheus 配置
+    prometheus:
+      namespace: "ccnubox" # Prometheus 命名空间，通常为项目名称
+
+      routerCounter:
+        name: "http_requests_total"  # 路由请求总数指标名称
+        help: "Total number of HTTP requests" # 指标说明
+
+      activeConnections:
+        name: "active_connections"  # 活跃连接指标名称
+        help: "Number of active connections per route" # 指标说明
+
+      durationTime:
+        name: "http_request_duration_seconds"  # 请求时长直方图名称
+        help: "Histogram of response times for HTTP requests" # 指标说明
+  init.sql: |  # 👈 关键点：文件名必须是 .sql 或 .sh
+    CREATE DATABASE IF NOT EXISTS ccnubox;
+  be-class-classrooms.json: |
+    {
+      "class_rooms": [
+        "3101",
+        "3102",
+        "3103",
+        "3104",
+        "3106",
+        "3108",
+        "3110",
+        "3111",
+        "3112",
+        "3113",
+        "3114",
+        "3115",
+        "3116",
+        "3117",
+        "3118",
+        "3201",
+        "3202",
+        "3203",
+        "3204",
+        "3205",
+        "3206",
+        "3207",
+        "3208",
+        "3209",
+        "3210",
+        "3211",
+        "3212",
+        "3213",
+        "3214",
+        "3215",
+        "3216",
+        "3217",
+        "3218",
+        "3300",
+        "3301",
+        "3302",
+        "3303",
+        "3304",
+        "3305",
+        "3306",
+        "3307",
+        "3308",
+        "3309",
+        "3310",
+        "3318",
+        "3319",
+        "3401",
+        "3501",
+        "3502",
+        "3505",
+        "7101",
+        "7103",
+        "7104",
+        "7105",
+        "7106",
+        "7107",
+        "7108",
+        "7109",
+        "7110",
+        "7201",
+        "7203",
+        "7204",
+        "7205",
+        "7206",
+        "7207",
+        "7208",
+        "7209",
+        "7211",
+        "7301",
+        "7303",
+        "7304",
+        "7305",
+        "7306",
+        "7307",
+        "7308",
+        "7309",
+        "7310",
+        "7311",
+        "7505",
+        "7506",
+        "8102",
+        "8103",
+        "8104",
+        "8105",
+        "8106",
+        "8107",
+        "8108",
+        "8109",
+        "8110",
+        "8111",
+        "8112",
+        "8201",
+        "8202",
+        "8203",
+        "8204",
+        "8205",
+        "8207",
+        "8208",
+        "8209",
+        "8210",
+        "8211",
+        "8212",
+        "8213",
+        "8214",
+        "8215",
+        "8216",
+        "8301",
+        "8302",
+        "8303",
+        "8304",
+        "8305",
+        "8307",
+        "8308",
+        "8309",
+        "8310",
+        "8311",
+        "8312",
+        "8313",
+        "8314",
+        "8315",
+        "8316",
+        "8401",
+        "8402",
+        "8403",
+        "8404",
+        "8405",
+        "8406",
+        "8407",
+        "8408",
+        "8409",
+        "8410",
+        "8411",
+        "8412",
+        "8413",
+        "8414",
+        "8416",
+        "8501",
+        "8502",
+        "8503",
+        "8504",
+        "8505",
+        "8506",
+        "8507",
+        "8508",
+        "8509",
+        "8510",
+        "8511",
+        "8512",
+        "8513",
+        "8514",
+        "8515",
+        "8516",
+        "8616",
+        "8617",
+        "8618",
+        "8701",
+        "8702",
+        "8703",
+        "8704",
+        "8705",
+        "8706",
+        "8707",
+        "8709",
+        "8716",
+        "8717",
+        "9101",
+        "9102",
+        "9201",
+        "9202",
+        "9203",
+        "9301",
+        "9302",
+        "9303",
+        "9401",
+        "9402",
+        "9403",
+        "9501",
+        "9523",
+        "9532",
+        "9538",
+        "9726",
+        "9728",
+        "9730",
+        "9732",
+        "10103",
+        "10104",
+        "10105",
+        "10106",
+        "10201",
+        "10202",
+        "10203",
+        "10204",
+        "10205",
+        "10207",
+        "10209",
+        "10301",
+        "10302",
+        "10303",
+        "10304",
+        "10305",
+        "10306",
+        "10307",
+        "10308",
+        "10313",
+        "10401",
+        "10402",
+        "10403",
+        "10404",
+        "10405",
+        "10406",
+        "10407",
+        "10408",
+        "10502",
+        "10503",
+        "10504",
+        "10505",
+        "10506",
+        "10507",
+        "10508",
+        "10601",
+        "10602",
+        "10603",
+        "10604",
+        "10605",
+        "10606",
+        "10607",
+        "10609",
+        "10613",
+        "10701",
+        "10702",
+        "10703",
+        "10704",
+        "10705",
+        "10706",
+        "10708",
+        "10709",
+        "10801",
+        "10803",
+        "n104",
+        "n107",
+        "n109",
+        "n111",
+        "n112",
+        "n113",
+        "n115",
+        "n117",
+        "n119",
+        "n201",
+        "n202",
+        "n204",
+        "n205",
+        "n206",
+        "n207",
+        "n208",
+        "n209",
+        "n210",
+        "n211",
+        "n212",
+        "n213",
+        "n214",
+        "n215",
+        "n216",
+        "n217",
+        "n219",
+        "n221",
+        "n223",
+        "n301",
+        "n302",
+        "n303",
+        "n304",
+        "n306",
+        "n307",
+        "n308",
+        "n310",
+        "n311",
+        "n312",
+        "n313",
+        "n314",
+        "n315",
+        "n316",
+        "n317",
+        "n318",
+        "n319",
+        "n320",
+        "n321",
+        "n323",
+        "n325",
+        "n327"
+      ]
+    }

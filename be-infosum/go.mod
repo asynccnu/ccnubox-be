@@ -2,6 +2,8 @@ module github.com/asynccnu/ccnubox-be/be-infosum
 
 go 1.23.7
 
+replace github.com/asynccnu/ccnubox-be/be-api => ../be-api
+
 require (
 	github.com/asynccnu/ccnubox-be/be-api v0.0.0-00010101000000-000000000000
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20250403070952-9580f086e326

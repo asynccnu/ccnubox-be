@@ -5,9 +5,6 @@ redis:
   addr: "localhost:6379"
   password: "12345678"
 
-kafka:
-  addrs:
-    - "localhost:9094"
 
 etcd:
   endpoints:

@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: ccnube
+spec:
+  clusterIP: None   # 👈 Headless Service
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: ccnube
+spec:
+  serviceName: mysql  # 👈 绑定上面的 headless service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "muxistudio304"
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+            - name: mysql-init-script
+              mountPath: /docker-entrypoint-initdb.d/ # 👈 MySQL 自动读取此目录
+      volumes:
+        - name: mysql-init-script
+          configMap:
+            name: ccnube-config
+            items:
+              - key: init.sql
+                path: init.sql
+
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+

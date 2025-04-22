@@ -6,7 +6,7 @@ WORKDIR /src/be-classlist
 
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-classlist ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-classlist ./cmd/classlist
 
 FROM debian:stable-slim
 

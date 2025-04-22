@@ -5,7 +5,7 @@ COPY . /src
 WORKDIR /src/be-website
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-website  ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-website  .
 
 FROM debian:stable-slim
 
@@ -26,4 +26,4 @@ EXPOSE 19092
 
 VOLUME /data/conf
 
-CMD ["./be-website", "-config", "/data/conf/config.yaml"]
+CMD ["./be-website", "--config", "/data/conf/config.yaml"]

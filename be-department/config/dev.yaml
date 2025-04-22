@@ -7,10 +7,13 @@ grpc:
 
 redis:
   addr: "localhost:6379"
+  password: "muxistudio304"
 
 etcd:
   endpoints:
     - "localhost:12379"
+  username: root
+  password: "muxistudio304"
 
 mysql:
   dsn: "root:12345678@tcp(localhost:3306)/asynccnu"

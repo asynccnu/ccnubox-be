@@ -6,7 +6,7 @@ WORKDIR /src/be-counter
 
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-counter  ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-counter  .
 
 FROM debian:stable-slim
 
@@ -27,4 +27,4 @@ EXPOSE 19085
 
 VOLUME /data/conf
 
-CMD ["./be-counter", "-config", "/data/conf/config.yaml"]
+CMD ["./be-counter", "--config", "/data/conf/config.yaml"]

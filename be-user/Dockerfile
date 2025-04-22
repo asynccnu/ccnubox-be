@@ -5,11 +5,18 @@ COPY . /src
 WORKDIR /src/be-user
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-user  ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-user  .
 
 FROM debian:stable-slim
 
 ENV TZ=Asia/Shanghai
+
+
+# 声明构建时的变量
+ARG KEY
+
+
+ENV CRYPTO_KEY=${KEY}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		ca-certificates  \
@@ -26,4 +33,4 @@ EXPOSE 19091
 
 VOLUME /data/conf
 
-CMD ["./be-user", "-config", "/data/conf/config.yaml"]
+CMD ["./be-user", "--config", "/data/conf/config.yaml"]

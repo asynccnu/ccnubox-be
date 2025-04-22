@@ -1,6 +1,8 @@
 etcd:
   endpoints:
     - "localhost:12379"
+  username: root
+  password: "12345678"
 
 grpc:
   server:

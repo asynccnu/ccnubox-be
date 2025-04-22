@@ -5,7 +5,7 @@ COPY . /src
 WORKDIR /src/be-calendar
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-calendar  ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-calendar  .
 
 FROM debian:stable-slim
 
@@ -26,4 +26,4 @@ EXPOSE 19081
 
 VOLUME /data/conf
 
-CMD ["./be-calendar", "-config", "/data/conf/config.yaml"]
+CMD ["./be-calendar", "--config", "/data/conf/config.yaml"]

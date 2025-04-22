@@ -164,7 +164,7 @@ func InitClassHandler(client1 classlistv1.ClasserClient, client2 cs.ClassService
 }
 
 func InitClassRoomHandler(client cs.FreeClassroomSvcClient) *classroom.ClassRoomHandler {
-	return classroom.NewClassListHandler(client)
+	return classroom.NewClassRoomHandler(client)
 }
 func InitGradeHandler(l logger.Logger, gradeClient gradev1.GradeServiceClient, counterServiceClient counterv1.CounterServiceClient) *grade.GradeHandler {
 	var administrators []string

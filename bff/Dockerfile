@@ -5,7 +5,7 @@ COPY . /src
 WORKDIR /src/bff
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/bff  ./...
+RUN GOPROXY=https://goproxy.cn go build -o ./bin/bff  .
 
 FROM debian:stable-slim
 
@@ -26,4 +26,4 @@ EXPOSE 8080
 
 VOLUME /data/conf
 
-CMD ["./bff", "-config", "/data/conf/config.yaml"]
+CMD ["./bff", "--config", "/data/conf/config.yaml"]

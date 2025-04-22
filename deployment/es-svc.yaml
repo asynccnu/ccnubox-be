@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  namespace: ccnube
+spec:
+  serviceName: elasticsearch
+  replicas: 1  # 单节点 Elasticsearch
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.10.1
+          env:
+            - name: discovery.type
+              value: single-node  # 单节点部署，适合开发和测试环境
+            - name: ELASTICSEARCH_USERNAME
+              value: "elastic"  # 设置管理员用户名
+            - name: ELASTICSEARCH_PASSWORD
+              value: "muxistudio304"
+          ports:
+            - containerPort: 9200  # Elasticsearch HTTP 端口
+              name: http
+            - containerPort: 9300  # Elasticsearch TCP 端口
+              name: transport
+          volumeMounts:
+            - name: es-data
+              mountPath: /usr/share/elasticsearch/data
+  volumeClaimTemplates:
+    - metadata:
+        name: es-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: ccnube
+spec:
+  ports:
+    - port: 9200
+      targetPort: 9200
+      name: http
+    - port: 9300
+      targetPort: 9300
+      name: transport
+  selector:
+    app: elasticsearch

@@ -1,0 +1,546 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-banner
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-banner
+  template:
+    metadata:
+      labels:
+        app: be-banner
+    spec:
+      containers:
+      - name: be-banner
+        image: be-banner:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19080
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-banner.yaml
+                path: config.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-calendar
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-calendar
+  template:
+    metadata:
+      labels:
+        app: be-calendar
+    spec:
+      containers:
+      - name: be-calendar
+        image: be-calendar:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19081
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-calendar.yaml
+                path: config.yaml
+
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-ccnu
+  namespace: ccnube
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: be-ccnu
+  template:
+    metadata:
+      labels:
+        app: be-ccnu
+    spec:
+      containers:
+      - name: be-ccnu
+        image: be-ccnu:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19082
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-ccnu.yaml
+                path: config.yaml
+          
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-class
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-class
+  template:
+    metadata:
+      labels:
+        app: be-class
+    spec:
+      containers:
+      - name: be-class
+        image: be-class:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19083
+        - containerPort: 18000
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-class.yaml
+                path: config.yaml
+              - key: be-class-classrooms.json
+                path: classrooms.json
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-classlist
+  namespace: ccnube
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: be-classlist
+  template:
+    metadata:
+      labels:
+        app: be-classlist
+    spec:
+      containers:
+      - name: be-classlist
+        image: be-classlist:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19084
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-classlist.yaml
+                path: config.yaml
+          
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-counter
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-counter
+  template:
+    metadata:
+      labels:
+        app: be-counter
+    spec:
+      containers:
+      - name: be-counter
+        image: be-counter:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19085
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-counter.yaml
+                path: config.yaml
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-department
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-department
+  template:
+    metadata:
+      labels:
+        app: be-department
+    spec:
+      containers:
+      - name: be-department
+        image: be-department:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19086
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-department.yaml
+                path: config.yaml
+          
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-elecprice
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-elecprice
+  template:
+    metadata:
+      labels:
+        app: be-elecprice
+    spec:
+      containers:
+      - name: be-elecprice
+        image: be-elecprice:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19087
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-elecprice.yaml
+                path: config.yaml
+          
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-feed
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-feed
+  template:
+    metadata:
+      labels:
+        app: be-feed
+    spec:
+      containers:
+      - name: be-feed
+        image: be-feed:v1
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19088
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-feed.yaml
+                path: config.yaml
+          
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-grade
+  namespace: ccnube
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: be-grade
+  template:
+    metadata:
+      labels:
+        app: be-grade
+    spec:
+      containers:
+      - name: be-grade
+        image: be-grade:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19089
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-grade.yaml
+                path: config.yaml
+          
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-infosum
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-infosum
+  template:
+    metadata:
+      labels:
+        app: be-infosum
+    spec:
+      containers:
+      - name: be-infosum
+        image: be-infosum:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19090
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-infosum.yaml
+                path: config.yaml
+          
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-user
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-user
+  template:
+    metadata:
+      labels:
+        app: be-user
+    spec:
+      containers:
+      - name: be-user
+        image: be-user:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19091
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-user.yaml
+                path: config.yaml
+          
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-website
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-website
+  template:
+    metadata:
+      labels:
+        app: be-website
+    spec:
+      containers:
+      - name: be-website
+        image: be-website:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 19092
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-website.yaml
+                path: config.yaml
+          
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bff
+  namespace: ccnube
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bff
+  template:
+    metadata:
+      labels:
+        app: bff
+    spec:
+      containers:
+      - name: bff
+        image: bff:v1
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+          - name: config-volume
+            mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: bff.yaml
+                path: config.yaml
+          
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: bff
+  namespace: ccnube
+spec:
+  type: NodePort
+  selector:
+    app: bff
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30080  # 集群外访问端口

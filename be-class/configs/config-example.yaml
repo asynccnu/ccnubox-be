@@ -13,7 +13,7 @@ data:
     password: "12345678"
     #重启后是否保留数据
     keepDataAfterRestart: true
-    classroom: "configs/classrooms.json"
+    classroom: "/data/conf/classrooms.json"
 registry:
   etcd:
     addr: "127.0.0.1:2379"

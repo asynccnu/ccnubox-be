@@ -1,6 +1,6 @@
 grpc:
   server:
-    name: "Counter"
+    name: "counter"
     weight: 100
     addr: ":19085"
     etcdTTL: 60

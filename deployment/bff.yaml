@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bff
+  namespace: ccnube
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bff
+  template:
+    metadata:
+      labels:
+        app: bff
+    spec:
+      containers:
+        - name: bff
+          image: bff:v1
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: config-volume
+              mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: bff.yaml
+                path: config.yaml
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: bff
+  namespace: ccnube
+spec:
+  type: NodePort
+  selector:
+    app: bff
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080  # 集群外访问端口

@@ -14,7 +14,7 @@ import (
 	"github.com/google/wire"
 )
 
-const CLASSLISTSERVICE = "discovery:///MuXi_ClassList"
+const CLASSLISTSERVICE = "discovery:///be-classlist"
 
 var ProviderSet = wire.NewSet(NewClassListService, NewCookieSvc)
 

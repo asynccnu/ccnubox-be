@@ -23,7 +23,7 @@ import (
 // go build -ldflags "-X main.Version=x.y.z"
 var (
 	// Name is the name of the compiled software.
-	Name string = "classlist"
+	Name string = "be-class"
 	// Version is the version of the compiled software.
 	Version string = "v1"
 	// flagconf is the config flag.

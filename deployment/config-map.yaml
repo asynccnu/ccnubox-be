@@ -159,7 +159,7 @@ data:
       # 日志是否压缩
       log_compress: false
       # 日志是否输出到控制台
-      log_stdout: false
+      log_stdout: true
     schoolday:  # 相关时间,格式"2025-07-05"
       holidayTime: "2025-07-05" #放假第一天
       schoolTime: "2025-02-17" #上学第一天
@@ -269,7 +269,7 @@ data:
         feedUserCount:
           endpoint: "discovery:///feedUserCount"
         classlist:
-          endpoint: "discovery:///MuXi_ClassList"
+          endpoint: "discovery:///be-classlist"
         grade:
           endpoint: "discovery:///grade"
         user:
@@ -319,7 +319,7 @@ data:
         etcdTTL: 60
       client:
         classlist:
-          endpoint: "discovery:///MuXi_ClassList"
+          endpoint: "discovery:///be-classlist"
         user:
           endpoint: "discovery:///user"
         counter:
@@ -466,9 +466,9 @@ data:
         elecprice:
           endpoint: "discovery:///elecprice"
         classlist:
-          endpoint: "discovery:///MuXi_ClassList"
+          endpoint: "discovery:///be-classlist"
         classService:
-          endpoint: "discovery:///classService"
+          endpoint: "discovery:///be-class"
         feedbackHelp:
           endpoint: "discovery:///feedback_help"
         grade:

@@ -303,14 +303,15 @@ jobs:
             cd ~/ccnubox
             kubectl apply -f namespace.yaml
             kubectl apply -f config-map.yaml
-            kubectl apply -f mysql-svc.yaml
-            kubectl apply -f redis-svc.yaml
-            kubectl apply -f es-svc.yaml
-            kubectl apply -f kafka-svc.yaml
-            kubectl apply -f etcd-svc.yaml
-            kubectl exec -it etcd-0 -n ccnube -- etcdctl user add root:muxistudio304 || true
-            kubectl exec -it etcd-0 -n ccnube -- etcdctl role add root || true
-            kubectl exec -it etcd-0 -n ccnube -- etcdctl user grant-role root root || true
-            kubectl exec -it etcd-0 -n ccnube -- etcdctl auth enable || true
+#            kubectl apply -f mysql-svc.yaml
+#            kubectl apply -f redis-svc.yaml
+#            kubectl apply -f es-svc.yaml
+#            kubectl apply -f kafka-svc.yaml
+#            kubectl apply -f etcd-svc.yaml
+#            kubectl exec -it etcd-0 -n ccnube -- etcdctl user add root:muxistudio304 || true
+#            kubectl exec -it etcd-0 -n ccnube -- etcdctl role add root || true
+#            kubectl exec -it etcd-0 -n ccnube -- etcdctl user grant-role root root || true
+#            kubectl exec -it etcd-0 -n ccnube -- etcdctl auth enable || true
+            kubectl delete -f be-svc.yaml
             kubectl apply -f be-svc.yaml
           EOF

@@ -21,7 +21,7 @@ import (
 // go build -ldflags "-X main.Version=x.y.z"
 var (
 	// Name is the name of the compiled software.
-	Name string = "MuXi_ClassList"
+	Name string = "be-classlist"
 	// Version is the version of the compiled software.
 	Version string = "v1"
 	// flagconf is the config flag.

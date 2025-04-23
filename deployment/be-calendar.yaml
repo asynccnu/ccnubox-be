@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-calendar
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-calendar
+  template:
+    metadata:
+      labels:
+        app: be-calendar
+    spec:
+      containers:
+        - name: be-calendar
+          image: be-calendar:v1
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 19081
+          volumeMounts:
+            - name: config-volume
+              mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-calendar.yaml
+                path: config.yaml

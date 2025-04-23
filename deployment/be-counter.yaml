@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-counter
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-counter
+  template:
+    metadata:
+      labels:
+        app: be-counter
+    spec:
+      containers:
+        - name: be-counter
+          image: be-counter:v1
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 19085
+          volumeMounts:
+            - name: config-volume
+              mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-counter.yaml
+                path: config.yaml

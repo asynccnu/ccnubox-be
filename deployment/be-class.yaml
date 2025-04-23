@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-class
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-class
+  template:
+    metadata:
+      labels:
+        app: be-class
+    spec:
+      containers:
+        - name: be-class
+          image: be-class:v1
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 19083
+            - containerPort: 18000
+          volumeMounts:
+            - name: config-volume
+              mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-class.yaml
+                path: config.yaml
+              - key: be-class-classrooms.json
+                path: classrooms.json

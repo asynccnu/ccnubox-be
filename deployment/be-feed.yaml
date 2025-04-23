@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-feed
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-feed
+  template:
+    metadata:
+      labels:
+        app: be-feed
+    spec:
+      containers:
+        - name: be-feed
+          image: be-feed:v1
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 19088
+          volumeMounts:
+            - name: config-volume
+              mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-feed.yaml
+                path: config.yaml

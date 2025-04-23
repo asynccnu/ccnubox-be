@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-ccnu
+  namespace: ccnube
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: be-ccnu
+  template:
+    metadata:
+      labels:
+        app: be-ccnu
+    spec:
+      containers:
+        - name: be-ccnu
+          image: be-ccnu:v1
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 19082
+          volumeMounts:
+            - name: config-volume
+              mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-ccnu.yaml
+                path: config.yaml

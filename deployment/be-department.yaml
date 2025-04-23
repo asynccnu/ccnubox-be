@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be-department
+  namespace: ccnube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be-department
+  template:
+    metadata:
+      labels:
+        app: be-department
+    spec:
+      containers:
+        - name: be-department
+          image: be-department:v1
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 19086
+          volumeMounts:
+            - name: config-volume
+              mountPath: /data/conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ccnube-config
+            items:
+              - key: be-department.yaml
+                path: config.yaml

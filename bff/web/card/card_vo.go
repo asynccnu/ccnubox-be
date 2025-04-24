@@ -5,7 +5,7 @@ import (
 )
 
 type NoteUserKeyRequest struct {
-	Key string `json:"key"`
+	Key string `json:"key" `
 }
 
 type UpdateUserKeyRequest struct {

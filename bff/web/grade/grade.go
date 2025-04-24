@@ -41,14 +41,13 @@ func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 
 }
 
-// GradeByTerm 查询按学年和学期的成绩
+// GetGradeByTerm 查询按学年和学期的成绩
 // @Summary 查询按学年和学期的成绩
 // @Description 根据学年号和学期号获取用户的成绩
 // @Tags 成绩
 // @Accept json
 // @Produce json
-// @Param xnm query int true "学年号（如 2023 表示 2023~2024 学年）"
-// @Param xqm query int true "学期号（1 表示第一学期，2 表示第二学期）"
+// @Param request query GetGradeByTermReq  true "获取学年和学期的成绩请求参数"
 // @Success 200 {object} web.Response{data=GetGradeByTermResp} "成功返回学年和学期的成绩信息"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /grade/getGradeByTerm [get]
@@ -93,7 +92,7 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 	}, nil
 }
 
-// GradeDetail 查询学分
+// GetGradeScore 查询学分
 // @Summary 查询学分
 // @Description 查询学分
 // @Tags 成绩

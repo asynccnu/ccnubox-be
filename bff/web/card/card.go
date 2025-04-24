@@ -27,8 +27,9 @@ func (h *CardHandler) RegisterRoute(s *gin.RouterGroup, authMiddleware gin.Handl
 	sg.POST("/getRecords", authMiddleware, ginx.WrapClaimsAndReq(h.GetRecords))
 }
 
-// @Summary 删除用户的key
-// @Description 记录用户的key
+// NoteUserKey
+// @Summary 记录用户的key
+// @Description 【弃用】记录用户的key
 // @Tags 校园卡
 // @Accept json
 // @Produce json
@@ -49,8 +50,9 @@ func (h *CardHandler) NoteUserKey(c *gin.Context, req NoteUserKeyRequest, uc ijw
 	}, nil
 }
 
+// UpdateUserKey
 // @Summary 更新用户的key
-// @Description 更新用户的key
+// @Description 【弃用】更新用户的key
 // @Tags 校园卡
 // @Accept json
 // @Produce json
@@ -71,8 +73,9 @@ func (h *CardHandler) UpdateUserKey(c *gin.Context, req UpdateUserKeyRequest, uc
 	}, nil
 }
 
+// GetRecords
 // @Summary 获取消费记录
-// @Description 获取用户消费记录，student_id, start_time, type 必须存在，type 分为 "card"（实体卡）与 "virtual"（虚拟卡）
+// @Description 【弃用】获取用户消费记录，student_id, start_time, type 必须存在，type 分为 "card"（实体卡）与 "virtual"（虚拟卡）
 // @Tags 校园卡
 // @Accept json
 // @Produce json

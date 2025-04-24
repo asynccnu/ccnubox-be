@@ -34,11 +34,13 @@ func (h *ElecPriceHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin
 	}
 }
 
+// GetArchitecture
 // @Summary 获取楼栋信息
 // @Description 通过区域获取楼栋信息
 // @Tags 电费
 // @Produce json
-// @Param request query elecprice.GetArchitectureRequest true "设置电费提醒请求参数"
+// @Param Authorization header string true "Bearer Token"
+// @Param request query GetArchitectureRequest true "设置电费提醒请求参数"
 // @Success 200 {object} web.Response{msg=elecprice.GetArchitectureResponse} "设置成功的返回信息"
 // @Failure 500 {object} web.Response{msg=string} "系统异常"
 // @Router /elecprice/getArchitecture [get]
@@ -76,11 +78,13 @@ func (h *ElecPriceHandler) GetArchitecture(ctx *gin.Context, req GetArchitecture
 	}, nil
 }
 
+// GetRoomInfo
 // @Summary 获取房间号和id
 // @Description 根据房间号和空调/照明id
 // @Tags 电费
 // @Produce json
-// @Param request query elecprice.GetRoomInfoRequest true "获取楼栋信息请求参数"
+// @Param Authorization header string true "Bearer Token"
+// @Param request query GetRoomInfoRequest true "获取楼栋信息请求参数"
 // @Success 200 {object} web.Response{msg=elecprice.GetRoomInfoResponse} "获取成功的返回信息"
 // @Failure 500 {object} web.Response{msg=string} "系统异常"
 // @Router /elecprice/getRoomInfo [get]
@@ -117,11 +121,13 @@ func (h *ElecPriceHandler) GetRoomInfo(ctx *gin.Context, req GetRoomInfoRequest,
 	}, nil
 }
 
+// GetPrice
 // @Summary 获取电费
 // @Description 根据房间号获取电费信息
 // @Tags 电费
 // @Produce json
-// @Param request query elecprice.GetPriceRequest true "获取电费请求参数"
+// @Param Authorization header string true "Bearer Token"
+// @Param request query GetPriceRequest true "获取电费请求参数"
 // @Success 200 {object} web.Response{msg=elecprice.GetPriceResponse} "获取成功的返回信息"
 // @Failure 500 {object} web.Response{msg=string} "系统异常"
 // @Router /elecprice/getPrice [get]
@@ -149,7 +155,8 @@ func (h *ElecPriceHandler) GetPrice(ctx *gin.Context, req GetPriceRequest, uc ij
 // @Tags 电费
 // @Accept json
 // @Produce json
-// @Param request body elecprice.SetStandardRequest true "设置电费提醒请求参数"
+// @Param Authorization header string true "Bearer Token"
+// @Param request body SetStandardRequest true "设置电费提醒请求参数"
 // @Success 200 {object} web.Response{msg=string} "设置成功的返回信息"
 // @Failure 500 {object} web.Response{msg=string} "系统异常"
 // @Router /elecprice/setStandard [put]
@@ -171,10 +178,12 @@ func (h *ElecPriceHandler) SetStandard(ctx *gin.Context, req SetStandardRequest,
 	}, nil
 }
 
+// GetStandardList
 // @Summary 获取电费提醒标准
 // @Description 获取自己订阅的电费提醒标准
 // @Tags 电费
 // @Produce json
+// @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} web.Response{msg=elecprice.GetStandardListResponse} "获取成功的返回信息"
 // @Failure 500 {object} web.Response{msg=string} "系统异常"
 // @Router /elecprice/getStandardList [get]
@@ -201,12 +210,14 @@ func (h *ElecPriceHandler) GetStandardList(ctx *gin.Context, req GetStandardList
 	}, nil
 }
 
+// CancelStandard
 // @Summary 取消电费提醒标准
 // @Description 取消自己订阅的电费提醒
 // @Tags 电费
 // @Accept json
 // @Produce json
-// @Param request body elecprice.CancelStandardRequest true "取消电费提醒请求参数"
+// @Param Authorization header string true "Bearer Token"
+// @Param request body CancelStandardRequest true "取消电费提醒请求参数"
 // @Success 200 {object} web.Response{msg=string} "取消成功的返回信息"
 // @Failure 500 {object} web.Response{msg=string} "系统异常"
 // @Router /elecprice/cancelStandard [delete]

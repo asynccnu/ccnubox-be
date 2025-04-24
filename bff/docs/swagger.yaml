@@ -7,11 +7,17 @@ definitions:
         type: string
       web_link:
         type: string
+    required:
+    - id
+    - picture_link
+    - web_link
     type: object
   banner.DelBannerRequest:
     properties:
       id:
         type: integer
+    required:
+    - id
     type: object
   banner.GetBannersResponse:
     properties:
@@ -19,6 +25,8 @@ definitions:
         items:
           $ref: '#/definitions/banner.Banner'
         type: array
+    required:
+    - banners
     type: object
   banner.SaveBannerRequest:
     properties:
@@ -28,11 +36,17 @@ definitions:
         type: string
       web_link:
         type: string
+    required:
+    - id
+    - picture_link
+    - web_link
     type: object
   calendar.DelCalendarRequest:
     properties:
       year:
         type: integer
+    required:
+    - year
     type: object
   calendar.GetCalendarResponse:
     properties:
@@ -40,6 +54,9 @@ definitions:
         type: string
       year:
         type: integer
+    required:
+    - link
+    - year
     type: object
   calendar.SaveCalendarRequest:
     properties:
@@ -47,6 +64,9 @@ definitions:
         type: string
       year:
         type: integer
+    required:
+    - link
+    - year
     type: object
   card.GetRecordOfConsumptionRequest:
     properties:
@@ -120,6 +140,15 @@ definitions:
       year:
         description: 学年
         type: string
+    required:
+    - day
+    - dur_class
+    - name
+    - semester
+    - teacher
+    - weeks
+    - where
+    - year
     type: object
   class.ClassInfo:
     properties:
@@ -158,6 +187,18 @@ definitions:
       year:
         description: 学年
         type: string
+    required:
+    - class_when
+    - classname
+    - credit
+    - day
+    - id
+    - semester
+    - teacher
+    - week_duration
+    - weeks
+    - where
+    - year
     type: object
   class.DeleteClassRequest:
     properties:
@@ -170,15 +211,10 @@ definitions:
       year:
         description: 学年  "2024" -> 代表"2024-2025学年"
         type: string
-    type: object
-  class.GetClassListRequest:
-    properties:
-      refresh:
-        type: boolean
-      semester:
-        type: string
-      year:
-        type: string
+    required:
+    - id
+    - semester
+    - year
     type: object
   class.GetClassListResp:
     properties:
@@ -186,6 +222,8 @@ definitions:
         items:
           $ref: '#/definitions/class.ClassInfo'
         type: array
+    required:
+    - classes
     type: object
   class.GetRecycleBinClassInfosResp:
     properties:
@@ -193,6 +231,8 @@ definitions:
         items:
           $ref: '#/definitions/class.ClassInfo'
         type: array
+    required:
+    - classInfos
     type: object
   class.GetSchoolDayResp:
     properties:
@@ -200,6 +240,9 @@ definitions:
         type: integer
       school_time:
         type: integer
+    required:
+    - holiday_time
+    - school_time
     type: object
   class.RecoverClassRequest:
     properties:
@@ -212,6 +255,10 @@ definitions:
       year:
         description: 学年  "2024" 代表"2024-2025学年"
         type: string
+    required:
+    - classId
+    - semester
+    - year
     type: object
   class.SearchClassResp:
     properties:
@@ -219,6 +266,8 @@ definitions:
         items:
           $ref: '#/definitions/class.ClassInfo'
         type: array
+    required:
+    - classInfos
     type: object
   class.UpdateClassRequest:
     properties:
@@ -254,6 +303,10 @@ definitions:
       year:
         description: 学年
         type: string
+    required:
+    - classId
+    - semester
+    - year
     type: object
   classroom.ClassroomAvailableStat:
     properties:
@@ -278,6 +331,8 @@ definitions:
     properties:
       id:
         type: integer
+    required:
+    - id
     type: object
   department.Department:
     properties:
@@ -291,6 +346,12 @@ definitions:
         type: string
       time:
         type: string
+    required:
+    - id
+    - name
+    - phone
+    - place
+    - time
     type: object
   department.GetDepartmentsResponse:
     properties:
@@ -298,6 +359,8 @@ definitions:
         items:
           $ref: '#/definitions/department.Department'
         type: array
+    required:
+    - departments
     type: object
   department.SaveDepartmentRequest:
     properties:
@@ -311,6 +374,12 @@ definitions:
         type: string
       time:
         type: string
+    required:
+    - id
+    - name
+    - phone
+    - place
+    - time
     type: object
   elecprice.Architecture:
     properties:
@@ -322,11 +391,18 @@ definitions:
         type: string
       top_floor:
         type: string
+    required:
+    - architecture_id
+    - architecture_name
+    - base_floor
+    - top_floor
     type: object
   elecprice.CancelStandardRequest:
     properties:
       room_id:
         type: string
+    required:
+    - room_id
     type: object
   elecprice.GetArchitectureResponse:
     properties:
@@ -334,11 +410,15 @@ definitions:
         items:
           $ref: '#/definitions/elecprice.Architecture'
         type: array
+    required:
+    - architecture_list
     type: object
   elecprice.GetPriceResponse:
     properties:
       price:
         $ref: '#/definitions/elecprice.Price'
+    required:
+    - price
     type: object
   elecprice.GetRoomInfoResponse:
     properties:
@@ -346,6 +426,8 @@ definitions:
         items:
           $ref: '#/definitions/elecprice.Room'
         type: array
+    required:
+    - room_list
     type: object
   elecprice.GetStandardListResponse:
     properties:
@@ -353,6 +435,8 @@ definitions:
         items:
           $ref: '#/definitions/elecprice.StandardResp'
         type: array
+    required:
+    - standard_list
     type: object
   elecprice.Price:
     properties:
@@ -362,6 +446,10 @@ definitions:
         type: string
       yesterday_use_value:
         type: string
+    required:
+    - remain_money
+    - yesterday_use_money
+    - yesterday_use_value
     type: object
   elecprice.Room:
     properties:
@@ -369,6 +457,9 @@ definitions:
         type: string
       room_name:
         type: string
+    required:
+    - room_id
+    - room_name
     type: object
   elecprice.SetStandardRequest:
     properties:
@@ -378,6 +469,10 @@ definitions:
         type: string
       room_name:
         type: string
+    required:
+    - limit
+    - room_id
+    - room_name
     type: object
   elecprice.StandardResp:
     properties:
@@ -385,6 +480,9 @@ definitions:
         type: integer
       room_name:
         type: string
+    required:
+    - limit
+    - room_name
     type: object
   feed.ChangeFeedAllowListReq:
     properties:
@@ -396,6 +494,11 @@ definitions:
         type: boolean
       muxi:
         type: boolean
+    required:
+    - energy
+    - grade
+    - holiday
+    - muxi
     type: object
   feed.ClearFeedEventReq:
     properties:
@@ -405,6 +508,9 @@ definitions:
       status:
         description: 有三个可选字段all表示清除所有消息,read表示清除所有已读消息,unread表示清除所有未读消息
         type: string
+    required:
+    - feed_id
+    - status
     type: object
   feed.FeedEventVO:
     properties:
@@ -425,6 +531,14 @@ definitions:
         type: string
       type:
         type: string
+    required:
+    - content
+    - created_at
+    - extend_fields
+    - id
+    - read
+    - title
+    - type
     type: object
   feed.GetFeedAllowListResp:
     properties:
@@ -436,6 +550,11 @@ definitions:
         type: boolean
       muxi:
         type: boolean
+    required:
+    - energy
+    - grade
+    - holiday
+    - muxi
     type: object
   feed.GetFeedEventsResp:
     properties:
@@ -450,6 +569,8 @@ definitions:
         items:
           $ref: '#/definitions/feed.MuxiOfficialMSG'
         type: array
+    required:
+    - msg_list
     type: object
   feed.MuxiOfficialMSG:
     properties:
@@ -467,6 +588,12 @@ definitions:
         type: integer
       title:
         type: string
+    required:
+    - content
+    - extend_fields
+    - id
+    - public_time
+    - title
     type: object
   feed.PublicMuxiOfficialMSGReq:
     properties:
@@ -481,6 +608,11 @@ definitions:
         type: integer
       title:
         type: string
+    required:
+    - content
+    - extend_fields
+    - later_time
+    - title
     type: object
   feed.PublicMuxiOfficialMSGResp:
     properties:
@@ -496,26 +628,40 @@ definitions:
         type: string
       title:
         type: string
+    required:
+    - content
+    - extend_fields
+    - id
+    - public_time
+    - title
     type: object
   feed.ReadFeedEventReq:
     properties:
       feed_id:
         type: integer
+    required:
+    - feed_id
     type: object
   feed.RemoveFeedTokenReq:
     properties:
       token:
         type: string
+    required:
+    - token
     type: object
   feed.SaveFeedTokenReq:
     properties:
       token:
         type: string
+    required:
+    - token
     type: object
   feed.StopMuxiOfficialMSGReq:
     properties:
       id:
         type: string
+    required:
+    - id
     type: object
   feedback_help.ChangeQuestionReq:
     properties:
@@ -580,6 +726,8 @@ definitions:
         items:
           $ref: '#/definitions/grade.Grade'
         type: array
+    required:
+    - grades
     type: object
   grade.GetGradeScoreResp:
     properties:
@@ -587,6 +735,8 @@ definitions:
         items:
           $ref: '#/definitions/grade.TypeOfGradeScore'
         type: array
+    required:
+    - type_of_grade_scores
     type: object
   grade.Grade:
     properties:
@@ -623,6 +773,18 @@ definitions:
       xf:
         description: 学分
         type: number
+    required:
+    - Kclbmc
+    - cj
+    - finalGrade
+    - finalGradePercent
+    - jd
+    - kcbj
+    - kcmc
+    - kcxzmc
+    - regularGrade
+    - regularGradePercent
+    - xf
     type: object
   grade.GradeScore:
     properties:
@@ -632,6 +794,9 @@ definitions:
       xf:
         description: 学分
         type: number
+    required:
+    - kcmc
+    - xf
     type: object
   grade.TypeOfGradeScore:
     properties:
@@ -642,11 +807,16 @@ definitions:
       kcxzmc:
         description: 课程性质名称
         type: string
+    required:
+    - grade_score_list
+    - kcxzmc
     type: object
   infoSum.DelInfoSumRequest:
     properties:
       id:
         type: integer
+    required:
+    - id
     type: object
   infoSum.GetInfoSumsResponse:
     properties:
@@ -654,6 +824,8 @@ definitions:
         items:
           $ref: '#/definitions/infoSum.InfoSum'
         type: array
+    required:
+    - info_sums
     type: object
   infoSum.InfoSum:
     properties:
@@ -667,6 +839,12 @@ definitions:
         type: string
       name:
         type: string
+    required:
+    - description
+    - id
+    - image
+    - link
+    - name
     type: object
   infoSum.SaveInfoSumRequest:
     properties:
@@ -680,6 +858,12 @@ definitions:
         type: string
       name:
         type: string
+    required:
+    - description
+    - id
+    - image
+    - link
+    - name
     type: object
   static.GetStaticByLabelsResp:
     properties:
@@ -724,6 +908,9 @@ definitions:
         type: string
       student_id:
         type: string
+    required:
+    - password
+    - student_id
     type: object
   web.Response:
     properties:
@@ -737,6 +924,8 @@ definitions:
     properties:
       id:
         type: integer
+    required:
+    - id
     type: object
   website.GetWebsitesResponse:
     properties:
@@ -744,6 +933,8 @@ definitions:
         items:
           $ref: '#/definitions/website.Website'
         type: array
+    required:
+    - websites
     type: object
   website.SaveWebsiteRequest:
     properties:
@@ -757,6 +948,12 @@ definitions:
         type: string
       name:
         type: string
+    required:
+    - description
+    - id
+    - image
+    - link
+    - name
     type: object
   website.Website:
     properties:
@@ -770,6 +967,12 @@ definitions:
         type: string
       name:
         type: string
+    required:
+    - description
+    - id
+    - image
+    - link
+    - name
     type: object
 info:
   contact: {}
@@ -922,8 +1125,7 @@ paths:
       - application/json
       description: 获取日历列表
       parameters:
-      - description: 年份
-        in: query
+      - in: query
         name: year
         required: true
         type: integer
@@ -968,7 +1170,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 获取用户消费记录，student_id, start_time, type 必须存在，type 分为 "card"（实体卡）与
+      description: 【弃用】获取用户消费记录，student_id, start_time, type 必须存在，type 分为 "card"（实体卡）与
         "virtual"（虚拟卡）
       parameters:
       - description: 获取消费记录
@@ -1000,7 +1202,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 记录用户的key
+      description: 【弃用】记录用户的key
       parameters:
       - description: 记录用户的key
         in: body
@@ -1019,14 +1221,14 @@ paths:
           description: 创建失败
           schema:
             $ref: '#/definitions/web.Response'
-      summary: 删除用户的key
+      summary: 记录用户的key
       tags:
       - 校园卡
   /card/updateUserKey:
     post:
       consumes:
       - application/json
-      description: 更新用户的key
+      description: 【弃用】更新用户的key
       parameters:
       - description: 更新用户的key
         in: body
@@ -1061,7 +1263,7 @@ paths:
         type: string
       - description: 课表信息
         in: body
-        name: body
+        name: request
         required: true
         schema:
           $ref: '#/definitions/class.AddClassRequest'
@@ -1112,7 +1314,7 @@ paths:
         type: string
       - description: 删除课表请求
         in: body
-        name: body
+        name: request
         required: true
         schema:
           $ref: '#/definitions/class.DeleteClassRequest'
@@ -1130,32 +1332,24 @@ paths:
     get:
       description: 根据学期、学年等条件获取课表
       parameters:
-      - description: 学年
-        in: query
-        name: year
-        required: true
-        type: string
-      - description: 学期
-        in: query
-        name: semester
-        required: true
-        type: string
-      - description: 是否强制从华师获取最新版本
-        in: query
-        name: refresh
-        required: true
-        type: boolean
       - description: Bearer Token
         in: header
         name: Authorization
         required: true
         type: string
-      - description: 获取课表请求参数
-        in: body
-        name: request
+      - in: query
+        name: refresh
         required: true
-        schema:
-          $ref: '#/definitions/class.GetClassListRequest'
+        type: boolean
+      - in: query
+        name: semester
+        required: true
+        type: string
+      - description: 学年,格式为"2024"代表"2024-2025学年"`
+        in: query
+        name: year
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1175,19 +1369,19 @@ paths:
     get:
       description: 获取已删除但未彻底清除的课表信息
       parameters:
-      - description: 学年
-        in: query
-        name: year
+      - description: Bearer Token
+        in: header
+        name: Authorization
         required: true
         type: string
-      - description: 学期
+      - description: 学期,格式为"1"代表第一学期，"2"代表第二学期，"3"代表第三学期
         in: query
         name: semester
         required: true
         type: string
-      - description: Bearer Token
-        in: header
-        name: Authorization
+      - description: 学年,格式为"2024"代表"2024-2025学年"
+        in: query
+        name: year
         required: true
         type: string
       produces:
@@ -1218,7 +1412,7 @@ paths:
         type: string
       - description: 恢复课表请求
         in: body
-        name: body
+        name: request
         required: true
         schema:
           $ref: '#/definitions/class.RecoverClassRequest'
@@ -1236,24 +1430,34 @@ paths:
     get:
       description: 根据关键词[教师或者课程名]搜索课程,**注意,但当返回的结果数量大于page_size时,代表还有下一页**,最开始请求的是第一页
       parameters:
-      - description: 学年
-        in: query
-        name: year
+      - description: Bearer Token
+        in: header
+        name: Authorization
         required: true
         type: string
-      - description: 学期
+      - description: 页码
         in: query
-        name: semester
+        name: page
         required: true
-        type: string
-      - description: 搜索关键词
+        type: integer
+      - description: 每页大小
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: 搜索关键词,匹配的是课程名称和教师姓名
         in: query
         name: searchKeyWords
         required: true
         type: string
-      - description: Bearer Token
-        in: header
-        name: Authorization
+      - description: 学期,格式为"1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+        in: query
+        name: semester
+        required: true
+        type: string
+      - description: 学年,格式为"2024"代表"2024-2025学年"
+        in: query
+        name: year
         required: true
         type: string
       produces:
@@ -1284,7 +1488,7 @@ paths:
         type: string
       - description: 更新课表请求
         in: body
-        name: body
+        name: request
         required: true
         schema:
           $ref: '#/definitions/class.UpdateClassRequest'
@@ -1363,6 +1567,11 @@ paths:
       - application/json
       description: 删除部门信息
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 删除部门信息请求参数
         in: body
         name: request
@@ -1382,6 +1591,12 @@ paths:
   /department/getDepartments:
     get:
       description: 获取部门列表
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       responses:
         "200":
           description: 成功
@@ -1401,6 +1616,11 @@ paths:
       - application/json
       description: 保存部门信息
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 保存部门信息请求参数
         in: body
         name: request
@@ -1423,6 +1643,11 @@ paths:
       - application/json
       description: 取消自己订阅的电费提醒
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 取消电费提醒请求参数
         in: body
         name: request
@@ -1457,8 +1682,14 @@ paths:
     get:
       description: 通过区域获取楼栋信息
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - in: query
         name: area_name
+        required: true
         type: string
       produces:
       - application/json
@@ -1488,8 +1719,14 @@ paths:
     get:
       description: 根据房间号获取电费信息
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - in: query
         name: room_id
+        required: true
         type: string
       produces:
       - application/json
@@ -1519,11 +1756,18 @@ paths:
     get:
       description: 根据房间号和空调/照明id
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - in: query
         name: architecture_id
+        required: true
         type: string
       - in: query
         name: floor
+        required: true
         type: string
       produces:
       - application/json
@@ -1552,6 +1796,12 @@ paths:
   /elecprice/getStandardList:
     get:
       description: 获取自己订阅的电费提醒标准
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1582,6 +1832,11 @@ paths:
       - application/json
       description: 根据区域、楼栋和房间号设置电费提醒的金额标准
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 设置电费提醒请求参数
         in: body
         name: request
@@ -1618,6 +1873,11 @@ paths:
       - application/json
       description: 修改已登录用户的feed订阅白名单设置
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 白名单设置
         in: body
         name: data
@@ -1635,8 +1895,6 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      security:
-      - BearerAuth: []
       summary: 修改feed订阅白名单
       tags:
       - feed订阅
@@ -1646,6 +1904,11 @@ paths:
       - application/json
       description: 清除指定用户的feed订阅事件,都是可选字段
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: feed订阅事件ID
         in: body
         name: data
@@ -1663,8 +1926,6 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      security:
-      - BearerAuth: []
       summary: 清除feed订阅事件
       tags:
       - feed订阅
@@ -1673,6 +1934,12 @@ paths:
       consumes:
       - application/json
       description: 获取已登录用户的feed订阅白名单设置
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1689,14 +1956,18 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      security:
-      - BearerAuth: []
       summary: 获取feed订阅白名单
       tags:
       - feed订阅
   /feed/getFeedEvents:
     get:
       description: 获取已登录用户的所有feed订阅事件（包括已读和未读）
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1713,8 +1984,6 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      security:
-      - Bearer Auth: []
       summary: 获取feed订阅事件
       tags:
       - feed订阅
@@ -1723,6 +1992,12 @@ paths:
       consumes:
       - application/json
       description: 获取计划发布的官方消息，仅限管理员操作
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1743,8 +2018,6 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      security:
-      - BearerAuth: []
       summary: 获取待发布的官方消息
       tags:
       - feed订阅
@@ -1754,6 +2027,11 @@ paths:
       - application/json
       description: 发布木犀官方消息，仅限管理员操作
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 木犀官方消息
         in: body
         name: data
@@ -1780,8 +2058,6 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      security:
-      - BearerAuth: []
       summary: 发布木犀官方消息
       tags:
       - feed订阅
@@ -1791,6 +2067,11 @@ paths:
       - application/json
       description: 标注feed订阅事件为已读
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: feed订阅事件ID
         in: body
         name: data
@@ -1808,8 +2089,6 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      security:
-      - Bearer Auth: []
       summary: 标注feed订阅事件为已读
       tags:
       - feed订阅
@@ -1819,6 +2098,11 @@ paths:
       - application/json
       description: 删除已登录用户的feed订阅Token
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: feed订阅Token
         in: body
         name: data
@@ -1836,8 +2120,6 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      security:
-      - BearerAuth: []
       summary: 删除feed订阅Token
       tags:
       - feed订阅
@@ -1847,6 +2129,11 @@ paths:
       - application/json
       description: 保存已登录用户的feed订阅Token
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: feed订阅Token
         in: body
         name: data
@@ -1864,8 +2151,6 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      security:
-      - BearerAuth: []
       summary: 保存feed订阅Token
       tags:
       - feed订阅
@@ -1875,6 +2160,11 @@ paths:
       - application/json
       description: 停止木犀官方消息，仅限管理员操作
       parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 停止消息请求
         in: body
         name: data
@@ -1896,8 +2186,6 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      security:
-      - BearerAuth: []
       summary: 停止木犀官方消息
       tags:
       - feed订阅
@@ -2065,12 +2353,12 @@ paths:
       - application/json
       description: 根据学年号和学期号获取用户的成绩
       parameters:
-      - description: 学年号（如 2023 表示 2023~2024 学年）
+      - description: 学年名:例如2023表示2023~2024学年
         in: query
         name: xnm
         required: true
         type: integer
-      - description: 学期号（1 表示第一学期，2 表示第二学期）
+      - description: 学期名:0表示所有学期,1表示第一学期,2表示第二学期,3表示第三学期
         in: query
         name: xqm
         required: true
@@ -2133,7 +2421,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: 根据静态资源名称获取静态资源的内容。
+      description: 【弃用】根据静态资源名称获取静态资源的内容。
       parameters:
       - description: 静态资源名称
         in: query
@@ -2159,7 +2447,7 @@ paths:
     get:
       consumes:
       - multipart/form-data
-      description: 根据静labels匹配合适的静态资源
+      description: 【弃用】根据静labels匹配合适的静态资源
       parameters:
       - description: 标签：标明匹配哪一类的资源
         in: query
@@ -2185,7 +2473,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 保存静态内容
+      description: 【弃用】保存静态内容
       parameters:
       - description: 保存静态内容请求参数
         in: body
@@ -2230,7 +2518,7 @@ paths:
       parameters:
       - description: 登录请求体
         in: body
-        name: body
+        name: request
         required: true
         schema:
           $ref: '#/definitions/user.LoginByCCNUReq'

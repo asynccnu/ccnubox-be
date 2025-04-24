@@ -1,25 +1,25 @@
 package department
 
 type SaveDepartmentRequest struct {
-	Id    int64  `json:"id,omitempty"`
-	Name  string `json:"name"`
-	Phone string `json:"phone"`
-	Place string `json:"place"`
-	Time  string `json:"time"`
+	Id    int64  `json:"id" binding:"required"`
+	Name  string `json:"name" binding:"required"`
+	Phone string `json:"phone" binding:"required"`
+	Place string `json:"place" binding:"required"`
+	Time  string `json:"time" binding:"required"`
 }
 
 type Department struct {
-	Id    int64  `json:"id"`
-	Name  string `json:"name"`
-	Phone string `json:"phone"`
-	Place string `json:"place"`
-	Time  string `json:"time"`
+	Id    int64  `json:"id" binding:"required"`
+	Name  string `json:"name" binding:"required"`
+	Phone string `json:"phone" binding:"required"`
+	Place string `json:"place" binding:"required"`
+	Time  string `json:"time" binding:"required"`
 }
 
 type DelDepartmentRequest struct {
-	Id int64 `json:"id"`
+	Id int64 `json:"id" binding:"required"`
 }
 
 type GetDepartmentsResponse struct {
-	Departments []*Department `json:"departments"`
+	Departments []*Department `json:"departments" binding:"required"`
 }

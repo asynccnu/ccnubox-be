@@ -4,6 +4,9 @@ on:
   push:
     paths:
       - 'be-counter/**'
+env:
+  SERVICE_NAME: be-counter  # 👈 这里设置的是全局环境变量
+
 
 jobs:
   build-be-counter:
@@ -26,9 +29,28 @@ jobs:
       - name: Build and push image
         run: |
           chmod +x ./build-be-counter.sh
-          ./build-be-counter.sh ${{ secrets.IMAGE_REPO }}
+          ./build-${SERVICE_NAME}.sh ${{ secrets.IMAGE_REPO }}
+  deploy-on-dev:
+    if: github.repository == 'asynccnu/ccnubox-be'
+    runs-on: ubuntu-latest
+    needs: build-be-counter
+    steps:
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.DEV_SERVER }} >> ~/.ssh/known_hosts
+      - name: SSH into server and deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER }} << EOF
+            cd ~/ccnubox_v1
+            docker rm -f ${SERVICE_NAME}
+            docker rmi -f ${{ secrets.IMAGE_REPO }}/${SERVICE_NAME}:v1
+            docker compose up -d ${SERVICE_NAME}
+          EOF
 
-  deploy:
+  deploy-on-server:
     if: github.repository == 'asynccnu/ccnubox-be'
     runs-on: ubuntu-latest
     needs: build-be-counter
@@ -42,10 +64,10 @@ jobs:
 
       - name: SSH into server and deploy
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_ADDR }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_ADDR }} << EOF
             cd ~/ccnubox
             kubectl apply -f namespace.yaml || true
             kubectl apply -f config-map.yaml || true
-            kubectl delete -f be-counter.yaml || true
-            kubectl apply -f be-counter.yaml || true
+            kubectl delete -f ${SERVICE_NAME}.yaml || true
+            kubectl apply -f ${SERVICE_NAME}.yaml || true
           EOF

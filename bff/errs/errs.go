@@ -264,7 +264,7 @@ var (
 	}
 
 	USER_SID_Or_PASSPORD_ERROR = func(err error) error {
-		return errorx.New(http.StatusBadRequest, USER_SID_Or_PASSPORD_ERROR_CODE, "账号或者密码错误!", "user", err)
+		return errorx.New(http.StatusUnauthorized, USER_SID_Or_PASSPORD_ERROR_CODE, "账号或者密码错误!", "user", err)
 	}
 )
 

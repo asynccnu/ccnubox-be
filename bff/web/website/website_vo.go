@@ -1,25 +1,25 @@
 package website
 
 type SaveWebsiteRequest struct {
-	Link        string `json:"link"`
-	Name        string `json:"name"`
-	Id          int64  `json:"id,omitempty"`
-	Image       string `json:"image"`
-	Description string `json:"description"`
+	Link        string `json:"link" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Id          int64  `json:"id" binding:"required"`
+	Image       string `json:"image" binding:"required"`
+	Description string `json:"description" binding:"required"`
 }
 
 type Website struct {
-	Link        string `json:"link"`
-	Name        string `json:"name"`
-	Id          int64  `json:"id"`
-	Image       string `json:"image"`
-	Description string `json:"description"`
+	Link        string `json:"link" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Id          int64  `json:"id" binding:"required"`
+	Image       string `json:"image" binding:"required"`
+	Description string `json:"description" binding:"required"`
 }
 
 type DelWebsiteRequest struct {
-	Id int64 `json:"id"`
+	Id int64 `json:"id" binding:"required"`
 }
 
 type GetWebsitesResponse struct {
-	Websites []*Website `json:"websites"`
+	Websites []*Website `json:"websites" binding:"required"`
 }

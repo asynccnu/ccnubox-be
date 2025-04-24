@@ -41,9 +41,9 @@ func (h *FeedHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 // @Description 获取已登录用户的所有feed订阅事件（包括已读和未读）
 // @Tags feed订阅
 // @Produce  json
+// @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} web.Response{data=GetFeedEventsResp} "成功"
 // @Failure 500 {object} web.Response "系统异常"
-// @Security Bearer Auth
 // @Router /feed/getFeedEvents [get]
 func (h *FeedHandler) GetFeedEvents(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 	feeds, err := h.feedClient.GetFeedEvents(ctx, &feedv1.GetFeedEventsReq{StudentId: uc.StudentId})
@@ -71,10 +71,10 @@ func (h *FeedHandler) GetFeedEvents(ctx *gin.Context, uc ijwt.UserClaims) (web.R
 // @Tags feed订阅
 // @Accept  json
 // @Produce  json
+// @Param Authorization header string true "Bearer Token"
 // @Param data body ClearFeedEventReq true "feed订阅事件ID"
 // @Success 200 {object} web.Response "成功"
 // @Failure 500 {object} web.Response "系统异常"
-// @Security BearerAuth
 // @Router /feed/clearFeedEvent [post]
 func (h *FeedHandler) ClearFeedEvent(ctx *gin.Context, req ClearFeedEventReq, uc ijwt.UserClaims) (web.Response, error) {
 	_, err := h.feedClient.ClearFeedEvent(ctx, &feedv1.ClearFeedEventReq{
@@ -98,10 +98,10 @@ func (h *FeedHandler) ClearFeedEvent(ctx *gin.Context, req ClearFeedEventReq, uc
 // @Tags feed订阅
 // @Accept  json
 // @Produce  json
+// @Param Authorization header string true "Bearer Token"
 // @Param data body ReadFeedEventReq true "feed订阅事件ID"
 // @Success 200 {object} web.Response "成功"
 // @Failure 500 {object} web.Response "系统异常"
-// @Security Bearer Auth
 // @Router /feed/readFeedEvent [post]
 func (h *FeedHandler) ReadFeedEvent(ctx *gin.Context, req ReadFeedEventReq) (web.Response, error) {
 	_, err := h.feedClient.ReadFeedEvent(ctx, &feedv1.ReadFeedEventReq{
@@ -121,10 +121,10 @@ func (h *FeedHandler) ReadFeedEvent(ctx *gin.Context, req ReadFeedEventReq) (web
 // @Tags feed订阅
 // @Accept  json
 // @Produce  json
+// @Param Authorization header string true "Bearer Token"
 // @Param data body ChangeFeedAllowListReq true "白名单设置"
 // @Success 200 {object} web.Response "成功"
 // @Failure 500 {object} web.Response "系统异常"
-// @Security BearerAuth
 // @Router /feed/changeFeedAllowList [post]
 func (h *FeedHandler) ChangeFeedAllowList(ctx *gin.Context, req ChangeFeedAllowListReq, uc ijwt.UserClaims) (web.Response, error) {
 
@@ -152,9 +152,9 @@ func (h *FeedHandler) ChangeFeedAllowList(ctx *gin.Context, req ChangeFeedAllowL
 // @Tags feed订阅
 // @Accept  json
 // @Produce  json
+// @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} web.Response{data=GetFeedAllowListResp} "成功"
 // @Failure 500 {object} web.Response "系统异常"
-// @Security BearerAuth
 // @Router /feed/getFeedAllowList [get]
 func (h *FeedHandler) GetFeedAllowList(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 
@@ -179,10 +179,10 @@ func (h *FeedHandler) GetFeedAllowList(ctx *gin.Context, uc ijwt.UserClaims) (we
 // @Tags feed订阅
 // @Accept  json
 // @Produce  json
+// @Param Authorization header string true "Bearer Token"
 // @Param data body SaveFeedTokenReq true "feed订阅Token"
 // @Success 200 {object} web.Response "成功"
 // @Failure 500 {object} web.Response "系统异常"
-// @Security BearerAuth
 // @Router /feed/saveFeedToken [post]
 func (h *FeedHandler) SaveFeedToken(ctx *gin.Context, req SaveFeedTokenReq, uc ijwt.UserClaims) (web.Response, error) {
 	_, err := h.feedClient.SaveFeedToken(ctx, &feedv1.SaveFeedTokenReq{
@@ -204,10 +204,10 @@ func (h *FeedHandler) SaveFeedToken(ctx *gin.Context, req SaveFeedTokenReq, uc i
 // @Tags feed订阅
 // @Accept  json
 // @Produce  json
+// @Param Authorization header string true "Bearer Token"
 // @Param data body RemoveFeedTokenReq true "feed订阅Token"
 // @Success 200 {object} web.Response "成功"
 // @Failure 500 {object} web.Response "系统异常"
-// @Security BearerAuth
 // @Router /feed/removeFeedToken [post]
 func (h *FeedHandler) RemoveFeedToken(ctx *gin.Context, req RemoveFeedTokenReq, uc ijwt.UserClaims) (web.Response, error) {
 	_, err := h.feedClient.RemoveFeedToken(ctx, &feedv1.RemoveFeedTokenReq{StudentId: uc.StudentId, Token: req.Token})
@@ -225,11 +225,11 @@ func (h *FeedHandler) RemoveFeedToken(ctx *gin.Context, req RemoveFeedTokenReq, 
 // @Tags feed订阅
 // @Accept  json
 // @Produce  json
+// @Param Authorization header string true "Bearer Token"
 // @Param data body PublicMuxiOfficialMSGReq true "木犀官方消息"
 // @Success 200 {object} web.Response{data=PublicMuxiOfficialMSGResp} "成功"
 // @Failure 403 {object} web.Response "没有访问权限"
 // @Failure 500 {object} web.Response "系统异常"
-// @Security BearerAuth
 // @Router /feed/publicMuxiOfficialMSG [post]
 func (h *FeedHandler) PublicMuxiOfficialMSG(ctx *gin.Context, req PublicMuxiOfficialMSGReq, uc ijwt.UserClaims) (web.Response, error) {
 	if !h.isAdmin(uc.StudentId) {
@@ -263,11 +263,11 @@ func (h *FeedHandler) PublicMuxiOfficialMSG(ctx *gin.Context, req PublicMuxiOffi
 // @Tags feed订阅
 // @Accept  json
 // @Produce  json
+// @Param Authorization header string true "Bearer Token"
 // @Param data body StopMuxiOfficialMSGReq true "停止消息请求"
 // @Success 200 {object} web.Response "成功"
 // @Failure 403 {object} web.Response "没有访问权限"
 // @Failure 500 {object} web.Response "系统异常"
-// @Security BearerAuth
 // @Router /feed/stopMuxiOfficialMSG [post]
 func (h *FeedHandler) StopMuxiOfficialMSG(ctx *gin.Context, req StopMuxiOfficialMSGReq, uc ijwt.UserClaims) (web.Response, error) {
 	if !h.isAdmin(uc.StudentId) {
@@ -291,10 +291,10 @@ func (h *FeedHandler) StopMuxiOfficialMSG(ctx *gin.Context, req StopMuxiOfficial
 // @Tags feed订阅
 // @Accept  json
 // @Produce  json
+// @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} web.Response{data=GetToBePublicMuxiOfficialMSGResp} "成功"
 // @Failure 403 {object} web.Response "没有访问权限"
 // @Failure 500 {object} web.Response "系统异常"
-// @Security BearerAuth
 // @Router /feed/getToBePublicOfficialMSG [get]
 func (h *FeedHandler) GetToBePublicOfficialMSG(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 	if !h.isAdmin(uc.StudentId) {

@@ -1,21 +1,21 @@
 package banner
 
 type SaveBannerRequest struct {
-	PictureLink string `json:"picture_link"`
-	Id          int64  `json:"id,omitempty"`
-	WebLink     string `json:"web_link"`
+	PictureLink string `json:"picture_link" binding:"required"`
+	Id          int64  `json:"id,omitempty" binding:"required"`
+	WebLink     string `json:"web_link" binding:"required"`
 }
 
 type Banner struct {
-	WebLink     string `json:"web_link"`
-	Id          int64  `json:"id"`
-	PictureLink string `json:"picture_link"`
+	WebLink     string `json:"web_link" binding:"required"`
+	Id          int64  `json:"id" binding:"required"`
+	PictureLink string `json:"picture_link" binding:"required"`
 }
 
 type GetBannersResponse struct {
-	Banners []Banner `json:"banners"`
+	Banners []Banner `json:"banners" binding:"required"`
 }
 
 type DelBannerRequest struct {
-	Id int64 `json:"id"`
+	Id int64 `json:"id" binding:"required"`
 }

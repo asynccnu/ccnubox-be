@@ -28,13 +28,13 @@ func (h *CalendarHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.
 	sg.DELETE("/delCalendar", authMiddleware, ginx.WrapClaimsAndReq(h.DelCalendar))
 }
 
-// GetCalendars 获取日历列表
+// GetCalendar  获取日历列表
 // @Summary 获取日历列表
 // @Description 获取日历列表
 // @Tags 日历
 // @Accept  json
 // @Produce  json
-// @Param year query int true "年份"
+// @Param request query GetCalendarRequest true "获取日历列表请求参数"
 // @Success 200 {object} web.Response{data=GetCalendarResponse} "成功"
 // @Router /calendar/getCalendar [get]
 func (h *CalendarHandler) GetCalendar(ctx *gin.Context, req GetCalendarRequest) (web.Response, error) {

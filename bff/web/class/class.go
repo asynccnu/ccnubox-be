@@ -46,12 +46,9 @@ func (c *ClassHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 // @Summary 获取课表
 // @Description 根据学期、学年等条件获取课表
 // @Tags 课表
-// @Param year query string true "学年"
-// @Param semester query string true "学期"
-// @Param refresh query bool true "是否强制从华师获取最新版本"
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
-// @Param request body GetClassListRequest true "获取课表请求参数"
+// @Param request query GetClassListRequest true "获取课表请求参数"
 // @Success 200 {object} web.Response{data=GetClassListResp} "成功返回课表"
 // @Router /class/get [get]
 func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, uc ijwt.UserClaims) (web.Response, error) {
@@ -100,7 +97,7 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
-// @Param body body AddClassRequest true "课表信息"
+// @Param request body AddClassRequest true "课表信息"
 // @Success 200 {object} web.Response "成功添加课表"
 // @Router /class/add [post]
 func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.UserClaims) (web.Response, error) {
@@ -136,7 +133,7 @@ func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.U
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
-// @Param body body DeleteClassRequest true "删除课表请求"
+// @Param request body DeleteClassRequest true "删除课表请求"
 // @Success 200 {object} web.Response "成功删除课表"
 // @Router /class/delete [delete]
 func (c *ClassHandler) DeleteClass(ctx *gin.Context, req DeleteClassRequest, uc ijwt.UserClaims) (web.Response, error) {
@@ -161,7 +158,7 @@ func (c *ClassHandler) DeleteClass(ctx *gin.Context, req DeleteClassRequest, uc 
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
-// @Param body body UpdateClassRequest true "更新课表请求"
+// @Param request body UpdateClassRequest true "更新课表请求"
 // @Success 200 {object} web.Response "成功更新课表"
 // @Router /class/update [put]
 func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc ijwt.UserClaims) (web.Response, error) {
@@ -198,10 +195,9 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 // @Summary 获取回收站课表信息
 // @Description 获取已删除但未彻底清除的课表信息
 // @Tags 课表
-// @Param year query string true "学年" 学年 "2024" -> 代表"2024-2025学年"
-// @Param semester query string true "学期" 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
+// @Param request query GetRecycleBinClassInfosReq true "获取回收站中的课表信息参数"
 // @Success 200 {object} web.Response{data=GetRecycleBinClassInfosResp} "成功获取回收站课表信息"
 // @Router /class/getRecycle [get]
 func (c *ClassHandler) GetRecycleBinClassInfos(ctx *gin.Context, req GetRecycleBinClassInfosReq, uc ijwt.UserClaims) (web.Response, error) {
@@ -231,7 +227,7 @@ func (c *ClassHandler) GetRecycleBinClassInfos(ctx *gin.Context, req GetRecycleB
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
-// @Param body body RecoverClassRequest true "恢复课表请求"
+// @Param request body RecoverClassRequest true "恢复课表请求"
 // @Success 200 {object} web.Response "成功恢复课表"
 // @Router /class/recover [put]
 func (c *ClassHandler) RecoverClass(ctx *gin.Context, req RecoverClassRequest, uc ijwt.UserClaims) (web.Response, error) {
@@ -253,11 +249,9 @@ func (c *ClassHandler) RecoverClass(ctx *gin.Context, req RecoverClassRequest, u
 // @Summary 搜索课程
 // @Description 根据关键词[教师或者课程名]搜索课程,**注意,但当返回的结果数量大于page_size时,代表还有下一页**,最开始请求的是第一页
 // @Tags 课表
-// @Param year query string true "学年"
-// @Param semester query string true "学期"
-// @Param searchKeyWords query string true "搜索关键词"
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
+// @Param request query SearchRequest true "查询课程请求参数"
 // @Success 200 {object} web.Response{data=SearchClassResp} "成功搜索到课程"
 // @Router /class/search [get]
 func (c *ClassHandler) SearchClass(ctx *gin.Context, req SearchRequest) (web.Response, error) {

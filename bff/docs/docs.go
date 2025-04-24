@@ -259,7 +259,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "年份",
                         "name": "year",
                         "in": "query",
                         "required": true
@@ -323,7 +322,7 @@ const docTemplate = `{
         },
         "/card/getRecords": {
             "post": {
-                "description": "获取用户消费记录，student_id, start_time, type 必须存在，type 分为 \"card\"（实体卡）与 \"virtual\"（虚拟卡）",
+                "description": "【弃用】获取用户消费记录，student_id, start_time, type 必须存在，type 分为 \"card\"（实体卡）与 \"virtual\"（虚拟卡）",
                 "consumes": [
                     "application/json"
                 ],
@@ -375,7 +374,7 @@ const docTemplate = `{
         },
         "/card/noteUserKey": {
             "post": {
-                "description": "记录用户的key",
+                "description": "【弃用】记录用户的key",
                 "consumes": [
                     "application/json"
                 ],
@@ -385,7 +384,7 @@ const docTemplate = `{
                 "tags": [
                     "校园卡"
                 ],
-                "summary": "删除用户的key",
+                "summary": "记录用户的key",
                 "parameters": [
                     {
                         "description": "记录用户的key",
@@ -415,7 +414,7 @@ const docTemplate = `{
         },
         "/card/updateUserKey": {
             "post": {
-                "description": "更新用户的key",
+                "description": "【弃用】更新用户的key",
                 "consumes": [
                     "application/json"
                 ],
@@ -476,7 +475,7 @@ const docTemplate = `{
                     },
                     {
                         "description": "课表信息",
-                        "name": "body",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -558,7 +557,7 @@ const docTemplate = `{
                     },
                     {
                         "description": "删除课表请求",
-                        "name": "body",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -589,40 +588,29 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "学年",
-                        "name": "year",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "学期",
-                        "name": "semester",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "是否强制从华师获取最新版本",
-                        "name": "refresh",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "Bearer Token",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
                     {
-                        "description": "获取课表请求参数",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/class.GetClassListRequest"
-                        }
+                        "type": "boolean",
+                        "name": "refresh",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "semester",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学年,格式为\"2024\"代表\"2024-2025学年\"` + "`" + `",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -660,23 +648,23 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "学年",
-                        "name": "year",
-                        "in": "query",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "学期",
+                        "description": "学期,格式为\"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
                         "name": "semester",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
+                        "description": "学年,格式为\"2024\"代表\"2024-2025学年\"",
+                        "name": "year",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -725,7 +713,7 @@ const docTemplate = `{
                     },
                     {
                         "description": "恢复课表请求",
-                        "name": "body",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -756,30 +744,44 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "学年",
-                        "name": "year",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页大小",
+                        "name": "page_size",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "学期",
-                        "name": "semester",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "搜索关键词",
+                        "description": "搜索关键词,匹配的是课程名称和教师姓名",
                         "name": "searchKeyWords",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
+                        "description": "学期,格式为\"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
+                        "name": "semester",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "学年,格式为\"2024\"代表\"2024-2025学年\"",
+                        "name": "year",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -828,7 +830,7 @@ const docTemplate = `{
                     },
                     {
                         "description": "更新课表请求",
-                        "name": "body",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -951,6 +953,13 @@ const docTemplate = `{
                 "summary": "删除部门信息",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "删除部门信息请求参数",
                         "name": "request",
                         "in": "body",
@@ -977,6 +986,15 @@ const docTemplate = `{
                     "部门"
                 ],
                 "summary": "获取部门列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -1014,6 +1032,13 @@ const docTemplate = `{
                 "summary": "保存部门信息",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "保存部门信息请求参数",
                         "name": "request",
                         "in": "body",
@@ -1047,6 +1072,13 @@ const docTemplate = `{
                 ],
                 "summary": "取消电费提醒标准",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "取消电费提醒请求参数",
                         "name": "request",
@@ -1110,8 +1142,16 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "name": "area_name",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1167,8 +1207,16 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "name": "room_id",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1224,13 +1272,22 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "name": "architecture_id",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
                         "name": "floor",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1283,6 +1340,15 @@ const docTemplate = `{
                     "电费"
                 ],
                 "summary": "获取电费提醒标准",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "获取成功的返回信息",
@@ -1338,6 +1404,13 @@ const docTemplate = `{
                 "summary": "设置电费提醒标准",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "设置电费提醒请求参数",
                         "name": "request",
                         "in": "body",
@@ -1389,11 +1462,6 @@ const docTemplate = `{
         },
         "/feed/changeFeedAllowList": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "修改已登录用户的feed订阅白名单设置",
                 "consumes": [
                     "application/json"
@@ -1406,6 +1474,13 @@ const docTemplate = `{
                 ],
                 "summary": "修改feed订阅白名单",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "白名单设置",
                         "name": "data",
@@ -1434,11 +1509,6 @@ const docTemplate = `{
         },
         "/feed/clearFeedEvent": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "清除指定用户的feed订阅事件,都是可选字段",
                 "consumes": [
                     "application/json"
@@ -1451,6 +1521,13 @@ const docTemplate = `{
                 ],
                 "summary": "清除feed订阅事件",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "feed订阅事件ID",
                         "name": "data",
@@ -1479,11 +1556,6 @@ const docTemplate = `{
         },
         "/feed/getFeedAllowList": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "获取已登录用户的feed订阅白名单设置",
                 "consumes": [
                     "application/json"
@@ -1495,6 +1567,15 @@ const docTemplate = `{
                     "feed订阅"
                 ],
                 "summary": "获取feed订阅白名单",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -1525,11 +1606,6 @@ const docTemplate = `{
         },
         "/feed/getFeedEvents": {
             "get": {
-                "security": [
-                    {
-                        "Bearer Auth": []
-                    }
-                ],
                 "description": "获取已登录用户的所有feed订阅事件（包括已读和未读）",
                 "produces": [
                     "application/json"
@@ -1538,6 +1614,15 @@ const docTemplate = `{
                     "feed订阅"
                 ],
                 "summary": "获取feed订阅事件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -1568,11 +1653,6 @@ const docTemplate = `{
         },
         "/feed/getToBePublicOfficialMSG": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "获取计划发布的官方消息，仅限管理员操作",
                 "consumes": [
                     "application/json"
@@ -1584,6 +1664,15 @@ const docTemplate = `{
                     "feed订阅"
                 ],
                 "summary": "获取待发布的官方消息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -1620,11 +1709,6 @@ const docTemplate = `{
         },
         "/feed/publicMuxiOfficialMSG": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "发布木犀官方消息，仅限管理员操作",
                 "consumes": [
                     "application/json"
@@ -1637,6 +1721,13 @@ const docTemplate = `{
                 ],
                 "summary": "发布木犀官方消息",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "木犀官方消息",
                         "name": "data",
@@ -1683,11 +1774,6 @@ const docTemplate = `{
         },
         "/feed/readFeedEvent": {
             "post": {
-                "security": [
-                    {
-                        "Bearer Auth": []
-                    }
-                ],
                 "description": "标注feed订阅事件为已读",
                 "consumes": [
                     "application/json"
@@ -1700,6 +1786,13 @@ const docTemplate = `{
                 ],
                 "summary": "标注feed订阅事件为已读",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "feed订阅事件ID",
                         "name": "data",
@@ -1728,11 +1821,6 @@ const docTemplate = `{
         },
         "/feed/removeFeedToken": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "删除已登录用户的feed订阅Token",
                 "consumes": [
                     "application/json"
@@ -1745,6 +1833,13 @@ const docTemplate = `{
                 ],
                 "summary": "删除feed订阅Token",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "feed订阅Token",
                         "name": "data",
@@ -1773,11 +1868,6 @@ const docTemplate = `{
         },
         "/feed/saveFeedToken": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "保存已登录用户的feed订阅Token",
                 "consumes": [
                     "application/json"
@@ -1790,6 +1880,13 @@ const docTemplate = `{
                 ],
                 "summary": "保存feed订阅Token",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "feed订阅Token",
                         "name": "data",
@@ -1818,11 +1915,6 @@ const docTemplate = `{
         },
         "/feed/stopMuxiOfficialMSG": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "停止木犀官方消息，仅限管理员操作",
                 "consumes": [
                     "application/json"
@@ -1835,6 +1927,13 @@ const docTemplate = `{
                 ],
                 "summary": "停止木犀官方消息",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "停止消息请求",
                         "name": "data",
@@ -2134,14 +2233,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "学年号（如 2023 表示 2023~2024 学年）",
+                        "description": "学年名:例如2023表示2023~2024学年",
                         "name": "xnm",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "学期号（1 表示第一学期，2 表示第二学期）",
+                        "description": "学期名:0表示所有学期,1表示第一学期,2表示第二学期,3表示第三学期",
                         "name": "xqm",
                         "in": "query",
                         "required": true
@@ -2235,7 +2334,7 @@ const docTemplate = `{
         },
         "/statics": {
             "get": {
-                "description": "根据静态资源名称获取静态资源的内容。",
+                "description": "【弃用】根据静态资源名称获取静态资源的内容。",
                 "consumes": [
                     "application/json"
                 ],
@@ -2279,7 +2378,7 @@ const docTemplate = `{
         },
         "/statics/match/labels": {
             "get": {
-                "description": "根据静labels匹配合适的静态资源",
+                "description": "【弃用】根据静labels匹配合适的静态资源",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2323,7 +2422,7 @@ const docTemplate = `{
         },
         "/statics/save": {
             "post": {
-                "description": "保存静态内容",
+                "description": "【弃用】保存静态内容",
                 "consumes": [
                     "application/json"
                 ],
@@ -2405,7 +2504,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "登录请求体",
-                        "name": "body",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -2575,6 +2674,11 @@ const docTemplate = `{
     "definitions": {
         "banner.Banner": {
             "type": "object",
+            "required": [
+                "id",
+                "picture_link",
+                "web_link"
+            ],
             "properties": {
                 "id": {
                     "type": "integer"
@@ -2589,6 +2693,9 @@ const docTemplate = `{
         },
         "banner.DelBannerRequest": {
             "type": "object",
+            "required": [
+                "id"
+            ],
             "properties": {
                 "id": {
                     "type": "integer"
@@ -2597,6 +2704,9 @@ const docTemplate = `{
         },
         "banner.GetBannersResponse": {
             "type": "object",
+            "required": [
+                "banners"
+            ],
             "properties": {
                 "banners": {
                     "type": "array",
@@ -2608,6 +2718,11 @@ const docTemplate = `{
         },
         "banner.SaveBannerRequest": {
             "type": "object",
+            "required": [
+                "id",
+                "picture_link",
+                "web_link"
+            ],
             "properties": {
                 "id": {
                     "type": "integer"
@@ -2622,6 +2737,9 @@ const docTemplate = `{
         },
         "calendar.DelCalendarRequest": {
             "type": "object",
+            "required": [
+                "year"
+            ],
             "properties": {
                 "year": {
                     "type": "integer"
@@ -2630,6 +2748,10 @@ const docTemplate = `{
         },
         "calendar.GetCalendarResponse": {
             "type": "object",
+            "required": [
+                "link",
+                "year"
+            ],
             "properties": {
                 "link": {
                     "type": "string"
@@ -2641,6 +2763,10 @@ const docTemplate = `{
         },
         "calendar.SaveCalendarRequest": {
             "type": "object",
+            "required": [
+                "link",
+                "year"
+            ],
             "properties": {
                 "link": {
                     "type": "string"
@@ -2716,6 +2842,16 @@ const docTemplate = `{
         },
         "class.AddClassRequest": {
             "type": "object",
+            "required": [
+                "day",
+                "dur_class",
+                "name",
+                "semester",
+                "teacher",
+                "weeks",
+                "where",
+                "year"
+            ],
             "properties": {
                 "credit": {
                     "description": "学分",
@@ -2760,6 +2896,19 @@ const docTemplate = `{
         },
         "class.ClassInfo": {
             "type": "object",
+            "required": [
+                "class_when",
+                "classname",
+                "credit",
+                "day",
+                "id",
+                "semester",
+                "teacher",
+                "week_duration",
+                "weeks",
+                "where",
+                "year"
+            ],
             "properties": {
                 "class_when": {
                     "description": "上课是第几节（如1-2,3-4）",
@@ -2812,6 +2961,11 @@ const docTemplate = `{
         },
         "class.DeleteClassRequest": {
             "type": "object",
+            "required": [
+                "id",
+                "semester",
+                "year"
+            ],
             "properties": {
                 "id": {
                     "description": "要被删的课程id",
@@ -2827,22 +2981,11 @@ const docTemplate = `{
                 }
             }
         },
-        "class.GetClassListRequest": {
-            "type": "object",
-            "properties": {
-                "refresh": {
-                    "type": "boolean"
-                },
-                "semester": {
-                    "type": "string"
-                },
-                "year": {
-                    "type": "string"
-                }
-            }
-        },
         "class.GetClassListResp": {
             "type": "object",
+            "required": [
+                "classes"
+            ],
             "properties": {
                 "classes": {
                     "type": "array",
@@ -2854,6 +2997,9 @@ const docTemplate = `{
         },
         "class.GetRecycleBinClassInfosResp": {
             "type": "object",
+            "required": [
+                "classInfos"
+            ],
             "properties": {
                 "classInfos": {
                     "type": "array",
@@ -2865,6 +3011,10 @@ const docTemplate = `{
         },
         "class.GetSchoolDayResp": {
             "type": "object",
+            "required": [
+                "holiday_time",
+                "school_time"
+            ],
             "properties": {
                 "holiday_time": {
                     "type": "integer"
@@ -2876,6 +3026,11 @@ const docTemplate = `{
         },
         "class.RecoverClassRequest": {
             "type": "object",
+            "required": [
+                "classId",
+                "semester",
+                "year"
+            ],
             "properties": {
                 "classId": {
                     "description": "课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回",
@@ -2893,6 +3048,9 @@ const docTemplate = `{
         },
         "class.SearchClassResp": {
             "type": "object",
+            "required": [
+                "classInfos"
+            ],
             "properties": {
                 "classInfos": {
                     "type": "array",
@@ -2904,6 +3062,11 @@ const docTemplate = `{
         },
         "class.UpdateClassRequest": {
             "type": "object",
+            "required": [
+                "classId",
+                "semester",
+                "year"
+            ],
             "properties": {
                 "classId": {
                     "description": "课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回",
@@ -2980,6 +3143,9 @@ const docTemplate = `{
         },
         "department.DelDepartmentRequest": {
             "type": "object",
+            "required": [
+                "id"
+            ],
             "properties": {
                 "id": {
                     "type": "integer"
@@ -2988,6 +3154,13 @@ const docTemplate = `{
         },
         "department.Department": {
             "type": "object",
+            "required": [
+                "id",
+                "name",
+                "phone",
+                "place",
+                "time"
+            ],
             "properties": {
                 "id": {
                     "type": "integer"
@@ -3008,6 +3181,9 @@ const docTemplate = `{
         },
         "department.GetDepartmentsResponse": {
             "type": "object",
+            "required": [
+                "departments"
+            ],
             "properties": {
                 "departments": {
                     "type": "array",
@@ -3019,6 +3195,13 @@ const docTemplate = `{
         },
         "department.SaveDepartmentRequest": {
             "type": "object",
+            "required": [
+                "id",
+                "name",
+                "phone",
+                "place",
+                "time"
+            ],
             "properties": {
                 "id": {
                     "type": "integer"
@@ -3039,6 +3222,12 @@ const docTemplate = `{
         },
         "elecprice.Architecture": {
             "type": "object",
+            "required": [
+                "architecture_id",
+                "architecture_name",
+                "base_floor",
+                "top_floor"
+            ],
             "properties": {
                 "architecture_id": {
                     "type": "string"
@@ -3056,6 +3245,9 @@ const docTemplate = `{
         },
         "elecprice.CancelStandardRequest": {
             "type": "object",
+            "required": [
+                "room_id"
+            ],
             "properties": {
                 "room_id": {
                     "type": "string"
@@ -3064,6 +3256,9 @@ const docTemplate = `{
         },
         "elecprice.GetArchitectureResponse": {
             "type": "object",
+            "required": [
+                "architecture_list"
+            ],
             "properties": {
                 "architecture_list": {
                     "type": "array",
@@ -3075,6 +3270,9 @@ const docTemplate = `{
         },
         "elecprice.GetPriceResponse": {
             "type": "object",
+            "required": [
+                "price"
+            ],
             "properties": {
                 "price": {
                     "$ref": "#/definitions/elecprice.Price"
@@ -3083,6 +3281,9 @@ const docTemplate = `{
         },
         "elecprice.GetRoomInfoResponse": {
             "type": "object",
+            "required": [
+                "room_list"
+            ],
             "properties": {
                 "room_list": {
                     "type": "array",
@@ -3094,6 +3295,9 @@ const docTemplate = `{
         },
         "elecprice.GetStandardListResponse": {
             "type": "object",
+            "required": [
+                "standard_list"
+            ],
             "properties": {
                 "standard_list": {
                     "type": "array",
@@ -3105,6 +3309,11 @@ const docTemplate = `{
         },
         "elecprice.Price": {
             "type": "object",
+            "required": [
+                "remain_money",
+                "yesterday_use_money",
+                "yesterday_use_value"
+            ],
             "properties": {
                 "remain_money": {
                     "type": "string"
@@ -3119,6 +3328,10 @@ const docTemplate = `{
         },
         "elecprice.Room": {
             "type": "object",
+            "required": [
+                "room_id",
+                "room_name"
+            ],
             "properties": {
                 "room_id": {
                     "type": "string"
@@ -3130,6 +3343,11 @@ const docTemplate = `{
         },
         "elecprice.SetStandardRequest": {
             "type": "object",
+            "required": [
+                "limit",
+                "room_id",
+                "room_name"
+            ],
             "properties": {
                 "limit": {
                     "type": "integer"
@@ -3144,6 +3362,10 @@ const docTemplate = `{
         },
         "elecprice.StandardResp": {
             "type": "object",
+            "required": [
+                "limit",
+                "room_name"
+            ],
             "properties": {
                 "limit": {
                     "type": "integer"
@@ -3155,6 +3377,12 @@ const docTemplate = `{
         },
         "feed.ChangeFeedAllowListReq": {
             "type": "object",
+            "required": [
+                "energy",
+                "grade",
+                "holiday",
+                "muxi"
+            ],
             "properties": {
                 "energy": {
                     "type": "boolean"
@@ -3172,6 +3400,10 @@ const docTemplate = `{
         },
         "feed.ClearFeedEventReq": {
             "type": "object",
+            "required": [
+                "feed_id",
+                "status"
+            ],
             "properties": {
                 "feed_id": {
                     "description": "如果feedid和status都被填写了,那么就会清除当前的feedid代表的feed消息且状态为设置的status的",
@@ -3185,6 +3417,15 @@ const docTemplate = `{
         },
         "feed.FeedEventVO": {
             "type": "object",
+            "required": [
+                "content",
+                "created_at",
+                "extend_fields",
+                "id",
+                "read",
+                "title",
+                "type"
+            ],
             "properties": {
                 "content": {
                     "type": "string"
@@ -3215,6 +3456,12 @@ const docTemplate = `{
         },
         "feed.GetFeedAllowListResp": {
             "type": "object",
+            "required": [
+                "energy",
+                "grade",
+                "holiday",
+                "muxi"
+            ],
             "properties": {
                 "energy": {
                     "type": "boolean"
@@ -3243,6 +3490,9 @@ const docTemplate = `{
         },
         "feed.GetToBePublicMuxiOfficialMSGResp": {
             "type": "object",
+            "required": [
+                "msg_list"
+            ],
             "properties": {
                 "msg_list": {
                     "type": "array",
@@ -3254,6 +3504,13 @@ const docTemplate = `{
         },
         "feed.MuxiOfficialMSG": {
             "type": "object",
+            "required": [
+                "content",
+                "extend_fields",
+                "id",
+                "public_time",
+                "title"
+            ],
             "properties": {
                 "content": {
                     "type": "string"
@@ -3279,6 +3536,12 @@ const docTemplate = `{
         },
         "feed.PublicMuxiOfficialMSGReq": {
             "type": "object",
+            "required": [
+                "content",
+                "extend_fields",
+                "later_time",
+                "title"
+            ],
             "properties": {
                 "content": {
                     "type": "string"
@@ -3300,6 +3563,13 @@ const docTemplate = `{
         },
         "feed.PublicMuxiOfficialMSGResp": {
             "type": "object",
+            "required": [
+                "content",
+                "extend_fields",
+                "id",
+                "public_time",
+                "title"
+            ],
             "properties": {
                 "content": {
                     "type": "string"
@@ -3323,6 +3593,9 @@ const docTemplate = `{
         },
         "feed.ReadFeedEventReq": {
             "type": "object",
+            "required": [
+                "feed_id"
+            ],
             "properties": {
                 "feed_id": {
                     "type": "integer"
@@ -3331,6 +3604,9 @@ const docTemplate = `{
         },
         "feed.RemoveFeedTokenReq": {
             "type": "object",
+            "required": [
+                "token"
+            ],
             "properties": {
                 "token": {
                     "type": "string"
@@ -3339,6 +3615,9 @@ const docTemplate = `{
         },
         "feed.SaveFeedTokenReq": {
             "type": "object",
+            "required": [
+                "token"
+            ],
             "properties": {
                 "token": {
                     "type": "string"
@@ -3347,6 +3626,9 @@ const docTemplate = `{
         },
         "feed.StopMuxiOfficialMSGReq": {
             "type": "object",
+            "required": [
+                "id"
+            ],
             "properties": {
                 "id": {
                     "type": "string"
@@ -3439,6 +3721,9 @@ const docTemplate = `{
         },
         "grade.GetGradeByTermResp": {
             "type": "object",
+            "required": [
+                "grades"
+            ],
             "properties": {
                 "grades": {
                     "description": "课程信息",
@@ -3451,6 +3736,9 @@ const docTemplate = `{
         },
         "grade.GetGradeScoreResp": {
             "type": "object",
+            "required": [
+                "type_of_grade_scores"
+            ],
             "properties": {
                 "type_of_grade_scores": {
                     "type": "array",
@@ -3462,6 +3750,19 @@ const docTemplate = `{
         },
         "grade.Grade": {
             "type": "object",
+            "required": [
+                "Kclbmc",
+                "cj",
+                "finalGrade",
+                "finalGradePercent",
+                "jd",
+                "kcbj",
+                "kcmc",
+                "kcxzmc",
+                "regularGrade",
+                "regularGradePercent",
+                "xf"
+            ],
             "properties": {
                 "Kclbmc": {
                     "description": "课程类别名称",
@@ -3511,6 +3812,10 @@ const docTemplate = `{
         },
         "grade.GradeScore": {
             "type": "object",
+            "required": [
+                "kcmc",
+                "xf"
+            ],
             "properties": {
                 "kcmc": {
                     "description": "课程名称",
@@ -3524,6 +3829,10 @@ const docTemplate = `{
         },
         "grade.TypeOfGradeScore": {
             "type": "object",
+            "required": [
+                "grade_score_list",
+                "kcxzmc"
+            ],
             "properties": {
                 "grade_score_list": {
                     "type": "array",
@@ -3539,6 +3848,9 @@ const docTemplate = `{
         },
         "infoSum.DelInfoSumRequest": {
             "type": "object",
+            "required": [
+                "id"
+            ],
             "properties": {
                 "id": {
                     "type": "integer"
@@ -3547,6 +3859,9 @@ const docTemplate = `{
         },
         "infoSum.GetInfoSumsResponse": {
             "type": "object",
+            "required": [
+                "info_sums"
+            ],
             "properties": {
                 "info_sums": {
                     "type": "array",
@@ -3558,6 +3873,13 @@ const docTemplate = `{
         },
         "infoSum.InfoSum": {
             "type": "object",
+            "required": [
+                "description",
+                "id",
+                "image",
+                "link",
+                "name"
+            ],
             "properties": {
                 "description": {
                     "type": "string"
@@ -3578,6 +3900,13 @@ const docTemplate = `{
         },
         "infoSum.SaveInfoSumRequest": {
             "type": "object",
+            "required": [
+                "description",
+                "id",
+                "image",
+                "link",
+                "name"
+            ],
             "properties": {
                 "description": {
                     "type": "string"
@@ -3654,6 +3983,10 @@ const docTemplate = `{
         },
         "user.LoginByCCNUReq": {
             "type": "object",
+            "required": [
+                "password",
+                "student_id"
+            ],
             "properties": {
                 "password": {
                     "description": "密码",
@@ -3678,6 +4011,9 @@ const docTemplate = `{
         },
         "website.DelWebsiteRequest": {
             "type": "object",
+            "required": [
+                "id"
+            ],
             "properties": {
                 "id": {
                     "type": "integer"
@@ -3686,6 +4022,9 @@ const docTemplate = `{
         },
         "website.GetWebsitesResponse": {
             "type": "object",
+            "required": [
+                "websites"
+            ],
             "properties": {
                 "websites": {
                     "type": "array",
@@ -3697,6 +4036,13 @@ const docTemplate = `{
         },
         "website.SaveWebsiteRequest": {
             "type": "object",
+            "required": [
+                "description",
+                "id",
+                "image",
+                "link",
+                "name"
+            ],
             "properties": {
                 "description": {
                     "type": "string"
@@ -3717,6 +4063,13 @@ const docTemplate = `{
         },
         "website.Website": {
             "type": "object",
+            "required": [
+                "description",
+                "id",
+                "image",
+                "link",
+                "name"
+            ],
             "properties": {
                 "description": {
                     "type": "string"

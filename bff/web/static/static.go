@@ -34,8 +34,9 @@ func (h *StaticHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Ha
 	sg.POST("/save", authMiddleware, ginx.WrapClaimsAndReq(h.SaveStatic))
 }
 
+// GetStaticByName
 // @Summary 获取静态资源[精确名称]
-// @Description 根据静态资源名称获取静态资源的内容。
+// @Description 【弃用】根据静态资源名称获取静态资源的内容。
 // @Tags 静态
 // @Accept json
 // @Produce json
@@ -65,8 +66,9 @@ func (h *StaticHandler) GetStaticByName(ctx *gin.Context, req GetStaticByNameReq
 	}, nil
 }
 
+// SaveStatic
 // @Summary 保存静态内容
-// @Description 保存静态内容
+// @Description 【弃用】保存静态内容
 // @Tags 静态
 // @Accept json
 // @Produce json
@@ -104,8 +106,9 @@ func (h *StaticHandler) isAdmin(studentId string) bool {
 	return exists
 }
 
+// GetStaticByLabels
 // @Summary 获取静态资源[标签匹配]
-// @Description 根据静labels匹配合适的静态资源
+// @Description 【弃用】根据静labels匹配合适的静态资源
 // @Tags 静态
 // @Accept multipart/form-data
 // @Produce json

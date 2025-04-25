@@ -6,7 +6,6 @@ import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	etcdv3 "go.etcd.io/etcd/client/v3"
-	"net/url"
 	"strconv"
 	"time"
 )
@@ -32,10 +31,6 @@ func (s *KratosServer) Serve() error {
 		kratos.Server(
 			s.Server,
 		),
-		kratos.Endpoint(&url.URL{
-			Scheme: "grpc",
-			Host:   "be-ccnu.ccnube.svc.cluster.local:19082",
-		}),
 		kratos.Registrar(r),
 	)
 	s.stop = app.Stop

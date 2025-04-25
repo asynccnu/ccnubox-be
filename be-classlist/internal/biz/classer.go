@@ -2,122 +2,134 @@ package biz
 
 import (
 	"context"
-	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
+	"errors"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
 	"github.com/go-kratos/kratos/v2/log"
+	"sync"
 	"time"
 )
 
 type ClassUsecase struct {
-	classRepo ClassRepoProxy
-	crawler   ClassCrawler
-	ccnu      CCNUServiceProxy
-	jxbRepo   JxbRepo
-	log       *log.Helper
+	classRepo    ClassRepoProxy
+	crawler      ClassCrawler
+	ccnu         CCNUServiceProxy
+	jxbRepo      JxbRepo
+	waitCrawTime time.Duration
+	log          *log.Helper
 }
 
-func NewClassUsecase(classRepo ClassRepoProxy, crawler ClassCrawler, JxbRepo JxbRepo, Cs CCNUServiceProxy, logger log.Logger) *ClassUsecase {
+func NewClassUsecase(classRepo ClassRepoProxy, crawler ClassCrawler,
+	JxbRepo JxbRepo, Cs CCNUServiceProxy, cf *conf.Server,
+	logger log.Logger) *ClassUsecase {
 	return &ClassUsecase{
-		classRepo: classRepo,
-		crawler:   crawler,
-		jxbRepo:   JxbRepo,
-		ccnu:      Cs,
-		log:       log.NewHelper(logger),
+		classRepo:    classRepo,
+		crawler:      crawler,
+		jxbRepo:      JxbRepo,
+		ccnu:         Cs,
+		waitCrawTime: time.Duration(cf.WaitCrawTime) * time.Millisecond,
+		log:          log.NewHelper(logger),
 	}
 }
 
 func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*model.Class, error) {
-	var (
-		scs            = make([]*model.StudentCourse, 0)
-		classes        = make([]*model.Class, 0)
-		classInfos     = make([]*model.ClassInfo, 0)
-		SearchFromCCNU = refresh
-	)
+	var classInfos []*model.ClassInfo
 
-	if !refresh {
-		//直接从数据库中获取课表
-		resp1, err := cluc.classRepo.GetClassesFromLocal(ctx, model.GetClassesFromLocalReq{
-			StuID:    stuID,
-			Year:     year,
-			Semester: semester,
-		})
+	localResp, err := cluc.classRepo.GetClassesFromLocal(ctx, model.GetClassesFromLocalReq{
+		StuID:    stuID,
+		Year:     year,
+		Semester: semester,
+	})
 
-		if resp1 != nil && len(resp1.ClassInfos) > 0 {
-			classInfos = resp1.ClassInfos
+	if err == nil {
+		if localResp != nil && len(localResp.ClassInfos) > 0 {
+			classInfos = localResp.ClassInfos
+		} else {
+			err = errors.New("failed to find data in the database")
 		}
+	}
 
-		// 如果数据库中没有
-		if err != nil {
-			SearchFromCCNU = true
+	var wg sync.WaitGroup
 
-			crawClassInfos, crawScs, err := cluc.getCourseFromCrawler(ctx, stuID, year, semester)
-			if err == nil {
-				classInfos = crawClassInfos
-				scs = crawScs
+	if refresh || err != nil {
+
+		wg.Add(1)
+
+		// 用临时变量接收，避免 data race
+		var crawClassInfos []*model.ClassInfo
+
+		// 防止读取和写入并发冲突
+		var crawLock sync.Mutex
+
+		go func() {
+			var once sync.Once
+			done := func() {
+				once.Do(func() {
+					wg.Done()
+				})
 			}
-		}
-	} else {
-		crawClassInfos, crawScs, err := cluc.getCourseFromCrawler(ctx, stuID, year, semester)
-		if err == nil {
-			SearchFromCCNU = true
-			classInfos = crawClassInfos
-			scs = crawScs
+			time.AfterFunc(10*time.Second, done)
+			defer done()
 
-			//还要算上手动添加的课程
-			//从数据库中获取手动添加的课程
-			resp2, err1 := cluc.classRepo.GetAddedClasses(ctx, model.GetAddedClassesReq{
+			crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(context.Background(), stuID, year, semester)
+			if crawErr != nil {
+				return
+			}
+
+			// 确保在赋值前获取锁
+			crawLock.Lock()
+
+			// 将数据赋值到闭包外
+			crawClassInfos = crawClassInfos_
+
+			// 释放锁
+			crawLock.Unlock()
+
+			go func() {
+				_, jxbIDs := convertToClass(crawClassInfos)
+				cluc.classRepo.SaveClass(context.Background(), stuID, year, semester, crawClassInfos, crawScs)
+				_ = cluc.jxbRepo.SaveJxb(context.Background(), stuID, jxbIDs)
+			}()
+		}()
+
+		var addedClassInfos []*model.ClassInfo
+
+		if refresh {
+			addedResp, addedErr := cluc.classRepo.GetAddedClasses(ctx, model.GetAddedClassesReq{
 				StudID:   stuID,
 				Year:     year,
 				Semester: semester,
 			})
-			if err1 == nil && len(resp2.ClassInfos) > 0 {
-				classInfos = append(classInfos, resp2.ClassInfos...)
+			if addedErr != nil {
+				cluc.log.Warn("failed to find added class in the database")
 			}
-		} else {
-			//如果爬取失败
-			SearchFromCCNU = false
-
-			//使用本地数据库做兜底
-			resp1, err := cluc.classRepo.GetClassesFromLocal(ctx, model.GetClassesFromLocalReq{
-				StuID:    stuID,
-				Year:     year,
-				Semester: semester,
-			})
-
-			if resp1 != nil && len(resp1.ClassInfos) > 0 {
-				classInfos = resp1.ClassInfos
-			}
-			if err != nil {
-				cluc.log.Errorf("get classlist[%v %v %v] from DB failed: %v", stuID, year, semester, err)
+			if addedResp != nil && len(addedResp.ClassInfos) > 0 {
+				addedClassInfos = addedResp.ClassInfos
 			}
 		}
+
+		wg.Wait()
+
+		// 加锁
+		crawLock.Lock()
+
+		// 如果从爬虫中得到了数据，优先用爬虫结果
+		if len(crawClassInfos) > 0 {
+			classInfos = append(crawClassInfos, addedClassInfos...)
+		}
+
+		// 释放锁
+		crawLock.Unlock()
 	}
 
-	//如果所有获取途径均失效，则返回错误
 	if len(classInfos) == 0 {
 		return nil, errcode.ErrClassNotFound
 	}
 
-	//封装class,并获取jxbID
-	classes, jxbIDs := convertToClass(classInfos)
+	classes, _ := convertToClass(classInfos)
 
-	//如果是从CCNU那边查到的，就存储
-	if SearchFromCCNU {
-		//开个协程来存取
-		go func() {
-			cluc.classRepo.SaveClass(context.Background(), stuID, year, semester, classInfos, scs)
-
-			//防止ctx因为return就被取消了，所以就改用background，因为这个存取没有精确的要求，所以可以后台完成，用户不需要感知
-			if err := cluc.jxbRepo.SaveJxb(context.Background(), stuID, jxbIDs); err != nil {
-				cluc.log.Warnw(classLog.Msg, "SaveJxb err",
-					classLog.Param, fmt.Sprintf("%v,%v", stuID, jxbIDs),
-					classLog.Reason, err)
-			}
-		}()
-	}
 	return classes, nil
 }
 
@@ -293,10 +305,8 @@ func convertToClass(infos []*model.ClassInfo) ([]*model.Class, []string) {
 	Jxbmp := make(map[string]struct{})
 	classes := make([]*model.Class, 0, len(infos))
 	for _, classInfo := range infos {
-		//thisWeek := classInfo.SearchWeek(week)
 		class := &model.Class{
 			Info: classInfo,
-			//ThisWeek: thisWeek && tool.CheckIfThisYear(classInfo.Year, classInfo.Semester),
 		}
 		if classInfo.JxbId != "" {
 			Jxbmp[classInfo.JxbId] = struct{}{}

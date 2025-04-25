@@ -11,7 +11,6 @@ import (
 )
 
 func CheckSY(semester, year string) bool {
-
 	var tag1, tag2 bool
 	y, err := strconv.Atoi(year)
 	currentYear := time.Now().Year()
@@ -26,7 +25,6 @@ func CheckSY(semester, year string) bool {
 		tag2 = false
 	}
 	return tag1 && tag2
-
 }
 func ParseWeeks(weeks int64) []int {
 	if weeks <= 0 {

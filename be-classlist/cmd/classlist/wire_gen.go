@@ -8,7 +8,6 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/client"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data"
@@ -29,32 +28,31 @@ import (
 
 // wireApp init kratos application.
 func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, file *os.File, logger log.Logger) (*kratos.App, func(), error) {
-	db := data.NewDB(confData, file)
+	db := data.NewDB(confData, file, logger)
 	dataData, cleanup, err := data.NewData(confData, db, logger)
 	if err != nil {
 		return nil, nil, err
 	}
-	helper := classLog.NewClogger(logger)
-	classInfoDBRepo := data.NewClassInfoDBRepo(dataData, helper)
-	redisClient := data.NewRedisDB(confData)
-	classInfoCacheRepo := data.NewClassInfoCacheRepo(redisClient, helper)
+	classInfoDBRepo := data.NewClassInfoDBRepo(dataData, logger)
+	redisClient := data.NewRedisDB(confData, logger)
+	classInfoCacheRepo := data.NewClassInfoCacheRepo(redisClient, confServer, logger)
 	classInfoRepo := biz.NewClassInfoRepo(classInfoDBRepo, classInfoCacheRepo)
-	studentAndCourseDBRepo := data.NewStudentAndCourseDBRepo(dataData, helper)
-	studentAndCourseCacheRepo := data.NewStudentAndCourseCacheRepo(redisClient, helper)
+	studentAndCourseDBRepo := data.NewStudentAndCourseDBRepo(dataData, logger)
+	studentAndCourseCacheRepo := data.NewStudentAndCourseCacheRepo(redisClient, confServer, logger)
 	studentAndCourseRepo := biz.NewStudentAndCourseRepo(studentAndCourseDBRepo, studentAndCourseCacheRepo)
 	classRepo := biz.NewClassRepo(classInfoRepo, dataData, studentAndCourseRepo, logger)
-	crawlerCrawler := crawler.NewClassCrawler(helper)
-	jxbDBRepo := data.NewJxbDBRepo(dataData, helper)
+	crawlerCrawler := crawler.NewClassCrawler(logger)
+	jxbDBRepo := data.NewJxbDBRepo(dataData, logger)
 	etcdRegistry := registry.NewRegistrarServer(confRegistry, logger)
-	userServiceClient, err := client.NewClient(etcdRegistry, logger)
+	userServiceClient, err := client.NewClient(etcdRegistry, confRegistry, logger)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
 	ccnuService := client.NewCCNUService(userServiceClient)
-	classUsercase := biz.NewClassUsecase(classRepo, crawlerCrawler, jxbDBRepo, ccnuService, logger)
-	classerService := service.NewClasserService(classUsercase, schoolDay, logger)
-	grpcServer := server.NewGRPCServer(confServer, classerService, logger)
+	classUsecase := biz.NewClassUsecase(classRepo, crawlerCrawler, jxbDBRepo, ccnuService, confServer, logger)
+	classListService := service.NewClasserService(classUsecase, schoolDay, logger)
+	grpcServer := server.NewGRPCServer(confServer, classListService, logger)
 	app := newApp(logger, grpcServer, etcdRegistry)
 	return app, func() {
 		cleanup()

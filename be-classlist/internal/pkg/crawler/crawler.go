@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
-	model2 "github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
@@ -17,60 +16,49 @@ import (
 )
 
 // Notice: 爬虫相关
-var mp = map[string]string{
+var semesterMap = map[string]string{
 	"1": "3",
 	"2": "12",
 	"3": "16",
 }
 
 type Crawler struct {
-	log    classLog.Clogger
+	log    *log.Helper
 	client *http.Client
 }
 
-func NewClassCrawler(logger classLog.Clogger) *Crawler {
+func NewClassCrawler(logger log.Logger) *Crawler {
 	client := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        100,              // 最大空闲连接
 			IdleConnTimeout:     90 * time.Second, // 空闲连接超时
 			TLSHandshakeTimeout: 10 * time.Second, // TLS握手超时
+			DisableKeepAlives:   false,            // 确保不会意外关闭 Keep-Alive
 		},
-		Timeout: 30 * time.Second, // 总请求超时
-	}
-	client.Transport = &http.Transport{
-		MaxIdleConnsPerHost: 20, // 每个主机最大空闲连接
 	}
 	return &Crawler{
-		log:    logger,
+		log:    log.NewHelper(logger),
 		client: client,
 	}
 }
 
 // GetClassInfoForGraduateStudent 获取研究生课程信息
-func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, r model2.GetClassInfoForGraduateStudentReq) (*model2.GetClassInfoForGraduateStudentResp, error) {
+func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, r model.GetClassInfoForGraduateStudentReq) (*model.GetClassInfoForGraduateStudentResp, error) {
 	return nil, errors.New("this feature is not yet implemented")
 }
 
 // GetClassInfosForUndergraduate  获取本科生课程信息
-func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, r model2.GetClassInfosForUndergraduateReq) (*model2.GetClassInfosForUndergraduateResp, error) {
-	var (
-		Xnm = r.Year
-		Xqm = r.Semester
-		yn  = tool.CheckSY(Xqm, Xnm)
-	)
-
+func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, r model.GetClassInfosForUndergraduateReq) (*model.GetClassInfosForUndergraduateResp, error) {
+	xnm, xqm := r.Year, r.Semester
 	sendReqStart := time.Now()
 
-	if !yn {
-		return nil, errcode.ErrParam
-	}
-	formdata := fmt.Sprintf("xnm=%s&xqm=%s&kzlx=ck&xsdm=", GetXNM(Xnm), GetXQM(Xqm))
+	formdata := fmt.Sprintf("xnm=%s&xqm=%s&kzlx=ck&xsdm=", xnm, semesterMap[xqm])
+
 	var data = strings.NewReader(formdata)
-	req, err := http.NewRequest("POST", "https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151", data)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151", data)
 	if err != nil {
-		c.log.Errorw(classLog.Msg, "func:http.NewRequest err",
-			classLog.Param, fmt.Sprintf("%v,%v,%v", "POST", "https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151", data),
-			classLog.Reason, err)
+		c.log.Errorf("http.NewRequestWithContext err=%v", err)
 		return nil, errcode.ErrCrawler
 	}
 	req.Header = http.Header{
@@ -80,8 +68,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, r model2.Ge
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		c.log.Errorw(classLog.Msg, "http request send err",
-			classLog.Reason, err)
+		c.log.Errorf("client.Do err=%v", err)
 		return nil, errcode.ErrCrawler
 	}
 	defer resp.Body.Close()
@@ -94,20 +81,18 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, r model2.Ge
 		c.log.Errorf("failed to read response body: %v", err)
 		return nil, err
 	}
-	infos, Scs, err := extractUndergraduateData(bodyBytes, r.StuID, Xnm, Xqm)
+	infos, Scs, err := extractUndergraduateData(bodyBytes, r.StuID, xnm, xqm)
 	if err != nil {
-		c.log.Errorw(classLog.Msg, "func:ToClassInfo2",
-			classLog.Param, fmt.Sprintf("%v,%v", Xnm, Xqm),
-			classLog.Reason, err)
+		c.log.Errorf("extractUndergraduateData err=%v", err)
 		return nil, errcode.ErrCrawler
 	}
-	return &model2.GetClassInfosForUndergraduateResp{
+	return &model.GetClassInfosForUndergraduateResp{
 		ClassInfos:     infos,
 		StudentCourses: Scs,
 	}, nil
 }
 
-func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*model2.ClassInfo, []*model2.StudentCourse, error) {
+func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*model.ClassInfo, []*model.StudentCourse, error) {
 	var p fastjson.Parser
 	v, err := p.ParseBytes(rawJson)
 	if err != nil {
@@ -118,14 +103,14 @@ func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*model2
 		return nil, nil, fmt.Errorf("kbList not found or not an array")
 	}
 	length := len(kbList.GetArray())
-	var infos = make([]*model2.ClassInfo, 0, length)
-	var Scs = make([]*model2.StudentCourse, 0, length)
+	var infos = make([]*model.ClassInfo, 0, length)
+	var Scs = make([]*model.StudentCourse, 0, length)
 	for _, kb := range kbList.GetArray() {
 		if string(kb.GetStringBytes("sxbj")) != "1" {
 			continue
 		}
 		//课程信息
-		var info = &model2.ClassInfo{}
+		var info = &model.ClassInfo{}
 		info.Day, _ = strconv.ParseInt(string(kb.GetStringBytes("xqj")), 10, 64) //星期几
 		info.Teacher = string(kb.GetStringBytes("xm"))
 		info.Where = string(kb.GetStringBytes("cdmc"))                           //上课地点
@@ -146,7 +131,7 @@ func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*model2
 
 		//-----------------------------------------------------
 		//学生与课程的映射关系
-		Sc := &model2.StudentCourse{
+		Sc := &model.StudentCourse{
 			StuID:           stuID,
 			ClaID:           info.ID,
 			Year:            xnm,
@@ -157,11 +142,4 @@ func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*model2
 		Scs = append(Scs, Sc)       //添加"学生与课程的映射关系"
 	}
 	return infos, Scs, nil
-}
-
-func GetXNM(s string) string {
-	return s
-}
-func GetXQM(s string) string {
-	return mp[s]
 }

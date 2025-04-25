@@ -25,14 +25,14 @@ services:
     volumes:
       - "./redis/data:/data"
       - "./redis.conf:/usr/local/etc/redis/redis.conf"
-#  Etcd:
-#    image: 'bitnami/etcd:latest'
-#    environment:
-#      - ALLOW_NONE_AUTHENTICATION=yes
-#      - ETCD_ADVERTISE_CLIENT_URLS=http://localhost:2379
-#    ports:
-#      - "2379:2379"
-#      - "2380:2380"
+  Etcd:
+    image: 'bitnami/etcd:latest'
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://localhost:2379
+    ports:
+      - "2379:2379"
+      - "2380:2380"
   Muxi_ClassList:
     image: "muxi_classlist:v1"
     restart: "always"

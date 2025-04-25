@@ -3,7 +3,6 @@ package kratos.api;
 
 option go_package = "classlist/internal/conf;conf";
 
-import "google/protobuf/duration.proto";
 
 message Bootstrap {
   Server server = 1;
@@ -14,18 +13,17 @@ message Bootstrap {
 }
 
 message Server {
-  message HTTP {
-    string network = 1;
-    string addr = 2;
-    google.protobuf.Duration timeout = 3;
-  }
   message GRPC {
     string network = 1;
     string addr = 2;
-    google.protobuf.Duration timeout = 3;
+    int32 timeout = 3; // 超时时间,单位s
   }
-  HTTP http = 1;
+  string name = 1;
   GRPC grpc = 2;
+  int32 waitCrawTime = 3; // 等待爬虫抓取数据的时间,单位ms
+  int32 classExpiration = 4; // 课程过期时间,单位s
+  int32 recycleExpiration = 5; // 回收站课程过期时间,单位s
+  int32 blackListExpiration = 6; // 黑名单过期时间,如果要查询的课程在数据库不存在,列入黑名单,单位s
 }
 
 message Data {
@@ -37,8 +35,8 @@ message Data {
   message Redis {
     string addr = 1;
     string password =2;
-    google.protobuf.Duration read_timeout = 3;
-    google.protobuf.Duration write_timeout = 4;
+    int32 read_timeout = 3; //单位ms
+    int32 write_timeout = 4; //单位ms
   }
   Database database = 1;
   Redis redis = 2;
@@ -50,6 +48,7 @@ message Etcd {
 }
 message Registry {
   Etcd etcd = 1;
+  string usersvc = 2;
 }
 message ZapLogConfigs {
   string log_level = 1;          // 日志打印级别 debug, info, warning, error

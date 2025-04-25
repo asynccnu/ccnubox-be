@@ -12,15 +12,6 @@ import (
 	"path/filepath"
 )
 
-var (
-	RequestID   = "Request_id"
-	RequestIP   = "Request_ip"
-	Msg         = "msg"
-	Reason      = "reason"
-	Param       = "param"
-	RequestTime = "Request_time"
-)
-
 func Logger(c *conf.ZapLogConfigs) log.Logger {
 	return kzap.NewLogger(NewZapLogger(c))
 }

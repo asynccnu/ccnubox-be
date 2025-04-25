@@ -3,7 +3,6 @@ package biz
 import (
 	"context"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
 	"github.com/go-kratos/kratos/v2/log"
@@ -28,7 +27,7 @@ func NewClassRepo(ClaRepo *ClassInfoRepo, TxCtrl Transaction, Sac *StudentAndCou
 	}
 }
 
-// 从本地获取课程
+// GetClassesFromLocal 从本地获取课程
 func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, req model.GetClassesFromLocalReq) (*model.GetClassesFromLocalResp, error) {
 	var (
 		cacheGet = true
@@ -190,7 +189,7 @@ func (cla ClassRepo) UpdateClass(ctx context.Context, req model.UpdateClassReq) 
 	return nil
 }
 
-// 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
+// SaveClass 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
 func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*model.ClassInfo, scs []*model.StudentCourse) {
 	key := GenerateClassInfosKey(stuID, year, semester)
 
@@ -215,7 +214,7 @@ func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string
 		return nil
 	})
 	if err != nil {
-		cla.log.Errorw(classLog.Msg, fmt.Sprintf("save classlist[%v %v] in db err:%v", classInfos, scs, err))
+		cla.log.Errorf("Save class [%+v] and scs [%v] failed:%v", classInfos, scs, err)
 	}
 
 	go func() {

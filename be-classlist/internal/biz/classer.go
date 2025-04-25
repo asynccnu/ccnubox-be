@@ -70,7 +70,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 					wg.Done()
 				})
 			}
-			time.AfterFunc(10*time.Second, done)
+			time.AfterFunc(cluc.waitCrawTime, done)
 			defer done()
 
 			crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(context.Background(), stuID, year, semester)
@@ -268,17 +268,15 @@ func (cluc *ClassUsecase) GetStuIdsByJxbId(ctx context.Context, jxbId string) ([
 }
 
 func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string, year string, semester string) ([]*model.ClassInfo, []*model.StudentCourse, error) {
-	////测试用的
-	//cookie := "JSESSIONID=77CCA81367438A56D3AFF46797E674A4"
 
-	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second) // 10秒超时,防止影响
-	defer cancel()                                                 // 确保在函数返回前取消上下文，防止资源泄漏
+	timeoutCtx, cancel := context.WithTimeout(ctx, 4*cluc.waitCrawTime) //防止影响
+	defer cancel()                                                      // 确保在函数返回前取消上下文，防止资源泄漏
 
 	getCookieStart := time.Now()
 
 	cookie, err := cluc.ccnu.GetCookie(timeoutCtx, stuID)
 	if err != nil {
-		cluc.log.Errorf("Error getting cookie(stu_id:%v) from other service", stuID)
+		cluc.log.Errorf("Error getting cookie(stu_id:%v) from other service: %v", stuID, err)
 		return nil, nil, err
 	}
 

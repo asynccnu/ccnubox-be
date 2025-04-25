@@ -13,24 +13,27 @@ import (
 )
 
 type ClassUsecase struct {
-	classRepo    ClassRepoProxy
-	crawler      ClassCrawler
-	ccnu         CCNUServiceProxy
-	jxbRepo      JxbRepo
-	waitCrawTime time.Duration
-	log          *log.Helper
+	classRepo       ClassRepoProxy
+	crawler         ClassCrawler
+	ccnu            CCNUServiceProxy
+	jxbRepo         JxbRepo
+	waitCrawTime    time.Duration
+	waitUserSvcTime time.Duration
+	log             *log.Helper
 }
 
 func NewClassUsecase(classRepo ClassRepoProxy, crawler ClassCrawler,
 	JxbRepo JxbRepo, Cs CCNUServiceProxy, cf *conf.Server,
 	logger log.Logger) *ClassUsecase {
+
 	return &ClassUsecase{
-		classRepo:    classRepo,
-		crawler:      crawler,
-		jxbRepo:      JxbRepo,
-		ccnu:         Cs,
-		waitCrawTime: time.Duration(cf.WaitCrawTime) * time.Millisecond,
-		log:          log.NewHelper(logger),
+		classRepo:       classRepo,
+		crawler:         crawler,
+		jxbRepo:         JxbRepo,
+		ccnu:            Cs,
+		waitCrawTime:    time.Duration(cf.WaitCrawTime) * time.Millisecond,
+		waitUserSvcTime: time.Duration(cf.WaitUserSvcTime) * time.Millisecond,
+		log:             log.NewHelper(logger),
 	}
 }
 
@@ -269,8 +272,8 @@ func (cluc *ClassUsecase) GetStuIdsByJxbId(ctx context.Context, jxbId string) ([
 
 func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string, year string, semester string) ([]*model.ClassInfo, []*model.StudentCourse, error) {
 
-	timeoutCtx, cancel := context.WithTimeout(ctx, 4*cluc.waitCrawTime) //防止影响
-	defer cancel()                                                      // 确保在函数返回前取消上下文，防止资源泄漏
+	timeoutCtx, cancel := context.WithTimeout(ctx, cluc.waitUserSvcTime) //防止影响
+	defer cancel()                                                       // 确保在函数返回前取消上下文，防止资源泄漏
 
 	getCookieStart := time.Now()
 

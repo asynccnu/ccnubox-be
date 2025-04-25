@@ -1,6 +1,8 @@
 package ioc
 
 import (
+	"context"
+	"fmt"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )
@@ -15,5 +17,12 @@ func InitRedis() redis.Cmdable {
 	if err != nil {
 		panic(err)
 	}
-	return redis.NewClient(&redis.Options{Addr: cfg.Addr, Password: cfg.Password})
+	cmd := redis.NewClient(&redis.Options{Addr: cfg.Addr, Password: cfg.Password})
+
+	ctx := context.Background()
+	if err := cmd.Ping(ctx).Err(); err != nil {
+		panic(fmt.Sprintf("Redis 连接失败: %v", err))
+	}
+
+	return cmd
 }

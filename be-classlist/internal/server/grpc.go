@@ -10,6 +10,7 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/ratelimit"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
+	"time"
 )
 
 // NewGRPCServer new a gRPC server.
@@ -30,8 +31,8 @@ func NewGRPCServer(c *conf.Server, greeter *service.ClassListService, logger log
 	if c.Grpc.Addr != "" {
 		opts = append(opts, grpc.Address(c.Grpc.Addr))
 	}
-	if c.Grpc.Timeout != nil {
-		opts = append(opts, grpc.Timeout(c.Grpc.Timeout.AsDuration()))
+	if c.Grpc.Timeout > 0 {
+		opts = append(opts, grpc.Timeout(time.Duration(c.Grpc.Timeout)*time.Second))
 	}
 	srv := grpc.NewServer(opts...)
 	v1.RegisterClasserServer(srv, greeter)

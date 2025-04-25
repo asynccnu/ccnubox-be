@@ -15,12 +15,6 @@ import (
 	"time"
 )
 
-const (
-	Expiration          = 5 * 24 * time.Hour
-	RecycleExpiration   = 2 * 30 * 24 * time.Hour
-	BlackListExpiration = 1 * time.Minute
-)
-
 // ProviderSet is data providers.
 var ProviderSet = wire.NewSet(
 	NewData,
@@ -49,7 +43,7 @@ func NewData(c *conf.Data, mysqlDB *gorm.DB, logger log.Logger) (*Data, func(), 
 }
 
 // NewDB 连接mysql数据库
-func NewDB(c *conf.Data, logfile *os.File) *gorm.DB {
+func NewDB(c *conf.Data, logfile *os.File, logger log.Logger) *gorm.DB {
 	//注意:
 	//这个logfile 最好别在此处声明,最好在main函数中声明,在程序结束时关闭
 	//否则你只能在下面的db.AutoMigrate得到相关日志
@@ -69,16 +63,18 @@ func NewDB(c *conf.Data, logfile *os.File) *gorm.DB {
 	if err := db.AutoMigrate(&model.ClassInfo{}, &model.StudentCourse{}, &model.Jxb{}); err != nil {
 		panic(fmt.Sprintf("mysql auto migrate failed:%v", err))
 	}
-	log.Info("connect mysql successfully")
+
+	log.NewHelper(logger).Info("mysql connect success")
+
 	return db
 }
 
 // NewRedisDB 连接redis
-func NewRedisDB(c *conf.Data) *redis.Client {
+func NewRedisDB(c *conf.Data, logger log.Logger) *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:         c.Redis.Addr,
-		ReadTimeout:  c.Redis.ReadTimeout.AsDuration(),
-		WriteTimeout: c.Redis.WriteTimeout.AsDuration(),
+		ReadTimeout:  time.Duration(c.Redis.ReadTimeout) * time.Millisecond,
+		WriteTimeout: time.Duration(c.Redis.WriteTimeout) * time.Millisecond,
 		DB:           0,
 		Password:     c.Redis.Password,
 	})
@@ -86,6 +82,6 @@ func NewRedisDB(c *conf.Data) *redis.Client {
 	if err != nil {
 		panic(fmt.Sprintf("connect redis err:%v", err))
 	}
-	log.Info("connect redis successfully")
+	log.NewHelper(logger).Info("redis connect success")
 	return rdb
 }

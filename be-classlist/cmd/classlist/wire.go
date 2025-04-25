@@ -7,7 +7,6 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/client"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data"
@@ -31,7 +30,6 @@ func wireApp(*conf.Server, *conf.Data, *conf.Registry, *conf.SchoolDay, *os.File
 		registry.ProviderSet,
 		service.ProviderSet,
 		client.ProviderSet,
-		classLog.ProviderSet,
 		newApp,
 		wire.Bind(new(biz.ClassCrawler), new(*crawler.Crawler)),
 		wire.Bind(new(biz.ClassInfoDBRepo), new(*data.ClassInfoDBRepo)),
@@ -42,7 +40,6 @@ func wireApp(*conf.Server, *conf.Data, *conf.Registry, *conf.SchoolDay, *os.File
 		wire.Bind(new(biz.CCNUServiceProxy), new(*client.CCNUService)),
 		wire.Bind(new(biz.ClassRepoProxy), new(*biz.ClassRepo)),
 		wire.Bind(new(biz.JxbRepo), new(*data.JxbDBRepo)),
-		wire.Bind(new(classLog.Clogger), new(*log.Helper)),
 		wire.Bind(new(biz.Transaction), new(*data.Data)),
 	))
 }

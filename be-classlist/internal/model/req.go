@@ -2,16 +2,6 @@ package model
 
 import "time"
 
-//const (
-//	COMMONINFO = "commoninfo"
-//)
-//
-//type CommonInfo struct {
-//	StuId    string
-//	Year     string
-//	Semester string
-//}
-
 type GetClassInfosForUndergraduateReq struct {
 	StuID    string
 	Year     string
@@ -100,10 +90,3 @@ type GetAddedClassesReq struct {
 	Year     string
 	Semester string
 }
-
-//func StoreCommonInfoInCtx(ctx context.Context, info CommonInfo) context.Context {
-//	return context.WithValue(ctx, COMMONINFO, info)
-//}
-//func GetCommonInfoFromCtx(ctx context.Context) CommonInfo {
-//	return ctx.Value(COMMONINFO).(CommonInfo)
-//}

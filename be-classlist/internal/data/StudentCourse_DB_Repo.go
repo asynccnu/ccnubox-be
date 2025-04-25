@@ -3,21 +3,20 @@ package data
 import (
 	"context"
 	"errors"
-	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
+	"github.com/go-kratos/kratos/v2/log"
 	"gorm.io/gorm/clause"
 )
 
 type StudentAndCourseDBRepo struct {
 	data *Data
-	log  classLog.Clogger
+	log  *log.Helper
 }
 
-func NewStudentAndCourseDBRepo(data *Data, logger classLog.Clogger) *StudentAndCourseDBRepo {
+func NewStudentAndCourseDBRepo(data *Data, logger log.Logger) *StudentAndCourseDBRepo {
 	return &StudentAndCourseDBRepo{
-		log:  logger,
+		log:  log.NewHelper(logger),
 		data: data,
 	}
 }
@@ -31,8 +30,7 @@ func (s StudentAndCourseDBRepo) SaveManyStudentAndCourseToDB(ctx context.Context
 	db := s.data.DB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
 
 	if err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(scs).Error; err != nil {
-		s.log.Errorw(classLog.Msg, fmt.Sprintf("Mysql:create StudentAndCourses(%v)", scs),
-			classLog.Reason, err)
+		s.log.Errorf("Mysql:create %v in %s failed: %v", scs, model.StudentCourseTableName, err)
 		return errcode.ErrCourseSave
 	}
 	return nil
@@ -46,8 +44,7 @@ func (s StudentAndCourseDBRepo) SaveStudentAndCourseToDB(ctx context.Context, sc
 	db := s.data.DB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
 	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(sc).Error
 	if err != nil {
-		s.log.Errorw(classLog.Msg, fmt.Sprintf("Mysql:create StudentAndCourse(%v)", sc),
-			classLog.Reason, err)
+		s.log.Errorf("Mysql:create %v in %s failed: %v", sc, model.StudentCourseTableName, err)
 		return errcode.ErrClassUpdate
 	}
 	return nil
@@ -60,6 +57,7 @@ func (s StudentAndCourseDBRepo) DeleteStudentAndCourseInDB(ctx context.Context, 
 	db := s.data.DB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
 	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND cla_id IN ?", year, semester, stuID, claID).Delete(&model.StudentCourse{}).Error
 	if err != nil {
+		s.log.Errorf("Mysql:delete %v in %s failed: %v", claID, model.StudentCourseTableName, err)
 		return errcode.ErrClassDelete
 	}
 	return nil

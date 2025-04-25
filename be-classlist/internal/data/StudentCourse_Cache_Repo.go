@@ -2,28 +2,37 @@ package data
 
 import (
 	"context"
-	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-redis/redis"
+	"time"
 )
 
 type StudentAndCourseCacheRepo struct {
-	rdb *redis.Client
-	log classLog.Clogger
+	rdb               *redis.Client
+	recycleExpiration time.Duration
+	log               *log.Helper
 }
 
-func NewStudentAndCourseCacheRepo(rdb *redis.Client, logger classLog.Clogger) *StudentAndCourseCacheRepo {
+func NewStudentAndCourseCacheRepo(rdb *redis.Client, cf *conf.Server, logger log.Logger) *StudentAndCourseCacheRepo {
+	expire := 30 * 24 * time.Hour
+
+	if cf.RecycleExpiration > 0 {
+		expire = time.Duration(cf.RecycleExpiration) * time.Second
+	}
+
 	return &StudentAndCourseCacheRepo{
-		rdb: rdb,
-		log: logger,
+		rdb:               rdb,
+		log:               log.NewHelper(logger),
+		recycleExpiration: expire,
 	}
 }
 
 func (s StudentAndCourseCacheRepo) GetRecycledClassIds(ctx context.Context, key string) ([]string, error) {
 	res, err := s.rdb.SMembers(key).Result()
 	if err != nil {
-		s.log.Errorw(classLog.Msg, fmt.Sprintf("Redis:get classIds From set(%s)", key),
-			classLog.Reason, err)
+		s.log.Errorf("redis: getrecycledClassIds key = %v failed: %v", key, err)
+
 		return nil, err
 	}
 	return res, nil
@@ -31,8 +40,7 @@ func (s StudentAndCourseCacheRepo) GetRecycledClassIds(ctx context.Context, key 
 func (s StudentAndCourseCacheRepo) CheckRecycleIdIsExist(ctx context.Context, RecycledBinKey, classId string) bool {
 	exists, err := s.rdb.SIsMember(RecycledBinKey, classId).Result()
 	if err != nil {
-		s.log.Errorw(classLog.Msg, fmt.Sprintf("Redis:check classId(%s) is exist in RecycleBinKey(%s) err", classId, RecycledBinKey),
-			classLog.Reason, err)
+		s.log.Errorf("redis: check classId(%s) in set(%s) failed: %v", classId, RecycledBinKey, err)
 		return false
 	}
 	return exists
@@ -40,8 +48,7 @@ func (s StudentAndCourseCacheRepo) CheckRecycleIdIsExist(ctx context.Context, Re
 func (s StudentAndCourseCacheRepo) RemoveClassFromRecycledBin(ctx context.Context, RecycledBinKey, classId string) error {
 	_, err := s.rdb.SRem(RecycledBinKey, classId).Result()
 	if err != nil {
-		s.log.Errorw(classLog.Msg, fmt.Sprintf("Redis:remove member(%s) from set(%s) err", classId, RecycledBinKey),
-			classLog.Reason, err)
+		s.log.Errorf("redis: remove classId(%s) from set(%s) failed: %v", classId, RecycledBinKey, err)
 		return err
 	}
 	return nil
@@ -51,15 +58,13 @@ func (s StudentAndCourseCacheRepo) RecycleClassId(ctx context.Context, recycleBi
 
 	// 将 ClassId 放入回收站
 	if err := s.rdb.SAdd(recycleBinKey, classId).Err(); err != nil {
-		s.log.Errorw(classLog.Msg, fmt.Sprintf("Redis:Add classId(%s) to set(%s) err", classId, recycleBinKey),
-			classLog.Reason, err)
+		s.log.Errorf("redis: add classId(%s) to set(%s) failed: %v", classId, recycleBinKey, err)
 		return err
 	}
 
 	// 设置回收站的过期时间
-	if err := s.rdb.Expire(recycleBinKey, RecycleExpiration).Err(); err != nil {
-		s.log.Errorw(classLog.Msg, "Redis:set expire err",
-			classLog.Reason, err)
+	if err := s.rdb.Expire(recycleBinKey, s.recycleExpiration).Err(); err != nil {
+		s.log.Errorf("redis: set expiration for key(%s) failed: %v", recycleBinKey, err)
 		return err
 	}
 	return nil

@@ -2,21 +2,20 @@ package data
 
 import (
 	"context"
-	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
+	"github.com/go-kratos/kratos/v2/log"
 	"gorm.io/gorm/clause"
 )
 
 type JxbDBRepo struct {
 	data *Data
-	log  classLog.Clogger
+	log  *log.Helper
 }
 
-func NewJxbDBRepo(data *Data, logger classLog.Clogger) *JxbDBRepo {
+func NewJxbDBRepo(data *Data, logger log.Logger) *JxbDBRepo {
 	return &JxbDBRepo{
 		data: data,
-		log:  logger,
+		log:  log.NewHelper(logger),
 	}
 }
 
@@ -36,18 +35,17 @@ func (j *JxbDBRepo) SaveJxb(ctx context.Context, stuID string, jxbID []string) e
 
 	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&jxb).Error
 	if err != nil {
-		j.log.Errorw(classLog.Msg, fmt.Sprintf("Mysql:Save Jxb{%+v} err)", jxb),
-			classLog.Reason, err)
+		j.log.Errorf("Mysql:create %v in %s failed: %v", jxb, model.JxbTableName, err)
 		return err
 	}
 	return nil
 }
 func (j *JxbDBRepo) FindStuIdsByJxbId(ctx context.Context, jxbId string) ([]string, error) {
 	var stuIds []string
-	err := j.data.Mysql.Raw("SELECT stu_id FROM jxb WHERE jxb_id =  ?", jxbId).Scan(&stuIds).Error
+	err := j.data.Mysql.Table(model.JxbTableName).WithContext(ctx).
+		Select("stu_id").Where("jxb_id = ?", jxbId).Find(&stuIds).Error
 	if err != nil {
-		j.log.Errorw(classLog.Msg, fmt.Sprintf("Mysql:Find StuIds By JxbId(%s) err", jxbId),
-			classLog.Reason, err)
+		j.log.Errorf("Mysql:find stu_id in %s where (jxb_id = %s) failed: %v", model.JxbTableName, jxbId, err)
 		return nil, err
 	}
 	return stuIds, nil

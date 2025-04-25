@@ -1,45 +1,52 @@
 server:
+  name: "be-classlist"  # 新增字段：服务名称
   grpc:
-    addr: 0.0.0.0:19084
-    timeout: 2s
+    network: "tcp"          #网络类型，通常为 tcp
+    addr: "0.0.0.0:19084"
+    timeout: 2              # 注意：这里单位是秒
+  waitCrawTime: 5000        # 等待爬虫抓取数据的时间，单位ms
+  classExpiration: 604800    # 课程过期时间，单位s，例如 1 天
+  recycleExpiration: 2592000 # 回收站课程过期时间，单位s
+  blackListExpiration: 60 # 黑名单过期时间，单位s
+
 data:
   database:
     source: "root:muxistudio304@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
-    #    source: "root:12345678@tcp(127.0.0.1:13306)/MuxiClass?charset=utf8mb4&parseTime=True&loc=Local"
     logPath: "/var/log/sql_log"
     logFileName: "sql.log"
   redis:
     addr: "localhost:6379"
     password: "muxistudio304"
-    #    addr: "127.0.0.1:16379"
-    read_timeout: 0.2s
-    write_timeout: 0.2s
+    read_timeout: 200       # 注意：单位为毫秒
+    write_timeout: 200      # 注意：单位为毫秒
+
 registry:
   etcd:
-#    addr: "Etcd:2379"
     addr: "127.0.0.1:2379"
-    username: root
+    username: "root"
     password: "muxistudio304"
+  usersvc: "discovery:///user"               # 用户服务地址
+
 zaplog:
-  # 日志等级
+  ##日志级别
   log_level: "info"
-  # 日志的格式
+  ##日志格式
   log_format: "json"
-  # 日志文件的路径
+  ##日志路径
   log_path: "/var/log/app_log"
-  # 日志文件的名字
+  ##日志文件名
   log_file_name: "app.log"
-  # 日志文件的最大大小MB
+  ##日志文件最大大小
   log_file_max_size: 100
-  # 【日志分割】日志备份文件最多数量
+  ##日志文件最大备份数
   log_file_max_backups: 5
-  # 日志保留时间，单位: 天 (day)
+  ##日志文件最大保留天数
   log_max_age: 30
-  # 日志是否压缩
+  ##是否压缩
   log_compress: false
-  # 日志是否输出到控制台
+  ##是否输出到控制台
   log_stdout: false
-schoolday:  # 相关时间,格式"2025-07-05"
-  # 这个可以热更新，修改后保存即可
-  holidayTime: "2025-07-05" #放假第一天
-  schoolTime: "2025-02-17" #上学第一天
+
+schoolday:
+  holidayTime: "2025-07-05"
+  schoolTime: "2025-02-17"

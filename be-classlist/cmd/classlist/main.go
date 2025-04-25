@@ -51,15 +51,6 @@ func newApp(logger log.Logger, gs *grpc.Server, r *etcd.Registry) *kratos.App {
 
 func main() {
 	flag.Parse()
-	//logger := log.With(log.NewStdLogger(os.Stdout),
-	//	"ts", log.DefaultTimestamp,
-	//	"caller", log.DefaultCaller,
-	//	"service.id", id,
-	//	"service.name", Name,
-	//	"service.version", Version,
-	//	"trace.id", tracing.TraceID(),
-	//	"span.id", tracing.SpanID(),
-	//)
 	c := config.New(
 		config.WithSource(
 			file.NewSource(flagconf),
@@ -76,11 +67,15 @@ func main() {
 		panic(err)
 	}
 
-	logger := classLog.Logger(bc.Zaplog)
-	logger = log.With(logger,
+	// 设置服务名称
+	if bc.Server.Name != "" {
+		Name = bc.Server.Name
+	}
+
+	logger := log.With(classLog.Logger(bc.Zaplog),
 		"service.id", id,
-		"service.name", Name,
-	)
+		"service.name", Name)
+
 	//gorm的日志文件
 	//在main函数中声明,程序结束执行Close
 	//防止只有连接数据库的时候，才会将sql语句写入
@@ -89,6 +84,7 @@ func main() {
 		panic(err)
 	}
 	defer logfile.Close()
+
 	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, bc.Schoolday, logfile, logger)
 	if err != nil {
 		panic(err)

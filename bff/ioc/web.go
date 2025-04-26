@@ -1,7 +1,6 @@
 package ioc
 
 import (
-	"context"
 	"github.com/asynccnu/ccnubox-be/bff/web/banner"
 	"github.com/asynccnu/ccnubox-be/bff/web/calendar"
 	"github.com/asynccnu/ccnubox-be/bff/web/card"
@@ -21,7 +20,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/website"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"time"
 )
 
 // 逆天参数数量,依赖注入一堆服务
@@ -47,9 +45,8 @@ func InitGinServer(
 	metrics *metrics.MetricsHandler,
 ) *gin.Engine {
 	//初始化一个gin引擎
-	engine := gin.New()
+	engine := gin.Default()
 	//全局使用gin中间件
-	engine.Use(gin.Recovery())
 	api := engine.Group("/api/v1")
 
 	//在所有的中间件之前进行打点路由的注册(这里是给Prometheus读取用的路由),中间件可能导致其失效所以放在最前面
@@ -57,8 +54,6 @@ func InitGinServer(
 
 	//使用中间件
 	api.Use(
-		//gin的默认日志
-		gin.Logger(),
 		//跨域中间件
 		corsMiddleware.MiddlewareFunc(),
 		//打点和错误处理中间件
@@ -87,17 +82,4 @@ func InitGinServer(
 	classroom.RegisterRoutes(api, authMiddleware)
 	//返回路由
 	return engine
-}
-
-func timeout() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		_, ok := ctx.Request.Context().Deadline()
-		if !ok {
-			// 强制给一个超时，省得我前端调试等得不耐烦
-			newCtx, cancel := context.WithTimeout(ctx.Request.Context(), time.Second*10)
-			defer cancel()
-			ctx.Request = ctx.Request.Clone(newCtx)
-		}
-		ctx.Next()
-	}
 }

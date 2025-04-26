@@ -232,6 +232,7 @@ func GetGrade(cookie string, xnm int64, xqm int64, showCount int64) ([]model.Gra
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+
 		var err error
 		detail, err = getDetail(cookie, xnm, xqm, showCount)
 		errChan <- err // 错误会直接写入通道，不需要判断 nil

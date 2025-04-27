@@ -33,6 +33,7 @@ message Data {
     string source = 1;
     string log_path = 2;//gorm日志文件路径
     string log_file_name = 3;//gorm日志文件名称
+    string log_level = 4;//gorm日志打印级别  info, warn, error
   }
   message Redis {
     string addr = 1;

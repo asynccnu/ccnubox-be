@@ -16,6 +16,7 @@ data:
     source: "root:muxistudio304@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
     logPath: "/var/log/sql_log"
     logFileName: "sql.log"
+    logLevel: "info"
   redis:
     addr: "localhost:6379"
     password: "muxistudio304"

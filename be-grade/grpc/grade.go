@@ -22,7 +22,13 @@ func (s *GradeServiceServer) Register(server grpc.ServiceRegistrar) {
 
 func (s *GradeServiceServer) GetGradeByTerm(ctx context.Context, req *v1.GetGradeByTermReq) (*v1.GetGradeByTermResp, error) {
 	// 调用服务层获取成绩数据
-	grades, err := s.ser.GetGradeByTerm(ctx, req.GetStudentId(), req.GetXnm(), req.GetXqm())
+	grades, err := s.ser.GetGradeByTerm(
+		ctx,
+		req.StudentId,
+		req.Xnm,
+		req.Xqm,
+		req.Refresh,
+	)
 	if err != nil {
 		return nil, err
 	}

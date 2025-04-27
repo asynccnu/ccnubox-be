@@ -114,7 +114,7 @@ func getDetail(ctx context.Context, cookie string, xnm int64, xqm int64, showCou
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", cookie)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")
-
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
 	// 发送请求
 	resp, err := client.Do(req)
 	if err != nil {
@@ -122,7 +122,6 @@ func getDetail(ctx context.Context, cookie string, xnm int64, xqm int64, showCou
 	}
 	defer resp.Body.Close()
 
-	// 读取响应
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("读取响应失败: %w", err)
@@ -194,6 +193,7 @@ func getKcxz(ctx context.Context, cookie string, xnm int64, xqm int64, showCount
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", cookie)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
 
 	// 发送请求
 	resp, err := client.Do(req)

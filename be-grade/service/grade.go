@@ -9,6 +9,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-grade/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
+	"time"
 )
 
 var (
@@ -160,7 +161,8 @@ func (s *gradeService) GetUpdateScore(ctx context.Context, studentId string) ([]
 
 // 包装函数
 func (s *gradeService) getGradeFromCCNU(ctx context.Context, StudentId string, xnm int64, xqm int64) ([]model.Grade, error) {
-
+	// 记录开始时间
+	start := time.Now()
 	//尝试获取cookie
 	getCookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{
 		StudentId: StudentId,
@@ -168,9 +170,11 @@ func (s *gradeService) getGradeFromCCNU(ctx context.Context, StudentId string, x
 	if err != nil {
 		return nil, err
 	}
+	s.l.Warn("获取cookie花费时间:", logger.String("花费时间:", time.Since(start).String()))
 
 	//尝试获取成绩
 	items, err := GetGrade(getCookieResp.GetCookie(), xnm, xqm, 300)
+	s.l.Warn("获取成绩花费时间:", logger.String("花费时间:", time.Since(start).String()))
 	//如果获取失败成绩的话
 	switch err {
 	case nil:

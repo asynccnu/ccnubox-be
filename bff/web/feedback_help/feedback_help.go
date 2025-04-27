@@ -33,7 +33,7 @@ func (h *FeedbackHelpHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware 
 
 // @Summary 获取常见问题
 // @Description 获取点击数量最多的10个常见问题
-// @Tags 帮助与反馈
+// @Tags 帮助与反馈【弃用】
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} web.Response{data=GetQuestionsResp} "成功"
@@ -65,7 +65,7 @@ func (h *FeedbackHelpHandler) GetQuestions(c *gin.Context) (web.Response, error)
 
 // @Summary 创建一个问题与答复
 // @Description 创建一个常见问题的内容与答复
-// @Tags 帮助与反馈
+// @Tags 帮助与反馈【弃用】
 // @Accept  json
 // @Produce  json
 // @Param data body CreateQuestionReq true "创建一个常见问题"
@@ -92,7 +92,7 @@ func (h *FeedbackHelpHandler) CreateQuestion(c *gin.Context, req CreateQuestionR
 
 // @Summary 修改一个问题与答复
 // @Description 修改一个常见问题的内容与答复
-// @Tags 帮助与反馈
+// @Tags 帮助与反馈【弃用】
 // @Accept  json
 // @Produce  json
 // @Param data body ChangeQuestionReq true "修改常见问题"
@@ -120,7 +120,7 @@ func (h *FeedbackHelpHandler) ChangeQuestion(c *gin.Context, req ChangeQuestionR
 
 // @Summary 删除一个问题与答复
 // @Description 删除一个常见问题的内容与答复
-// @Tags 帮助与反馈
+// @Tags 帮助与反馈【弃用】
 // @Accept  json
 // @Produce  json
 // @Param data body DeleteQuestionReq true "删除常见问题"
@@ -146,7 +146,7 @@ func (h *FeedbackHelpHandler) DeleteQuestion(c *gin.Context, req DeleteQuestionR
 
 // @Summary 搜取问题
 // @Description 对常见问题进行模糊搜索
-// @Tags 帮助与反馈
+// @Tags 帮助与反馈【弃用】
 // @Accept  json
 // @Produce  json
 // @Param question query string true "问题名称"
@@ -183,7 +183,7 @@ func (h *FeedbackHelpHandler) FindQuestionsByName(c *gin.Context, req FindQuesti
 
 // @Summary 标记问题解决状态
 // @Description 标记问题解决状态
-// @Tags 帮助与反馈
+// @Tags 帮助与反馈【弃用】
 // @Accept  json
 // @Produce  json
 // @Param data body NoteQuestionReq true "标记问题解决状态"

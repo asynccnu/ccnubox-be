@@ -1,8 +1,9 @@
 package grade
 
 type GetGradeByTermReq struct {
-	Xnm int64 `form:"xnm" binding:"required"` //学年名:例如2023表示2023~2024学年
-	Xqm int64 `form:"xqm" binding:"required"` //学期名:0表示所有学期,1表示第一学期,2表示第二学期,3表示第三学期
+	Xnm     int64 `form:"xnm" binding:"required"` //学年名:例如2023表示2023~2024学年
+	Xqm     int64 `form:"xqm" binding:"required"` //学期名:0表示所有学期,1表示第一学期,2表示第二学期,3表示第三学期
+	Refresh bool  `form:"refresh"`                //是否强制刷新,可选字段
 }
 
 type GetGradeByTermResp struct {

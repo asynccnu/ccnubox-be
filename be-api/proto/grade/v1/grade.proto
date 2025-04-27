@@ -15,6 +15,7 @@ message GetGradeByTermReq{
   string studentId =1;//学号
   int64 xnm =2;//学年名:例如2024表示2024-2025学年
   int64 xqm =3;//学期名
+  bool refresh =4; //是否强制刷新
 }
 
 // 响应体

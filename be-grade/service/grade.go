@@ -18,7 +18,7 @@ var (
 )
 
 type GradeService interface {
-	GetGradeByTerm(ctx context.Context, StudentId string, xnm int64, xqm int64) ([]domain.Grade, error)
+	GetGradeByTerm(ctx context.Context, StudentId string, xnm int64, xqm int64, refresh bool) ([]domain.Grade, error)
 	GetGradeScore(ctx context.Context, StudentId string) ([]domain.TypeOfGradeScore, error)
 	GetUpdateScore(ctx context.Context, studentId string) ([]domain.Grade, error)
 }
@@ -33,39 +33,73 @@ func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.U
 	return &gradeService{gradeDAO: gradeDAO, l: l, userClient: userClient}
 }
 
-func (s *gradeService) GetGradeByTerm(ctx context.Context, studentId string, xnm int64, xqm int64) ([]domain.Grade, error) {
+func (s *gradeService) GetGradeByTerm(ctx context.Context, studentId string, xnm int64, xqm int64, refresh bool) ([]domain.Grade, error) {
 
-	grades, err := s.getGradeFromCCNU(ctx, studentId, xnm, xqm)
-	if len(grades) == 0 && err != nil {
-		//记录日志
-		s.l.Info("从ccnu获取成绩失败!", logger.FormatLog("ccnu", err)...)
-		//尝试获取成绩
-		grades, err = s.gradeDAO.FindGrades(ctx, studentId, xnm, xqm)
-		if err != nil {
-			return nil, GET_GRADE_ERROR(err)
+	if refresh {
+		//如果强制刷新则尝试从ccnu获取数据
+		grades, err := s.getGradeFromCCNU(ctx, studentId, xnm, xqm)
+		if len(grades) == 0 && err != nil {
+			//记录日志
+			s.l.Info("从ccnu获取成绩失败!", logger.FormatLog("ccnu", err)...)
+			//尝试获取成绩
+			grades, err = s.gradeDAO.FindGrades(ctx, studentId, xnm, xqm)
+			if err != nil {
+				return nil, GET_GRADE_ERROR(err)
+			}
+			return modelConvDomain(grades), nil
 		}
+
+		// 异步更新成绩
+		go func() {
+			err := s.updateGrades(grades)
+			if err != nil {
+				s.l.Info("更新成绩失败!", logger.FormatLog("ccnu", err)...)
+			}
+		}()
+
 		return modelConvDomain(grades), nil
 	}
 
-	// 异步回存
-	go func() {
+	//尝试从数据库获取成绩
+	grades, err := s.gradeDAO.FindGrades(ctx, studentId, xnm, xqm)
+	if len(grades) == 0 && err != nil {
 
-		updateGrades, err := s.gradeDAO.BatchInsertOrUpdate(context.Background(), grades)
+		s.l.Info("从数据库获取成绩失败!", logger.FormatLog("dao", err)...)
+
+		//如果数据库没有查询到则尝试从ccnu获取数据
+		grades, err = s.getGradeFromCCNU(ctx, studentId, xnm, xqm)
+		if len(grades) == 0 && err != nil {
+			return nil, GET_GRADE_ERROR(err)
+		}
+
+		err := s.updateGrades(grades)
 		if err != nil {
-			s.l.Warn("异步回填成绩失败!", logger.FormatLog("cache", err)...)
+			s.l.Info("更新成绩失败!", logger.FormatLog("ccnu", err)...)
+			return modelConvDomain(grades), nil
+		}
+
+		return modelConvDomain(grades), nil
+
+	}
+
+	// 异步获取成绩并更新
+	go func() {
+		ctx := context.Background()
+		grades, err = s.getGradeFromCCNU(ctx, studentId, xnm, xqm)
+		if len(grades) == 0 && err != nil {
+			s.l.Info("从ccnu获取成绩失败!", logger.FormatLog("ccnu", err)...)
 			return
 		}
 
-		for _, updateGrade := range updateGrades {
-			s.l.Info(
-				"更新成绩成功!",
-				logger.String("studentId", updateGrade.Studentid),
-				logger.String("课程名称", updateGrade.Kcmc),
-			)
+		err := s.updateGrades(grades)
+		if err != nil {
+			s.l.Info("更新成绩失败!", logger.FormatLog("ccnu", err)...)
+			return
 		}
 	}()
 
 	return modelConvDomain(grades), nil
+
 }
 
 func (s *gradeService) GetGradeScore(ctx context.Context, studentId string) ([]domain.TypeOfGradeScore, error) {
@@ -125,6 +159,7 @@ func (s *gradeService) GetUpdateScore(ctx context.Context, studentId string) ([]
 
 // 包装函数
 func (s *gradeService) getGradeFromCCNU(ctx context.Context, StudentId string, xnm int64, xqm int64) ([]model.Grade, error) {
+	//使用分布式锁保证同一时间内只有一个请求在尝试获取最新成绩,减少服务器压力
 
 	//尝试获取cookie
 	getCookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{
@@ -159,4 +194,20 @@ func (s *gradeService) getGradeFromCCNU(ctx context.Context, StudentId string, x
 		return nil, err
 	}
 
+}
+func (s *gradeService) updateGrades(grades []model.Grade) error {
+	updateGrades, err := s.gradeDAO.BatchInsertOrUpdate(context.Background(), grades)
+	if err != nil {
+		s.l.Warn("异步回填成绩失败!", logger.FormatLog("cache", err)...)
+		return err
+	}
+
+	for _, updateGrade := range updateGrades {
+		s.l.Info(
+			"更新成绩成功!",
+			logger.String("studentId", updateGrade.Studentid),
+			logger.String("课程名称", updateGrade.Kcmc),
+		)
+	}
+	return nil
 }

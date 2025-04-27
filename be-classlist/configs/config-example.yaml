@@ -9,7 +9,7 @@ server:
   recycleExpiration: 2592000 # 回收站课程过期时间，单位s
   blackListExpiration: 60 # 黑名单过期时间，单位s
   waitUserSvcTime: 10000 # 等待用户服务的时间，单位ms
-  refreshInterval: 60 # // 刷新间隔,当前时间距离上次刷新时间超过该值时,需要重新刷新,单位s
+  refreshInterval: 60 # 刷新间隔,当前时间距离上次刷新时间超过该值时,需要重新刷新,单位s
 
 data:
   database:

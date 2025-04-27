@@ -10,17 +10,17 @@ type GetGradeByTermResp struct {
 }
 
 type Grade struct {
-	Kcmc                string  `form:"kcmc" binding:"required"`                //课程名称
-	Xf                  float32 `form:"xf" binding:"required"`                  //学分
-	Cj                  float32 `form:"cj" binding:"required"`                  //最终成绩
-	Kcxzmc              string  `form:"kcxzmc" binding:"required"`              //课程性质名称
-	Kclbmc              string  `form:"Kclbmc" binding:"required"`              //课程类别名称
-	Kcbj                string  `form:"kcbj" binding:"required"`                //课程标记(主修/辅修)
-	Jd                  float32 `form:"jd" binding:"required"`                  //绩点
-	RegularGradePercent string  `form:"regularGradePercent" binding:"required"` //平时成绩占比
-	RegularGrade        float32 `form:"regularGrade" binding:"required"`        //平时成绩分数
-	FinalGradePercent   string  `form:"finalGradePercent" binding:"required"`   ///期末成绩占比
-	FinalGrade          float32 `form:"finalGrade" binding:"required"`          //期末成绩分数
+	Kcmc                string  `json:"kcmc" binding:"required"`                //课程名称
+	Xf                  float32 `json:"xf" binding:"required"`                  //学分
+	Cj                  float32 `json:"cj" binding:"required"`                  //最终成绩
+	Kcxzmc              string  `json:"kcxzmc" binding:"required"`              //课程性质名称
+	Kclbmc              string  `json:"Kclbmc" binding:"required"`              //课程类别名称
+	Kcbj                string  `json:"kcbj" binding:"required"`                //课程标记(主修/辅修)
+	Jd                  float32 `json:"jd" binding:"required"`                  //绩点
+	RegularGradePercent string  `json:"regularGradePercent" binding:"required"` //平时成绩占比
+	RegularGrade        float32 `json:"regularGrade" binding:"required"`        //平时成绩分数
+	FinalGradePercent   string  `json:"finalGradePercent" binding:"required"`   ///期末成绩占比
+	FinalGrade          float32 `json:"finalGrade" binding:"required"`          //期末成绩分数
 }
 
 type GetGradeScoreResp struct {

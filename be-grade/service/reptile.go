@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -27,6 +27,11 @@ var (
 var client = &http.Client{
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse // 禁止自动跳转，返回原始响应
+	},
+	Transport: &http.Transport{
+		MaxIdleConns:        100, // 最大空闲连接数
+		MaxIdleConnsPerHost: 10,  // 每个主机最大空闲连接数
+		MaxConnsPerHost:     100, // 每个主机最大连接数
 	},
 }
 
@@ -55,7 +60,7 @@ type GetKcxzItem struct {
 }
 
 // getDetail 根据学期获取所有成绩,使用的是本科生院成绩详细信息的接口
-func getDetail(cookie string, xnm int64, xqm int64, showCount int64) ([]GetDetailItem, error) {
+func getDetail(ctx context.Context, cookie string, xnm int64, xqm int64, showCount int64) ([]GetDetailItem, error) {
 
 	// 请求URL
 	targetUrl := "https://xk.ccnu.edu.cn/jwglxt/cjcx/cjcx_cxXsKccjList.html?gnmkdm=N305007"
@@ -99,7 +104,7 @@ func getDetail(cookie string, xnm int64, xqm int64, showCount int64) ([]GetDetai
 	reqBody := bytes.NewBufferString(formData.Encode())
 
 	// 创建请求
-	req, err := http.NewRequest("POST", targetUrl, reqBody)
+	req, err := http.NewRequestWithContext(ctx, "POST", targetUrl, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
@@ -135,7 +140,7 @@ func getDetail(cookie string, xnm int64, xqm int64, showCount int64) ([]GetDetai
 }
 
 // 获取课程性质
-func getKcxz(cookie string, xnm int64, xqm int64, showCount int64) ([]GetKcxzItem, error) {
+func getKcxz(ctx context.Context, cookie string, xnm int64, xqm int64, showCount int64) ([]GetKcxzItem, error) {
 
 	// 请求URL
 	targetUrl := "https://xk.ccnu.edu.cn/jwglxt/cjcx/cjcx_cxXsgrcj.html?doType=query&gnmkdm=N305005"
@@ -179,7 +184,7 @@ func getKcxz(cookie string, xnm int64, xqm int64, showCount int64) ([]GetKcxzIte
 	reqBody := bytes.NewBufferString(formData.Encode())
 
 	// 创建请求
-	req, err := http.NewRequest("POST", targetUrl, reqBody)
+	req, err := http.NewRequestWithContext(ctx, "POST", targetUrl, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
@@ -219,50 +224,53 @@ func getKcxz(cookie string, xnm int64, xqm int64, showCount int64) ([]GetKcxzIte
 	return response.Items, nil
 }
 
-func GetGrade(cookie string, xnm int64, xqm int64, showCount int64) ([]model.Grade, error) {
-	var wg sync.WaitGroup
-	var detail []GetDetailItem
-	var kcxz []GetKcxzItem
+func GetGrade(ctx context.Context, cookie string, xnm int64, xqm int64, showCount int64) ([]model.Grade, error) {
 	var errChan = make(chan error, 2) // 使用带缓冲的通道
+	var detailChan = make(chan []GetDetailItem, 1)
+	var kcxzChan = make(chan []GetKcxzItem, 1)
 
-	// 启动并发获取detail
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	//开启三个线程,返回最快响应的那一个
+	for i := 0; i < 3; i++ {
+		go func() {
+			detail, err := getDetail(ctx, cookie, xnm, xqm, showCount)
 
-		var err error
-		detail, err = getDetail(cookie, xnm, xqm, showCount)
-		errChan <- err // 错误会直接写入通道，不需要判断 nil
-	}()
+			if err != nil {
+				errChan <- err
+				return
+			}
+			detailChan <- detail
+		}()
 
-	// 启动并发获取kcxz
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		kcxz, err = getKcxz(cookie, xnm, xqm, showCount)
-		errChan <- err // 错误会直接写入通道，不需要判断 nil
-	}()
+		go func() {
+			kcxz, err := getKcxz(ctx, cookie, xnm, xqm, showCount)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			kcxzChan <- kcxz
 
-	// 等待两个请求完成
-	wg.Wait()
-	close(errChan) // 关闭通道
+		}()
+	}
+	select {
+	case err := <-errChan:
+		return nil, err
 
-	var finalErr error
-	// 检查通道中的错误
-	for err := range errChan {
-		switch err {
-		case COOKIE_TIMEOUT:
-			return nil, COOKIE_TIMEOUT
-		case nil:
-		default:
-			finalErr = err
+	case detail := <-detailChan:
+		select {
+		case kcxz := <-kcxzChan:
+			return aggregateGrades(detail, kcxz), nil
+		case err := <-errChan:
+			return nil, err
 		}
+
+	case kcxz := <-kcxzChan:
+		select {
+		case detail := <-detailChan:
+			return aggregateGrades(detail, kcxz), nil
+		case err := <-errChan:
+			return nil, err
+		}
+
 	}
 
-	if finalErr != nil {
-		return nil, finalErr
-	}
-
-	return aggregateGrades(detail, kcxz), nil
 }

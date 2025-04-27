@@ -25,7 +25,7 @@ func InitUserClient(etcdClient *etcdv3.Client) userv1.UserServiceClient {
 	cc, err := grpc.DialInsecure(context.Background(),
 		grpc.WithEndpoint(cfg.Endpoint),
 		grpc.WithDiscovery(r),
-		grpc.WithTimeout(10*time.Second),
+		grpc.WithTimeout(2*time.Minute), //涉及华师的服务都改成2分钟
 	)
 	if err != nil {
 		panic(err)

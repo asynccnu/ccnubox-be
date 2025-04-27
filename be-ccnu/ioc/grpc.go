@@ -35,7 +35,7 @@ func InitGRPCxKratosServer(grpcServer *grpc.CCNUServiceServer, ecli *clientv3.Cl
 			recovery.Recovery(),
 			LoggingMiddleware(l),
 		),
-		kgrpc.Timeout(10*time.Second),
+		kgrpc.Timeout(2*time.Minute), //给一个最终死亡时间2分钟
 	)
 
 	grpcServer.Register(server)

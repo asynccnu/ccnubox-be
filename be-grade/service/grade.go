@@ -160,7 +160,6 @@ func (s *gradeService) GetUpdateScore(ctx context.Context, studentId string) ([]
 
 // 包装函数
 func (s *gradeService) getGradeFromCCNU(ctx context.Context, StudentId string, xnm int64, xqm int64) ([]model.Grade, error) {
-	//使用分布式锁保证同一时间内只有一个请求在尝试获取最新成绩,减少服务器压力
 
 	//尝试获取cookie
 	getCookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{

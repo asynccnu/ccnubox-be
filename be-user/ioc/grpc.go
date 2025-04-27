@@ -35,7 +35,7 @@ func InitGRPCxKratosServer(userServer *grpc.UserServiceServer, ecli *clientv3.Cl
 			recovery.Recovery(),
 			LoggingMiddleware(l),
 		),
-		kgrpc.Timeout(10*time.Second),
+		kgrpc.Timeout(2*time.Minute), //涉及华师的接口都改成2分钟
 	)
 
 	userServer.Register(server)

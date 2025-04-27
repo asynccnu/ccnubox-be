@@ -229,28 +229,26 @@ func GetGrade(ctx context.Context, cookie string, xnm int64, xqm int64, showCoun
 	var detailChan = make(chan []GetDetailItem, 1)
 	var kcxzChan = make(chan []GetKcxzItem, 1)
 
-	//开启三个线程,返回最快响应的那一个
-	for i := 0; i < 3; i++ {
-		go func() {
-			detail, err := getDetail(ctx, cookie, xnm, xqm, showCount)
+	go func() {
+		detail, err := getDetail(ctx, cookie, xnm, xqm, showCount)
 
-			if err != nil {
-				errChan <- err
-				return
-			}
-			detailChan <- detail
-		}()
+		if err != nil {
+			errChan <- err
+			return
+		}
+		detailChan <- detail
+	}()
 
-		go func() {
-			kcxz, err := getKcxz(ctx, cookie, xnm, xqm, showCount)
-			if err != nil {
-				errChan <- err
-				return
-			}
-			kcxzChan <- kcxz
+	go func() {
+		kcxz, err := getKcxz(ctx, cookie, xnm, xqm, showCount)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		kcxzChan <- kcxz
 
-		}()
-	}
+	}()
+
 	select {
 	case err := <-errChan:
 		return nil, err

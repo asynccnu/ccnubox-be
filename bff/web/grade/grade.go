@@ -87,6 +87,7 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 			h.l.Error("增加用户feedCount失败:", logger.Error(err))
 		}
 	}()
+
 	return web.Response{
 		Msg:  fmt.Sprintf("获取%d~%d学年第%d学期成绩成功!", req.Xnm, req.Xnm+1, req.Xqm),
 		Data: resp,

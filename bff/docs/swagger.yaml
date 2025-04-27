@@ -222,8 +222,12 @@ definitions:
         items:
           $ref: '#/definitions/class.ClassInfo'
         type: array
+      last_refresh_time:
+        description: 上次刷新时间的时间戳,上海时区
+        type: integer
     required:
     - classes
+    - last_refresh_time
     type: object
   class.GetRecycleBinClassInfosResp:
     properties:
@@ -1197,7 +1201,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 获取消费记录
       tags:
-      - 校园卡
+      - 校园卡【弃用】
   /card/noteUserKey:
     post:
       consumes:
@@ -1223,7 +1227,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 记录用户的key
       tags:
-      - 校园卡
+      - 校园卡【弃用】
   /card/updateUserKey:
     post:
       consumes:
@@ -1249,7 +1253,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 更新用户的key
       tags:
-      - 校园卡
+      - 校园卡【弃用】
   /class/add:
     post:
       consumes:
@@ -2214,7 +2218,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 修改一个问题与答复
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
   /feedback_help/createQuestion:
     post:
       consumes:
@@ -2240,7 +2244,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 创建一个问题与答复
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
   /feedback_help/deleteQuestion:
     post:
       consumes:
@@ -2266,7 +2270,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 删除一个问题与答复
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
   /feedback_help/findQuestionsByName:
     get:
       consumes:
@@ -2296,7 +2300,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 搜取问题
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
   /feedback_help/getQuestion:
     get:
       consumes:
@@ -2320,7 +2324,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 获取常见问题
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
   /feedback_help/noteQuestion:
     post:
       consumes:
@@ -2346,13 +2350,17 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 标记问题解决状态
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
   /grade/getGradeByTerm:
     get:
       consumes:
       - application/json
       description: 根据学年号和学期号获取用户的成绩
       parameters:
+      - description: 是否强制刷新,可选字段
+        in: query
+        name: refresh
+        type: boolean
       - description: 学年名:例如2023表示2023~2024学年
         in: query
         name: xnm
@@ -2442,7 +2450,7 @@ paths:
               type: object
       summary: 获取静态资源[精确名称]
       tags:
-      - 静态
+      - 静态【弃用】
   /statics/match/labels:
     get:
       consumes:
@@ -2468,7 +2476,7 @@ paths:
               type: object
       summary: 获取静态资源[标签匹配]
       tags:
-      - 静态
+      - 静态【弃用】
   /statics/save:
     post:
       consumes:
@@ -2490,7 +2498,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 保存静态内容
       tags:
-      - 静态
+      - 静态【弃用】
   /tube/access_token:
     get:
       consumes:

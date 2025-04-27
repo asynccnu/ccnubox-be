@@ -56,6 +56,7 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 		StudentId: uc.StudentId,
 		Xnm:       req.Xnm,
 		Xqm:       req.Xqm,
+		Refresh:   req.Refresh,
 	})
 	if err != nil {
 		return web.Response{}, errs.GET_GRADE_BY_TERM_ERROR(err)

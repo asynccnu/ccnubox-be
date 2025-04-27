@@ -24,6 +24,8 @@ message Server {
   int32 classExpiration = 4; // 课程过期时间,单位s
   int32 recycleExpiration = 5; // 回收站课程过期时间,单位s
   int32 blackListExpiration = 6; // 黑名单过期时间,如果要查询的课程在数据库不存在,列入黑名单,单位s
+  int32 waitUserSvcTime = 7; // 等待用户服务的时间,单位ms
+  int32 refreshInterval = 8; // 刷新间隔时间,单位s
 }
 
 message Data {

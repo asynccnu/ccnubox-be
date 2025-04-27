@@ -5,6 +5,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
 	"github.com/google/wire"
 	"gorm.io/gorm"
+	"time"
 )
 
 // ProviderSet is biz providers.
@@ -23,7 +24,7 @@ type ClassCrawler interface {
 }
 type ClassRepoProxy interface {
 	//保存课程
-	SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*model.ClassInfo, scs []*model.StudentCourse)
+	SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*model.ClassInfo, scs []*model.StudentCourse) error
 	//获取某个学生某个学期的所有课程
 	GetClassesFromLocal(ctx context.Context, req model.GetClassesFromLocalReq) (*model.GetClassesFromLocalResp, error)
 	//只获取特定ID的class_info
@@ -56,4 +57,12 @@ type JxbRepo interface {
 type CCNUServiceProxy interface {
 	//从其他服务获取cookie
 	GetCookie(ctx context.Context, stuID string) (string, error)
+}
+
+type RefreshLogRepo interface {
+	InsertRefreshLog(ctx context.Context, stuID, year, semester string) (uint64, error)
+	UpdateRefreshLogStatus(ctx context.Context, logID uint64, status string) error
+	SearchRefreshLog(ctx context.Context, stuID, year, semester string) (*model.ClassRefreshLog, error)
+	GetRefreshLogByID(ctx context.Context, logID uint64) (*model.ClassRefreshLog, error)
+	GetLastRefreshTime(ctx context.Context, stuID, year, semester string, beforeTime time.Time) *time.Time
 }

@@ -28,6 +28,11 @@ var client = &http.Client{
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse // 禁止自动跳转，返回原始响应
 	},
+	Transport: &http.Transport{
+		MaxIdleConns:        100, // 最大空闲连接数
+		MaxIdleConnsPerHost: 10,  // 每个主机最大空闲连接数
+		MaxConnsPerHost:     100, // 每个主机最大连接数
+	},
 }
 
 type GetDetailItem struct {

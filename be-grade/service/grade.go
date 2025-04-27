@@ -62,7 +62,7 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, studentId string, xnm
 
 	//尝试从数据库获取成绩
 	grades, err := s.gradeDAO.FindGrades(ctx, studentId, xnm, xqm)
-	if len(grades) == 0 && err != nil {
+	if len(grades) == 0 || err != nil {
 
 		s.l.Info("从数据库获取成绩失败!", logger.FormatLog("dao", err)...)
 

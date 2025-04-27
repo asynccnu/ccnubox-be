@@ -68,7 +68,8 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, studentId string, xnm
 
 		//如果数据库没有查询到则尝试从ccnu获取数据
 		grades, err = s.getGradeFromCCNU(ctx, studentId, xnm, xqm)
-		if len(grades) == 0 || err != nil {
+		if len(grades) == 0 && err != nil {
+			//ccnu这里如果是一些非法数据除非出错了否则不会爆error
 			return nil, GET_GRADE_ERROR(err)
 		}
 

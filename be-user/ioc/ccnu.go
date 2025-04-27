@@ -26,7 +26,7 @@ func InitCCNUClient(etcdClient *etcdv3.Client) ccnuv1.CCNUServiceClient {
 	cc, err := grpc.DialInsecure(context.Background(),
 		grpc.WithEndpoint(cfg.Endpoint),
 		grpc.WithDiscovery(r),
-		grpc.WithTimeout(15*time.Second), // 华师的超时设置为15s
+		grpc.WithTimeout(2*time.Minute), // 华师的超时设置为2分钟
 	)
 	if err != nil {
 		panic(err)

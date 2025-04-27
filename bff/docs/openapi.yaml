@@ -193,7 +193,7 @@ paths:
   /card/getRecords:
     post:
       tags:
-      - 校园卡
+      - 校园卡【弃用】
       summary: 获取消费记录
       description: "【弃用】获取用户消费记录，student_id, start_time, type 必须存在，type 分为 \"card\"\
         （实体卡）与 \"virtual\"（虚拟卡）"
@@ -226,7 +226,7 @@ paths:
   /card/noteUserKey:
     post:
       tags:
-      - 校园卡
+      - 校园卡【弃用】
       summary: 记录用户的key
       description: 【弃用】记录用户的key
       requestBody:
@@ -253,7 +253,7 @@ paths:
   /card/updateUserKey:
     post:
       tags:
-      - 校园卡
+      - 校园卡【弃用】
       summary: 更新用户的key
       description: 【弃用】更新用户的key
       requestBody:
@@ -1303,7 +1303,7 @@ paths:
   /feedback_help/changeQuestion:
     post:
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
       summary: 修改一个问题与答复
       description: 修改一个常见问题的内容与答复
       requestBody:
@@ -1330,7 +1330,7 @@ paths:
   /feedback_help/createQuestion:
     post:
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
       summary: 创建一个问题与答复
       description: 创建一个常见问题的内容与答复
       requestBody:
@@ -1357,7 +1357,7 @@ paths:
   /feedback_help/deleteQuestion:
     post:
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
       summary: 删除一个问题与答复
       description: 删除一个常见问题的内容与答复
       requestBody:
@@ -1384,7 +1384,7 @@ paths:
   /feedback_help/findQuestionsByName:
     get:
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
       summary: 搜取问题
       description: 对常见问题进行模糊搜索
       parameters:
@@ -1415,7 +1415,7 @@ paths:
   /feedback_help/getQuestion:
     get:
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
       summary: 获取常见问题
       description: 获取点击数量最多的10个常见问题
       responses:
@@ -1439,7 +1439,7 @@ paths:
   /feedback_help/noteQuestion:
     post:
       tags:
-      - 帮助与反馈
+      - 帮助与反馈【弃用】
       summary: 标记问题解决状态
       description: 标记问题解决状态
       requestBody:
@@ -1470,6 +1470,11 @@ paths:
       summary: 查询按学年和学期的成绩
       description: 根据学年号和学期号获取用户的成绩
       parameters:
+      - name: refresh
+        in: query
+        description: "是否强制刷新,可选字段"
+        schema:
+          type: boolean
       - name: xnm
         in: query
         description: 学年名:例如2023表示2023~2024学年
@@ -1541,7 +1546,7 @@ paths:
   /statics:
     get:
       tags:
-      - 静态
+      - 静态【弃用】
       summary: "获取静态资源[精确名称]"
       description: 【弃用】根据静态资源名称获取静态资源的内容。
       parameters:
@@ -1566,7 +1571,7 @@ paths:
   /statics/match/labels:
     get:
       tags:
-      - 静态
+      - 静态【弃用】
       summary: "获取静态资源[标签匹配]"
       description: 【弃用】根据静labels匹配合适的静态资源
       parameters:
@@ -1591,7 +1596,7 @@ paths:
   /statics/save:
     post:
       tags:
-      - 静态
+      - 静态【弃用】
       summary: 保存静态内容
       description: 【弃用】保存静态内容
       requestBody:
@@ -1957,12 +1962,16 @@ components:
     class.GetClassListResp:
       required:
       - classes
+      - last_refresh_time
       type: object
       properties:
         classes:
           type: array
           items:
             $ref: '#/components/schemas/class.ClassInfo'
+        last_refresh_time:
+          type: integer
+          description: "上次刷新时间的时间戳,上海时区"
     class.GetRecycleBinClassInfosResp:
       required:
       - classInfos

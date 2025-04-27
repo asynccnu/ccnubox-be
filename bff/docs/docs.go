@@ -330,7 +330,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "校园卡"
+                    "校园卡【弃用】"
                 ],
                 "summary": "获取消费记录",
                 "parameters": [
@@ -382,7 +382,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "校园卡"
+                    "校园卡【弃用】"
                 ],
                 "summary": "记录用户的key",
                 "parameters": [
@@ -422,7 +422,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "校园卡"
+                    "校园卡【弃用】"
                 ],
                 "summary": "更新用户的key",
                 "parameters": [
@@ -1976,7 +1976,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈"
+                    "帮助与反馈【弃用】"
                 ],
                 "summary": "修改一个问题与答复",
                 "parameters": [
@@ -2016,7 +2016,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈"
+                    "帮助与反馈【弃用】"
                 ],
                 "summary": "创建一个问题与答复",
                 "parameters": [
@@ -2056,7 +2056,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈"
+                    "帮助与反馈【弃用】"
                 ],
                 "summary": "删除一个问题与答复",
                 "parameters": [
@@ -2096,7 +2096,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈"
+                    "帮助与反馈【弃用】"
                 ],
                 "summary": "搜取问题",
                 "parameters": [
@@ -2146,7 +2146,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈"
+                    "帮助与反馈【弃用】"
                 ],
                 "summary": "获取常见问题",
                 "responses": {
@@ -2187,7 +2187,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈"
+                    "帮助与反馈【弃用】"
                 ],
                 "summary": "标记问题解决状态",
                 "parameters": [
@@ -2231,6 +2231,12 @@ const docTemplate = `{
                 ],
                 "summary": "查询按学年和学期的成绩",
                 "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "是否强制刷新,可选字段",
+                        "name": "refresh",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "学年名:例如2023表示2023~2024学年",
@@ -2342,7 +2348,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "静态"
+                    "静态【弃用】"
                 ],
                 "summary": "获取静态资源[精确名称]",
                 "parameters": [
@@ -2386,7 +2392,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "静态"
+                    "静态【弃用】"
                 ],
                 "summary": "获取静态资源[标签匹配]",
                 "parameters": [
@@ -2430,7 +2436,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "静态"
+                    "静态【弃用】"
                 ],
                 "summary": "保存静态内容",
                 "parameters": [

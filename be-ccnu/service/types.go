@@ -18,7 +18,7 @@ type ccnuService struct {
 
 func NewCCNUService(l logger.Logger) CCNUService {
 	return &ccnuService{
-		timeout: time.Second * 5,
+		timeout: time.Minute * 2,
 		l:       l,
 	}
 }

@@ -43,7 +43,7 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, studentId string, xnm
 			//记录日志
 			s.l.Info("从ccnu获取成绩失败!", logger.FormatLog("ccnu", err)...)
 			//尝试获取成绩
-			grades, err = s.gradeDAO.FindGrades(ctx, studentId, xnm, xqm)
+			grades, err = s.gradeDAO.FindGrades(context.Background(), studentId, xnm, xqm)
 			if err != nil {
 				return nil, GET_GRADE_ERROR(err)
 			}

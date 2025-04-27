@@ -2984,7 +2984,8 @@ const docTemplate = `{
         "class.GetClassListResp": {
             "type": "object",
             "required": [
-                "classes"
+                "classes",
+                "last_refresh_time"
             ],
             "properties": {
                 "classes": {
@@ -2992,6 +2993,10 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/class.ClassInfo"
                     }
+                },
+                "last_refresh_time": {
+                    "description": "上次刷新时间的时间戳,上海时区",
+                    "type": "integer"
                 }
             }
         },

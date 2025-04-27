@@ -46,6 +46,19 @@ func NewData(c *conf.Data, mysqlDB *gorm.DB, logger log.Logger) (*Data, func(), 
 
 // NewDB 连接mysql数据库
 func NewDB(c *conf.Data, logfile *os.File, logger log.Logger) *gorm.DB {
+
+	var logLevel map[string]logger2.LogLevel
+	logLevel = map[string]logger2.LogLevel{
+		"info":  logger2.Info,
+		"warn":  logger2.Warn,
+		"error": logger2.Error,
+	}
+
+	level, ok := logLevel[c.Database.LogLevel]
+	if !ok {
+		level = logger2.Warn
+	}
+
 	//注意:
 	//这个logfile 最好别在此处声明,最好在main函数中声明,在程序结束时关闭
 	//否则你只能在下面的db.AutoMigrate得到相关日志
@@ -54,10 +67,11 @@ func NewDB(c *conf.Data, logfile *os.File, logger log.Logger) *gorm.DB {
 		logger3.New(logfile, "\r\n", logger3.LstdFlags),
 		logger2.Config{
 			SlowThreshold: time.Second,
-			LogLevel:      logger2.Warn,
+			LogLevel:      level,
 			Colorful:      false,
 		},
 	)
+
 	db, err := gorm.Open(mysql.Open(c.Database.Source), &gorm.Config{Logger: newlogger})
 	if err != nil {
 		panic(fmt.Sprintf("connect mysql failed:%v", err))

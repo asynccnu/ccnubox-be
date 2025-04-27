@@ -141,7 +141,7 @@ Local: //从本地获取数据
 
 			crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(context.Background(), stuID, year, semester)
 			if crawErr != nil {
-				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, model.Failed)
+				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, model.Failed)
 				return
 			}
 

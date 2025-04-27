@@ -38,7 +38,7 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, studentId string, xnm
 	if refresh {
 		//如果强制刷新则尝试从ccnu获取数据
 		grades, err := s.getGradeFromCCNU(ctx, studentId, xnm, xqm)
-		if len(grades) == 0 && err != nil {
+		if len(grades) == 0 || err != nil {
 			//记录日志
 			s.l.Info("从ccnu获取成绩失败!", logger.FormatLog("ccnu", err)...)
 			//尝试获取成绩
@@ -68,7 +68,7 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, studentId string, xnm
 
 		//如果数据库没有查询到则尝试从ccnu获取数据
 		grades, err = s.getGradeFromCCNU(ctx, studentId, xnm, xqm)
-		if len(grades) == 0 && err != nil {
+		if len(grades) == 0 || err != nil {
 			return nil, GET_GRADE_ERROR(err)
 		}
 
@@ -86,7 +86,7 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, studentId string, xnm
 	go func() {
 		ctx := context.Background()
 		grades, err = s.getGradeFromCCNU(ctx, studentId, xnm, xqm)
-		if len(grades) == 0 && err != nil {
+		if len(grades) == 0 || err != nil {
 			s.l.Info("从ccnu获取成绩失败!", logger.FormatLog("ccnu", err)...)
 			return
 		}

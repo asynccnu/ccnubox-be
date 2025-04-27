@@ -112,10 +112,11 @@ func (c *ccnuService) xkLoginClient(client *http.Client) (*http.Client, error) {
 		return nil, CCNUSERVER_ERROR(err)
 	}
 
-	_, err = client.Do(request)
+	resp, err := client.Do(request)
 	if err != nil {
 		return nil, CCNUSERVER_ERROR(err)
 	}
+	defer resp.Body.Close()
 
 	return client, nil
 }
@@ -147,6 +148,8 @@ func (c *ccnuService) loginClient(ctx context.Context, client *http.Client, stud
 		}
 		return nil, err
 	}
+	defer resp.Body.Close()
+
 	if len(resp.Header.Get("Set-Cookie")) == 0 {
 		return nil, Invalid_SidOrPwd_ERROR(errors.New("学号或密码错误"))
 	}
@@ -181,10 +184,10 @@ func (c *ccnuService) makeAccountPreflightRequest(client *http.Client) (*account
 	if err != nil {
 		return params, SYSTEM_ERROR(err)
 	}
+	defer resp.Body.Close()
 
 	// 读取 MsgContent
 	body, err := io.ReadAll(resp.Body)
-	defer resp.Body.Close()
 
 	if err != nil {
 		return params, SYSTEM_ERROR(err)

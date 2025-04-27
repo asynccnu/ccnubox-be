@@ -53,7 +53,7 @@ func (c *ClassHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 // @Router /class/get [get]
 func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, uc ijwt.UserClaims) (web.Response, error) {
 
-	classes, err := c.ClassListClient.GetClass(ctx, &classlistv1.GetClassRequest{
+	getResp, err := c.ClassListClient.GetClass(ctx, &classlistv1.GetClassRequest{
 		StuId:    uc.StudentId,
 		Semester: req.Semester,
 		Year:     req.Year,
@@ -62,11 +62,10 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 	if err != nil {
 		return web.Response{}, errs.GET_CLASS_LIST_ERROR(err)
 	}
-	var resp GetClassListResp
 
-	var respClasses = make([]*ClassInfo, 0, len(classes.Classes))
+	var respClasses = make([]*ClassInfo, 0, len(getResp.Classes))
 
-	for _, class := range classes.Classes {
+	for _, class := range getResp.Classes {
 		respClasses = append(respClasses, &ClassInfo{
 			ID:           class.Info.Id,
 			Day:          class.Info.Day,
@@ -82,7 +81,10 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 		})
 	}
 
-	resp.Classes = respClasses
+	resp := GetClassListResp{
+		Classes:         respClasses,
+		LastRefreshTime: getResp.LastTime,
+	}
 
 	return web.Response{
 		Msg:  "Success",

@@ -9,10 +9,10 @@ require (
 	github.com/go-kratos/kratos/contrib/log/zap/v2 v2.0.0-20250403070952-9580f086e326
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20240829015636-da7356560385
 	github.com/go-kratos/kratos/v2 v2.8.4
-	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/google/wire v0.6.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/prometheus/client_golang v1.21.1
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/valyala/fastjson v1.6.4
 	go.etcd.io/etcd/client/v3 v3.5.21
 	go.uber.org/automaxprocs v1.6.0
@@ -30,6 +30,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-kratos/aegis v0.2.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
@@ -45,9 +46,6 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/lufia/plan9stats v0.0.0-20230326075908-cb1d2100619a // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/nxadm/tail v1.4.11 // indirect
-	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.34.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
@@ -64,7 +62,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect

@@ -44,6 +44,8 @@ message GetClassRequest {
 message GetClassResponse {
     //课表
     repeated Class classes=1;
+    // 上一次刷新成功的时间戳，上海时区
+    int64  last_time = 2;
 }
 
 
@@ -197,8 +199,6 @@ message  ClassInfo {
 message Class {
     //课程信息
     ClassInfo info =1;
-//    //是否是本周
-//    bool thisweek=2;
 }
 
 message  GetSchoolDayReq {}

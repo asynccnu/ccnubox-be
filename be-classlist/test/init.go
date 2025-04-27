@@ -1,9 +1,10 @@
 package test
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"os"
@@ -23,7 +24,7 @@ func NewRedisDB(addr string, password string) *redis.Client {
 		Addr:     addr,
 		Password: password,
 	})
-	_, err := rdb.Ping().Result()
+	_, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
 		panic(fmt.Sprintf("connect redis err:%v", err))
 	}

@@ -1,12 +1,13 @@
 package data
 
 import (
+	"context"
 	"fmt"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-redis/redis"
 	"github.com/google/wire"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	logger2 "gorm.io/gorm/logger"
@@ -25,6 +26,7 @@ var ProviderSet = wire.NewSet(
 	NewClassInfoDBRepo,
 	NewClassInfoCacheRepo,
 	NewJxbDBRepo,
+	NewRefreshLogRepo,
 )
 
 // Data .
@@ -60,7 +62,7 @@ func NewDB(c *conf.Data, logfile *os.File, logger log.Logger) *gorm.DB {
 	if err != nil {
 		panic(fmt.Sprintf("connect mysql failed:%v", err))
 	}
-	if err := db.AutoMigrate(&model.ClassInfo{}, &model.StudentCourse{}, &model.Jxb{}); err != nil {
+	if err := db.AutoMigrate(&model.ClassInfo{}, &model.StudentCourse{}, &model.Jxb{}, &model.ClassRefreshLog{}); err != nil {
 		panic(fmt.Sprintf("mysql auto migrate failed:%v", err))
 	}
 
@@ -78,7 +80,7 @@ func NewRedisDB(c *conf.Data, logger log.Logger) *redis.Client {
 		DB:           0,
 		Password:     c.Redis.Password,
 	})
-	_, err := rdb.Ping().Result()
+	_, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
 		panic(fmt.Sprintf("connect redis err:%v", err))
 	}

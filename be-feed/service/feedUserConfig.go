@@ -73,10 +73,10 @@ func (s *feedUserConfigService) ChangeAllowList(ctx context.Context, req domain.
 
 	// 定义映射关系：字段名 -> 对应的 bit 位
 	bitMap := map[string]int{
-		"Grade":     model.GradePos,
-		"Muxi":      model.MuxiPos,
-		"Holiday":   model.HolidayPos,
-		"EnergyPos": model.EnergyPos,
+		"Grade":   model.GradePos,
+		"Muxi":    model.MuxiPos,
+		"Holiday": model.HolidayPos,
+		"Energy":  model.EnergyPos,
 	}
 
 	// 反射获取字段值，并修改 pushConfig

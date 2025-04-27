@@ -23,6 +23,13 @@ var (
 	COOKIE_TIMEOUT = errors.New("cookie过期")
 )
 
+// 创建一个全局client
+var client = &http.Client{
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse // 禁止自动跳转，返回原始响应
+	},
+}
+
 type GetDetailItem struct {
 	JxbID  string `json:"jxb_id"` //教学班id
 	Xmblmc string `json:"xmblmc"` //分数的描述:平时(70%)
@@ -103,9 +110,6 @@ func getDetail(cookie string, xnm int64, xqm int64, showCount int64) ([]GetDetai
 	req.Header.Set("Cookie", cookie)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")
 
-	// 创建HTTP客户端
-	client := &http.Client{}
-
 	// 发送请求
 	resp, err := client.Do(req)
 	if err != nil {
@@ -185,13 +189,6 @@ func getKcxz(cookie string, xnm int64, xqm int64, showCount int64) ([]GetKcxzIte
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", cookie)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")
-
-	// 创建HTTP客户端
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // 禁止自动跳转，返回原始响应
-		},
-	}
 
 	// 发送请求
 	resp, err := client.Do(req)

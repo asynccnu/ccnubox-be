@@ -173,7 +173,7 @@ func (s *gradeService) getGradeFromCCNU(ctx context.Context, StudentId string, x
 	s.l.Warn("获取cookie花费时间:", logger.String("花费时间:", time.Since(start).String()))
 
 	//尝试获取成绩
-	items, err := GetGrade(getCookieResp.GetCookie(), xnm, xqm, 300)
+	items, err := GetGrade(ctx, getCookieResp.GetCookie(), xnm, xqm, 300)
 	s.l.Warn("获取成绩花费时间:", logger.String("花费时间:", time.Since(start).String()))
 	//如果获取失败成绩的话
 	switch err {
@@ -191,7 +191,7 @@ func (s *gradeService) getGradeFromCCNU(ctx context.Context, StudentId string, x
 		}
 
 		//尝试获取成绩
-		items, err = GetGrade(getCookieResp.GetCookie(), xnm, xqm, 300)
+		items, err = GetGrade(ctx, getCookieResp.GetCookie(), xnm, xqm, 300)
 		return items, err
 
 	default:

@@ -26,7 +26,7 @@ func InitCounterClient(etcdClient *etcdv3.Client) counterv1.CounterServiceClient
 	cc, err := grpc.DialInsecure(context.Background(),
 		grpc.WithEndpoint(cfg.Endpoint),
 		grpc.WithDiscovery(r),
-		grpc.WithTimeout(10*time.Second), // TODO
+		grpc.WithTimeout(10*time.Second),
 	)
 	if err != nil {
 		panic(err)

@@ -17,28 +17,42 @@ type ClassUsecase struct {
 	crawler         ClassCrawler
 	ccnu            CCNUServiceProxy
 	jxbRepo         JxbRepo
+	refreshLogRepo  RefreshLogRepo
 	waitCrawTime    time.Duration
 	waitUserSvcTime time.Duration
 	log             *log.Helper
 }
 
 func NewClassUsecase(classRepo ClassRepoProxy, crawler ClassCrawler,
-	JxbRepo JxbRepo, Cs CCNUServiceProxy, cf *conf.Server,
-	logger log.Logger) *ClassUsecase {
+	JxbRepo JxbRepo, Cs CCNUServiceProxy, refreshLog RefreshLogRepo,
+	cf *conf.Server, logger log.Logger) *ClassUsecase {
 
+	waitCrawTime := 1200 * time.Millisecond
+	waitUserSvcTime := 10000 * time.Millisecond
+
+	if cf.WaitCrawTime > 0 {
+		waitCrawTime = time.Duration(cf.WaitCrawTime) * time.Millisecond
+	}
+	if cf.WaitUserSvcTime > 0 {
+		waitUserSvcTime = time.Duration(cf.WaitUserSvcTime) * time.Millisecond
+	}
 	return &ClassUsecase{
 		classRepo:       classRepo,
 		crawler:         crawler,
 		jxbRepo:         JxbRepo,
 		ccnu:            Cs,
-		waitCrawTime:    time.Duration(cf.WaitCrawTime) * time.Millisecond,
-		waitUserSvcTime: time.Duration(cf.WaitUserSvcTime) * time.Millisecond,
+		refreshLogRepo:  refreshLog,
+		waitCrawTime:    waitCrawTime,
+		waitUserSvcTime: waitUserSvcTime,
 		log:             log.NewHelper(logger),
 	}
 }
 
-func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*model.Class, error) {
+func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*model.Class, *time.Time, error) {
 	var classInfos []*model.ClassInfo
+	currentTime := time.Now()
+
+Local: //从本地获取数据
 
 	localResp, err := cluc.classRepo.GetClassesFromLocal(ctx, model.GetClassesFromLocalReq{
 		StuID:    stuID,
@@ -57,6 +71,55 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 	var wg sync.WaitGroup
 
 	if refresh || err != nil {
+
+		refreshLog, searchRefreshErr := cluc.refreshLogRepo.SearchRefreshLog(ctx, stuID, year, semester)
+
+		if searchRefreshErr == nil {
+			if refreshLog != nil {
+				//如果是ready,说明前不久已经爬取过,并且已经更新到数据库了,这里直接返回查询数据库的结果即可
+				if refreshLog.IsReady() {
+					goto wrapRes
+				}
+
+				//如果是pending,说明正在爬取,我们等待一定时间,如果没有结果,则直接返回数据库的结果
+				//如果一段时间后是ready,我们重新走数据库
+				if refreshLog.IsPending() {
+					time.Sleep(cluc.waitCrawTime / 2)
+					refreshLog, searchRefreshErr = cluc.refreshLogRepo.GetRefreshLogByID(ctx, refreshLog.ID)
+					//这个条件很苛刻,我觉得不太可能走
+					if searchRefreshErr != nil || refreshLog == nil {
+						goto wrapRes
+					}
+					// 如果等待一段时间还是pending,说明爬取还没有完成,我们直接返回数据库的结果
+					// 或者是failed,我们还是返回数据库的结果，因为我们已经付出了等待的代价
+					if refreshLog.IsPending() || refreshLog.IsFailed() {
+						goto wrapRes
+					}
+					//如果有结果,说明爬取完成了,我们再走一遍数据库
+					//同时把refresh设置为false,防止再走爬虫
+					if refreshLog.IsReady() {
+						if refresh {
+							refresh = false
+						} else {
+							//因为refresh=false,
+							//走到这里说明,本地查询课表失败...条件还是很苛刻的
+							//直接返回结果即可
+							goto wrapRes
+						}
+
+						goto Local
+					}
+				}
+
+				//如果是failed,说明爬取失败,我们重新爬取,走下面的爬取逻辑
+			}
+		}
+
+		//插入一条log
+		logID, insertLogErr := cluc.refreshLogRepo.InsertRefreshLog(ctx, stuID, year, semester)
+		if insertLogErr != nil {
+			goto wrapRes
+		}
 
 		wg.Add(1)
 
@@ -78,6 +141,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 
 			crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(context.Background(), stuID, year, semester)
 			if crawErr != nil {
+				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, model.Failed)
 				return
 			}
 
@@ -92,7 +156,14 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 
 			go func() {
 				_, jxbIDs := convertToClass(crawClassInfos)
-				cluc.classRepo.SaveClass(context.Background(), stuID, year, semester, crawClassInfos, crawScs)
+				saveErr := cluc.classRepo.SaveClass(context.Background(), stuID, year, semester, crawClassInfos, crawScs)
+				//更新log状态
+				if saveErr != nil {
+					_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, model.Failed)
+				} else {
+					_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, model.Ready)
+				}
+
 				_ = cluc.jxbRepo.SaveJxb(context.Background(), stuID, jxbIDs)
 			}()
 		}()
@@ -127,13 +198,17 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 		crawLock.Unlock()
 	}
 
+wrapRes: //包装结果
+
 	if len(classInfos) == 0 {
-		return nil, errcode.ErrClassNotFound
+		return nil, nil, errcode.ErrClassNotFound
 	}
+
+	lastRefreshTime := cluc.refreshLogRepo.GetLastRefreshTime(ctx, stuID, year, semester, currentTime)
 
 	classes, _ := convertToClass(classInfos)
 
-	return classes, nil
+	return classes, lastRefreshTime, nil
 }
 
 func (cluc *ClassUsecase) AddClass(ctx context.Context, stuID string, info *model.ClassInfo) error {

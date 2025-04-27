@@ -5,9 +5,10 @@ import (
 )
 
 const (
-	ClassInfoTableName     string = "class_info"
-	StudentCourseTableName string = "student_course"
-	JxbTableName           string = "jxb"
+	ClassInfoTableName       string = "class_info"
+	StudentCourseTableName   string = "student_course"
+	JxbTableName             string = "jxb"
+	ClassRefreshLogTableName string = "class_refresh_log"
 )
 
 type Class struct {

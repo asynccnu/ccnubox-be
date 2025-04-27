@@ -50,7 +50,8 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 		return nil, nil, err
 	}
 	ccnuService := client.NewCCNUService(userServiceClient)
-	classUsecase := biz.NewClassUsecase(classRepo, crawlerCrawler, jxbDBRepo, ccnuService, confServer, logger)
+	refreshLogRepo := data.NewRefreshLogRepo(db, confServer)
+	classUsecase := biz.NewClassUsecase(classRepo, crawlerCrawler, jxbDBRepo, ccnuService, refreshLogRepo, confServer, logger)
 	classListService := service.NewClasserService(classUsecase, schoolDay, logger)
 	grpcServer := server.NewGRPCServer(confServer, classListService, logger)
 	app := newApp(logger, grpcServer, etcdRegistry)

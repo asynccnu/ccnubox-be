@@ -31,7 +31,7 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		return &pb.GetClassResponse{}, errcode.ErrParam
 	}
 	pclasses := make([]*pb.Class, 0)
-	classes, err := s.clu.GetClasses(ctx, req.GetStuId(), req.GetYear(), req.GetSemester(), req.GetRefresh())
+	classes, lastTime, err := s.clu.GetClasses(ctx, req.GetStuId(), req.GetYear(), req.GetSemester(), req.GetRefresh())
 	if err != nil {
 		return &pb.GetClassResponse{}, err
 	}
@@ -42,8 +42,16 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		}
 		pclasses = append(pclasses, pclass)
 	}
+	var lastTimeStamp int64
+
+	if lastTime != nil {
+		lastTimeStamp = convertToShanghaiTimeStamp(*lastTime)
+	} else {
+		lastTimeStamp = time.Date(1949, 10, 1, 0, 0, 0, 0, time.Local).Unix()
+	}
 	return &pb.GetClassResponse{
-		Classes: pclasses,
+		Classes:  pclasses,
+		LastTime: lastTimeStamp,
 	}, nil
 }
 func (s *ClassListService) AddClass(ctx context.Context, req *pb.AddClassRequest) (*pb.AddClassResponse, error) {
@@ -250,4 +258,8 @@ func HandleClass(info *model.ClassInfo) *pb.ClassInfo {
 		Semester:     info.Semester,
 		Year:         info.Year,
 	}
+}
+
+func convertToShanghaiTimeStamp(t time.Time) int64 {
+	return tool.ToShanghaiTime(t).Unix()
 }

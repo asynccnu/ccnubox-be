@@ -27,14 +27,11 @@ type ClassInfo struct {
 func (ci *ClassInfo) TableName() string {
 	return ClassInfoTableName
 }
+
 func (ci *ClassInfo) BeforeUpdate(tx *gorm.DB) (err error) {
 	ci.UpdatedAt = time.Now()
 	return
 }
-
-//func (ci *ClassInfo) SearchWeek(week int64) bool {
-//	return (ci.Weeks & (1 << (week - 1))) != 0
-//}
 
 func (ci *ClassInfo) UpdateID() {
 	ci.ID = fmt.Sprintf("Class:%s:%s:%s:%d:%s:%s:%s:%d", ci.Classname, ci.Year, ci.Semester, ci.Day, ci.ClassWhen, ci.Teacher, ci.Where, ci.Weeks)

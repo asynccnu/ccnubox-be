@@ -5,10 +5,11 @@ server:
     addr: "0.0.0.0:19084"
     timeout: 2              # 注意：这里单位是秒
   waitCrawTime: 5000        # 等待爬虫抓取数据的时间，单位ms
-  classExpiration: 604800    # 课程过期时间，单位s，例如 1 天
+  classExpiration: 604800    # 课程过期时间，单位s
   recycleExpiration: 2592000 # 回收站课程过期时间，单位s
   blackListExpiration: 60 # 黑名单过期时间，单位s
   waitUserSvcTime: 10000 # 等待用户服务的时间，单位ms
+  refreshInterval: 60 # // 刷新间隔,当前时间距离上次刷新时间超过该值时,需要重新刷新,单位s
 
 data:
   database:

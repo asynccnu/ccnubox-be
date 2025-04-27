@@ -190,12 +190,23 @@ func (cla ClassRepo) UpdateClass(ctx context.Context, req model.UpdateClassReq) 
 }
 
 // SaveClass 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
-func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*model.ClassInfo, scs []*model.StudentCourse) {
+func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*model.ClassInfo, scs []*model.StudentCourse) error {
 	key := GenerateClassInfosKey(stuID, year, semester)
 
-	_ = cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, key)
+	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, key)
+	if err != nil {
+		cla.log.Errorf("Delete Class [%+v] from Cache failed:%v", key, err)
+		return err
+	}
 
-	err := cla.TxCtrl.InTx(ctx, func(ctx context.Context) error {
+	defer func() {
+		//延迟双删
+		time.AfterFunc(1*time.Second, func() {
+			_ = cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, key)
+		})
+	}()
+
+	err = cla.TxCtrl.InTx(ctx, func(ctx context.Context) error {
 		//删除对应的所有关系[只删除非手动添加的]
 		err := cla.Sac.DB.DeleteStudentAndCourseByTimeFromDB(ctx, stuID, year, semester)
 		if err != nil {
@@ -216,13 +227,7 @@ func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string
 	if err != nil {
 		cla.log.Errorf("Save class [%+v] and scs [%v] failed:%v", classInfos, scs, err)
 	}
-
-	go func() {
-		//延迟双删
-		time.AfterFunc(1*time.Second, func() {
-			_ = cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, key)
-		})
-	}()
+	return err
 }
 
 func (cla ClassRepo) CheckSCIdsExist(ctx context.Context, req model.CheckSCIdsExistReq) bool {

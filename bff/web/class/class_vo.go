@@ -93,7 +93,8 @@ type SearchRequest struct {
 }
 
 type GetClassListResp struct {
-	Classes []*ClassInfo `json:"classes" binding:"required"`
+	Classes         []*ClassInfo `json:"classes" binding:"required"`
+	LastRefreshTime int64        `json:"last_refresh_time" binding:"required"` //上次刷新时间的时间戳,上海时区
 }
 
 type GetRecycleBinClassInfosReq struct {

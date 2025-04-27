@@ -106,30 +106,30 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, studentId string, xnm
 
 func (s *gradeService) GetGradeScore(ctx context.Context, studentId string) ([]domain.TypeOfGradeScore, error) {
 
-	// 尝试全部获取
-	grades, err := s.getGradeFromCCNU(ctx, studentId, 0, 0)
-	if len(grades) == 0 && err != nil {
-		s.l.Info("从ccnu获取成绩失败!", logger.FormatLog("ccnu", err)...)
-		//尝试获取所有成绩
-		grades, err = s.gradeDAO.FindGrades(ctx, studentId, 0, 0)
-		if err != nil {
+	grades, err := s.gradeDAO.FindGrades(ctx, studentId, 0, 0)
+	if len(grades) == 0 || err != nil {
+		grades, err = s.getGradeFromCCNU(context.Background(), studentId, 0, 0)
+		if len(grades) == 0 && err != nil {
 			return nil, GET_GRADE_ERROR(err)
 		}
+		err = s.updateGrades(grades)
+		if err != nil {
+			s.l.Info("更新成绩失败!", logger.FormatLog("dao", err)...)
+			return aggregateGradeScore(grades), nil
+		}
+		return aggregateGradeScore(grades), nil
 	}
 
 	// 异步回存
 	go func() {
-		updateGrades, err := s.gradeDAO.BatchInsertOrUpdate(context.Background(), grades)
-		if err != nil {
-			s.l.Warn("异步回填成绩失败!", logger.FormatLog("cache", err)...)
-			return
+		grades, err := s.getGradeFromCCNU(context.Background(), studentId, 0, 0)
+		if len(grades) == 0 && err != nil {
+			s.l.Info("获取成绩失败!", logger.FormatLog("ccnu", err)...)
 		}
-		for _, updateGrade := range updateGrades {
-			s.l.Info(
-				"更新成绩成功!",
-				logger.String("studentId", updateGrade.Studentid),
-				logger.String("课程名称", updateGrade.Kcmc),
-			)
+		err = s.updateGrades(grades)
+		if err != nil {
+			s.l.Info("更新成绩失败!", logger.FormatLog("dao", err)...)
+			return
 		}
 	}()
 

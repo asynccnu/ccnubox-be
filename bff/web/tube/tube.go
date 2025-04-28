@@ -30,7 +30,7 @@ func (t *TubeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 
 // @Summary 获取图床访问令牌
 // @Description
-// @Tags 图床
+// @Tags tube
 // @Accept json
 // @Produce json
 // @Success 200 {object} web.Response{data=GetTubeTokenData} "成功"

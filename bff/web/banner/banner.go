@@ -38,7 +38,7 @@ func (h *BannerHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Ha
 // GetBanners 获取 banner 列表
 // @Summary 获取 banner 列表
 // @Description 获取 banner 列表
-// @Tags banner横幅
+// @Tags banner
 // @Success 200 {object} web.Response{data=GetBannersResponse} "成功"
 // @Router /banner/getBanners [get]
 func (h *BannerHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
@@ -70,7 +70,7 @@ func (h *BannerHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.Re
 // SaveBanner 保存 banner 内容
 // @Summary 保存 banner 内容
 // @Description 保存 banner 内容,如果不添加id字段表示添加一个新的banner
-// @Tags banner横幅
+// @Tags banner
 // @Accept json
 // @Produce json
 // @Param request body SaveBannerRequest true "保存 banner 内容请求参数"
@@ -99,7 +99,7 @@ func (h *BannerHandler) SaveBanner(ctx *gin.Context, req SaveBannerRequest, uc i
 // DelBanner 删除 banner 内容
 // @Summary 删除 banner 内容
 // @Description 删除 banner 内容
-// @Tags banner横幅
+// @Tags banner
 // @Accept json
 // @Produce json
 // @Param request body DelBannerRequest true "删除 banner 内容请求参数"

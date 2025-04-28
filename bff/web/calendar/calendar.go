@@ -31,7 +31,7 @@ func (h *CalendarHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.
 // GetCalendar  获取日历列表
 // @Summary 获取日历列表
 // @Description 获取日历列表
-// @Tags 日历
+// @Tags calendar
 // @Accept  json
 // @Produce  json
 // @Param request query GetCalendarRequest true "获取日历列表请求参数"
@@ -57,7 +57,7 @@ func (h *CalendarHandler) GetCalendar(ctx *gin.Context, req GetCalendarRequest) 
 // SaveCalendar 保存日历内容
 // @Summary 保存日历内容
 // @Description 保存日历内容
-// @Tags 日历
+// @Tags calendar
 // @Accept json
 // @Produce json
 // @Param request body SaveCalendarRequest true "保存日历内容请求参数"
@@ -85,7 +85,7 @@ func (h *CalendarHandler) SaveCalendar(ctx *gin.Context, req SaveCalendarRequest
 // DelCalendar 删除日历内容
 // @Summary 删除日历内容
 // @Description 删除日历内容
-// @Tags 日历
+// @Tags calendar
 // @Accept json
 // @Produce json
 // @Param request body DelCalendarRequest true "删除日历内容请求参数"

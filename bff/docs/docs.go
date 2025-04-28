@@ -25,7 +25,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "信息整合"
+                    "InfoSum"
                 ],
                 "summary": "删除信息整合信息",
                 "parameters": [
@@ -53,7 +53,7 @@ const docTemplate = `{
             "get": {
                 "description": "获取所有信息整合的列表",
                 "tags": [
-                    "信息整合"
+                    "InfoSum"
                 ],
                 "summary": "获取信息整合列表",
                 "responses": {
@@ -88,7 +88,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "信息整合"
+                    "InfoSum"
                 ],
                 "summary": "保存信息整合信息",
                 "parameters": [
@@ -122,7 +122,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "banner横幅"
+                    "banner"
                 ],
                 "summary": "删除 banner 内容",
                 "parameters": [
@@ -150,7 +150,7 @@ const docTemplate = `{
             "get": {
                 "description": "获取 banner 列表",
                 "tags": [
-                    "banner横幅"
+                    "banner"
                 ],
                 "summary": "获取 banner 列表",
                 "responses": {
@@ -185,7 +185,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "banner横幅"
+                    "banner"
                 ],
                 "summary": "保存 banner 内容",
                 "parameters": [
@@ -219,7 +219,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "日历"
+                    "calendar"
                 ],
                 "summary": "删除日历内容",
                 "parameters": [
@@ -253,7 +253,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "日历"
+                    "calendar"
                 ],
                 "summary": "获取日历列表",
                 "parameters": [
@@ -296,7 +296,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "日历"
+                    "calendar"
                 ],
                 "summary": "保存日历内容",
                 "parameters": [
@@ -330,7 +330,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "校园卡【弃用】"
+                    "card[Deprecation]"
                 ],
                 "summary": "获取消费记录",
                 "parameters": [
@@ -382,7 +382,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "校园卡【弃用】"
+                    "card[Deprecation]"
                 ],
                 "summary": "记录用户的key",
                 "parameters": [
@@ -422,7 +422,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "校园卡【弃用】"
+                    "card[Deprecation]"
                 ],
                 "summary": "更新用户的key",
                 "parameters": [
@@ -462,7 +462,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "课表"
+                    "class"
                 ],
                 "summary": "添加课表",
                 "parameters": [
@@ -500,7 +500,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "课表"
+                    "class"
                 ],
                 "summary": "获取当前周",
                 "parameters": [
@@ -544,7 +544,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "课表"
+                    "class"
                 ],
                 "summary": "删除课表",
                 "parameters": [
@@ -582,7 +582,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "课表"
+                    "class"
                 ],
                 "summary": "获取课表",
                 "parameters": [
@@ -642,7 +642,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "课表"
+                    "class"
                 ],
                 "summary": "获取回收站课表信息",
                 "parameters": [
@@ -700,7 +700,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "课表"
+                    "class"
                 ],
                 "summary": "恢复课表",
                 "parameters": [
@@ -738,7 +738,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "课表"
+                    "class"
                 ],
                 "summary": "搜索课程",
                 "parameters": [
@@ -817,7 +817,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "课表"
+                    "class"
                 ],
                 "summary": "更新课表信息",
                 "parameters": [
@@ -858,7 +858,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "教室"
+                    "classroom"
                 ],
                 "summary": "查询空闲教室",
                 "parameters": [
@@ -948,7 +948,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "部门"
+                    "department"
                 ],
                 "summary": "删除部门信息",
                 "parameters": [
@@ -983,7 +983,7 @@ const docTemplate = `{
             "get": {
                 "description": "获取部门列表",
                 "tags": [
-                    "部门"
+                    "department"
                 ],
                 "summary": "获取部门列表",
                 "parameters": [
@@ -1027,7 +1027,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "部门"
+                    "department"
                 ],
                 "summary": "保存部门信息",
                 "parameters": [
@@ -1068,7 +1068,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "电费"
+                    "elecprice"
                 ],
                 "summary": "取消电费提醒标准",
                 "parameters": [
@@ -1136,7 +1136,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "电费"
+                    "elecprice"
                 ],
                 "summary": "获取楼栋信息",
                 "parameters": [
@@ -1201,7 +1201,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "电费"
+                    "elecprice"
                 ],
                 "summary": "获取电费",
                 "parameters": [
@@ -1266,7 +1266,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "电费"
+                    "elecprice"
                 ],
                 "summary": "获取房间号和id",
                 "parameters": [
@@ -1337,7 +1337,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "电费"
+                    "elecprice"
                 ],
                 "summary": "获取电费提醒标准",
                 "parameters": [
@@ -1399,7 +1399,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "电费"
+                    "elecprice"
                 ],
                 "summary": "设置电费提醒标准",
                 "parameters": [
@@ -1470,7 +1470,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "feed订阅"
+                    "feed"
                 ],
                 "summary": "修改feed订阅白名单",
                 "parameters": [
@@ -1517,7 +1517,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "feed订阅"
+                    "feed"
                 ],
                 "summary": "清除feed订阅事件",
                 "parameters": [
@@ -1564,7 +1564,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "feed订阅"
+                    "feed"
                 ],
                 "summary": "获取feed订阅白名单",
                 "parameters": [
@@ -1611,7 +1611,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "feed订阅"
+                    "feed"
                 ],
                 "summary": "获取feed订阅事件",
                 "parameters": [
@@ -1661,7 +1661,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "feed订阅"
+                    "feed"
                 ],
                 "summary": "获取待发布的官方消息",
                 "parameters": [
@@ -1717,7 +1717,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "feed订阅"
+                    "feed"
                 ],
                 "summary": "发布木犀官方消息",
                 "parameters": [
@@ -1782,7 +1782,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "feed订阅"
+                    "feed"
                 ],
                 "summary": "标注feed订阅事件为已读",
                 "parameters": [
@@ -1829,7 +1829,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "feed订阅"
+                    "feed"
                 ],
                 "summary": "删除feed订阅Token",
                 "parameters": [
@@ -1876,7 +1876,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "feed订阅"
+                    "feed"
                 ],
                 "summary": "保存feed订阅Token",
                 "parameters": [
@@ -1923,7 +1923,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "feed订阅"
+                    "feed"
                 ],
                 "summary": "停止木犀官方消息",
                 "parameters": [
@@ -1976,7 +1976,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈【弃用】"
+                    "feedback_help[Deprecation]"
                 ],
                 "summary": "修改一个问题与答复",
                 "parameters": [
@@ -2016,7 +2016,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈【弃用】"
+                    "feedback_help[Deprecation]"
                 ],
                 "summary": "创建一个问题与答复",
                 "parameters": [
@@ -2056,7 +2056,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈【弃用】"
+                    "feedback_help[Deprecation]"
                 ],
                 "summary": "删除一个问题与答复",
                 "parameters": [
@@ -2096,7 +2096,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈【弃用】"
+                    "feedback_help[Deprecation]"
                 ],
                 "summary": "搜取问题",
                 "parameters": [
@@ -2146,7 +2146,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈【弃用】"
+                    "feedback_help[Deprecation]"
                 ],
                 "summary": "获取常见问题",
                 "responses": {
@@ -2187,7 +2187,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "帮助与反馈【弃用】"
+                    "feedback_help[Deprecation]"
                 ],
                 "summary": "标记问题解决状态",
                 "parameters": [
@@ -2227,7 +2227,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "成绩"
+                    "grade"
                 ],
                 "summary": "查询按学年和学期的成绩",
                 "parameters": [
@@ -2290,7 +2290,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "成绩"
+                    "grade"
                 ],
                 "summary": "查询学分",
                 "responses": {
@@ -2325,7 +2325,7 @@ const docTemplate = `{
             "post": {
                 "description": "用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/kstack)表示跳转访问课栈,使用这一路由必须携带Auth请求头",
                 "tags": [
-                    "打点"
+                    "metrics"
                 ],
                 "summary": "用于打点的路由",
                 "responses": {
@@ -2348,7 +2348,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "静态【弃用】"
+                    "statics"
                 ],
                 "summary": "获取静态资源[精确名称]",
                 "parameters": [
@@ -2384,7 +2384,6 @@ const docTemplate = `{
         },
         "/statics/match/labels": {
             "get": {
-                "description": "【弃用】根据静labels匹配合适的静态资源",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2392,7 +2391,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "静态【弃用】"
+                    "statics"
                 ],
                 "summary": "获取静态资源[标签匹配]",
                 "parameters": [
@@ -2436,7 +2435,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "静态【弃用】"
+                    "statics[Deprecation]"
                 ],
                 "summary": "保存静态内容",
                 "parameters": [
@@ -2469,7 +2468,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "图床"
+                    "tube"
                 ],
                 "summary": "获取图床访问令牌",
                 "responses": {
@@ -2504,7 +2503,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户"
+                    "user"
                 ],
                 "summary": "ccnu登录",
                 "parameters": [
@@ -2538,7 +2537,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户"
+                    "user"
                 ],
                 "summary": "登出(销毁token)",
                 "responses": {
@@ -2566,7 +2565,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户"
+                    "user"
                 ],
                 "summary": "刷新短token",
                 "responses": {
@@ -2589,7 +2588,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "网站"
+                    "website"
                 ],
                 "summary": "删除网站信息",
                 "parameters": [
@@ -2617,7 +2616,7 @@ const docTemplate = `{
             "get": {
                 "description": "获取所有网站的列表",
                 "tags": [
-                    "网站"
+                    "website"
                 ],
                 "summary": "获取网站列表",
                 "responses": {
@@ -2652,7 +2651,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "网站"
+                    "website"
                 ],
                 "summary": "保存网站信息",
                 "parameters": [

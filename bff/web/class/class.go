@@ -45,7 +45,7 @@ func (c *ClassHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 // GetClassList 获取课表
 // @Summary 获取课表
 // @Description 根据学期、学年等条件获取课表
-// @Tags 课表
+// @Tags class
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
 // @Param request query GetClassListRequest true "获取课表请求参数"
@@ -95,7 +95,7 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 // AddClass 添加课表
 // @Summary 添加课表
 // @Description 添加新的课表
-// @Tags 课表
+// @Tags class
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
@@ -131,7 +131,7 @@ func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.U
 // DeleteClass 删除课表
 // @Summary 删除课表
 // @Description 根据课表ID删除课表
-// @Tags 课表
+// @Tags class
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
@@ -156,7 +156,7 @@ func (c *ClassHandler) DeleteClass(ctx *gin.Context, req DeleteClassRequest, uc 
 // UpdateClass 更新课表信息
 // @Summary 更新课表信息
 // @Description 根据课表ID更新课表信息
-// @Tags 课表
+// @Tags class
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
@@ -196,7 +196,7 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 // GetRecycleBinClassInfos 获取回收站中的课表信息
 // @Summary 获取回收站课表信息
 // @Description 获取已删除但未彻底清除的课表信息
-// @Tags 课表
+// @Tags class
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
 // @Param request query GetRecycleBinClassInfosReq true "获取回收站中的课表信息参数"
@@ -225,7 +225,7 @@ func (c *ClassHandler) GetRecycleBinClassInfos(ctx *gin.Context, req GetRecycleB
 // RecoverClass 恢复课表
 // @Summary 恢复课表
 // @Description 从回收站恢复课表
-// @Tags 课表
+// @Tags class
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
@@ -250,7 +250,7 @@ func (c *ClassHandler) RecoverClass(ctx *gin.Context, req RecoverClassRequest, u
 // SearchClass 查询课程
 // @Summary 搜索课程
 // @Description 根据关键词[教师或者课程名]搜索课程,**注意,但当返回的结果数量大于page_size时,代表还有下一页**,最开始请求的是第一页
-// @Tags 课表
+// @Tags class
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
 // @Param request query SearchRequest true "查询课程请求参数"
@@ -303,7 +303,7 @@ func (c *ClassHandler) SearchClass(ctx *gin.Context, req SearchRequest) (web.Res
 // GetSchoolDay 获取当前周
 // @Summary 获取当前周
 // @Description 获取当前周
-// @Tags 课表
+// @Tags class
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} web.Response{data=GetSchoolDayResp} "成功获取到当前周"

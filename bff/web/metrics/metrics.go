@@ -21,7 +21,7 @@ func (h *MetricsHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 // Metrics 用于打点的路由
 // @Summary 用于打点的路由
 // @Description 用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/kstack)表示跳转访问课栈,使用这一路由必须携带Auth请求头
-// @Tags 打点
+// @Tags metrics
 // @Success 200 {object} web.Response{} "成功"
 // @Router /metrics/:eventName [post]
 func (h *MetricsHandler) Metrics(ctx *gin.Context) (web.Response, error) {

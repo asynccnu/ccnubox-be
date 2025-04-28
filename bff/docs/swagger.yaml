@@ -1002,7 +1002,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 删除信息整合信息
       tags:
-      - 信息整合
+      - InfoSum
   /InfoSum/getInfoSums:
     get:
       description: 获取所有信息整合的列表
@@ -1018,7 +1018,7 @@ paths:
               type: object
       summary: 获取信息整合列表
       tags:
-      - 信息整合
+      - InfoSum
   /InfoSum/saveInfoSum:
     post:
       consumes:
@@ -1040,7 +1040,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 保存信息整合信息
       tags:
-      - 信息整合
+      - InfoSum
   /banner/delBanner:
     delete:
       consumes:
@@ -1062,7 +1062,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 删除 banner 内容
       tags:
-      - banner横幅
+      - banner
   /banner/getBanners:
     get:
       description: 获取 banner 列表
@@ -1078,7 +1078,7 @@ paths:
               type: object
       summary: 获取 banner 列表
       tags:
-      - banner横幅
+      - banner
   /banner/saveBanner:
     post:
       consumes:
@@ -1100,7 +1100,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 保存 banner 内容
       tags:
-      - banner横幅
+      - banner
   /calendar/delCalendar:
     delete:
       consumes:
@@ -1122,7 +1122,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 删除日历内容
       tags:
-      - 日历
+      - calendar
   /calendar/getCalendar:
     get:
       consumes:
@@ -1147,7 +1147,7 @@ paths:
               type: object
       summary: 获取日历列表
       tags:
-      - 日历
+      - calendar
   /calendar/saveCalendar:
     post:
       consumes:
@@ -1169,7 +1169,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 保存日历内容
       tags:
-      - 日历
+      - calendar
   /card/getRecords:
     post:
       consumes:
@@ -1201,7 +1201,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 获取消费记录
       tags:
-      - 校园卡【弃用】
+      - card[Deprecation]
   /card/noteUserKey:
     post:
       consumes:
@@ -1227,7 +1227,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 记录用户的key
       tags:
-      - 校园卡【弃用】
+      - card[Deprecation]
   /card/updateUserKey:
     post:
       consumes:
@@ -1253,7 +1253,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 更新用户的key
       tags:
-      - 校园卡【弃用】
+      - card[Deprecation]
   /class/add:
     post:
       consumes:
@@ -1280,7 +1280,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 添加课表
       tags:
-      - 课表
+      - class
   /class/day/get:
     get:
       description: 获取当前周
@@ -1304,7 +1304,7 @@ paths:
               type: object
       summary: 获取当前周
       tags:
-      - 课表
+      - class
   /class/delete:
     delete:
       consumes:
@@ -1331,7 +1331,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 删除课表
       tags:
-      - 课表
+      - class
   /class/get:
     get:
       description: 根据学期、学年等条件获取课表
@@ -1368,7 +1368,7 @@ paths:
               type: object
       summary: 获取课表
       tags:
-      - 课表
+      - class
   /class/getRecycle:
     get:
       description: 获取已删除但未彻底清除的课表信息
@@ -1402,7 +1402,7 @@ paths:
               type: object
       summary: 获取回收站课表信息
       tags:
-      - 课表
+      - class
   /class/recover:
     put:
       consumes:
@@ -1429,7 +1429,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 恢复课表
       tags:
-      - 课表
+      - class
   /class/search:
     get:
       description: 根据关键词[教师或者课程名]搜索课程,**注意,但当返回的结果数量大于page_size时,代表还有下一页**,最开始请求的是第一页
@@ -1478,7 +1478,7 @@ paths:
               type: object
       summary: 搜索课程
       tags:
-      - 课表
+      - class
   /class/update:
     put:
       consumes:
@@ -1505,7 +1505,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 更新课表信息
       tags:
-      - 课表
+      - class
   /classroom/getFreeClassRoom:
     get:
       consumes:
@@ -1564,7 +1564,7 @@ paths:
               type: object
       summary: 查询空闲教室
       tags:
-      - 教室
+      - classroom
   /department/delDepartment:
     delete:
       consumes:
@@ -1591,7 +1591,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 删除部门信息
       tags:
-      - 部门
+      - department
   /department/getDepartments:
     get:
       description: 获取部门列表
@@ -1613,7 +1613,7 @@ paths:
               type: object
       summary: 获取部门列表
       tags:
-      - 部门
+      - department
   /department/saveDepartment:
     post:
       consumes:
@@ -1640,7 +1640,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 保存部门信息
       tags:
-      - 部门
+      - department
   /elecprice/cancelStandard:
     delete:
       consumes:
@@ -1681,7 +1681,7 @@ paths:
               type: object
       summary: 取消电费提醒标准
       tags:
-      - 电费
+      - elecprice
   /elecprice/getArchitecture:
     get:
       description: 通过区域获取楼栋信息
@@ -1718,7 +1718,7 @@ paths:
               type: object
       summary: 获取楼栋信息
       tags:
-      - 电费
+      - elecprice
   /elecprice/getPrice:
     get:
       description: 根据房间号获取电费信息
@@ -1755,7 +1755,7 @@ paths:
               type: object
       summary: 获取电费
       tags:
-      - 电费
+      - elecprice
   /elecprice/getRoomInfo:
     get:
       description: 根据房间号和空调/照明id
@@ -1796,7 +1796,7 @@ paths:
               type: object
       summary: 获取房间号和id
       tags:
-      - 电费
+      - elecprice
   /elecprice/getStandardList:
     get:
       description: 获取自己订阅的电费提醒标准
@@ -1829,7 +1829,7 @@ paths:
               type: object
       summary: 获取电费提醒标准
       tags:
-      - 电费
+      - elecprice
   /elecprice/setStandard:
     put:
       consumes:
@@ -1870,7 +1870,7 @@ paths:
               type: object
       summary: 设置电费提醒标准
       tags:
-      - 电费
+      - elecprice
   /feed/changeFeedAllowList:
     post:
       consumes:
@@ -1901,7 +1901,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 修改feed订阅白名单
       tags:
-      - feed订阅
+      - feed
   /feed/clearFeedEvent:
     post:
       consumes:
@@ -1932,7 +1932,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 清除feed订阅事件
       tags:
-      - feed订阅
+      - feed
   /feed/getFeedAllowList:
     get:
       consumes:
@@ -1962,7 +1962,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 获取feed订阅白名单
       tags:
-      - feed订阅
+      - feed
   /feed/getFeedEvents:
     get:
       description: 获取已登录用户的所有feed订阅事件（包括已读和未读）
@@ -1990,7 +1990,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 获取feed订阅事件
       tags:
-      - feed订阅
+      - feed
   /feed/getToBePublicOfficialMSG:
     get:
       consumes:
@@ -2024,7 +2024,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 获取待发布的官方消息
       tags:
-      - feed订阅
+      - feed
   /feed/publicMuxiOfficialMSG:
     post:
       consumes:
@@ -2064,7 +2064,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 发布木犀官方消息
       tags:
-      - feed订阅
+      - feed
   /feed/readFeedEvent:
     post:
       consumes:
@@ -2095,7 +2095,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 标注feed订阅事件为已读
       tags:
-      - feed订阅
+      - feed
   /feed/removeFeedToken:
     post:
       consumes:
@@ -2126,7 +2126,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 删除feed订阅Token
       tags:
-      - feed订阅
+      - feed
   /feed/saveFeedToken:
     post:
       consumes:
@@ -2157,7 +2157,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 保存feed订阅Token
       tags:
-      - feed订阅
+      - feed
   /feed/stopMuxiOfficialMSG:
     post:
       consumes:
@@ -2192,7 +2192,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 停止木犀官方消息
       tags:
-      - feed订阅
+      - feed
   /feedback_help/changeQuestion:
     post:
       consumes:
@@ -2218,7 +2218,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 修改一个问题与答复
       tags:
-      - 帮助与反馈【弃用】
+      - feedback_help[Deprecation]
   /feedback_help/createQuestion:
     post:
       consumes:
@@ -2244,7 +2244,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 创建一个问题与答复
       tags:
-      - 帮助与反馈【弃用】
+      - feedback_help[Deprecation]
   /feedback_help/deleteQuestion:
     post:
       consumes:
@@ -2270,7 +2270,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 删除一个问题与答复
       tags:
-      - 帮助与反馈【弃用】
+      - feedback_help[Deprecation]
   /feedback_help/findQuestionsByName:
     get:
       consumes:
@@ -2300,7 +2300,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 搜取问题
       tags:
-      - 帮助与反馈【弃用】
+      - feedback_help[Deprecation]
   /feedback_help/getQuestion:
     get:
       consumes:
@@ -2324,7 +2324,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 获取常见问题
       tags:
-      - 帮助与反馈【弃用】
+      - feedback_help[Deprecation]
   /feedback_help/noteQuestion:
     post:
       consumes:
@@ -2350,7 +2350,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 标记问题解决状态
       tags:
-      - 帮助与反馈【弃用】
+      - feedback_help[Deprecation]
   /grade/getGradeByTerm:
     get:
       consumes:
@@ -2389,7 +2389,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 查询按学年和学期的成绩
       tags:
-      - 成绩
+      - grade
   /grade/getGradeScore:
     get:
       consumes:
@@ -2413,7 +2413,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 查询学分
       tags:
-      - 成绩
+      - grade
   /metrics/:eventName:
     post:
       description: 用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/kstack)表示跳转访问课栈,使用这一路由必须携带Auth请求头
@@ -2424,7 +2424,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 用于打点的路由
       tags:
-      - 打点
+      - metrics
   /statics:
     get:
       consumes:
@@ -2450,12 +2450,11 @@ paths:
               type: object
       summary: 获取静态资源[精确名称]
       tags:
-      - 静态【弃用】
+      - statics
   /statics/match/labels:
     get:
       consumes:
       - multipart/form-data
-      description: 【弃用】根据静labels匹配合适的静态资源
       parameters:
       - description: 标签：标明匹配哪一类的资源
         in: query
@@ -2476,7 +2475,7 @@ paths:
               type: object
       summary: 获取静态资源[标签匹配]
       tags:
-      - 静态【弃用】
+      - statics
   /statics/save:
     post:
       consumes:
@@ -2498,7 +2497,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 保存静态内容
       tags:
-      - 静态【弃用】
+      - statics[Deprecation]
   /tube/access_token:
     get:
       consumes:
@@ -2517,7 +2516,7 @@ paths:
               type: object
       summary: 获取图床访问令牌
       tags:
-      - 图床
+      - tube
   /users/login_ccnu:
     post:
       consumes:
@@ -2539,7 +2538,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: ccnu登录
       tags:
-      - 用户
+      - user
   /users/logout:
     post:
       consumes:
@@ -2554,7 +2553,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 登出(销毁token)
       tags:
-      - 用户
+      - user
   /users/refresh_token:
     get:
       consumes:
@@ -2571,7 +2570,7 @@ paths:
       - Bearer Auth: []
       summary: 刷新短token
       tags:
-      - 用户
+      - user
   /website/delWebsite:
     delete:
       consumes:
@@ -2593,7 +2592,7 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 删除网站信息
       tags:
-      - 网站
+      - website
   /website/getWebsites:
     get:
       description: 获取所有网站的列表
@@ -2609,7 +2608,7 @@ paths:
               type: object
       summary: 获取网站列表
       tags:
-      - 网站
+      - website
   /website/saveWebsite:
     post:
       consumes:
@@ -2631,5 +2630,5 @@ paths:
             $ref: '#/definitions/web.Response'
       summary: 保存网站信息
       tags:
-      - 网站
+      - website
 swagger: "2.0"

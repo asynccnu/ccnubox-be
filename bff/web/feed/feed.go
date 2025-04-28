@@ -39,7 +39,7 @@ func (h *FeedHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 // GetFeedEvents
 // @Summary 获取feed订阅事件
 // @Description 获取已登录用户的所有feed订阅事件（包括已读和未读）
-// @Tags feed订阅
+// @Tags feed
 // @Produce  json
 // @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} web.Response{data=GetFeedEventsResp} "成功"
@@ -68,7 +68,7 @@ func (h *FeedHandler) GetFeedEvents(ctx *gin.Context, uc ijwt.UserClaims) (web.R
 // ClearFeedEvent
 // @Summary 清除feed订阅事件
 // @Description 清除指定用户的feed订阅事件,都是可选字段
-// @Tags feed订阅
+// @Tags feed
 // @Accept  json
 // @Produce  json
 // @Param Authorization header string true "Bearer Token"
@@ -95,7 +95,7 @@ func (h *FeedHandler) ClearFeedEvent(ctx *gin.Context, req ClearFeedEventReq, uc
 // ReadFeedEvent
 // @Summary 标注feed订阅事件为已读
 // @Description 标注feed订阅事件为已读
-// @Tags feed订阅
+// @Tags feed
 // @Accept  json
 // @Produce  json
 // @Param Authorization header string true "Bearer Token"
@@ -118,7 +118,7 @@ func (h *FeedHandler) ReadFeedEvent(ctx *gin.Context, req ReadFeedEventReq) (web
 // ChangeFeedAllowList
 // @Summary 修改feed订阅白名单
 // @Description 修改已登录用户的feed订阅白名单设置
-// @Tags feed订阅
+// @Tags feed
 // @Accept  json
 // @Produce  json
 // @Param Authorization header string true "Bearer Token"
@@ -149,7 +149,7 @@ func (h *FeedHandler) ChangeFeedAllowList(ctx *gin.Context, req ChangeFeedAllowL
 // GetFeedAllowList
 // @Summary 获取feed订阅白名单
 // @Description 获取已登录用户的feed订阅白名单设置
-// @Tags feed订阅
+// @Tags feed
 // @Accept  json
 // @Produce  json
 // @Param Authorization header string true "Bearer Token"
@@ -176,7 +176,7 @@ func (h *FeedHandler) GetFeedAllowList(ctx *gin.Context, uc ijwt.UserClaims) (we
 // SaveFeedToken
 // @Summary 保存feed订阅Token
 // @Description 保存已登录用户的feed订阅Token
-// @Tags feed订阅
+// @Tags feed
 // @Accept  json
 // @Produce  json
 // @Param Authorization header string true "Bearer Token"
@@ -201,7 +201,7 @@ func (h *FeedHandler) SaveFeedToken(ctx *gin.Context, req SaveFeedTokenReq, uc i
 // RemoveFeedToken
 // @Summary 删除feed订阅Token
 // @Description 删除已登录用户的feed订阅Token
-// @Tags feed订阅
+// @Tags feed
 // @Accept  json
 // @Produce  json
 // @Param Authorization header string true "Bearer Token"
@@ -222,7 +222,7 @@ func (h *FeedHandler) RemoveFeedToken(ctx *gin.Context, req RemoveFeedTokenReq, 
 // PublicMuxiOfficialMSG
 // @Summary 发布木犀官方消息
 // @Description 发布木犀官方消息，仅限管理员操作
-// @Tags feed订阅
+// @Tags feed
 // @Accept  json
 // @Produce  json
 // @Param Authorization header string true "Bearer Token"
@@ -260,7 +260,7 @@ func (h *FeedHandler) PublicMuxiOfficialMSG(ctx *gin.Context, req PublicMuxiOffi
 // StopMuxiOfficialMSG
 // @Summary 停止木犀官方消息
 // @Description 停止木犀官方消息，仅限管理员操作
-// @Tags feed订阅
+// @Tags feed
 // @Accept  json
 // @Produce  json
 // @Param Authorization header string true "Bearer Token"
@@ -288,7 +288,7 @@ func (h *FeedHandler) StopMuxiOfficialMSG(ctx *gin.Context, req StopMuxiOfficial
 // GetToBePublicOfficialMSG
 // @Summary 获取待发布的官方消息
 // @Description 获取计划发布的官方消息，仅限管理员操作
-// @Tags feed订阅
+// @Tags feed
 // @Accept  json
 // @Produce  json
 // @Param Authorization header string true "Bearer Token"

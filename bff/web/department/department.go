@@ -31,7 +31,7 @@ func (h *DepartmentHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gi
 // GetDepartments 获取部门列表
 // @Summary 获取部门列表
 // @Description 获取部门列表
-// @Tags 部门
+// @Tags department
 // @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} web.Response{data=GetDepartmentsResponse} "成功"
 // @Router /department/getDepartments [get]
@@ -57,7 +57,7 @@ func (h *DepartmentHandler) GetDepartments(ctx *gin.Context) (web.Response, erro
 // SaveDepartment 保存部门信息
 // @Summary 保存部门信息
 // @Description 保存部门信息
-// @Tags 部门
+// @Tags department
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
@@ -89,7 +89,7 @@ func (h *DepartmentHandler) SaveDepartment(ctx *gin.Context, req SaveDepartmentR
 // DelDepartment 删除部门信息
 // @Summary 删除部门信息
 // @Description 删除部门信息
-// @Tags 部门
+// @Tags department
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"

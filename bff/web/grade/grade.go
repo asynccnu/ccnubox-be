@@ -44,7 +44,7 @@ func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 // GetGradeByTerm 查询按学年和学期的成绩
 // @Summary 查询按学年和学期的成绩
 // @Description 根据学年号和学期号获取用户的成绩
-// @Tags 成绩
+// @Tags grade
 // @Accept json
 // @Produce json
 // @Param request query GetGradeByTermReq  true "获取学年和学期的成绩请求参数"
@@ -87,6 +87,7 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 			h.l.Error("增加用户feedCount失败:", logger.Error(err))
 		}
 	}()
+
 	return web.Response{
 		Msg:  fmt.Sprintf("获取%d~%d学年第%d学期成绩成功!", req.Xnm, req.Xnm+1, req.Xqm),
 		Data: resp,
@@ -96,7 +97,7 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 // GetGradeScore 查询学分
 // @Summary 查询学分
 // @Description 查询学分
-// @Tags 成绩
+// @Tags grade
 // @Accept json
 // @Produce json
 // @Success 200 {object} web.Response{data=GetGradeScoreResp} "成功返回学分"

@@ -3,10 +3,12 @@ package data
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
 	"gorm.io/gorm"
-	"time"
+	"gorm.io/gorm/clause"
 )
 
 type RefreshLogRepo struct {
@@ -50,6 +52,7 @@ func (r *RefreshLogRepo) InsertRefreshLog(ctx context.Context, stuID, year, seme
 		err := tx.Table(model.ClassRefreshLogTableName).Select("status,updated_at").
 			Where("stu_id = ? and year = ? and semester = ?", stuID, year, semester).
 			Order("updated_at desc").
+			Clauses(clause.Locking{Strength: "UPDATE"}).
 			First(&records).Error
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -58,6 +61,7 @@ func (r *RefreshLogRepo) InsertRefreshLog(ctx context.Context, stuID, year, seme
 		if err != nil {
 			return err
 		}
+
 		if records.UpdatedAt.Before(refreshLog.UpdatedAt.Add(-r.refreshInterval)) {
 			return r.createRefreshLog(ctx, tx, &refreshLog)
 		}

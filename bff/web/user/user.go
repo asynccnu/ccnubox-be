@@ -37,7 +37,7 @@ func (h *UserHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 // LoginByCCNU
 // @Summary ccnu登录
 // @Description 通过学号和密码进行登录认证
-// @Tags 用户
+// @Tags user
 // @Accept json
 // @Produce json
 // @Param request body LoginByCCNUReq true "登录请求体"
@@ -75,7 +75,7 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 // Logout
 // @Summary 登出(销毁token)
 // @Description 通过短token登出
-// @Tags 用户
+// @Tags user
 // @Accept json
 // @Produce json
 // @Success 200 {object} web.Response "Success"
@@ -93,7 +93,7 @@ func (h *UserHandler) Logout(ctx *gin.Context) (web.Response, error) {
 // RefreshToken
 // @Summary 刷新短token
 // @Description 通过长token刷新短token
-// @Tags 用户
+// @Tags user
 // @Accept json
 // @Produce json
 // @Security Bearer Auth

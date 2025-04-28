@@ -32,7 +32,7 @@ func (h *InfoSumHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 // GetInfoSums 获取信息整合列表
 // @Summary 获取信息整合列表
 // @Description 获取所有信息整合的列表
-// @Tags 信息整合
+// @Tags InfoSum
 // @Success 200 {object} web.Response{data=GetInfoSumsResponse} "成功"
 // @Router /InfoSum/getInfoSums [get]
 func (h *InfoSumHandler) GetInfoSums(ctx *gin.Context) (web.Response, error) {
@@ -58,7 +58,7 @@ func (h *InfoSumHandler) GetInfoSums(ctx *gin.Context) (web.Response, error) {
 // SaveInfoSum 保存信息整合信息
 // @Summary 保存信息整合信息
 // @Description 保存信息整合信息,id是可选字段,如果有就是替换原来的列表里的,如果没有就是存储新的值
-// @Tags 信息整合
+// @Tags InfoSum
 // @Accept json
 // @Produce json
 // @Param request body SaveInfoSumRequest true "保存信息整合信息请求参数"
@@ -92,7 +92,7 @@ func (h *InfoSumHandler) SaveInfoSum(ctx *gin.Context, req SaveInfoSumRequest, u
 // DelInfoSum 删除信息整合信息
 // @Summary 删除信息整合信息
 // @Description 删除信息整合信息
-// @Tags 信息整合
+// @Tags InfoSum
 // @Accept json
 // @Produce json
 // @Param request body DelInfoSumRequest true "删除信息整合信息请求参数"

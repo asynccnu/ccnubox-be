@@ -37,7 +37,7 @@ func (h *ElecPriceHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin
 // GetArchitecture
 // @Summary 获取楼栋信息
 // @Description 通过区域获取楼栋信息
-// @Tags 电费
+// @Tags elecprice
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
 // @Param request query GetArchitectureRequest true "设置电费提醒请求参数"
@@ -81,7 +81,7 @@ func (h *ElecPriceHandler) GetArchitecture(ctx *gin.Context, req GetArchitecture
 // GetRoomInfo
 // @Summary 获取房间号和id
 // @Description 根据房间号和空调/照明id
-// @Tags 电费
+// @Tags elecprice
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
 // @Param request query GetRoomInfoRequest true "获取楼栋信息请求参数"
@@ -124,7 +124,7 @@ func (h *ElecPriceHandler) GetRoomInfo(ctx *gin.Context, req GetRoomInfoRequest,
 // GetPrice
 // @Summary 获取电费
 // @Description 根据房间号获取电费信息
-// @Tags 电费
+// @Tags elecprice
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
 // @Param request query GetPriceRequest true "获取电费请求参数"
@@ -152,7 +152,7 @@ func (h *ElecPriceHandler) GetPrice(ctx *gin.Context, req GetPriceRequest, uc ij
 // SetStandard 设置电费
 // @Summary 设置电费提醒标准
 // @Description 根据区域、楼栋和房间号设置电费提醒的金额标准
-// @Tags 电费
+// @Tags elecprice
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
@@ -181,7 +181,7 @@ func (h *ElecPriceHandler) SetStandard(ctx *gin.Context, req SetStandardRequest,
 // GetStandardList
 // @Summary 获取电费提醒标准
 // @Description 获取自己订阅的电费提醒标准
-// @Tags 电费
+// @Tags elecprice
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} web.Response{msg=elecprice.GetStandardListResponse} "获取成功的返回信息"
@@ -213,7 +213,7 @@ func (h *ElecPriceHandler) GetStandardList(ctx *gin.Context, req GetStandardList
 // CancelStandard
 // @Summary 取消电费提醒标准
 // @Description 取消自己订阅的电费提醒
-// @Tags 电费
+// @Tags elecprice
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"

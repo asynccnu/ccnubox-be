@@ -53,3 +53,6 @@ build:
 		--build-arg Project_Name=$(Project_Name) \
 		--build-arg PORT=$$PORT \
 		-t $(Project_Name):$(TAG) .
+
+docs:
+	cd ./bff && swag init

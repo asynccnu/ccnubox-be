@@ -26,7 +26,7 @@ func (c *ClassRoomHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin
 // GetFreeClassRoom 查询空闲教室
 // @Summary 查询空闲教室
 // @Description 根据学年、学期、周次、节次、地点等信息查询空闲教室列表
-// @Tags 教室
+// @Tags classroom
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"

@@ -7,7 +7,7 @@ paths:
   /InfoSum/delInfoSum:
     delete:
       tags:
-      - 信息整合
+      - InfoSum
       summary: 删除信息整合信息
       description: 删除信息整合信息
       requestBody:
@@ -28,7 +28,7 @@ paths:
   /InfoSum/getInfoSums:
     get:
       tags:
-      - 信息整合
+      - InfoSum
       summary: 获取信息整合列表
       description: 获取所有信息整合的列表
       responses:
@@ -46,7 +46,7 @@ paths:
   /InfoSum/saveInfoSum:
     post:
       tags:
-      - 信息整合
+      - InfoSum
       summary: 保存信息整合信息
       description: "保存信息整合信息,id是可选字段,如果有就是替换原来的列表里的,如果没有就是存储新的值"
       requestBody:
@@ -67,7 +67,7 @@ paths:
   /banner/delBanner:
     delete:
       tags:
-      - banner横幅
+      - banner
       summary: 删除 banner 内容
       description: 删除 banner 内容
       requestBody:
@@ -88,7 +88,7 @@ paths:
   /banner/getBanners:
     get:
       tags:
-      - banner横幅
+      - banner
       summary: 获取 banner 列表
       description: 获取 banner 列表
       responses:
@@ -106,7 +106,7 @@ paths:
   /banner/saveBanner:
     post:
       tags:
-      - banner横幅
+      - banner
       summary: 保存 banner 内容
       description: "保存 banner 内容,如果不添加id字段表示添加一个新的banner"
       requestBody:
@@ -127,7 +127,7 @@ paths:
   /calendar/delCalendar:
     delete:
       tags:
-      - 日历
+      - calendar
       summary: 删除日历内容
       description: 删除日历内容
       requestBody:
@@ -148,7 +148,7 @@ paths:
   /calendar/getCalendar:
     get:
       tags:
-      - 日历
+      - calendar
       summary: 获取日历列表
       description: 获取日历列表
       parameters:
@@ -172,7 +172,7 @@ paths:
   /calendar/saveCalendar:
     post:
       tags:
-      - 日历
+      - calendar
       summary: 保存日历内容
       description: 保存日历内容
       requestBody:
@@ -193,7 +193,7 @@ paths:
   /card/getRecords:
     post:
       tags:
-      - 校园卡【弃用】
+      - "card[Deprecation]"
       summary: 获取消费记录
       description: "【弃用】获取用户消费记录，student_id, start_time, type 必须存在，type 分为 \"card\"\
         （实体卡）与 \"virtual\"（虚拟卡）"
@@ -226,7 +226,7 @@ paths:
   /card/noteUserKey:
     post:
       tags:
-      - 校园卡【弃用】
+      - "card[Deprecation]"
       summary: 记录用户的key
       description: 【弃用】记录用户的key
       requestBody:
@@ -253,7 +253,7 @@ paths:
   /card/updateUserKey:
     post:
       tags:
-      - 校园卡【弃用】
+      - "card[Deprecation]"
       summary: 更新用户的key
       description: 【弃用】更新用户的key
       requestBody:
@@ -280,7 +280,7 @@ paths:
   /class/add:
     post:
       tags:
-      - 课表
+      - class
       summary: 添加课表
       description: 添加新的课表
       parameters:
@@ -308,7 +308,7 @@ paths:
   /class/day/get:
     get:
       tags:
-      - 课表
+      - class
       summary: 获取当前周
       description: 获取当前周
       parameters:
@@ -333,7 +333,7 @@ paths:
   /class/delete:
     delete:
       tags:
-      - 课表
+      - class
       summary: 删除课表
       description: 根据课表ID删除课表
       parameters:
@@ -361,7 +361,7 @@ paths:
   /class/get:
     get:
       tags:
-      - 课表
+      - class
       summary: 获取课表
       description: 根据学期、学年等条件获取课表
       parameters:
@@ -402,7 +402,7 @@ paths:
   /class/getRecycle:
     get:
       tags:
-      - 课表
+      - class
       summary: 获取回收站课表信息
       description: 获取已删除但未彻底清除的课表信息
       parameters:
@@ -439,7 +439,7 @@ paths:
   /class/recover:
     put:
       tags:
-      - 课表
+      - class
       summary: 恢复课表
       description: 从回收站恢复课表
       parameters:
@@ -467,7 +467,7 @@ paths:
   /class/search:
     get:
       tags:
-      - 课表
+      - class
       summary: 搜索课程
       description: "根据关键词[教师或者课程名]搜索课程,**注意,但当返回的结果数量大于page_size时,代表还有下一页**,最开始请求的\
         是第一页"
@@ -523,7 +523,7 @@ paths:
   /class/update:
     put:
       tags:
-      - 课表
+      - class
       summary: 更新课表信息
       description: 根据课表ID更新课表信息
       parameters:
@@ -551,7 +551,7 @@ paths:
   /classroom/getFreeClassRoom:
     get:
       tags:
-      - 教室
+      - classroom
       summary: 查询空闲教室
       description: 根据学年、学期、周次、节次、地点等信息查询空闲教室列表
       parameters:
@@ -616,7 +616,7 @@ paths:
   /department/delDepartment:
     delete:
       tags:
-      - 部门
+      - department
       summary: 删除部门信息
       description: 删除部门信息
       parameters:
@@ -644,7 +644,7 @@ paths:
   /department/getDepartments:
     get:
       tags:
-      - 部门
+      - department
       summary: 获取部门列表
       description: 获取部门列表
       parameters:
@@ -669,7 +669,7 @@ paths:
   /department/saveDepartment:
     post:
       tags:
-      - 部门
+      - department
       summary: 保存部门信息
       description: 保存部门信息
       parameters:
@@ -697,7 +697,7 @@ paths:
   /elecprice/cancelStandard:
     delete:
       tags:
-      - 电费
+      - elecprice
       summary: 取消电费提醒标准
       description: 取消自己订阅的电费提醒
       parameters:
@@ -741,7 +741,7 @@ paths:
   /elecprice/getArchitecture:
     get:
       tags:
-      - 电费
+      - elecprice
       summary: 获取楼栋信息
       description: 通过区域获取楼栋信息
       parameters:
@@ -782,7 +782,7 @@ paths:
   /elecprice/getPrice:
     get:
       tags:
-      - 电费
+      - elecprice
       summary: 获取电费
       description: 根据房间号获取电费信息
       parameters:
@@ -823,7 +823,7 @@ paths:
   /elecprice/getRoomInfo:
     get:
       tags:
-      - 电费
+      - elecprice
       summary: 获取房间号和id
       description: 根据房间号和空调/照明id
       parameters:
@@ -869,7 +869,7 @@ paths:
   /elecprice/getStandardList:
     get:
       tags:
-      - 电费
+      - elecprice
       summary: 获取电费提醒标准
       description: 获取自己订阅的电费提醒标准
       parameters:
@@ -905,7 +905,7 @@ paths:
   /elecprice/setStandard:
     put:
       tags:
-      - 电费
+      - elecprice
       summary: 设置电费提醒标准
       description: 根据区域、楼栋和房间号设置电费提醒的金额标准
       parameters:
@@ -949,7 +949,7 @@ paths:
   /feed/changeFeedAllowList:
     post:
       tags:
-      - feed订阅
+      - feed
       summary: 修改feed订阅白名单
       description: 修改已登录用户的feed订阅白名单设置
       parameters:
@@ -983,7 +983,7 @@ paths:
   /feed/clearFeedEvent:
     post:
       tags:
-      - feed订阅
+      - feed
       summary: 清除feed订阅事件
       description: "清除指定用户的feed订阅事件,都是可选字段"
       parameters:
@@ -1017,7 +1017,7 @@ paths:
   /feed/getFeedAllowList:
     get:
       tags:
-      - feed订阅
+      - feed
       summary: 获取feed订阅白名单
       description: 获取已登录用户的feed订阅白名单设置
       parameters:
@@ -1048,7 +1048,7 @@ paths:
   /feed/getFeedEvents:
     get:
       tags:
-      - feed订阅
+      - feed
       summary: 获取feed订阅事件
       description: 获取已登录用户的所有feed订阅事件（包括已读和未读）
       parameters:
@@ -1079,7 +1079,7 @@ paths:
   /feed/getToBePublicOfficialMSG:
     get:
       tags:
-      - feed订阅
+      - feed
       summary: 获取待发布的官方消息
       description: 获取计划发布的官方消息，仅限管理员操作
       parameters:
@@ -1116,7 +1116,7 @@ paths:
   /feed/publicMuxiOfficialMSG:
     post:
       tags:
-      - feed订阅
+      - feed
       summary: 发布木犀官方消息
       description: 发布木犀官方消息，仅限管理员操作
       parameters:
@@ -1161,7 +1161,7 @@ paths:
   /feed/readFeedEvent:
     post:
       tags:
-      - feed订阅
+      - feed
       summary: 标注feed订阅事件为已读
       description: 标注feed订阅事件为已读
       parameters:
@@ -1195,7 +1195,7 @@ paths:
   /feed/removeFeedToken:
     post:
       tags:
-      - feed订阅
+      - feed
       summary: 删除feed订阅Token
       description: 删除已登录用户的feed订阅Token
       parameters:
@@ -1229,7 +1229,7 @@ paths:
   /feed/saveFeedToken:
     post:
       tags:
-      - feed订阅
+      - feed
       summary: 保存feed订阅Token
       description: 保存已登录用户的feed订阅Token
       parameters:
@@ -1263,7 +1263,7 @@ paths:
   /feed/stopMuxiOfficialMSG:
     post:
       tags:
-      - feed订阅
+      - feed
       summary: 停止木犀官方消息
       description: 停止木犀官方消息，仅限管理员操作
       parameters:
@@ -1303,7 +1303,7 @@ paths:
   /feedback_help/changeQuestion:
     post:
       tags:
-      - 帮助与反馈【弃用】
+      - "feedback_help[Deprecation]"
       summary: 修改一个问题与答复
       description: 修改一个常见问题的内容与答复
       requestBody:
@@ -1330,7 +1330,7 @@ paths:
   /feedback_help/createQuestion:
     post:
       tags:
-      - 帮助与反馈【弃用】
+      - "feedback_help[Deprecation]"
       summary: 创建一个问题与答复
       description: 创建一个常见问题的内容与答复
       requestBody:
@@ -1357,7 +1357,7 @@ paths:
   /feedback_help/deleteQuestion:
     post:
       tags:
-      - 帮助与反馈【弃用】
+      - "feedback_help[Deprecation]"
       summary: 删除一个问题与答复
       description: 删除一个常见问题的内容与答复
       requestBody:
@@ -1384,7 +1384,7 @@ paths:
   /feedback_help/findQuestionsByName:
     get:
       tags:
-      - 帮助与反馈【弃用】
+      - "feedback_help[Deprecation]"
       summary: 搜取问题
       description: 对常见问题进行模糊搜索
       parameters:
@@ -1415,7 +1415,7 @@ paths:
   /feedback_help/getQuestion:
     get:
       tags:
-      - 帮助与反馈【弃用】
+      - "feedback_help[Deprecation]"
       summary: 获取常见问题
       description: 获取点击数量最多的10个常见问题
       responses:
@@ -1439,7 +1439,7 @@ paths:
   /feedback_help/noteQuestion:
     post:
       tags:
-      - 帮助与反馈【弃用】
+      - "feedback_help[Deprecation]"
       summary: 标记问题解决状态
       description: 标记问题解决状态
       requestBody:
@@ -1466,7 +1466,7 @@ paths:
   /grade/getGradeByTerm:
     get:
       tags:
-      - 成绩
+      - grade
       summary: 查询按学年和学期的成绩
       description: 根据学年号和学期号获取用户的成绩
       parameters:
@@ -1508,7 +1508,7 @@ paths:
   /grade/getGradeScore:
     get:
       tags:
-      - 成绩
+      - grade
       summary: 查询学分
       description: 查询学分
       responses:
@@ -1532,7 +1532,7 @@ paths:
   /metrics/:eventName:
     post:
       tags:
-      - 打点
+      - metrics
       summary: 用于打点的路由
       description: "用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/kstack)表示\
         跳转访问课栈,使用这一路由必须携带Auth请求头"
@@ -1546,7 +1546,7 @@ paths:
   /statics:
     get:
       tags:
-      - 静态【弃用】
+      - statics
       summary: "获取静态资源[精确名称]"
       description: 【弃用】根据静态资源名称获取静态资源的内容。
       parameters:
@@ -1571,9 +1571,8 @@ paths:
   /statics/match/labels:
     get:
       tags:
-      - 静态【弃用】
+      - statics
       summary: "获取静态资源[标签匹配]"
-      description: 【弃用】根据静labels匹配合适的静态资源
       parameters:
       - name: "labels[type]"
         in: query
@@ -1596,7 +1595,7 @@ paths:
   /statics/save:
     post:
       tags:
-      - 静态【弃用】
+      - "statics[Deprecation]"
       summary: 保存静态内容
       description: 【弃用】保存静态内容
       requestBody:
@@ -1617,7 +1616,7 @@ paths:
   /tube/access_token:
     get:
       tags:
-      - 图床
+      - tube
       summary: 获取图床访问令牌
       responses:
         "200":
@@ -1634,7 +1633,7 @@ paths:
   /users/login_ccnu:
     post:
       tags:
-      - 用户
+      - user
       summary: ccnu登录
       description: 通过学号和密码进行登录认证
       requestBody:
@@ -1655,7 +1654,7 @@ paths:
   /users/logout:
     post:
       tags:
-      - 用户
+      - user
       summary: 登出(销毁token)
       description: 通过短token登出
       responses:
@@ -1668,7 +1667,7 @@ paths:
   /users/refresh_token:
     get:
       tags:
-      - 用户
+      - user
       summary: 刷新短token
       description: 通过长token刷新短token
       responses:
@@ -1683,7 +1682,7 @@ paths:
   /website/delWebsite:
     delete:
       tags:
-      - 网站
+      - website
       summary: 删除网站信息
       description: 删除网站信息
       requestBody:
@@ -1704,7 +1703,7 @@ paths:
   /website/getWebsites:
     get:
       tags:
-      - 网站
+      - website
       summary: 获取网站列表
       description: 获取所有网站的列表
       responses:
@@ -1722,7 +1721,7 @@ paths:
   /website/saveWebsite:
     post:
       tags:
-      - 网站
+      - website
       summary: 保存网站信息
       description: "保存网站信息,id是可选字段,如果有就是替换原来的列表里的,如果没有就是存储新的值"
       requestBody:

@@ -32,7 +32,7 @@ func (h *WebsiteHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 // GetWebsites 获取网站列表
 // @Summary 获取网站列表
 // @Description 获取所有网站的列表
-// @Tags 网站
+// @Tags website
 // @Success 200 {object} web.Response{data=GetWebsitesResponse} "成功"
 // @Router /website/getWebsites [get]
 func (h *WebsiteHandler) GetWebsites(ctx *gin.Context) (web.Response, error) {
@@ -55,7 +55,7 @@ func (h *WebsiteHandler) GetWebsites(ctx *gin.Context) (web.Response, error) {
 // SaveWebsite 保存网站信息
 // @Summary 保存网站信息
 // @Description 保存网站信息,id是可选字段,如果有就是替换原来的列表里的,如果没有就是存储新的值
-// @Tags 网站
+// @Tags website
 // @Accept json
 // @Produce json
 // @Param request body SaveWebsiteRequest true "保存网站信息请求参数"
@@ -85,7 +85,7 @@ func (h *WebsiteHandler) SaveWebsite(ctx *gin.Context, req SaveWebsiteRequest, u
 // DelWebsite 删除网站信息
 // @Summary 删除网站信息
 // @Description 删除网站信息
-// @Tags 网站
+// @Tags website
 // @Accept json
 // @Produce json
 // @Param request body DelWebsiteRequest true "删除网站信息请求参数"

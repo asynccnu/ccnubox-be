@@ -2337,7 +2337,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "statics"
+                    "statics[Deprecation]"
                 ],
                 "summary": "获取静态资源[精确名称]",
                 "parameters": [
@@ -2380,7 +2380,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "statics"
+                    "statics[Deprecation]"
                 ],
                 "summary": "获取静态资源[标签匹配]",
                 "parameters": [
@@ -2713,12 +2713,12 @@
         "banner.SaveBannerRequest": {
             "type": "object",
             "required": [
-                "id",
                 "picture_link",
                 "web_link"
             ],
             "properties": {
                 "id": {
+                    "description": "可选,如果新增记录不用填写",
                     "type": "integer"
                 },
                 "picture_link": {
@@ -3195,7 +3195,6 @@
         "department.SaveDepartmentRequest": {
             "type": "object",
             "required": [
-                "id",
                 "name",
                 "phone",
                 "place",
@@ -3203,6 +3202,7 @@
             ],
             "properties": {
                 "id": {
+                    "description": "可选,如果新增记录不用填写",
                     "type": "integer"
                 },
                 "name": {
@@ -3901,7 +3901,6 @@
             "type": "object",
             "required": [
                 "description",
-                "id",
                 "image",
                 "link",
                 "name"
@@ -3911,6 +3910,7 @@
                     "type": "string"
                 },
                 "id": {
+                    "description": "可选,如果新增记录不用填写",
                     "type": "integer"
                 },
                 "image": {
@@ -4037,7 +4037,6 @@
             "type": "object",
             "required": [
                 "description",
-                "id",
                 "image",
                 "link",
                 "name"
@@ -4047,6 +4046,7 @@
                     "type": "string"
                 },
                 "id": {
+                    "description": "可选,如果新增记录不用填写",
                     "type": "integer"
                 },
                 "image": {

@@ -120,11 +120,13 @@ func getDetail(ctx context.Context, cookie string, xnm int64, xqm int64, showCou
 		return nil, fmt.Errorf("发送请求失败: %w", err)
 	}
 	defer resp.Body.Close()
+	fmt.Println("response Status:", resp.Status)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("读取响应失败: %w", err)
 	}
+	fmt.Println("response body:", string(body))
 
 	// 解析JSON响应
 	var response GetDetailResp

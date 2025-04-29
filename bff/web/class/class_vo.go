@@ -3,7 +3,7 @@ package class
 type GetClassListRequest struct {
 	Year     string `form:"year" binding:"required"` //学年,格式为"2024"代表"2024-2025学年"`
 	Semester string `form:"semester" binding:"required"`
-	Refresh  bool   `form:"refresh" binding:"required"`
+	Refresh  *bool  `form:"refresh" binding:"required"`
 }
 
 type ClassInfo struct {

@@ -50,7 +50,6 @@ func NewClassUsecase(classRepo ClassRepoProxy, crawler ClassCrawler,
 
 func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*model.Class, *time.Time, error) {
 	var classInfos []*model.ClassInfo
-	currentTime := time.Now()
 
 Local: //从本地获取数据
 
@@ -204,6 +203,7 @@ wrapRes: //包装结果
 		return nil, nil, errcode.ErrClassNotFound
 	}
 
+	currentTime := time.Now()
 	lastRefreshTime := cluc.refreshLogRepo.GetLastRefreshTime(ctx, stuID, year, semester, currentTime)
 
 	classes, _ := convertToClass(classInfos)

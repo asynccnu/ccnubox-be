@@ -31,13 +31,13 @@ definitions:
   banner.SaveBannerRequest:
     properties:
       id:
+        description: 可选,如果新增记录不用填写
         type: integer
       picture_link:
         type: string
       web_link:
         type: string
     required:
-    - id
     - picture_link
     - web_link
     type: object
@@ -369,6 +369,7 @@ definitions:
   department.SaveDepartmentRequest:
     properties:
       id:
+        description: 可选,如果新增记录不用填写
         type: integer
       name:
         type: string
@@ -379,7 +380,6 @@ definitions:
       time:
         type: string
     required:
-    - id
     - name
     - phone
     - place
@@ -855,6 +855,7 @@ definitions:
       description:
         type: string
       id:
+        description: 可选,如果新增记录不用填写
         type: integer
       image:
         type: string
@@ -864,7 +865,6 @@ definitions:
         type: string
     required:
     - description
-    - id
     - image
     - link
     - name
@@ -945,6 +945,7 @@ definitions:
       description:
         type: string
       id:
+        description: 可选,如果新增记录不用填写
         type: integer
       image:
         type: string
@@ -954,7 +955,6 @@ definitions:
         type: string
     required:
     - description
-    - id
     - image
     - link
     - name
@@ -2450,7 +2450,7 @@ paths:
               type: object
       summary: 获取静态资源[精确名称]
       tags:
-      - statics
+      - statics[Deprecation]
   /statics/match/labels:
     get:
       consumes:
@@ -2475,7 +2475,7 @@ paths:
               type: object
       summary: 获取静态资源[标签匹配]
       tags:
-      - statics
+      - statics[Deprecation]
   /statics/save:
     post:
       consumes:

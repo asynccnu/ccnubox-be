@@ -2348,7 +2348,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statics"
+                    "statics[Deprecation]"
                 ],
                 "summary": "获取静态资源[精确名称]",
                 "parameters": [
@@ -2391,7 +2391,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "statics"
+                    "statics[Deprecation]"
                 ],
                 "summary": "获取静态资源[标签匹配]",
                 "parameters": [
@@ -2724,12 +2724,12 @@ const docTemplate = `{
         "banner.SaveBannerRequest": {
             "type": "object",
             "required": [
-                "id",
                 "picture_link",
                 "web_link"
             ],
             "properties": {
                 "id": {
+                    "description": "可选,如果新增记录不用填写",
                     "type": "integer"
                 },
                 "picture_link": {
@@ -3206,7 +3206,6 @@ const docTemplate = `{
         "department.SaveDepartmentRequest": {
             "type": "object",
             "required": [
-                "id",
                 "name",
                 "phone",
                 "place",
@@ -3214,6 +3213,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "id": {
+                    "description": "可选,如果新增记录不用填写",
                     "type": "integer"
                 },
                 "name": {
@@ -3912,7 +3912,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "description",
-                "id",
                 "image",
                 "link",
                 "name"
@@ -3922,6 +3921,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "description": "可选,如果新增记录不用填写",
                     "type": "integer"
                 },
                 "image": {
@@ -4048,7 +4048,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "description",
-                "id",
                 "image",
                 "link",
                 "name"
@@ -4058,6 +4057,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "description": "可选,如果新增记录不用填写",
                     "type": "integer"
                 },
                 "image": {

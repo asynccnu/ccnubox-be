@@ -37,7 +37,7 @@ func (h *StaticHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Ha
 // GetStaticByName
 // @Summary 获取静态资源[精确名称]
 // @Description 【弃用】根据静态资源名称获取静态资源的内容。
-// @Tags statics
+// @Tags statics[Deprecation]
 // @Accept json
 // @Produce json
 // @Param static_name query string true "静态资源名称"
@@ -109,7 +109,7 @@ func (h *StaticHandler) isAdmin(studentId string) bool {
 // GetStaticByLabels
 // @Summary 获取静态资源[标签匹配]
 // @Description【弃用】根据静labels匹配合适的静态资源
-// @Tags statics
+// @Tags statics[Deprecation]
 // @Accept multipart/form-data
 // @Produce json
 // @Param labels[type] query string true "标签：标明匹配哪一类的资源"

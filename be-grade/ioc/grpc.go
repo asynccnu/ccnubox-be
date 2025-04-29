@@ -35,7 +35,7 @@ func InitGRPCxKratosServer(gradeServer *grpc.GradeServiceServer, ecli *clientv3.
 			recovery.Recovery(),
 			LoggingMiddleware(l),
 		),
-		kgrpc.Timeout(10*time.Second),
+		kgrpc.Timeout(30*time.Second),
 	)
 
 	gradeServer.Register(server)

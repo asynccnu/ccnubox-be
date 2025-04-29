@@ -55,7 +55,7 @@ func (s StudentAndCourseDBRepo) DeleteStudentAndCourseInDB(ctx context.Context, 
 		return errors.New("mysql can't delete zero data")
 	}
 	db := s.data.DB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
-	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND cla_id IN ?", year, semester, stuID, claID).Delete(&model.StudentCourse{}).Error
+	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND cla_id IN (?)", year, semester, stuID, claID).Delete(&model.StudentCourse{}).Error
 	if err != nil {
 		s.log.Errorf("Mysql:delete %v in %s failed: %v", claID, model.StudentCourseTableName, err)
 		return errcode.ErrClassDelete
@@ -65,7 +65,7 @@ func (s StudentAndCourseDBRepo) DeleteStudentAndCourseInDB(ctx context.Context, 
 func (s StudentAndCourseDBRepo) CheckExists(ctx context.Context, xnm, xqm, stuId, classId string) bool {
 	db := s.data.Mysql.Table(model.StudentCourseTableName).WithContext(ctx)
 	var cnt int64
-	err := db.Where("stu_id = ? AND cla_id = ? AND year = ? AND semester = ?", stuId, classId, xnm, xqm).Count(&cnt).Error
+	err := db.Where("stu_id = ?  AND year = ? AND semester = ? AND cla_id = ?", stuId, xnm, xqm, classId).Count(&cnt).Error
 	if err != nil || cnt == 0 {
 		return false
 	}
@@ -89,4 +89,17 @@ func (s StudentAndCourseDBRepo) DeleteStudentAndCourseByTimeFromDB(ctx context.C
 		return errcode.ErrClassDelete
 	}
 	return nil
+}
+
+func (s StudentAndCourseDBRepo) CheckManualCourseStatus(ctx context.Context, stuID, year, semester, classID string) bool {
+	db := s.data.DB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
+
+	var isAdded bool
+
+	err := db.Where("stu_id = ? and year = ? and semester = ? and cla_id = ?", stuID, year, semester, classID).
+		Pluck("is_manually_added", &isAdded).Error
+	if err != nil {
+		return false
+	}
+	return isAdded
 }

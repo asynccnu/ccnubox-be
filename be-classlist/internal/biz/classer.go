@@ -212,31 +212,9 @@ wrapRes: //包装结果
 }
 
 func (cluc *ClassUsecase) AddClass(ctx context.Context, stuID string, info *model.ClassInfo) error {
-	sc := &model.StudentCourse{
-		StuID:           stuID,
-		ClaID:           info.ID,
-		Year:            info.Year,
-		Semester:        info.Semester,
-		IsManuallyAdded: true, //手动添加课程
-	}
-	//检查是否添加的课程是否已经存在
-	if cluc.classRepo.CheckSCIdsExist(ctx, model.CheckSCIdsExistReq{StuID: stuID, Year: info.Year, Semester: info.Semester, ClassId: info.ID}) {
-		cluc.log.Errorf("[%v] already exists", info)
-		return errcode.ErrClassIsExist
-	}
-	//添加课程
-	err := cluc.classRepo.AddClass(ctx, model.AddClassReq{
-		StuID:     stuID,
-		Year:      info.Year,
-		Semester:  info.Semester,
-		ClassInfo: info,
-		Sc:        sc,
-	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return cluc.addClass(ctx, stuID, info, false)
 }
+
 func (cluc *ClassUsecase) DeleteClass(ctx context.Context, stuID, year, semester, classId string) error {
 	//删除课程
 	err := cluc.classRepo.DeleteClass(ctx, model.DeleteClassReq{
@@ -287,18 +265,32 @@ func (cluc *ClassUsecase) RecoverClassInfo(ctx context.Context, stuID, year, sem
 	if !exist {
 		return errcode.ErrRecycleBinDoNotHaveIt
 	}
+
+	isAdded := cluc.classRepo.IsRecycledCourseManual(ctx, model.IsRecycledCourseManualReq{
+		StuID:    stuID,
+		Year:     year,
+		Semester: semester,
+		ClassId:  classId,
+	})
+
 	//获取该ID的课程信息
 	RecycledClassInfo, err := cluc.SearchClass(ctx, classId)
 	if err != nil {
 		return errcode.ErrRecover
 	}
-	err = cluc.AddClass(ctx, stuID, RecycledClassInfo)
+
+	//恢复数据库中的对应关系
+	err = cluc.addClass(ctx, stuID, RecycledClassInfo, isAdded)
 	if err != nil {
 		return errcode.ErrRecover
 	}
-	//恢复对应的关系
-	err = cluc.classRepo.RecoverClassFromRecycledBin(ctx, model.RecoverClassFromRecycleBinReq{
-		ClassId: classId,
+
+	//删除回收站的对应ID
+	err = cluc.classRepo.RemoveClassFromRecycledBin(ctx, model.RemoveClassFromRecycleBinReq{
+		StuID:    stuID,
+		Year:     year,
+		Semester: semester,
+		ClassId:  classId,
 	})
 	if err != nil {
 		return errcode.ErrRecover
@@ -343,6 +335,33 @@ func (cluc *ClassUsecase) GetAllSchoolClassInfosToOtherService(ctx context.Conte
 }
 func (cluc *ClassUsecase) GetStuIdsByJxbId(ctx context.Context, jxbId string) ([]string, error) {
 	return cluc.jxbRepo.FindStuIdsByJxbId(ctx, jxbId)
+}
+
+func (cluc *ClassUsecase) addClass(ctx context.Context, stuID string, info *model.ClassInfo, isAdded bool) error {
+	sc := &model.StudentCourse{
+		StuID:           stuID,
+		ClaID:           info.ID,
+		Year:            info.Year,
+		Semester:        info.Semester,
+		IsManuallyAdded: isAdded, //手动添加课程
+	}
+	//检查是否添加的课程是否已经存在
+	if cluc.classRepo.CheckSCIdsExist(ctx, model.CheckSCIdsExistReq{StuID: stuID, Year: info.Year, Semester: info.Semester, ClassId: info.ID}) {
+		cluc.log.Errorf("[%v] already exists", info)
+		return errcode.ErrClassIsExist
+	}
+	//添加课程
+	err := cluc.classRepo.AddClass(ctx, model.AddClassReq{
+		StuID:     stuID,
+		Year:      info.Year,
+		Semester:  info.Semester,
+		ClassInfo: info,
+		Sc:        sc,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string, year string, semester string) ([]*model.ClassInfo, []*model.StudentCourse, error) {

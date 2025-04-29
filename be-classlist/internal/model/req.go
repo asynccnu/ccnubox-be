@@ -47,7 +47,7 @@ type DeleteClassReq struct {
 	ClassId  []string
 	//Sc []*StudentCourse
 }
-type RecoverClassFromRecycleBinReq struct {
+type RemoveClassFromRecycleBinReq struct {
 	StuID    string
 	Year     string
 	Semester string
@@ -89,4 +89,10 @@ type GetAddedClassesReq struct {
 	StudID   string
 	Year     string
 	Semester string
+}
+type IsRecycledCourseManualReq struct {
+	StuID    string
+	Year     string
+	Semester string
+	ClassId  string
 }

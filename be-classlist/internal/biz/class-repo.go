@@ -113,13 +113,18 @@ func (cla ClassRepo) DeleteClass(ctx context.Context, req model.DeleteClassReq) 
 		cla.log.Errorf("Delete Class [%+v] from Cache failed:%v", req, err)
 		return err
 	}
+	// 获取删除课程手动添加的信息
+	isManuallyAddedCourse := cla.Sac.DB.CheckManualCourseStatus(ctx, req.StuID, req.Year, req.Semester, req.ClassId[0])
+
 	//删除并添加进回收站
 	recycleSetName := GenerateRecycleSetName(req.StuID, req.Year, req.Semester)
-	err = cla.Sac.Cache.RecycleClassId(ctx, recycleSetName, req.ClassId...)
+
+	err = cla.Sac.Cache.RecycleClassId(ctx, recycleSetName, req.ClassId[0], isManuallyAddedCourse)
 	if err != nil {
 		cla.log.Errorf("Add Class [%+v] To RecycleBin failed:%v", req, err)
 		return err
 	}
+
 	//从数据库中删除对应的关系
 	errTx := cla.TxCtrl.InTx(ctx, func(ctx context.Context) error {
 		err := cla.Sac.DB.DeleteStudentAndCourseInDB(ctx, req.StuID, req.Year, req.Semester, req.ClassId)
@@ -142,12 +147,17 @@ func (cla ClassRepo) GetRecycledIds(ctx context.Context, req model.GetRecycledId
 	}
 	return &model.GetRecycledIdsResp{Ids: classIds}, nil
 }
-func (cla ClassRepo) CheckClassIdIsInRecycledBin(ctx context.Context, req model.CheckClassIdIsInRecycledBinReq) bool {
 
+func (cla ClassRepo) IsRecycledCourseManual(ctx context.Context, req model.IsRecycledCourseManualReq) bool {
+	recycleKey := GenerateRecycleSetName(req.StuID, req.Year, req.Semester)
+	return cla.Sac.Cache.IsRecycledCourseManual(ctx, recycleKey, req.ClassId)
+}
+
+func (cla ClassRepo) CheckClassIdIsInRecycledBin(ctx context.Context, req model.CheckClassIdIsInRecycledBinReq) bool {
 	RecycledBinKey := GenerateRecycleSetName(req.StuID, req.Year, req.Semester)
 	return cla.Sac.Cache.CheckRecycleIdIsExist(ctx, RecycledBinKey, req.ClassId)
 }
-func (cla ClassRepo) RecoverClassFromRecycledBin(ctx context.Context, req model.RecoverClassFromRecycleBinReq) error {
+func (cla ClassRepo) RemoveClassFromRecycledBin(ctx context.Context, req model.RemoveClassFromRecycleBinReq) error {
 	RecycledBinKey := GenerateRecycleSetName(req.StuID, req.Year, req.Semester)
 	return cla.Sac.Cache.RemoveClassFromRecycledBin(ctx, RecycledBinKey, req.ClassId)
 }

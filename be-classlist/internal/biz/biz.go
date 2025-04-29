@@ -35,8 +35,8 @@ type ClassRepoProxy interface {
 	DeleteClass(ctx context.Context, req model.DeleteClassReq) error
 	//获取某个学生某个学期的处于回收站的课程ID
 	GetRecycledIds(ctx context.Context, req model.GetRecycledIdsReq) (*model.GetRecycledIdsResp, error)
-	//恢复课程
-	RecoverClassFromRecycledBin(ctx context.Context, req model.RecoverClassFromRecycleBinReq) error
+	//从回收站中移除课程
+	RemoveClassFromRecycledBin(ctx context.Context, req model.RemoveClassFromRecycleBinReq) error
 	//更新课程
 	UpdateClass(ctx context.Context, req model.UpdateClassReq) error
 	//判断课程和学生ID是否有联系
@@ -45,6 +45,8 @@ type ClassRepoProxy interface {
 	GetAllSchoolClassInfos(ctx context.Context, req model.GetAllSchoolClassInfosReq) *model.GetAllSchoolClassInfosResp
 	//检查某个class是否存在于回收站中
 	CheckClassIdIsInRecycledBin(ctx context.Context, req model.CheckClassIdIsInRecycledBinReq) bool
+	//检查回收的课程的是否手动添加
+	IsRecycledCourseManual(ctx context.Context, req model.IsRecycledCourseManualReq) bool
 	//获取某个学生某个学期的手动添加的课程[直接来自数据库]
 	GetAddedClasses(ctx context.Context, req model.GetAddedClassesReq) (*model.GetAddedClassesResp, error)
 }

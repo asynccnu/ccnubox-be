@@ -1,10 +1,12 @@
 package domain
 
 type Grade struct {
+	Xnm                 int64   `json:"xnm"`                           //学年
+	Xqm                 int64   `json:"xqm"`                           //学期
 	JxbId               string  `json:"jxb_id"`                        //教学班id
 	Kcmc                string  `json:"kcmc,omitempty"`                //课程名
 	Xf                  float32 `json:"xf,omitempty"`                  //学分
-	Cj                  float32 `gorm:"column:cj"`                     // 总成绩
+	Cj                  float32 `gorm:"column:cj"`                     //总成绩
 	Kcxzmc              string  `json:"kcxzmc,omitempty"`              //课程性质名称 比如专业主干课程/通识必修课
 	Kclbmc              string  `json:"Kclbmc,omitempty"`              //课程类别名称，比如专业课/公共课
 	Kcbj                string  `json:"kcbj,omitempty"`                //课程标记，比如主修/辅修

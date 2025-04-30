@@ -2232,24 +2232,30 @@ const docTemplate = `{
                 "summary": "查询按学年和学期的成绩",
                 "parameters": [
                     {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等",
+                        "name": "kcxzmcs",
+                        "in": "query"
+                    },
+                    {
                         "type": "boolean",
                         "description": "是否强制刷新,可选字段",
                         "name": "refresh",
                         "in": "query"
                     },
                     {
-                        "type": "integer",
-                        "description": "学年名:例如2023表示2023~2024学年",
-                        "name": "xnm",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "学期名:0表示所有学期,1表示第一学期,2表示第二学期,3表示第三学期",
-                        "name": "xqm",
-                        "in": "query",
-                        "required": true
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "学期筛选,格式为2024-1表示2024~2025学年第一学期",
+                        "name": "terms",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -3771,7 +3777,9 @@ const docTemplate = `{
                 "kcxzmc",
                 "regularGrade",
                 "regularGradePercent",
-                "xf"
+                "xf",
+                "xnm",
+                "xqm"
             ],
             "properties": {
                 "Kclbmc": {
@@ -3817,6 +3825,14 @@ const docTemplate = `{
                 "xf": {
                     "description": "学分",
                     "type": "number"
+                },
+                "xnm": {
+                    "description": "学年",
+                    "type": "integer"
+                },
+                "xqm": {
+                    "description": "学期",
+                    "type": "integer"
                 }
             }
         },

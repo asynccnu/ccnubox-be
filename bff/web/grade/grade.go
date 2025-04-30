@@ -11,6 +11,8 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/gin-gonic/gin"
+	"strconv"
+	"strings"
 )
 
 type GradeHandler struct {
@@ -54,8 +56,8 @@ func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, uc ijwt.UserClaims) (web.Response, error) {
 	grades, err := h.GradeClient.GetGradeByTerm(ctx, &gradev1.GetGradeByTermReq{
 		StudentId: uc.StudentId,
-		Xnm:       req.Xnm,
-		Xqm:       req.Xqm,
+		Terms:     convTermsToProto(req.Terms),
+		Kcxzmcs:   req.Kcxzmcs,
 		Refresh:   req.Refresh,
 	})
 	if err != nil {
@@ -65,6 +67,8 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 	var resp GetGradeByTermResp
 	for _, grade := range grades.Grades {
 		resp.Grades = append(resp.Grades, Grade{
+			Xnm:                 grade.Xnm,
+			Xqm:                 grade.Xqm,
 			Kcmc:                grade.Kcmc,                // 课程名
 			Xf:                  grade.Xf,                  // 学分
 			Jd:                  grade.Jd,                  //绩点
@@ -89,7 +93,7 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 	}()
 
 	return web.Response{
-		Msg:  fmt.Sprintf("获取%d~%d学年第%d学期成绩成功!", req.Xnm, req.Xnm+1, req.Xqm),
+		Msg:  fmt.Sprintf("获取成绩成功!"),
 		Data: resp,
 	}, nil
 }
@@ -134,4 +138,41 @@ func (h *GradeHandler) GetGradeScore(ctx *gin.Context, uc ijwt.UserClaims) (web.
 	return web.Response{
 		Data: resp,
 	}, nil
+}
+
+func convTermsToProto(terms []string) []*gradev1.Terms {
+	termMap := make(map[int64]map[int64]struct{})
+
+	for _, termStr := range terms {
+		parts := strings.Split(termStr, "-")
+		if len(parts) != 2 {
+			continue // 非法格式，跳过
+		}
+
+		xnm, err1 := strconv.ParseInt(parts[0], 10, 64)
+		xqm, err2 := strconv.ParseInt(parts[1], 10, 64)
+		if err1 != nil || err2 != nil {
+			continue // 非法数字，跳过
+		}
+
+		if _, ok := termMap[xnm]; !ok {
+			termMap[xnm] = make(map[int64]struct{})
+		}
+		termMap[xnm][xqm] = struct{}{}
+	}
+
+	// 构造 []*gradev1.Terms
+	var result []*gradev1.Terms
+	for xnm, xqmsSet := range termMap {
+		var xqms []int64
+		for xqm := range xqmsSet {
+			xqms = append(xqms, xqm)
+		}
+		result = append(result, &gradev1.Terms{
+			Xnm:  xnm,
+			Xqms: xqms,
+		})
+	}
+
+	return result
 }

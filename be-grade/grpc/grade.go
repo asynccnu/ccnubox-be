@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/grade/v1"
+	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
 	"google.golang.org/grpc"
 )
@@ -22,13 +23,7 @@ func (s *GradeServiceServer) Register(server grpc.ServiceRegistrar) {
 
 func (s *GradeServiceServer) GetGradeByTerm(ctx context.Context, req *v1.GetGradeByTermReq) (*v1.GetGradeByTermResp, error) {
 	// 调用服务层获取成绩数据
-	grades, err := s.ser.GetGradeByTerm(
-		ctx,
-		req.StudentId,
-		req.Xnm,
-		req.Xqm,
-		req.Refresh,
-	)
+	grades, err := s.ser.GetGradeByTerm(ctx, convGetGradeByTermReqFromProtoToDomain(req))
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +35,8 @@ func (s *GradeServiceServer) GetGradeByTerm(ctx context.Context, req *v1.GetGrad
 	for _, g := range grades {
 		// 将数据库模型中的字段映射到 Protobuf 的 v1.Grade 中
 		resp.Grades = append(resp.Grades, &v1.Grade{
+			Xnm:                 g.Xnm,
+			Xqm:                 g.Xqm,
 			Kcmc:                g.Kcmc,
 			Xf:                  g.Xf,
 			Cj:                  g.Cj,
@@ -84,4 +81,25 @@ func (s *GradeServiceServer) GetGradeScore(ctx context.Context, req *v1.GetGrade
 	}
 
 	return &v1.GetGradeScoreResp{TypeOfGradeScore: typeOfGradeScores}, nil
+}
+
+func convGetGradeByTermReqFromProtoToDomain(req *v1.GetGradeByTermReq) *domain.GetGradeByTermReq {
+	if req == nil {
+		return nil
+	}
+
+	terms := make([]domain.Term, 0, len(req.Terms))
+	for _, t := range req.Terms {
+		terms = append(terms, domain.Term{
+			Xnm:  t.Xnm,
+			Xqms: t.Xqms,
+		})
+	}
+
+	return &domain.GetGradeByTermReq{
+		StudentID: req.StudentId,
+		Terms:     terms,
+		Kcxzmcs:   req.Kcxzmcs,
+		Refresh:   req.Refresh,
+	}
 }

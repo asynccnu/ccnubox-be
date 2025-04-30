@@ -18,7 +18,6 @@ func aggregateGrades(detailItems []GetDetailItem, KcxzItems []GetKcxzItem) []mod
 		key := item.JxbID
 		// 如果当前 JxbId 不在 map 中，初始化 Grade 结构体
 		if _, exists := gradeMap[key]; !exists {
-
 			gradeMap[key] = &model.Grade{
 				Kcxzmc:              item.Kcxzmc,
 				Kclbmc:              item.Kclbmc,
@@ -91,6 +90,8 @@ func modelConvDomain(grades []model.Grade) []domain.Grade {
 	// 遍历 grades，转换为 domain.Grade
 	for _, grade := range grades {
 		domainGrade := domain.Grade{
+			Xnm:                 grade.Xnm,
+			Xqm:                 grade.Xqm,
 			JxbId:               grade.JxbId, //教学班id
 			Kcmc:                grade.Kcmc,  // 课程名称
 			Xf:                  grade.Xf,    // 学分
@@ -110,6 +111,89 @@ func modelConvDomain(grades []model.Grade) []domain.Grade {
 	}
 
 	return domainGrades
+}
+
+func modelConvDomainAndFilter(grades []model.Grade, terms []domain.Term, kcxzmcs []string) []domain.Grade {
+	// 如果 terms 为空，则跳过学年和学期筛选
+	if len(terms) != 0 {
+
+		// 学年筛选
+		grades = filterByYear(grades, terms)
+
+		// 学期筛选
+		grades = filterByTerm(grades, terms)
+	}
+
+	grades = FilterByKcxzmc(grades, kcxzmcs)
+
+	// 根据课程性质筛选
+	return modelConvDomain(grades)
+}
+
+// 按学年筛选
+func filterByYear(grades []model.Grade, terms []domain.Term) []model.Grade {
+	termMap := make(map[int64]map[int64]struct{})
+	for _, term := range terms {
+		if _, exists := termMap[term.Xnm]; !exists {
+			termMap[term.Xnm] = make(map[int64]struct{})
+		}
+	}
+
+	// 筛选
+	filtered := make([]model.Grade, 0)
+	for _, grade := range grades {
+		if _, ok := termMap[grade.Xnm]; ok {
+			filtered = append(filtered, grade)
+		}
+	}
+	return filtered
+}
+
+// 按学期筛选
+func filterByTerm(grades []model.Grade, terms []domain.Term) []model.Grade {
+	termMap := make(map[int64]map[int64]struct{})
+	for _, term := range terms {
+		if _, exists := termMap[term.Xnm]; !exists {
+			termMap[term.Xnm] = make(map[int64]struct{})
+		}
+		for _, xqm := range term.Xqms {
+			termMap[term.Xnm][xqm] = struct{}{}
+		}
+	}
+
+	// 筛选
+	filtered := make([]model.Grade, 0)
+	for _, grade := range grades {
+		if xqms, ok := termMap[grade.Xnm]; ok {
+			if _, ok2 := xqms[grade.Xqm]; ok2 {
+				filtered = append(filtered, grade)
+			}
+		}
+	}
+
+	return filtered
+}
+
+// 根据课程性质筛选
+func FilterByKcxzmc(grades []model.Grade, kcxzmcs []string) []model.Grade {
+	if len(kcxzmcs) == 0 {
+		return grades
+	}
+
+	kcxzmcSet := make(map[string]struct{})
+	for _, k := range kcxzmcs {
+		kcxzmcSet[k] = struct{}{}
+	}
+
+	filtered := make([]model.Grade, 0)
+	for _, grade := range grades {
+		// 如果课程性质列表为空，则不过滤课程性质
+		if _, ok := kcxzmcSet[grade.Kcxzmc]; ok {
+			filtered = append(filtered, grade)
+		}
+	}
+
+	return filtered
 }
 
 func aggregateGradeScore(grades []model.Grade) []domain.TypeOfGradeScore {

@@ -777,6 +777,12 @@ definitions:
       xf:
         description: 学分
         type: number
+      xnm:
+        description: 学年
+        type: integer
+      xqm:
+        description: 学期
+        type: integer
     required:
     - Kclbmc
     - cj
@@ -789,6 +795,8 @@ definitions:
     - regularGrade
     - regularGradePercent
     - xf
+    - xnm
+    - xqm
     type: object
   grade.GradeScore:
     properties:
@@ -2357,20 +2365,24 @@ paths:
       - application/json
       description: 根据学年号和学期号获取用户的成绩
       parameters:
+      - collectionFormat: csv
+        description: 课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等
+        in: query
+        items:
+          type: string
+        name: kcxzmcs
+        type: array
       - description: 是否强制刷新,可选字段
         in: query
         name: refresh
         type: boolean
-      - description: 学年名:例如2023表示2023~2024学年
+      - collectionFormat: csv
+        description: 学期筛选,格式为2024-1表示2024~2025学年第一学期
         in: query
-        name: xnm
-        required: true
-        type: integer
-      - description: 学期名:0表示所有学期,1表示第一学期,2表示第二学期,3表示第三学期
-        in: query
-        name: xqm
-        required: true
-        type: integer
+        items:
+          type: string
+        name: terms
+        type: array
       produces:
       - application/json
       responses:

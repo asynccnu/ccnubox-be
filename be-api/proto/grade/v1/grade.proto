@@ -13,9 +13,14 @@ service GradeService {
 // 请求体
 message GetGradeByTermReq{
   string studentId =1;//学号
-  int64 xnm =2;//学年名:例如2024表示2024-2025学年
-  int64 xqm =3;//学期名
+  repeated Terms terms =2; //学年和学期
+  repeated string Kcxzmcs =3; //课程性质名称
   bool refresh =4; //是否强制刷新
+}
+
+message Terms {
+  int64 xnm = 1;//学年名:例如2024表示2024-2025学年
+  repeated int64 xqms =2;//学期名
 }
 
 // 响应体
@@ -36,6 +41,8 @@ message Grade{
   float regularGrade=9;//平时成绩
   string finalGradePercent=10;//期末成绩占比
   float finalGrade=11;//期末成绩
+  int64 xqm =12;
+  int64 xnm =13;
 }
 
 message GetGradeScoreReq{

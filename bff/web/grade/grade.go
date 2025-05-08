@@ -38,21 +38,21 @@ func NewGradeHandler(
 func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	sg := s.Group("/grade")
 	//这里有三类路由,分别是ginx.WrapClaimsAndReq()有参数且要验证
-	sg.GET("/getGradeByTerm", authMiddleware, ginx.WrapClaimsAndReq(h.GetGradeByTerm))
+	sg.POST("/getGradeByTerm", authMiddleware, ginx.WrapClaimsAndReq(h.GetGradeByTerm))
 	sg.GET("/getGradeScore", authMiddleware, ginx.WrapClaims(h.GetGradeScore))
 
 }
 
 // GetGradeByTerm 查询按学年和学期的成绩
 // @Summary 查询按学年和学期的成绩
-// @Description 根据学年号和学期号获取用户的成绩
+// @Description 根据学年号和学期号获取用户的成绩,为了方便前端发送请求改成post了
 // @Tags grade
 // @Accept json
 // @Produce json
 // @Param request query GetGradeByTermReq  true "获取学年和学期的成绩请求参数"
 // @Success 200 {object} web.Response{data=GetGradeByTermResp} "成功返回学年和学期的成绩信息"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
-// @Router /grade/getGradeByTerm [get]
+// @Router /grade/getGradeByTerm [post]
 func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, uc ijwt.UserClaims) (web.Response, error) {
 	grades, err := h.GradeClient.GetGradeByTerm(ctx, &gradev1.GetGradeByTermReq{
 		StudentId: uc.StudentId,

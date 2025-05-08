@@ -2360,10 +2360,10 @@ paths:
       tags:
       - feedback_help[Deprecation]
   /grade/getGradeByTerm:
-    get:
+    post:
       consumes:
       - application/json
-      description: 根据学年号和学期号获取用户的成绩
+      description: 根据学年号和学期号获取用户的成绩,为了方便前端发送请求改成post了
       parameters:
       - collectionFormat: csv
         description: 课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等

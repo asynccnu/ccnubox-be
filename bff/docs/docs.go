@@ -2218,8 +2218,8 @@ const docTemplate = `{
             }
         },
         "/grade/getGradeByTerm": {
-            "get": {
-                "description": "根据学年号和学期号获取用户的成绩",
+            "post": {
+                "description": "根据学年号和学期号获取用户的成绩,为了方便前端发送请求改成post了",
                 "consumes": [
                     "application/json"
                 ],

@@ -1464,35 +1464,18 @@ paths:
                 $ref: '#/components/schemas/web.Response'
       x-codegen-request-body-name: data
   /grade/getGradeByTerm:
-    get:
+    post:
       tags:
       - grade
       summary: 查询按学年和学期的成绩
-      description: 根据学年号和学期号获取用户的成绩
-      parameters:
-      - name: kcxzmcs
-        in: query
-        description: "课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等"
-        style: form
-        explode: false
-        schema:
-          type: array
-          items:
-            type: string
-      - name: refresh
-        in: query
-        description: "是否强制刷新,可选字段"
-        schema:
-          type: boolean
-      - name: terms
-        in: query
-        description: "学期筛选,格式为2024-1表示2024~2025学年第一学期"
-        style: form
-        explode: false
-        schema:
-          type: array
-          items:
-            type: string
+      description: "根据学年号和学期号获取用户的成绩,为了方便前端发送请求改成post了"
+      requestBody:
+        description: 获取学年和学期的成绩请求参数
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/grade.GetGradeByTermReq'
+        required: true
       responses:
         "200":
           description: 成功返回学年和学期的成绩信息
@@ -1511,6 +1494,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/web.Response'
+      x-codegen-request-body-name: data
   /grade/getGradeScore:
     get:
       tags:
@@ -2471,6 +2455,22 @@ components:
           type: boolean
         question_id:
           type: integer
+    grade.GetGradeByTermReq:
+      type: object
+      properties:
+        kcxzmcs:
+          type: array
+          description: "课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等"
+          items:
+            type: string
+        refresh:
+          type: boolean
+          description: "是否强制刷新,可选字段"
+        terms:
+          type: array
+          description: "学期筛选,格式为2024-1表示2024~2025学年第一学期"
+          items:
+            type: string
     grade.GetGradeByTermResp:
       required:
       - grades

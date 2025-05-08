@@ -2232,30 +2232,13 @@ const docTemplate = `{
                 "summary": "查询按学年和学期的成绩",
                 "parameters": [
                     {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "collectionFormat": "csv",
-                        "description": "课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等",
-                        "name": "kcxzmcs",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "是否强制刷新,可选字段",
-                        "name": "refresh",
-                        "in": "query"
-                    },
-                    {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "collectionFormat": "csv",
-                        "description": "学期筛选,格式为2024-1表示2024~2025学年第一学期",
-                        "name": "terms",
-                        "in": "query"
+                        "description": "获取学年和学期的成绩请求参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/grade.GetGradeByTermReq"
+                        }
                     }
                 ],
                 "responses": {
@@ -3732,6 +3715,29 @@ const docTemplate = `{
                 },
                 "question_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "grade.GetGradeByTermReq": {
+            "type": "object",
+            "properties": {
+                "kcxzmcs": {
+                    "description": "课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "refresh": {
+                    "description": "是否强制刷新,可选字段",
+                    "type": "boolean"
+                },
+                "terms": {
+                    "description": "学期筛选,格式为2024-1表示2024~2025学年第一学期",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

@@ -723,6 +723,22 @@ definitions:
       question_id:
         type: integer
     type: object
+  grade.GetGradeByTermReq:
+    properties:
+      kcxzmcs:
+        description: 课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等
+        items:
+          type: string
+        type: array
+      refresh:
+        description: 是否强制刷新,可选字段
+        type: boolean
+      terms:
+        description: 学期筛选,格式为2024-1表示2024~2025学年第一学期
+        items:
+          type: string
+        type: array
+    type: object
   grade.GetGradeByTermResp:
     properties:
       grades:
@@ -2365,24 +2381,12 @@ paths:
       - application/json
       description: 根据学年号和学期号获取用户的成绩,为了方便前端发送请求改成post了
       parameters:
-      - collectionFormat: csv
-        description: 课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等
-        in: query
-        items:
-          type: string
-        name: kcxzmcs
-        type: array
-      - description: 是否强制刷新,可选字段
-        in: query
-        name: refresh
-        type: boolean
-      - collectionFormat: csv
-        description: 学期筛选,格式为2024-1表示2024~2025学年第一学期
-        in: query
-        items:
-          type: string
-        name: terms
-        type: array
+      - description: 获取学年和学期的成绩请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/grade.GetGradeByTermReq'
       produces:
       - application/json
       responses:

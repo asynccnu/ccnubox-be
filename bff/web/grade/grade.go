@@ -49,7 +49,7 @@ func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 // @Tags grade
 // @Accept json
 // @Produce json
-// @Param request query GetGradeByTermReq  true "获取学年和学期的成绩请求参数"
+// @Param data body GetGradeByTermReq  true "获取学年和学期的成绩请求参数"
 // @Success 200 {object} web.Response{data=GetGradeByTermResp} "成功返回学年和学期的成绩信息"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /grade/getGradeByTerm [post]

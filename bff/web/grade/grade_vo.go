@@ -1,9 +1,9 @@
 package grade
 
 type GetGradeByTermReq struct {
-	Terms   []string `form:"terms"`   //学期筛选,格式为2024-1表示2024~2025学年第一学期
-	Refresh bool     `form:"refresh"` //是否强制刷新,可选字段
-	Kcxzmcs []string `form:"kcxzmcs"` //课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等
+	Terms   []string `form:"terms" json:"terms"`     //学期筛选,格式为2024-1表示2024~2025学年第一学期
+	Refresh bool     `form:"refresh" json:"refresh"` //是否强制刷新,可选字段
+	Kcxzmcs []string `form:"kcxzmcs" json:"kcxzmcs"` //课程种类筛选,有如下类型:专业主干课程,通识选修课,通识必修课,个性发展课程,通识核心课等
 }
 
 type GetGradeByTermResp struct {

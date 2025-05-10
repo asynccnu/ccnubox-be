@@ -9,6 +9,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-user/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
+	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -50,6 +51,7 @@ type userService struct {
 	cryptoClient *crypto.Crypto
 	cache        cache.UserCache
 	ccnu         ccnuv1.CCNUServiceClient
+	sfGroup      singleflight.Group
 	l            logger.Logger
 }
 
@@ -95,40 +97,53 @@ func (s *userService) Save(ctx context.Context, studentId string, password strin
 }
 
 func (s *userService) GetCookie(ctx context.Context, studentId string) (string, error) {
-	var cookie string
-	var newCookie string
-	//如果从缓存获取成功就直接返回,否则降级处理
-	cookie, err := s.cache.GetCookie(ctx, studentId)
-	if err != nil {
-		s.l.Info("从缓存获取cookie失败", logger.FormatLog("cache", err)...)
-
-		//直接获取新的
-		newCookie, err = s.getNewCookie(ctx, studentId)
+	key := studentId
+	result, err, _ := s.sfGroup.Do(key, func() (interface{}, error) {
+		var cookie string
+		var newCookie string
+		//如果从缓存获取成功就直接返回,否则降级处理
+		cookie, err := s.cache.GetCookie(ctx, studentId)
 		if err != nil {
-			return "", err
-		}
+			s.l.Info("从缓存获取cookie失败", logger.FormatLog("cache", err)...)
 
-	} else {
-		//如果是从缓存获取的要验证是否可用
-		if !s.checkCookie(cookie) {
 			//直接获取新的
 			newCookie, err = s.getNewCookie(ctx, studentId)
 			if err != nil {
 				return "", err
 			}
+
+		} else {
+			//如果是从缓存获取的要验证是否可用
+			if !s.checkCookie(cookie) {
+				//直接获取新的
+				newCookie, err = s.getNewCookie(ctx, studentId)
+				if err != nil {
+					return "", err
+				}
+			}
+
 		}
 
+		if newCookie != "" {
+			cookie = newCookie
+			//异步回填
+			go func() {
+				err := s.cache.SetCookie(context.Background(), studentId, cookie)
+				if err != nil {
+					s.l.Error("回填cookie失败", logger.FormatLog("cache", err)...)
+				}
+			}()
+		}
+		return cookie, nil
+	})
+
+	if err != nil {
+		return "", SAVE_USER_ERROR(err)
 	}
 
-	if newCookie != "" {
-		cookie = newCookie
-		//异步回填
-		go func() {
-			err := s.cache.SetCookie(context.Background(), studentId, cookie)
-			if err != nil {
-				s.l.Error("回填cookie失败", logger.FormatLog("cache", err)...)
-			}
-		}()
+	cookie, ok := result.(string)
+	if !ok {
+		return "", nil
 	}
 
 	return cookie, nil

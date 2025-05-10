@@ -65,6 +65,14 @@ func (s *departmentService) GetDepartments(ctx context.Context) ([]*domain.Depar
 		return nil, GET_DEPARTMENT_ERROR(err)
 	}
 
+	go func() {
+		// 写缓存
+		err = s.cache.SetDepartments(context.Background(), res)
+		if err != nil {
+			s.l.Error("回写部门资源失败", logger.FormatLog("cache", err)...)
+		}
+	}()
+
 	return res, nil
 }
 

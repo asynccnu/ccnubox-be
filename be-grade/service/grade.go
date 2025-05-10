@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	gradev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/grade/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
@@ -9,6 +10,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-grade/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
+	"golang.org/x/sync/singleflight"
 	"time"
 )
 
@@ -27,6 +29,7 @@ type GradeService interface {
 type gradeService struct {
 	userClient userv1.UserServiceClient
 	gradeDAO   dao.GradeDAO
+	sfGroup    singleflight.Group
 	l          logger.Logger
 }
 
@@ -159,47 +162,51 @@ func (s *gradeService) GetUpdateScore(ctx context.Context, studentId string) ([]
 	return modelConvDomain(updateGrades), nil
 }
 
-// 包装函数
 func (s *gradeService) getGradeFromCCNU(ctx context.Context, studentId string) ([]model.Grade, error) {
-	// 记录开始时间
-	start := time.Now()
+	key := studentId
+	result, err, _ := s.sfGroup.Do(key, func() (interface{}, error) {
+		// 设置30秒超时
+		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
 
-	//尝试获取cookie
-	getCookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{
-		StudentId: studentId,
-	})
+		start := time.Now()
 
-	if err != nil {
-		return nil, err
-	}
-	s.l.Warn("获取cookie花费时间:", logger.String("花费时间:", time.Since(start).String()))
-
-	//尝试获取成绩
-	items, err := GetGrade(ctx, getCookieResp.GetCookie(), 0, 0, 300)
-	s.l.Warn("获取成绩花费时间:", logger.String("花费时间:", time.Since(start).String()))
-	//如果获取失败成绩的话
-	switch err {
-	case nil:
-		return items, nil
-
-	case COOKIE_TIMEOUT:
-
-		//尝试获取cookie
-		getCookieResp, err = s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{
+		// 获取cookie
+		getCookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{
 			StudentId: studentId,
 		})
 		if err != nil {
 			return nil, err
 		}
+		s.l.Warn("获取cookie花费时间:", logger.String("花费时间:", time.Since(start).String()))
 
-		//尝试获取成绩
-		items, err = GetGrade(ctx, getCookieResp.GetCookie(), 0, 0, 300)
-		return items, err
+		// 获取成绩
+		items, err := GetGrade(ctx, getCookieResp.GetCookie(), 0, 0, 300)
+		s.l.Warn("获取成绩花费时间:", logger.String("花费时间:", time.Since(start).String()))
 
-	default:
+		// 错误处理
+		if err == nil {
+			return items, nil
+		}
+		if err == COOKIE_TIMEOUT {
+			// 重试一次获取cookie和成绩
+			getCookieResp, err = s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{
+				StudentId: studentId,
+			})
+			if err != nil {
+				return nil, err
+			}
+			items, err = GetGrade(ctx, getCookieResp.GetCookie(), 0, 0, 300)
+			return items, err
+		}
 		return nil, err
-	}
+	})
 
+	// 类型断言
+	if grades, ok := result.([]model.Grade); ok {
+		return grades, err
+	}
+	return nil, fmt.Errorf("类型断言失败: %v", err)
 }
 
 func (s *gradeService) updateGrades(grades []model.Grade) error {

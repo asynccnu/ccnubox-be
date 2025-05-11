@@ -2,7 +2,9 @@ package biz
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
@@ -13,10 +15,12 @@ import (
 )
 
 type ClassUsecase struct {
-	classRepo       ClassRepoProxy
-	crawler         ClassCrawler
-	ccnu            CCNUServiceProxy
-	jxbRepo         JxbRepo
+	classRepo ClassRepoProxy
+	crawler   ClassCrawler
+	ccnu      CCNUServiceProxy
+	jxbRepo   JxbRepo
+	delayQue  DelayQueue
+
 	refreshLogRepo  RefreshLogRepo
 	waitCrawTime    time.Duration
 	waitUserSvcTime time.Duration
@@ -24,7 +28,7 @@ type ClassUsecase struct {
 }
 
 func NewClassUsecase(classRepo ClassRepoProxy, crawler ClassCrawler,
-	JxbRepo JxbRepo, Cs CCNUServiceProxy, refreshLog RefreshLogRepo,
+	JxbRepo JxbRepo, Cs CCNUServiceProxy, delayQue DelayQueue, refreshLog RefreshLogRepo,
 	cf *conf.Server, logger log.Logger) *ClassUsecase {
 
 	waitCrawTime := 1200 * time.Millisecond
@@ -36,16 +40,26 @@ func NewClassUsecase(classRepo ClassRepoProxy, crawler ClassCrawler,
 	if cf.WaitUserSvcTime > 0 {
 		waitUserSvcTime = time.Duration(cf.WaitUserSvcTime) * time.Millisecond
 	}
-	return &ClassUsecase{
+
+	cluc := &ClassUsecase{
 		classRepo:       classRepo,
 		crawler:         crawler,
 		jxbRepo:         JxbRepo,
+		delayQue:        delayQue,
 		ccnu:            Cs,
 		refreshLogRepo:  refreshLog,
 		waitCrawTime:    waitCrawTime,
 		waitUserSvcTime: waitUserSvcTime,
 		log:             log.NewHelper(logger),
 	}
+	// 开启一个协程来处理重试消息
+	go func() {
+		if err := cluc.delayQue.Consume("be-classlist-refresh-retry", cluc.handleRetryMsg); err != nil {
+			cluc.log.Errorf("Error consuming retry message: %v", err)
+		}
+	}()
+
+	return cluc
 }
 
 func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*model.Class, *time.Time, error) {
@@ -141,6 +155,7 @@ Local: //从本地获取数据
 			crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(context.Background(), stuID, year, semester)
 			if crawErr != nil {
 				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, model.Failed)
+				_ = cluc.sendRetryMsg(stuID, year, semester)
 				return
 			}
 
@@ -155,10 +170,11 @@ Local: //从本地获取数据
 
 			go func() {
 				_, jxbIDs := convertToClass(crawClassInfos)
-				saveErr := cluc.classRepo.SaveClass(context.Background(), stuID, year, semester, crawClassInfos, crawScs)
+				saveErr := cluc.classRepo.SaveClass(context.Background(), stuID, year, semester, crawClassInfos_, crawScs)
 				//更新log状态
 				if saveErr != nil {
 					_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, model.Failed)
+					_ = cluc.sendRetryMsg(stuID, year, semester)
 				} else {
 					_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, model.Ready)
 				}
@@ -413,6 +429,74 @@ func convertToClass(infos []*model.ClassInfo) ([]*model.Class, []string) {
 		jxbIDs = append(jxbIDs, k)
 	}
 	return classes, jxbIDs
+}
+
+// 发送重试消息
+func (cluc *ClassUsecase) sendRetryMsg(stuID, year, semester string) error {
+	var retryInfo = map[string]string{
+		"stu_id":   stuID,
+		"year":     year,
+		"semester": semester,
+	}
+	key := fmt.Sprintf("be-classlist-refresh-retry-%d", time.Now().UnixMilli())
+	val, err := json.Marshal(&retryInfo)
+	if err != nil {
+		return err
+	}
+	err = cluc.delayQue.Send([]byte(key), val)
+	if err != nil {
+		cluc.log.Errorf("Error sending retry message: %v", err)
+	}
+	return err
+}
+
+// 处理重试消息
+func (cluc *ClassUsecase) handleRetryMsg(key, val []byte) {
+	var retryInfo = map[string]string{}
+
+	err := json.Unmarshal(val, &retryInfo)
+	if err != nil {
+		cluc.log.Errorf("Error unmarshalling retry info: %v", string(val))
+		return
+	}
+	stuID, ok := retryInfo["stu_id"]
+	if !ok {
+		cluc.log.Errorf("Error getting stu_id from retry info: %v", string(val))
+		return
+	}
+	year, ok := retryInfo["year"]
+	if !ok {
+		cluc.log.Errorf("Error getting year from retry info: %v", string(val))
+		return
+	}
+	semester, ok := retryInfo["semester"]
+	if !ok {
+		cluc.log.Errorf("Error getting semester from retry info: %v", string(val))
+		return
+	}
+
+	//爬取课程信息
+	crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(context.Background(), stuID, year, semester)
+	if crawErr != nil {
+		cluc.log.Errorf("Error retry getting class info from crawler: %v", crawErr)
+		return
+	}
+
+	//保存课程信息
+	saveErr := cluc.classRepo.SaveClass(context.Background(), stuID, year, semester, crawClassInfos_, crawScs)
+	if saveErr != nil {
+		cluc.log.Errorf("Error after retry getting class,but saving class info to database: %v", saveErr)
+		return
+	}
+
+	//插入一条log
+	logID, insertLogErr := cluc.refreshLogRepo.InsertRefreshLog(context.Background(), stuID, year, semester)
+	if insertLogErr != nil {
+		cluc.log.Errorf("Error after retry getting class, but inserting refresh log: %v", insertLogErr)
+		return
+	}
+	//更新日志状态
+	_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, model.Ready)
 }
 
 // Student 学生接口

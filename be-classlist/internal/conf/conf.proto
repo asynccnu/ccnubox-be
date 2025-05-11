@@ -41,8 +41,12 @@ message Data {
     int32 read_timeout = 3; //单位ms
     int32 write_timeout = 4; //单位ms
   }
+  message Kafka {
+    repeated string brokers = 1; // kafka broker地址
+  }
   Database database = 1;
   Redis redis = 2;
+  Kafka kafka = 3;
 }
 message Etcd {
   string addr = 1;

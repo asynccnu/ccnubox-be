@@ -37,6 +37,7 @@ func wireApp(*conf.Server, *conf.Data, *conf.Registry, *conf.SchoolDay, *os.File
 		wire.Bind(new(biz.StudentAndCourseDBRepo), new(*data.StudentAndCourseDBRepo)),
 		wire.Bind(new(biz.StudentAndCourseCacheRepo), new(*data.StudentAndCourseCacheRepo)),
 		wire.Bind(new(biz.RefreshLogRepo), new(*data.RefreshLogRepo)),
+		wire.Bind(new(biz.DelayQueue), new(*data.DelayKafka)),
 		wire.Bind(new(service.ClassCtrl), new(*biz.ClassUsecase)),
 		wire.Bind(new(biz.CCNUServiceProxy), new(*client.CCNUService)),
 		wire.Bind(new(biz.ClassRepoProxy), new(*biz.ClassRepo)),

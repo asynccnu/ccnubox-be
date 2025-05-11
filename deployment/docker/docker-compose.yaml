@@ -1,0 +1,115 @@
+services:
+  be-banner:
+    container_name: be-banner
+    image: be-banner:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-banner/:/logs/
+      - ./configs/be-banner.yaml:/data/conf/config.yaml
+  be-calendar:
+    container_name: be-calendar
+    image: be-calendar:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-calendar/:/logs/
+      - ./configs/be-calendar.yaml:/data/conf/config.yaml
+  be-ccnu:
+    container_name: be-ccnu
+    image: be-ccnu:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-ccnu/:/logs/
+      - ./configs/be-ccnu.yaml:/data/conf/config.yaml
+  be-class:
+    container_name: be-class
+    image: be-class:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+    #   - ./logs/be-class/:/logs/
+      - ./configs/be-class.yaml:/data/conf/config.yaml
+      - ./configs/classrooms.json:/data/conf/classrooms.json
+  be-classlist:
+    container_name: be-classlist
+    image: be-classlist:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-classlist/:/logs/
+      - ./configs/be-classlist.yaml:/data/conf/config.yaml
+  be-counter:
+    container_name: be-counter
+    image: be-counter:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-counter/:/logs/
+      - ./configs/be-counter.yaml:/data/conf/config.yaml
+  be-department:
+    container_name: be-department
+    image: be-department:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-department/:/logs/
+      - ./configs/be-department.yaml:/data/conf/config.yaml
+  be-elecprice:
+    container_name: be-elecprice
+    image: be-elecprice:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-elecprice/:/logs/
+      - ./configs/be-elecprice.yaml:/data/conf/config.yaml
+  be-feed:
+    container_name: be-feed
+    image: be-feed:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-feed/:/logs/
+      - ./configs/be-feed.yaml:/data/conf/config.yaml
+  be-grade:
+    container_name: be-grade
+    image: be-grade:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-grade/:/logs/
+      - ./configs/be-grade.yaml:/data/conf/config.yaml
+  be-infosum:
+    container_name: be-infosum
+    image: be-infosum:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-infosum/:/logs/
+      - ./configs/be-infosum.yaml:/data/conf/config.yaml
+  be-user:
+    container_name: be-user
+    image: be-user:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-user/:/logs/
+      - ./configs/be-user.yaml:/data/conf/config.yaml
+  be-website:
+    container_name: be-website
+    image: be-website:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-website/:/logs/
+      - ./configs/be-website.yaml:/data/conf/config.yaml
+  bff:
+    container_name: bff
+    image: bff:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/bff/:/logs/
+      - ./configs/bff.yaml:/data/conf/config.yaml
+

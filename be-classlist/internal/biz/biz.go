@@ -68,3 +68,9 @@ type RefreshLogRepo interface {
 	GetRefreshLogByID(ctx context.Context, logID uint64) (*model.ClassRefreshLog, error)
 	GetLastRefreshTime(ctx context.Context, stuID, year, semester string, beforeTime time.Time) *time.Time
 }
+
+type DelayQueue interface {
+	Send(key, value []byte) error
+	Consume(groupID string, f func(key, value []byte)) error
+	Close()
+}

@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"fmt"
+	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/model"
 	"github.com/go-kratos/kratos/v2/log"
@@ -27,6 +28,10 @@ var ProviderSet = wire.NewSet(
 	NewClassInfoCacheRepo,
 	NewJxbDBRepo,
 	NewRefreshLogRepo,
+	NewKafkaProducerBuilder,
+	NewKafkaConsumerBuilder,
+	NewDelayKafkaConfig,
+	NewDelayKafka,
 )
 
 // Data .
@@ -100,4 +105,64 @@ func NewRedisDB(c *conf.Data, logger log.Logger) *redis.Client {
 	}
 	log.NewHelper(logger).Info("redis connect success")
 	return rdb
+}
+
+func initProducerConfig() *sarama.Config {
+	producerConfig := sarama.NewConfig()
+	producerConfig.Producer.Return.Errors = true
+	producerConfig.Producer.Return.Successes = true
+	producerConfig.Producer.Partitioner = sarama.NewHashPartitioner
+	producerConfig.Producer.RequiredAcks = sarama.WaitForAll
+	producerConfig.Producer.MaxMessageBytes = 1000000
+	producerConfig.Producer.Timeout = 10 * time.Second
+	producerConfig.Producer.Retry.Max = 3
+	producerConfig.Producer.Retry.Backoff = 100 * time.Millisecond
+	producerConfig.Producer.CompressionLevel = sarama.CompressionLevelDefault
+	return producerConfig
+}
+
+func initConsumerConfig() *sarama.Config {
+	consumerConfig := sarama.NewConfig()
+	consumerConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	consumerConfig.Consumer.Group.Session.Timeout = 10 * time.Second
+	consumerConfig.Consumer.Group.Heartbeat.Interval = 3 * time.Second
+	return consumerConfig
+}
+
+type KafkaProducerBuilder struct {
+	brokers []string
+}
+
+func NewKafkaProducerBuilder(c *conf.Data) *KafkaProducerBuilder {
+	return &KafkaProducerBuilder{
+		brokers: c.Kafka.Brokers,
+	}
+}
+
+func (pb KafkaProducerBuilder) Build() (sarama.SyncProducer, error) {
+	producerConfig := initProducerConfig()
+	p, err := sarama.NewSyncProducer(pb.brokers, producerConfig)
+	if err != nil {
+		return nil, fmt.Errorf("kafka producer connect failed: %w", err)
+	}
+	return p, nil
+}
+
+type KafkaConsumerBuilder struct {
+	brokers []string
+}
+
+func NewKafkaConsumerBuilder(c *conf.Data) *KafkaConsumerBuilder {
+	return &KafkaConsumerBuilder{
+		brokers: c.Kafka.Brokers,
+	}
+}
+
+func (cb KafkaConsumerBuilder) Build(groupID string) (sarama.ConsumerGroup, error) {
+	consumerConfig := initConsumerConfig()
+	consumerGroup, err := sarama.NewConsumerGroup(cb.brokers, groupID, consumerConfig)
+	if err != nil {
+		return nil, fmt.Errorf("kafka consumer connect failed: %w", err)
+	}
+	return consumerGroup, nil
 }

@@ -50,12 +50,21 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 		return nil, nil, err
 	}
 	ccnuService := client.NewCCNUService(userServiceClient)
+	kafkaProducerBuilder := data.NewKafkaProducerBuilder(confData)
+	kafkaConsumerBuilder := data.NewKafkaConsumerBuilder(confData)
+	delayKafkaConfig := data.NewDelayKafkaConfig()
+	delayKafka, cleanup2, err := data.NewDelayKafka(kafkaProducerBuilder, kafkaConsumerBuilder, delayKafkaConfig, logger)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
 	refreshLogRepo := data.NewRefreshLogRepo(db, confServer)
-	classUsecase := biz.NewClassUsecase(classRepo, crawlerCrawler, jxbDBRepo, ccnuService, refreshLogRepo, confServer, logger)
+	classUsecase := biz.NewClassUsecase(classRepo, crawlerCrawler, jxbDBRepo, ccnuService, delayKafka, refreshLogRepo, confServer, logger)
 	classListService := service.NewClasserService(classUsecase, schoolDay, logger)
 	grpcServer := server.NewGRPCServer(confServer, classListService, logger)
 	app := newApp(logger, grpcServer, etcdRegistry)
 	return app, func() {
+		cleanup2()
 		cleanup()
 	}, nil
 }

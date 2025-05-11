@@ -22,6 +22,9 @@ data:
     password: "muxistudio304"
     read_timeout: 200       # 注意：单位为毫秒
     write_timeout: 200      # 注意：单位为毫秒
+  kafka:
+    brokers:
+      - "localhost:9094"
 
 registry:
   etcd:

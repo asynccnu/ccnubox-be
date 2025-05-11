@@ -23,7 +23,7 @@ func TestDelayKafka(t *testing.T) {
 		},
 	})
 
-	dk, err := NewDelayKafka(kpb, kcb, DelayKafkaConfig{
+	dk, _, err := NewDelayKafka(kpb, kcb, DelayKafkaConfig{
 		delayTopic: "test-delay",
 		realTopic:  "test-real",
 		delayTime:  5 * time.Second,

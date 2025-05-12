@@ -64,6 +64,13 @@ func (repo *infoSumService) GetInfoSums(ctx context.Context) ([]*domain.InfoSum,
 		return []*domain.InfoSum{}, GET_INFOSUM_ERROR(err)
 	}
 
+	go func() {
+		err = repo.cache.SetInfoSums(context.Background(), res)
+		if err != nil {
+			repo.l.Error("回写InfoSums资源失败", logger.FormatLog("cache", err)...)
+		}
+	}()
+
 	return resp, nil
 }
 

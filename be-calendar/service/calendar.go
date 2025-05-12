@@ -60,6 +60,15 @@ func (s *CachedCalendarService) GetCalendar(ctx context.Context, year int64) (*d
 		return &domain.Calendar{}, GET_CALENDAR_ERROR(err)
 	}
 
+	// 异步写入缓存，牺牲一定的一致性
+	go func() {
+		ctx = context.Background()
+		err = s.cache.SetCalendar(ctx, &domain.Calendar{Year: calendar.Year, Link: calendar.Link}, calendar.Year)
+		if err != nil {
+			s.l.Error("回写资源失败", logger.FormatLog("cache", err)...)
+		}
+	}()
+
 	//赋值给res
 	res.Year = calendar.Year
 	res.Link = calendar.Link

@@ -57,12 +57,19 @@ func (s *bannerService) GetBanners(ctx context.Context) ([]*domain.Banner, error
 		return []*domain.Banner{}, GET_BANNER_ERROR(err)
 	}
 
-	var resp []*domain.Banner
-	err = copier.Copy(&resp, &banners)
+	err = copier.Copy(&res, &banners)
 	if err != nil {
 		return nil, GET_BANNER_ERROR(err)
 	}
-	return resp, nil
+
+	go func() {
+		err = s.cache.SetBanners(context.Background(), res)
+		if err != nil {
+			s.l.Error("回写department资源失败", logger.FormatLog("cache", err)...)
+		}
+	}()
+
+	return res, nil
 }
 
 func (s *bannerService) SaveBanner(ctx context.Context, req *domain.Banner) error {
@@ -88,16 +95,16 @@ func (s *bannerService) SaveBanner(ctx context.Context, req *domain.Banner) erro
 	go func() {
 		ct, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		res, er := s.dao.GetBanners(ct)
+		res, err := s.dao.GetBanners(ct)
 		//类型转换
 		var banners []*domain.Banner
-		err := copier.Copy(&banners, &res)
+		err = copier.Copy(&banners, &res)
 		if err != nil {
 			return
 		}
-		er = s.cache.SetBanners(ct, banners)
+		err = s.cache.SetBanners(ct, banners)
 		if err != nil {
-			s.l.Error("回写department资源失败", logger.FormatLog("cache", er)...)
+			s.l.Error("回写department资源失败", logger.FormatLog("cache", err)...)
 		}
 	}()
 
@@ -115,15 +122,15 @@ func (s *bannerService) DelBanner(ctx context.Context, id int64) error {
 		ct, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		var banners []*domain.Banner
-		res, er := s.dao.GetBanners(ct)
+		res, err := s.dao.GetBanners(ct)
 		//类型转换
-		err := copier.Copy(&banners, &res)
+		err = copier.Copy(&banners, &res)
 		if err != nil {
 			return
 		}
-		er = s.cache.SetBanners(ct, banners)
+		err = s.cache.SetBanners(ct, banners)
 		if err != nil {
-			s.l.Error("回写department资源失败", logger.FormatLog("cache", er)...)
+			s.l.Error("回写department资源失败", logger.FormatLog("cache", err)...)
 		}
 
 	}()

@@ -52,7 +52,6 @@ func (s *websiteService) GetWebsites(ctx context.Context) ([]*domain.Website, er
 	}
 	s.l.Error("从缓存获取website失败", logger.FormatLog("cache", err)...)
 
-	var resp []*domain.Website
 	//如果缓存中不存在则从数据库获取
 	webs, err := s.dao.GetWebsites(ctx)
 	if err != nil {
@@ -60,12 +59,19 @@ func (s *websiteService) GetWebsites(ctx context.Context) ([]*domain.Website, er
 	}
 
 	//类型转换
-	err = copier.Copy(&resp, webs)
+	err = copier.Copy(&res, webs)
 	if err != nil {
 		return []*domain.Website{}, GET_WEBSITE_ERROR(err)
 	}
 
-	return resp, nil
+	go func() {
+		err = s.cache.SetWebsites(context.Background(), res)
+		if err != nil {
+			s.l.Error("回写websites资源失败", logger.FormatLog("cache", err)...)
+		}
+	}()
+
+	return res, nil
 }
 
 func (s *websiteService) SaveWebsite(ctx context.Context, req *domain.Website) error {

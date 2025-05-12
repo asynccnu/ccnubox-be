@@ -80,7 +80,7 @@ const classMapping = `{
 const classIndexName = "class_info"
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewClassData, NewEsClient, NewFreeClassroomData)
+var ProviderSet = wire.NewSet(NewClassData, NewEsClient, NewFreeClassroomData, NewRedisClient, NewCache)
 
 // ClassData .
 type ClassData struct {

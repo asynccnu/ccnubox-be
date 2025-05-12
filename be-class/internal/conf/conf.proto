@@ -35,7 +35,12 @@ message Data {
     bool keepDataAfterRestart = 5;//重启后是否保留数据
     string classroom = 6; //classroom的文件位置
   }
+  message Redis {
+    string addr = 1;
+    string password = 2;
+  }
   ES es = 1;
+  Redis redis = 2;
 }
 message Etcd {
   string addr = 1;

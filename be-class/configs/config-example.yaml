@@ -14,6 +14,9 @@ data:
     #重启后是否保留数据
     keepDataAfterRestart: true
     classroom: "/data/conf/classrooms.json"
+  redis:
+    addr: "localhost:6379"
+    password: "muxistudio304"
 registry:
   etcd:
     addr: "127.0.0.1:2379"

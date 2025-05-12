@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/be-class/internal/lock"
 	clog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/model"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/service"
@@ -32,10 +33,12 @@ type FreeClassroomBiz struct {
 	classData         ClassData
 	freeClassRoomData FreeClassRoomData
 	cookieCli         CookieClient
+	lockBuilder       lock.Builder
+	cache             Cache
 	httpCli           *http.Client
 }
 
-func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli CookieClient) *FreeClassroomBiz {
+func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli CookieClient, lockBuilder lock.Builder, cache Cache) *FreeClassroomBiz {
 	httpCli := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        100,              // 最大空闲连接
@@ -53,6 +56,8 @@ func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli 
 		freeClassRoomData: data,
 		cookieCli:         cookieCli,
 		httpCli:           httpCli,
+		lockBuilder:       lockBuilder,
+		cache:             cache,
 	}
 }
 
@@ -61,14 +66,65 @@ func (f *FreeClassroomBiz) ClearClassroomOccupancyFromES(ctx context.Context, ye
 }
 
 func (f *FreeClassroomBiz) SaveFreeClassRoomFromLocal(ctx context.Context, year, semester string) error {
-	pageSize := 500 // 每批获取500条
+	const pageSize = 500 // 每批获取500条
 	page := 1
+	var tasks []string
+
+	defer func() {
+		_ = f.cache.Del(ctx, tasks...)
+	}()
+
 	for {
 		classes, total, err := f.classData.GetBatchClassInfos(ctx, year, semester, page, pageSize)
 		if err != nil {
 			clog.LogPrinter.Errorf("failed to get batch classlist infos: %v", err)
 			return err
 		}
+		if len(classes) == 0 {
+			clog.LogPrinter.Warnf("get class from local es, but the length of res is 0")
+			return nil
+		}
+
+		// 加锁
+		lockKey := fmt.Sprintf("save_free_classroom_%v_%v_%v", year, semester, page)
+		locker := f.lockBuilder.Build(lockKey)
+
+		lockErr := locker.Lock()
+		if lockErr != nil {
+			clog.LogPrinter.Infof("Error don't get lock %v: %v", lockKey, lockErr)
+			// 判断是否已经获取完所有数据
+			if page*pageSize >= total {
+				break
+			}
+			page++
+			continue
+		}
+
+		clog.LogPrinter.Infof("Lock %v success", lockKey)
+
+		taskName := "task:" + lockKey
+		tasks = append(tasks, taskName)
+
+		status, err := f.cache.Get(ctx, taskName)
+		if err == nil && status == Finished {
+			clog.LogPrinter.Infof("task %v is finished", taskName)
+
+			// 解锁
+			ok, err1 := locker.Unlock()
+			if err1 != nil || !ok {
+				clog.LogPrinter.Errorf("failed to unlock lock %v: %v", lockKey, err1)
+			} else {
+				clog.LogPrinter.Infof("unlock %v successfully", lockKey)
+			}
+
+			// 判断是否已经获取完所有数据
+			if page*pageSize >= total {
+				break
+			}
+			page++
+			continue
+		}
+
 		var cwtPairs []model.CTWPair
 		for _, class := range classes {
 			var (
@@ -100,11 +156,30 @@ func (f *FreeClassroomBiz) SaveFreeClassRoomFromLocal(ctx context.Context, year,
 		}
 		err = f.SaveFreeClassRoomInfo(ctx, year, semester, cwtPairs)
 		if err != nil {
+			// 设置task任务状态为failed
+			err1 := f.cache.Set(ctx, taskName, Failed, 10*time.Minute)
+			if err1 != nil {
+				clog.LogPrinter.Errorf("failed to set cache %v: %v", taskName, err1)
+			}
 			return err
 		}
 
+		// 设置task任务状态为finished
+		err = f.cache.Set(ctx, taskName, Finished, 10*time.Minute)
+		if err != nil {
+			clog.LogPrinter.Errorf("failed to set cache %v: %v", taskName, err)
+		}
+
+		// 解锁
+		ok, err := locker.Unlock()
+		if err != nil || !ok {
+			clog.LogPrinter.Errorf("failed to unlock lock %v: %v", lockKey, err)
+		} else {
+			clog.LogPrinter.Infof("unlock %v successfully", lockKey)
+		}
+
 		// 判断是否已经获取完所有数据
-		if page*pageSize >= total || len(classes) == 0 {
+		if page*pageSize >= total {
 			break
 		}
 		page++

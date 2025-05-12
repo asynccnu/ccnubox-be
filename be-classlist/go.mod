@@ -5,6 +5,7 @@ go 1.23.7
 replace github.com/asynccnu/ccnubox-be/be-api => ../be-api
 
 require (
+	github.com/IBM/sarama v1.45.1
 	github.com/asynccnu/ccnubox-be/be-api v0.0.0-20250405084424-22872348780a
 	github.com/go-kratos/kratos/contrib/log/zap/v2 v2.0.0-20250403070952-9580f086e326
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20240829015636-da7356560385
@@ -28,7 +29,6 @@ require (
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
-	github.com/IBM/sarama v1.45.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
-	github.com/hashicorp/errwrap v1.0.0 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect

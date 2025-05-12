@@ -11,10 +11,11 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-class/internal/client"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/data"
-	"github.com/asynccnu/ccnubox-be/be-class/internal/pkg/timedTask"
+	"github.com/asynccnu/ccnubox-be/be-class/internal/lock"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/registry"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/server"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/service"
+	"github.com/asynccnu/ccnubox-be/be-class/internal/timedTask"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -40,7 +41,10 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 		cleanup()
 		return nil, nil, err
 	}
-	classSerivceUserCase := biz.NewClassSerivceUserCase(classData, classListService)
+	redisClient := data.NewRedisClient(confData)
+	builder := lock.NewRedisLockBuilder(redisClient)
+	cache := data.NewCache(redisClient)
+	classSerivceUserCase := biz.NewClassSerivceUserCase(classData, classListService, builder, cache)
 	classServiceService := service.NewClassServiceService(classSerivceUserCase)
 	freeClassroomData := data.NewFreeClassroomData(elasticClient)
 	cookieSvc, err := client.NewCookieSvc(etcdRegistry)
@@ -48,7 +52,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 		cleanup()
 		return nil, nil, err
 	}
-	freeClassroomBiz := biz.NewFreeClassroomBiz(classData, freeClassroomData, cookieSvc)
+	freeClassroomBiz := biz.NewFreeClassroomBiz(classData, freeClassroomData, cookieSvc, builder, cache)
 	freeClassroomSvc := service.NewFreeClassroomSvc(freeClassroomBiz)
 	grpcServer := server.NewGRPCServer(confServer, classServiceService, freeClassroomSvc, logger)
 	selectionUploader := service.NewSelectionUploader(freeClassroomBiz)

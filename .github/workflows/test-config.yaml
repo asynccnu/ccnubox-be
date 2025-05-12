@@ -1,0 +1,28 @@
+name: Check for Leaked Password
+
+on:
+  pull_request:
+    paths:
+      - '**/config/**'
+      - '**/configs/**'
+      - '**/conf/**'
+      - '**/cfg/**'
+
+jobs:
+  password-check:
+    runs-on: ubuntu-latest
+    env:
+      MUXI_PASSWORD: ${{ secrets.MUXI_PASSWORD }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check for leaked password in config folders
+        run: |
+          if grep -r --include="*" "$MUXI_PASSWORD" config configs conf cfg 2>/dev/null; then
+            echo "❌ 检测到敏感密码泄露：\$MUXI_PASSWORD 存在于配置文件中,请修改重试"
+            exit 1
+          else
+            echo "✅ 未检测到密码泄露"
+          fi

@@ -27,7 +27,7 @@ kafka:
 
 redis:
   addr: "localhost:6379"
-  password: "muxistudio304"
+  password: "12345678"
 
 muxiController:
   durationTime: 86400

@@ -13,13 +13,13 @@ server:
 
 data:
   database:
-    source: "root:muxistudio304@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+    source: "root:12345678@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
     logPath: "/var/log/sql_log"
     logFileName: "sql.log"
     logLevel: "info"
   redis:
     addr: "localhost:6379"
-    password: "muxistudio304"
+    password: "12345678"
     read_timeout: 200       # 注意：单位为毫秒
     write_timeout: 200      # 注意：单位为毫秒
   kafka:
@@ -30,7 +30,7 @@ registry:
   etcd:
     addr: "127.0.0.1:2379"
     username: "root"
-    password: "muxistudio304"
+    password: "12345678"
   usersvc: "discovery:///user"               # 用户服务地址
 
 zaplog:

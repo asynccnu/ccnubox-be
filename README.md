@@ -50,6 +50,7 @@
 | be-infosum    | 19090    |
 | be-user       | 19091    |
 | be-website    | 19092    |
+| be-library    | 19093    |
 | bff           | 8080     |
 
 

@@ -10,7 +10,7 @@ enum ErrorReason {
   // 设置缺省错误码
   option (errors.default_code) = 500;
   DB_NOTFOUND = 0;
-  DB_FINDERR =1 ;
+  DB_FINDERR = 1 ;
   DB_UPDATEERR=2  ;
   Param_Err = 3 ;
   DB_SAVEERROR = 4;

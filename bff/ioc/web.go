@@ -12,6 +12,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/feedback_help"
 	"github.com/asynccnu/ccnubox-be/bff/web/grade"
 	"github.com/asynccnu/ccnubox-be/bff/web/infoSum"
+	"github.com/asynccnu/ccnubox-be/bff/web/library"
 	"github.com/asynccnu/ccnubox-be/bff/web/metrics"
 	"github.com/asynccnu/ccnubox-be/bff/web/middleware"
 	"github.com/asynccnu/ccnubox-be/bff/web/static"
@@ -43,6 +44,7 @@ func InitGinServer(
 	infoSum *infoSum.InfoSumHandler,
 	card *card.CardHandler,
 	metrics *metrics.MetricsHandler,
+	library *library.LibraryHandler,
 ) *gin.Engine {
 	//初始化一个gin引擎
 	engine := gin.Default()
@@ -80,6 +82,7 @@ func InitGinServer(
 	tube.RegisterRoutes(api, authMiddleware)
 	metrics.RegisterRoutes(api, authMiddleware)
 	classroom.RegisterRoutes(api, authMiddleware)
+	library.RegisterRoutes(api, authMiddleware)
 	//返回路由
 	return engine
 }

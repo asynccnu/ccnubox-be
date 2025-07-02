@@ -57,7 +57,9 @@ func InitApp() *App {
 	cardClient := ioc.InitCardClient(client)
 	cardHandler := ioc.InitCardHandler(cardClient)
 	metricsHandler := ioc.InitMetricsHandel(logger)
-	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, classRoomHandler, tubeHandler, userHandler, staticHandler, bannerHandler, departmentHandler, websiteHandler, calendarHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, feedbackHelpHandler, infoSumHandler, cardHandler, metricsHandler)
+	libraryClient := ioc.InitLibrary(client)
+	libraryHandler := ioc.InitLibraryHandler(libraryClient)
+	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, classRoomHandler, tubeHandler, userHandler, staticHandler, bannerHandler, departmentHandler, websiteHandler, calendarHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, feedbackHelpHandler, infoSumHandler, cardHandler, metricsHandler, libraryHandler)
 	app := NewApp(engine)
 	return app
 }

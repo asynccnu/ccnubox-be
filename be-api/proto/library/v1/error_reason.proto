@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package library.v1;
+
+import "errors/errors.proto";
+
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1;libraryv1";
+
+enum ErrorReason {
+  // 设置缺省错误码
+  option (errors.default_code) = 500;
+  CCNULogin_Error = 0;
+  Crawler_Error = 1;
+}

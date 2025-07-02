@@ -44,6 +44,8 @@ grpc:
       endpoint: "discovery:///feedback_help"
     grade:
       endpoint: "discovery:///grade"
+    library:
+      endpoint: "discovery:///library"
     infoSum:
       endpoint: "discovery:///info_sum"
     counter:

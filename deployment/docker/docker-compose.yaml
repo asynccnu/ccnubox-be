@@ -80,6 +80,14 @@ services:
     volumes:
       - ./logs/be-grade/:/logs/
       - ./configs/be-grade.yaml:/data/conf/config.yaml
+  be-library:
+    container_name: be-library
+    image: be-library:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-library/:/logs/
+      - ./configs/be-library.yaml:/data/conf/config.yaml
   be-infosum:
     container_name: be-infosum
     image: be-infosum:v1

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package library.v1;
+
+option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1;libraryv1";
+
+service Library {
+    // 获取座位
+    rpc GetSeat (GetSeatRequest) returns (GetSeatResponse);
+}
+
+message GetSeatRequest {
+    string room_id = 1;
+    string stu_id = 2;
+}
+
+message GetSeatResponse {
+    repeated Seat seat = 1;
+}
+
+message Seat {
+    string name = 1;
+    string dev_id = 2;
+    string kind_name = 3;
+    repeated TimeSlot ts = 4;
+}
+
+message TimeSlot {
+    string start = 1;
+    string end = 2;
+    string owner = 3;
+}

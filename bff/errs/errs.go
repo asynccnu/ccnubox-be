@@ -317,3 +317,9 @@ var (
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "验证系统发生内部错误", "authorization", err)
 	}
 )
+
+var (
+	GET_SEAT_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取座位信息失败！", "library", err)
+	}
+)

@@ -41,6 +41,7 @@ ds=(
   "be-elecprice"
   "be-feed"
   "be-grade"
+  "be-library"
   "be-infosum"
   "be-website"
   "bff"

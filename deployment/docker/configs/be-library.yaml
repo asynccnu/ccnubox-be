@@ -1,5 +1,5 @@
 server:
-  name: "be-library"
+  name: "library"
   grpc:
     network: "tcp"
     addr: "0.0.0.0:19093"

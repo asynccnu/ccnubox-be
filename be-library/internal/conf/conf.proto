@@ -18,6 +18,7 @@ message Server {
     google.protobuf.Duration timeout = 3;
   }
   GRPC grpc = 1;
+  string name = 2;
 }
 
 message Data {

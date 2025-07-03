@@ -70,6 +70,10 @@ func main() {
 		panic(err)
 	}
 
+	if bc.Server.Name != "" {
+		Name = bc.Server.Name
+	}
+
 	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger)
 	if err != nil {
 		panic(err)

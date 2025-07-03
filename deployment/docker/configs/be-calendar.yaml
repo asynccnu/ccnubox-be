@@ -1,0 +1,44 @@
+grpc:
+  server:
+    name: "calendar"
+    weight: 100
+    addr: ":19081"
+    etcdTTL: 60
+  client:
+    feed:
+      endpoint: "discovery:///feed"
+
+etcd:
+  endpoints:
+    - "localhost:2379"
+  username: root
+  password: "12345678"
+
+redis:
+  addr: "localhost:6379"
+  password: "12345678"
+
+mysql:
+  dsn: "root:12345678@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+
+qiniu:
+  accessKey : "xxxxxxxxxxx"#秘钥
+  secretKey : "xxxxxxxxxxx"#秘钥x2
+  bucket: "xxxxxxxxxxx"#仓库名
+  domain : "xxxxxxxxxxx"#默认域名
+  baseName : "ccnuCalendar"
+
+calendarController:
+  durationTime: 24 #爬取频率,单位是小时
+
+#假期自动提醒
+holidayController:
+  durationTime: 1 #单位是小时,每多少小时尝试去获取一次,这个应该是写死的,不要更改,一天一次很合理
+  advanceDay: 4 #提前四天进行提醒
+
+log:
+  path: "./logs/app.log"  # 日志文件路径
+  maxSize: 100           # 单个日志文件的最大大小（MB）
+  maxBackups: 7          # 保留旧日志文件的最大数量
+  maxAge: 30             # 日志文件保留天数
+  compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）

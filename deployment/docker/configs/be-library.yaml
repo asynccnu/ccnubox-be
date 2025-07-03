@@ -1,0 +1,33 @@
+server:
+  name: "be-library"
+  grpc:
+    network: "tcp"
+    addr: "0.0.0.0:19093"
+    timeout: 2s
+
+data:
+  database:
+    source: "root:password@tcp(localhost:3306)/library?charset=utf8mb4&parseTime=True&loc=Local"
+  redis:
+    network: "tcp"
+    addr: "127.0.0.1:6379"
+    read_timeout: "3s"
+    write_timeout: "3s"
+
+registry:
+  etcd:
+    addr: "localhost:2379"
+    username: ""
+    password: ""
+  usersvc: "discovery:///user"
+
+zap_log:
+  log_level: "info"
+  log_format: "json"
+  log_path: "./logs"
+  log_file_name: "app.log"
+  log_file_max_size: 100
+  log_file_max_backups: 30
+  log_max_age: 7
+  log_compress: false
+  log_stdout: true

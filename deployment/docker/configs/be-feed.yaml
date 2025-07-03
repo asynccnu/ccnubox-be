@@ -1,0 +1,50 @@
+mysql:
+  dsn: "root:root@tcp(localhost:3306)/ccnubox"
+
+etcd:
+  endpoints:
+    - "localhost:12379"
+
+grpc:
+  server:
+    name: "feed"
+    weight: 100
+    addr: ":19088"
+    etcdTTL: 60
+  client:
+    feedUserCount:
+      endpoint: "discovery:///feedUserCount"
+    classlist:
+      endpoint: "discovery:///MuXi_ClassList"
+    grade:
+      endpoint: "discovery:///grade"
+    user:
+      endpoint: "discovery:///user"
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+redis:
+  addr: "localhost:6379"
+  password: "12345678"
+
+muxiController:
+  durationTime: 86400
+
+#消费者的消费配置
+consume:
+  consumeTime: 1 #强制插入的时间(如果长期没有消息被消费的话),单位是分钟
+  consumeNum: 2 #批量存入,每次最多一次存入500条数据(设置最大值不能超过一千,否则请自行修改dao层的gorm插入feedEvent的最大上限值)
+
+#极光推送配置
+jpushConfig:
+  appKey: "xxx"
+  masterSecret: "xxx"
+
+log:
+  path: "./logs/app.log"  # 日志文件路径
+  maxSize: 100           # 单个日志文件的最大大小（MB）
+  maxBackups: 7          # 保留旧日志文件的最大数量
+  maxAge: 30             # 日志文件保留天数
+  compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）

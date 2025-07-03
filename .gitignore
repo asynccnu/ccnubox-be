@@ -42,4 +42,3 @@ bin/
 
 *.xlsx
 deployment/docker/logs
-deployment/docker/configs

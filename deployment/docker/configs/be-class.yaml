@@ -1,0 +1,24 @@
+server:
+  http:
+    addr: 0.0.0.0:18000
+    timeout: 10s
+  grpc:
+    addr: 0.0.0.0:19083
+    timeout: 10s
+data:
+  es:
+    url: "http://127.0.0.1:9200"
+    setsniff: false
+    username: "elastic"
+    password: "12345678"
+    #重启后是否保留数据
+    keepDataAfterRestart: true
+    classroom: "/data/conf/classrooms.json"
+  redis:
+    addr: "localhost:6379"
+    password: "12345678"
+registry:
+  etcd:
+    addr: "127.0.0.1:2379"
+    username: root
+    password: "12345678"

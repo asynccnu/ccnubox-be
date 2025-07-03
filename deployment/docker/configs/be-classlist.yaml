@@ -1,0 +1,58 @@
+server:
+  name: "be-classlist"  # 新增字段：服务名称
+  grpc:
+    network: "tcp"          #网络类型，通常为 tcp
+    addr: "0.0.0.0:19084"
+    timeout: 2              # 注意：这里单位是秒
+  waitCrawTime: 5000        # 等待爬虫抓取数据的时间，单位ms
+  classExpiration: 604800    # 课程过期时间，单位s
+  recycleExpiration: 2592000 # 回收站课程过期时间，单位s
+  blackListExpiration: 60 # 黑名单过期时间，单位s
+  waitUserSvcTime: 10000 # 等待用户服务的时间，单位ms
+  refreshInterval: 60 # 刷新间隔,当前时间距离上次刷新时间超过该值时,需要重新刷新,单位s
+
+data:
+  database:
+    source: "root:12345678@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+    logPath: "/var/log/sql_log"
+    logFileName: "sql.log"
+    logLevel: "info"
+  redis:
+    addr: "localhost:6379"
+    password: "12345678"
+    read_timeout: 200       # 注意：单位为毫秒
+    write_timeout: 200      # 注意：单位为毫秒
+  kafka:
+    brokers:
+      - "localhost:9094"
+
+registry:
+  etcd:
+    addr: "127.0.0.1:2379"
+    username: "root"
+    password: "12345678"
+  usersvc: "discovery:///user"               # 用户服务地址
+
+zaplog:
+  ##日志级别
+  log_level: "info"
+  ##日志格式
+  log_format: "json"
+  ##日志路径
+  log_path: "/var/log/app_log"
+  ##日志文件名
+  log_file_name: "app.log"
+  ##日志文件最大大小
+  log_file_max_size: 100
+  ##日志文件最大备份数
+  log_file_max_backups: 5
+  ##日志文件最大保留天数
+  log_max_age: 30
+  ##是否压缩
+  log_compress: false
+  ##是否输出到控制台
+  log_stdout: false
+
+schoolday:
+  holidayTime: "2025-07-05"
+  schoolTime: "2025-02-17"

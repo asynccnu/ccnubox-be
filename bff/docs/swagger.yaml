@@ -1022,7 +1022,7 @@ info:
   contact: {}
 paths:
   /InfoSum/delInfoSum:
-    delete:
+    post:
       consumes:
       - application/json
       description: 删除信息整合信息
@@ -1082,7 +1082,7 @@ paths:
       tags:
       - InfoSum
   /banner/delBanner:
-    delete:
+    post:
       consumes:
       - application/json
       description: 删除 banner 内容
@@ -1142,7 +1142,7 @@ paths:
       tags:
       - banner
   /calendar/delCalendar:
-    delete:
+    post:
       consumes:
       - application/json
       description: 删除日历内容
@@ -1341,7 +1341,7 @@ paths:
       tags:
       - class
   /class/delete:
-    delete:
+    post:
       consumes:
       - application/json
       description: 根据课表ID删除课表
@@ -1601,7 +1601,7 @@ paths:
       tags:
       - classroom
   /department/delDepartment:
-    delete:
+    post:
       consumes:
       - application/json
       description: 删除部门信息
@@ -1677,7 +1677,7 @@ paths:
       tags:
       - department
   /elecprice/cancelStandard:
-    delete:
+    post:
       consumes:
       - application/json
       description: 取消自己订阅的电费提醒
@@ -2606,7 +2606,7 @@ paths:
       tags:
       - user
   /website/delWebsite:
-    delete:
+    post:
       consumes:
       - application/json
       description: 删除网站信息

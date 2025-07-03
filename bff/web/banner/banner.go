@@ -32,7 +32,7 @@ func (h *BannerHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Ha
 	sg := s.Group("/banner")
 	sg.GET("/getBanners", authMiddleware, ginx.WrapClaims(h.GetBanners))
 	sg.POST("/saveBanner", authMiddleware, ginx.WrapClaimsAndReq(h.SaveBanner))
-	sg.DELETE("/delBanner", authMiddleware, ginx.WrapClaimsAndReq(h.DelBanner))
+	sg.POST("/delBanner", authMiddleware, ginx.WrapClaimsAndReq(h.DelBanner))
 }
 
 // GetBanners 获取 banner 列表
@@ -104,7 +104,7 @@ func (h *BannerHandler) SaveBanner(ctx *gin.Context, req SaveBannerRequest, uc i
 // @Produce json
 // @Param request body DelBannerRequest true "删除 banner 内容请求参数"
 // @Success 200 {object} web.Response "成功"
-// @Router /banner/delBanner [delete]
+// @Router /banner/delBanner [post]
 func (h *BannerHandler) DelBanner(ctx *gin.Context, req DelBannerRequest, uc ijwt.UserClaims) (web.Response, error) {
 	if !h.isAdmin(uc.StudentId) {
 		return web.Response{}, errs.ROLE_ERROR(fmt.Errorf("没有访问权限: %s", uc.StudentId))

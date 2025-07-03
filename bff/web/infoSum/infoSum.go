@@ -26,7 +26,7 @@ func (h *InfoSumHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 	sg := s.Group("/InfoSum")
 	sg.GET("/getInfoSums", ginx.Wrap(h.GetInfoSums))
 	sg.POST("/saveInfoSum", authMiddleware, ginx.WrapClaimsAndReq(h.SaveInfoSum))
-	sg.DELETE("/delInfoSum", authMiddleware, ginx.WrapClaimsAndReq(h.DelInfoSum))
+	sg.POST("/delInfoSum", authMiddleware, ginx.WrapClaimsAndReq(h.DelInfoSum))
 }
 
 // GetInfoSums 获取信息整合列表
@@ -97,7 +97,7 @@ func (h *InfoSumHandler) SaveInfoSum(ctx *gin.Context, req SaveInfoSumRequest, u
 // @Produce json
 // @Param request body DelInfoSumRequest true "删除信息整合信息请求参数"
 // @Success 200 {object} web.Response "成功"
-// @Router /InfoSum/delInfoSum [delete]
+// @Router /InfoSum/delInfoSum [post]
 func (h *InfoSumHandler) DelInfoSum(ctx *gin.Context, req department.DelDepartmentRequest, uc ijwt.UserClaims) (web.Response, error) {
 	if !h.isAdmin(uc.StudentId) {
 		return web.Response{}, errs.ROLE_ERROR(fmt.Errorf("没有访问权限: %s", uc.StudentId))

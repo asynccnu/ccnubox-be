@@ -17,5 +17,5 @@ type GetBannersResponse struct {
 }
 
 type DelBannerRequest struct {
-	Id int64 `json:"id" binding:"required"`
+	Id int64 `form:"id" json:"id" binding:"required"`
 }

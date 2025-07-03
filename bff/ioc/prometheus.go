@@ -36,7 +36,7 @@ func InitPrometheus() *prometheusx.PrometheusCounter {
 
 	p := prometheusx.NewPrometheus(conf.Namespace)
 	return &prometheusx.PrometheusCounter{
-		RouterCounter:     p.RegisterCounter(conf.RouterCounter.Name, conf.RouterCounter.Help, []string{"method", "endpoint", "status"}),
+		RouterCounter:     p.RegisterCounter(conf.RouterCounter.Name, conf.RouterCounter.Help, []string{"method", "endpoint", "status", "student_id"}),
 		ActiveConnections: p.RegisterGauge(conf.ActiveConnections.Name, conf.RouterCounter.Help, []string{"endpoint"}),
 		DurationTime:      p.RegisterHistogram(conf.DurationTime.Name, conf.DurationTime.Help, []string{"endpoint", "status"}, prometheus.DefBuckets),
 	}

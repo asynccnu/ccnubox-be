@@ -15,12 +15,13 @@ import (
 
 func InitApp() *App {
 	logger := ioc.InitLogger()
-	prometheusCounter := ioc.InitPrometheus()
-	loggerMiddleware := middleware.NewLoggerMiddleware(logger, prometheusCounter)
+	loggerMiddleware := middleware.NewLoggerMiddleware(logger)
 	cmdable := ioc.InitRedis()
 	handler := ioc.InitJwtHandler(cmdable)
 	loginMiddleware := middleware.NewLoginMiddleWare(handler)
 	corsMiddleware := middleware.NewCorsMiddleware()
+	prometheusCounter := ioc.InitPrometheus()
+	prometheusMiddleware := middleware.NewPrometheusMiddleware(prometheusCounter)
 	client := ioc.InitEtcdClient()
 	freeClassroomSvcClient := ioc.InitFreeClassroomClient(client)
 	classRoomHandler := ioc.InitClassRoomHandler(freeClassroomSvcClient)
@@ -59,7 +60,7 @@ func InitApp() *App {
 	metricsHandler := ioc.InitMetricsHandel(logger)
 	libraryClient := ioc.InitLibrary(client)
 	libraryHandler := ioc.InitLibraryHandler(libraryClient)
-	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, classRoomHandler, tubeHandler, userHandler, staticHandler, bannerHandler, departmentHandler, websiteHandler, calendarHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, feedbackHelpHandler, infoSumHandler, cardHandler, metricsHandler, libraryHandler)
+	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, prometheusMiddleware, classRoomHandler, tubeHandler, userHandler, staticHandler, bannerHandler, departmentHandler, websiteHandler, calendarHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, feedbackHelpHandler, infoSumHandler, cardHandler, metricsHandler,libraryHandler)
 	app := NewApp(engine)
 	return app
 }

@@ -26,7 +26,7 @@ func (h *WebsiteHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 	sg := s.Group("/website")
 	sg.GET("/getWebsites", ginx.Wrap(h.GetWebsites))
 	sg.POST("/saveWebsite", authMiddleware, ginx.WrapClaimsAndReq(h.SaveWebsite))
-	sg.DELETE("/delWebsite", authMiddleware, ginx.WrapClaimsAndReq(h.DelWebsite))
+	sg.POST("/delWebsite", authMiddleware, ginx.WrapClaimsAndReq(h.DelWebsite))
 }
 
 // GetWebsites 获取网站列表
@@ -90,7 +90,7 @@ func (h *WebsiteHandler) SaveWebsite(ctx *gin.Context, req SaveWebsiteRequest, u
 // @Produce json
 // @Param request body DelWebsiteRequest true "删除网站信息请求参数"
 // @Success 200 {object} web.Response "成功"
-// @Router /website/delWebsite [delete]
+// @Router /website/delWebsite [post]
 func (h *WebsiteHandler) DelWebsite(ctx *gin.Context, req department.DelDepartmentRequest, uc ijwt.UserClaims) (web.Response, error) {
 	if !h.isAdmin(uc.StudentId) {
 		return web.Response{}, errs.ROLE_ERROR(fmt.Errorf("没有访问权限: %s", uc.StudentId))

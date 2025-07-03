@@ -25,7 +25,7 @@ func (h *DepartmentHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gi
 	sg := s.Group("/department")
 	sg.GET("/getDepartments", ginx.Wrap(h.GetDepartments))
 	sg.POST("/saveDepartment", authMiddleware, ginx.WrapClaimsAndReq(h.SaveDepartment))
-	sg.DELETE("/delDepartment", authMiddleware, ginx.WrapClaimsAndReq(h.DelDepartment))
+	sg.POST("/delDepartment", authMiddleware, ginx.WrapClaimsAndReq(h.DelDepartment))
 }
 
 // GetDepartments 获取部门列表
@@ -95,7 +95,7 @@ func (h *DepartmentHandler) SaveDepartment(ctx *gin.Context, req SaveDepartmentR
 // @Param Authorization header string true "Bearer Token"
 // @Param request body DelDepartmentRequest true "删除部门信息请求参数"
 // @Success 200 {object} web.Response "成功"
-// @Router /department/delDepartment [delete]
+// @Router /department/delDepartment [post]
 func (h *DepartmentHandler) DelDepartment(ctx *gin.Context, req DelDepartmentRequest, uc ijwt.UserClaims) (web.Response, error) {
 	if !h.isAdmin(uc.StudentId) {
 		return web.Response{}, errs.ROLE_ERROR(fmt.Errorf("没有访问权限: %s", uc.StudentId))

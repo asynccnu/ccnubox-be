@@ -16,7 +16,7 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/InfoSum/delInfoSum": {
-            "delete": {
+            "post": {
                 "description": "删除信息整合信息",
                 "consumes": [
                     "application/json"
@@ -113,7 +113,7 @@ const docTemplate = `{
             }
         },
         "/banner/delBanner": {
-            "delete": {
+            "post": {
                 "description": "删除 banner 内容",
                 "consumes": [
                     "application/json"
@@ -210,7 +210,7 @@ const docTemplate = `{
             }
         },
         "/calendar/delCalendar": {
-            "delete": {
+            "post": {
                 "description": "删除日历内容",
                 "consumes": [
                     "application/json"
@@ -527,7 +527,7 @@ const docTemplate = `{
             }
         },
         "/class/delete": {
-            "delete": {
+            "post": {
                 "description": "根据课表ID删除课表",
                 "consumes": [
                     "application/json"
@@ -931,7 +931,7 @@ const docTemplate = `{
             }
         },
         "/department/delDepartment": {
-            "delete": {
+            "post": {
                 "description": "删除部门信息",
                 "consumes": [
                     "application/json"
@@ -1051,7 +1051,7 @@ const docTemplate = `{
             }
         },
         "/elecprice/cancelStandard": {
-            "delete": {
+            "post": {
                 "description": "取消自己订阅的电费提醒",
                 "consumes": [
                     "application/json"
@@ -2571,7 +2571,7 @@ const docTemplate = `{
             }
         },
         "/website/delWebsite": {
-            "delete": {
+            "post": {
                 "description": "删除网站信息",
                 "consumes": [
                     "application/json"

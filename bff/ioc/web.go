@@ -28,6 +28,7 @@ func InitGinServer(
 	loggerMiddleware *middleware.LoggerMiddleware,
 	loginMiddleware *middleware.LoginMiddleware,
 	corsMiddleware *middleware.CorsMiddleware,
+	prometheusMiddleware *middleware.PrometheusMiddleware,
 	classroom *classroom.ClassRoomHandler,
 	tube *tube.TubeHandler,
 	user *user.UserHandler,
@@ -56,9 +57,11 @@ func InitGinServer(
 
 	//使用中间件
 	api.Use(
-		//跨域中间件
+		// 跨域中间件
 		corsMiddleware.MiddlewareFunc(),
-		//打点和错误处理中间件
+		// 打点中间件
+		prometheusMiddleware.MiddlewareFunc(),
+		// 日志中间件
 		loggerMiddleware.MiddlewareFunc(),
 	)
 

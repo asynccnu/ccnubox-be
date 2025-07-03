@@ -34,7 +34,7 @@ func (c *ClassHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 	sg := s.Group("/class")
 	sg.GET("/get", authMiddleware, ginx.WrapClaimsAndReq(c.GetClassList))
 	sg.POST("/add", authMiddleware, ginx.WrapClaimsAndReq(c.AddClass))
-	sg.DELETE("/delete", authMiddleware, ginx.WrapClaimsAndReq(c.DeleteClass))
+	sg.POST("/delete", authMiddleware, ginx.WrapClaimsAndReq(c.DeleteClass))
 	sg.PUT("/update", authMiddleware, ginx.WrapClaimsAndReq(c.UpdateClass))
 	sg.GET("/getRecycle", authMiddleware, ginx.WrapClaimsAndReq(c.GetRecycleBinClassInfos))
 	sg.PUT("/recover", authMiddleware, ginx.WrapClaimsAndReq(c.RecoverClass))
@@ -140,7 +140,7 @@ func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.U
 // @Param Authorization header string true "Bearer Token"
 // @Param request body DeleteClassRequest true "删除课表请求"
 // @Success 200 {object} web.Response "成功删除课表"
-// @Router /class/delete [delete]
+// @Router /class/delete [post]
 func (c *ClassHandler) DeleteClass(ctx *gin.Context, req DeleteClassRequest, uc ijwt.UserClaims) (web.Response, error) {
 	_, err := c.ClassListClient.DeleteClass(ctx, &classlistv1.DeleteClassRequest{
 		Id:       req.Id,

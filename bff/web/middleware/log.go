@@ -6,7 +6,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/logger"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/prometheusx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -14,39 +13,19 @@ import (
 )
 
 type LoggerMiddleware struct {
-	log        logger.Logger
-	prometheus *prometheusx.PrometheusCounter
+	log logger.Logger
 }
 
 func NewLoggerMiddleware(
 	log logger.Logger,
-	prometheus *prometheusx.PrometheusCounter,
 ) *LoggerMiddleware {
 	return &LoggerMiddleware{
-		log:        log,
-		prometheus: prometheus,
+		log: log,
 	}
 }
 
 func (lm *LoggerMiddleware) MiddlewareFunc() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		start := time.Now()
-		path := ctx.FullPath()
-
-		// 记录活跃连接数
-		lm.prometheus.ActiveConnections.WithLabelValues(path).Inc()
-		defer func() {
-			//打点路由特殊化处理这里还没有想到更好的方案,先这样吧
-			if path == "/api/v1/metrics/:type/:name" {
-				path = "/api/v1/metrics/" + ctx.Param("type") + "/" + ctx.Param("name")
-			}
-
-			// 记录响应信息
-			lm.prometheus.ActiveConnections.WithLabelValues(path).Dec()
-			status := ctx.Writer.Status()
-			lm.prometheus.RouterCounter.WithLabelValues(ctx.Request.Method, path, http.StatusText(status)).Inc()
-			lm.prometheus.DurationTime.WithLabelValues(path, http.StatusText(status)).Observe(time.Since(start).Seconds())
-		}()
 
 		ctx.Next() // 执行后续逻辑
 

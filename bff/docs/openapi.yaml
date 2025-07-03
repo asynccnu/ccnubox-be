@@ -5,7 +5,7 @@ servers:
 - url: /
 paths:
   /InfoSum/delInfoSum:
-    delete:
+    post:
       tags:
       - InfoSum
       summary: 删除信息整合信息
@@ -65,7 +65,7 @@ paths:
                 $ref: '#/components/schemas/web.Response'
       x-codegen-request-body-name: request
   /banner/delBanner:
-    delete:
+    post:
       tags:
       - banner
       summary: 删除 banner 内容
@@ -125,7 +125,7 @@ paths:
                 $ref: '#/components/schemas/web.Response'
       x-codegen-request-body-name: request
   /calendar/delCalendar:
-    delete:
+    post:
       tags:
       - calendar
       summary: 删除日历内容
@@ -325,7 +325,7 @@ paths:
                     data:
                       $ref: '#/components/schemas/class.GetSchoolDayResp'
   /class/delete:
-    delete:
+    post:
       tags:
       - class
       summary: 删除课表
@@ -608,7 +608,7 @@ paths:
                     data:
                       $ref: '#/components/schemas/classroom.GetFreeClassRoomResp'
   /department/delDepartment:
-    delete:
+    post:
       tags:
       - department
       summary: 删除部门信息
@@ -689,7 +689,7 @@ paths:
                 $ref: '#/components/schemas/web.Response'
       x-codegen-request-body-name: request
   /elecprice/cancelStandard:
-    delete:
+    post:
       tags:
       - elecprice
       summary: 取消电费提醒标准
@@ -1672,7 +1672,7 @@ paths:
       security:
       - Bearer Auth: []
   /website/delWebsite:
-    delete:
+    post:
       tags:
       - website
       summary: 删除网站信息

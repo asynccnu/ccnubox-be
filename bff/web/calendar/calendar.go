@@ -25,7 +25,7 @@ func (h *CalendarHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.
 	sg := s.Group("/calendar")
 	sg.GET("/getCalendars", ginx.Wrap(h.GetCalendars))
 	sg.POST("/saveCalendar", authMiddleware, ginx.WrapClaimsAndReq(h.SaveCalendar))
-	sg.DELETE("/delCalendar", authMiddleware, ginx.WrapClaimsAndReq(h.DelCalendar))
+	sg.POST("/delCalendar", authMiddleware, ginx.WrapClaimsAndReq(h.DelCalendar))
 }
 
 // GetCalendar  获取日历列表
@@ -90,7 +90,7 @@ func (h *CalendarHandler) SaveCalendar(ctx *gin.Context, req SaveCalendarRequest
 // @Produce json
 // @Param request body DelCalendarRequest true "删除日历内容请求参数"
 // @Success 200 {object} web.Response "成功"
-// @Router /calendar/delCalendar [delete]
+// @Router /calendar/delCalendar [post]
 func (h *CalendarHandler) DelCalendar(ctx *gin.Context, req DelCalendarRequest, uc ijwt.UserClaims) (web.Response, error) {
 	if !h.isAdmin(uc.StudentId) {
 		return web.Response{}, errs.ROLE_ERROR(fmt.Errorf("没有访问权限: %s", uc.StudentId))

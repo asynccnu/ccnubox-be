@@ -5,7 +5,7 @@
     },
     "paths": {
         "/InfoSum/delInfoSum": {
-            "delete": {
+            "post": {
                 "description": "删除信息整合信息",
                 "consumes": [
                     "application/json"
@@ -102,7 +102,7 @@
             }
         },
         "/banner/delBanner": {
-            "delete": {
+            "post": {
                 "description": "删除 banner 内容",
                 "consumes": [
                     "application/json"
@@ -199,7 +199,7 @@
             }
         },
         "/calendar/delCalendar": {
-            "delete": {
+            "post": {
                 "description": "删除日历内容",
                 "consumes": [
                     "application/json"
@@ -516,7 +516,7 @@
             }
         },
         "/class/delete": {
-            "delete": {
+            "post": {
                 "description": "根据课表ID删除课表",
                 "consumes": [
                     "application/json"
@@ -920,7 +920,7 @@
             }
         },
         "/department/delDepartment": {
-            "delete": {
+            "post": {
                 "description": "删除部门信息",
                 "consumes": [
                     "application/json"
@@ -1040,7 +1040,7 @@
             }
         },
         "/elecprice/cancelStandard": {
-            "delete": {
+            "post": {
                 "description": "取消自己订阅的电费提醒",
                 "consumes": [
                     "application/json"
@@ -2560,7 +2560,7 @@
             }
         },
         "/website/delWebsite": {
-            "delete": {
+            "post": {
                 "description": "删除网站信息",
                 "consumes": [
                     "application/json"

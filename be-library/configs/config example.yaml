@@ -24,7 +24,7 @@ registry:
 zap_log:
   log_level: "info"
   log_format: "json"
-  log_path: "./logs"
+  log_path: "/logs"
   log_file_name: "app.log"
   log_file_max_size: 100
   log_file_max_backups: 30

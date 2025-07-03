@@ -39,7 +39,7 @@ zaplog:
   ##日志格式
   log_format: "json"
   ##日志路径
-  log_path: "/var/log/app_log"
+  log_path: "/logs/"
   ##日志文件名
   log_file_name: "app.log"
   ##日志文件最大大小

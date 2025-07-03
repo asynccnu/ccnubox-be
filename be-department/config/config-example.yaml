@@ -19,7 +19,7 @@ mysql:
   dsn: "root:12345678@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
 
 log:
-  path: "./logs/app.log"  # 日志文件路径
+  path: "/logs/app.log"  # 日志文件路径
   maxSize: 100           # 单个日志文件的最大大小（MB）
   maxBackups: 7          # 保留旧日志文件的最大数量
   maxAge: 30             # 日志文件保留天数

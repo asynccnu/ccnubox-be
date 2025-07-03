@@ -22,7 +22,7 @@ countLevel:
   step: 3 #轮询降级与升级步数,即一次更改一级
 
 log:
-  path: "./logs/app.log"  # 日志文件路径
+  path: "/logs/app.log"  # 日志文件路径
   maxSize: 100           # 单个日志文件的最大大小（MB）
   maxBackups: 7          # 保留旧日志文件的最大数量
   maxAge: 30             # 日志文件保留天数

@@ -7,5 +7,5 @@ import (
 
 var (
 	ErrCrawler   = errors.New(456, v1.ErrorReason_Crawler_Error.String(), "爬取课表失败")
-	ErrCCNULogin = errors.New(457, v1.ErrorReason_CCNULogin_Error.String(), "请求ccnu一站式登录服务错误")
+	ErrCCNULogin = errors.New(457, v1.ErrorReason_CCNULogin_Error.String(), "请求user登录服务错误")
 )

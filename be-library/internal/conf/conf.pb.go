@@ -27,6 +27,7 @@ type Bootstrap struct {
 	Server        *Server                `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
 	Data          *Data                  `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	Registry      *Registry              `protobuf:"bytes,3,opt,name=registry,proto3" json:"registry,omitempty"`
+	Zaplog        *ZapLogConfigs         `protobuf:"bytes,4,opt,name=zaplog,proto3" json:"zaplog,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -78,6 +79,13 @@ func (x *Bootstrap) GetData() *Data {
 func (x *Bootstrap) GetRegistry() *Registry {
 	if x != nil {
 		return x.Registry
+	}
+	return nil
+}
+
+func (x *Bootstrap) GetZaplog() *ZapLogConfigs {
+	if x != nil {
+		return x.Zaplog
 	}
 	return nil
 }
@@ -583,11 +591,12 @@ var File_conf_conf_proto protoreflect.FileDescriptor
 const file_conf_conf_proto_rawDesc = "" +
 	"\n" +
 	"\x0fconf/conf.proto\x12\n" +
-	"kratos.api\x1a\x1egoogle/protobuf/duration.proto\"\x8f\x01\n" +
+	"kratos.api\x1a\x1egoogle/protobuf/duration.proto\"\xc2\x01\n" +
 	"\tBootstrap\x12*\n" +
 	"\x06server\x18\x01 \x01(\v2\x12.kratos.api.ServerR\x06server\x12$\n" +
 	"\x04data\x18\x02 \x01(\v2\x10.kratos.api.DataR\x04data\x120\n" +
-	"\bregistry\x18\x03 \x01(\v2\x14.kratos.api.RegistryR\bregistry\"\xb4\x01\n" +
+	"\bregistry\x18\x03 \x01(\v2\x14.kratos.api.RegistryR\bregistry\x121\n" +
+	"\x06zaplog\x18\x04 \x01(\v2\x19.kratos.api.ZapLogConfigsR\x06zaplog\"\xb4\x01\n" +
 	"\x06Server\x12+\n" +
 	"\x04grpc\x18\x01 \x01(\v2\x17.kratos.api.Server.GRPCR\x04grpc\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x1ai\n" +
@@ -654,18 +663,19 @@ var file_conf_conf_proto_depIdxs = []int32{
 	1,  // 0: kratos.api.Bootstrap.server:type_name -> kratos.api.Server
 	2,  // 1: kratos.api.Bootstrap.data:type_name -> kratos.api.Data
 	4,  // 2: kratos.api.Bootstrap.registry:type_name -> kratos.api.Registry
-	6,  // 3: kratos.api.Server.grpc:type_name -> kratos.api.Server.GRPC
-	7,  // 4: kratos.api.Data.database:type_name -> kratos.api.Data.Database
-	8,  // 5: kratos.api.Data.redis:type_name -> kratos.api.Data.Redis
-	5,  // 6: kratos.api.Registry.etcd:type_name -> kratos.api.Etcd
-	9,  // 7: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	9,  // 8: kratos.api.Data.Redis.read_timeout:type_name -> google.protobuf.Duration
-	9,  // 9: kratos.api.Data.Redis.write_timeout:type_name -> google.protobuf.Duration
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	3,  // 3: kratos.api.Bootstrap.zaplog:type_name -> kratos.api.ZapLogConfigs
+	6,  // 4: kratos.api.Server.grpc:type_name -> kratos.api.Server.GRPC
+	7,  // 5: kratos.api.Data.database:type_name -> kratos.api.Data.Database
+	8,  // 6: kratos.api.Data.redis:type_name -> kratos.api.Data.Redis
+	5,  // 7: kratos.api.Registry.etcd:type_name -> kratos.api.Etcd
+	9,  // 8: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	9,  // 9: kratos.api.Data.Redis.read_timeout:type_name -> google.protobuf.Duration
+	9,  // 10: kratos.api.Data.Redis.write_timeout:type_name -> google.protobuf.Duration
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_conf_conf_proto_init() }

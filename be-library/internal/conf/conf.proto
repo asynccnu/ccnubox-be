@@ -9,6 +9,7 @@ message Bootstrap {
   Server server = 1;
   Data data = 2;
   Registry registry = 3;
+  ZapLogConfigs zaplog = 4;
 }
 
 message Server {

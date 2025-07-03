@@ -21,7 +21,7 @@ registry:
     password: ""
   usersvc: "discovery:///user"
 
-zap_log:
+zaplog:
   log_level: "info"
   log_format: "json"
   log_path: "/logs"

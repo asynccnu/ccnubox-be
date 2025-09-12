@@ -3,62 +3,64 @@ package data
 import (
 	"context"
 	"errors"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
-	"github.com/go-kratos/kratos/v2/log"
 	"gorm.io/gorm/clause"
 )
 
 type StudentAndCourseDBRepo struct {
 	data *Data
-	log  *log.Helper
 }
 
-func NewStudentAndCourseDBRepo(data *Data, logger log.Logger) *StudentAndCourseDBRepo {
+func NewStudentAndCourseDBRepo(data *Data) *StudentAndCourseDBRepo {
 	return &StudentAndCourseDBRepo{
-		log:  log.NewHelper(logger),
 		data: data,
 	}
 }
 
 func (s StudentAndCourseDBRepo) SaveManyStudentAndCourseToDB(ctx context.Context, scs []*do.StudentCourse) error {
-
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	if len(scs) == 0 {
+		logh.Warn("insert student_course 0 data")
 		return nil
 	}
 
 	db := s.data.DB(ctx).Table(do.StudentCourseTableName).WithContext(ctx)
 
 	if err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(scs).Error; err != nil {
-		s.log.Errorf("Mysql:create %v in %s failed: %v", scs, do.StudentCourseTableName, err)
+		logh.Errorf("Mysql:create %v in %s failed: %v", scs, do.StudentCourseTableName, err)
 		return errcode.ErrCourseSave
 	}
 	return nil
 }
 
 func (s StudentAndCourseDBRepo) SaveStudentAndCourseToDB(ctx context.Context, sc *do.StudentCourse) error {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	if sc == nil {
+		logh.Warn("insert student_course 0 data")
 		return nil
 	}
-
 	db := s.data.DB(ctx).Table(do.StudentCourseTableName).WithContext(ctx)
 	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(sc).Error
 	if err != nil {
-		s.log.Errorf("Mysql:create %v in %s failed: %v", sc, do.StudentCourseTableName, err)
+		logh.Errorf("Mysql:create %v in %s failed: %v", sc, do.StudentCourseTableName, err)
 		return errcode.ErrClassUpdate
 	}
 	return nil
 }
 
 func (s StudentAndCourseDBRepo) DeleteStudentAndCourseInDB(ctx context.Context, stuID, year, semester string, claID []string) error {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	if len(claID) == 0 {
+		logh.Warn("delete student_course 0 data")
 		return errors.New("mysql can't delete zero data")
 	}
 	db := s.data.DB(ctx).Table(do.StudentCourseTableName).WithContext(ctx)
 	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND cla_id IN (?)", year, semester, stuID, claID).Delete(&do.StudentCourse{}).Error
 	if err != nil {
-		s.log.Errorf("Mysql:delete %v in %s failed: %v", claID, do.StudentCourseTableName, err)
+		logh.Errorf("Mysql:delete %v in %s failed: %v", claID, do.StudentCourseTableName, err)
 		return errcode.ErrClassDelete
 	}
 	return nil
@@ -83,10 +85,12 @@ func (s StudentAndCourseDBRepo) GetClassNum(ctx context.Context, stuID, year, se
 }
 
 func (s StudentAndCourseDBRepo) DeleteStudentAndCourseByTimeFromDB(ctx context.Context, stuID, year, semester string) error {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	db := s.data.DB(ctx).Table(do.StudentCourseTableName).WithContext(ctx)
 	//注意:只删除非手动添加的课程，即官方课程
 	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND is_manually_added = false", year, semester, stuID).Delete(&do.StudentCourse{}).Error
 	if err != nil {
+		logh.Error("Mysql:delete student_course by time from db failed: %v", err)
 		return errcode.ErrClassDelete
 	}
 	return nil

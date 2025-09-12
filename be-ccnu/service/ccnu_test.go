@@ -29,7 +29,7 @@ func Test_ccnuService_getGradCookie(t *testing.T) {
 
 	testLogger := new(TestLogger)
 	ccs := NewCCNUService(testLogger)
-	stuId, password := "xxx", "xxx"
+	stuId, password := "2024113515", "Ty:020928"
 	cookie, err := ccs.GetXKCookie(context.Background(), stuId, password)
 	if err != nil {
 		t.Errorf("GetXKCookie err : %v", err)

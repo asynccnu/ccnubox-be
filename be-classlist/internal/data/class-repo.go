@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
-	"github.com/go-kratos/kratos/v2/log"
 	"github.com/jinzhu/copier"
 )
 
@@ -44,20 +44,19 @@ type ClassRepo struct {
 	ClaRepo *ClassInfoRepo
 	Sac     *StudentAndCourseRepo
 	TxCtrl  Transaction //控制事务的开启
-	log     *log.Helper
 }
 
-func NewClassRepo(ClaRepo *ClassInfoRepo, TxCtrl Transaction, Sac *StudentAndCourseRepo, logger log.Logger) *ClassRepo {
+func NewClassRepo(ClaRepo *ClassInfoRepo, TxCtrl Transaction, Sac *StudentAndCourseRepo) *ClassRepo {
 	return &ClassRepo{
 		ClaRepo: ClaRepo,
 		Sac:     Sac,
-		log:     log.NewHelper(logger),
 		TxCtrl:  TxCtrl,
 	}
 }
 
 // GetClassesFromLocal 从本地获取课程
 func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*biz.ClassInfo, error) {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	var (
 		cacheGet = true
 		key      = cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester)
@@ -71,13 +70,13 @@ func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semes
 
 	if err != nil {
 		cacheGet = false
-		cla.log.Warnf("Get Class [%v %v %v] From Cache failed: %v", stuID, year, semester, err)
+		logh.Warnf("Get Class [%v %v %v] From Cache failed: %v", stuID, year, semester, err)
 	}
 	if !cacheGet {
 		//从数据库中获取
 		classInfos, err = cla.ClaRepo.DB.GetClassInfos(ctx, stuID, year, semester)
 		if err != nil {
-			cla.log.Errorf("Get Class [%v %v %v] From DB failed: %v", stuID, year, semester, err)
+			logh.Errorf("Get Class [%v %v %v] From DB failed: %v", stuID, year, semester, err)
 			return nil, errcode.ErrClassFound
 		}
 		go func() {
@@ -116,6 +115,7 @@ func (cla ClassRepo) GetSpecificClassInfo(ctx context.Context, classID string) (
 
 // AddClass 添加课程信息
 func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string, classInfo *biz.ClassInfo, sc *biz.StudentCourse) error {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string,
 		return nil
 	})
 	if errTx != nil {
-		cla.log.Errorf("Add Class [%v,%v,%v,%+v,%+v] failed:%v", stuID, year, semester, classInfo, sc, errTx)
+		logh.Errorf("Add Class [%v,%v,%v,%+v,%+v] failed:%v", stuID, year, semester, classInfo, sc, errTx)
 		return errTx
 	}
 	go func() {
@@ -159,10 +159,11 @@ func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string,
 
 // DeleteClass 删除课程信息
 func (cla ClassRepo) DeleteClass(ctx context.Context, stuID, year, semester string, classID []string) error {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	//先删除缓存信息
 	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
 	if err != nil {
-		cla.log.Errorf("Delete Class [%v,%v,%v,%v] from Cache failed:%v", stuID, year, semester, classID, err)
+		logh.Errorf("Delete Class [%v,%v,%v,%v] from Cache failed:%v", stuID, year, semester, classID, err)
 		return err
 	}
 	// 获取删除课程手动添加的信息
@@ -173,7 +174,7 @@ func (cla ClassRepo) DeleteClass(ctx context.Context, stuID, year, semester stri
 
 	err = cla.Sac.Cache.RecycleClassId(ctx, recycleSetName, classID[0], isManuallyAddedCourse)
 	if err != nil {
-		cla.log.Errorf("Add Class [%v,%v,%v,%v] To RecycleBin failed:%v", stuID, year, semester, classID, err)
+		logh.Errorf("Add Class [%v,%v,%v,%v] To RecycleBin failed:%v", stuID, year, semester, classID, err)
 		return err
 	}
 
@@ -186,7 +187,7 @@ func (cla ClassRepo) DeleteClass(ctx context.Context, stuID, year, semester stri
 		return nil
 	})
 	if errTx != nil {
-		cla.log.Errorf("Delete Class [%v,%v,%v,%v] In DB failed:%v", stuID, year, semester, classID, errTx)
+		logh.Errorf("Delete Class [%v,%v,%v,%v] In DB failed:%v", stuID, year, semester, classID, errTx)
 		return errTx
 	}
 	return nil
@@ -223,6 +224,8 @@ func (cla ClassRepo) RemoveClassFromRecycledBin(ctx context.Context, stuID, year
 // UpdateClass 更新课程信息
 func (cla ClassRepo) UpdateClass(ctx context.Context, stuID, year, semester, oldClassID string,
 	newClassInfo *biz.ClassInfo, newSc *biz.StudentCourse) error {
+
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
 	if err != nil {
 		return err
@@ -253,7 +256,7 @@ func (cla ClassRepo) UpdateClass(ctx context.Context, stuID, year, semester, old
 		return nil
 	})
 	if errTx != nil {
-		cla.log.Errorf("Update Class [%v,%v,%v,%v,%+v,%+v] In DB  failed:%v", stuID, year, semester, oldClassID, newClassInfo, newSc, errTx)
+		logh.Errorf("Update Class [%v,%v,%v,%v,%+v,%+v] In DB  failed:%v", stuID, year, semester, oldClassID, newClassInfo, newSc, errTx)
 		return errTx
 	}
 
@@ -269,6 +272,7 @@ func (cla ClassRepo) UpdateClass(ctx context.Context, stuID, year, semester, old
 
 // SaveClass 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
 func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*biz.ClassInfo, scs []*biz.StudentCourse) error {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	if len(classInfos) == 0 || len(scs) == 0 {
 		return errors.New("classInfos or scs is empty")
 	}
@@ -277,7 +281,7 @@ func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string
 
 	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, key)
 	if err != nil {
-		cla.log.Errorf("Delete Class [%+v] from Cache failed:%v", key, err)
+		logh.Errorf("Delete Class [%+v] from Cache failed:%v", key, err)
 		return err
 	}
 
@@ -313,7 +317,7 @@ func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string
 		return nil
 	})
 	if err != nil {
-		cla.log.Errorf("Save class [%+v] and scs [%v] failed:%v", classInfos, scs, err)
+		logh.Errorf("Save class [%+v] and scs [%v] failed:%v", classInfos, scs, err)
 	}
 	return err
 }

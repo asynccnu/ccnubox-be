@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
-	"github.com/go-kratos/kratos/v2/log"
 	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
@@ -22,11 +22,10 @@ var semesterMap = map[string]string{
 }
 
 type Crawler struct {
-	log    *log.Helper
 	client *http.Client
 }
 
-func NewClassCrawler(logger log.Logger) *Crawler {
+func NewClassCrawler() *Crawler {
 	client := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        100,              // 最大空闲连接
@@ -36,13 +35,13 @@ func NewClassCrawler(logger log.Logger) *Crawler {
 		},
 	}
 	return &Crawler{
-		log:    log.NewHelper(logger),
 		client: client,
 	}
 }
 
 // GetClassInfoForGraduateStudent 获取研究生课程信息
 func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	xnm, xqm := year, semester
 
 	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])
@@ -50,7 +49,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
 	if err != nil {
-		c.log.Errorf("http.NewRequestWithContext err=%v", err)
+		logh.Errorf("http.NewRequestWithContext err=%v", err)
 		return nil, nil, errcode.ErrCrawler
 	}
 	req.Header = http.Header{
@@ -60,7 +59,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		c.log.Errorf("client.Do err=%v", err)
+		logh.Errorf("client.Do err=%v", err)
 		return nil, nil, errcode.ErrCrawler
 	}
 	defer resp.Body.Close()
@@ -68,12 +67,12 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	// 读取 Body 到字节数组
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		c.log.Errorf("failed to read response body: %v", err)
+		logh.Errorf("failed to read response body: %v", err)
 		return nil, nil, err
 	}
 	infos, Scs, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
 	if err != nil {
-		c.log.Errorf("extractUndergraduateData err=%v", err)
+		logh.Errorf("extractUndergraduateData err=%v", err)
 		return nil, nil, errcode.ErrCrawler
 	}
 	return infos, Scs, nil
@@ -81,6 +80,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 
 // GetClassInfosForUndergraduate  获取本科生课程信息
 func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	xnm, xqm := year, semester
 
 	formdata := fmt.Sprintf("xnm=%s&xqm=%s&kzlx=ck&xsdm=", xnm, semesterMap[xqm])
@@ -89,7 +89,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151", data)
 	if err != nil {
-		c.log.Errorf("http.NewRequestWithContext err=%v", err)
+		logh.Errorf("http.NewRequestWithContext err=%v", err)
 		return nil, nil, errcode.ErrCrawler
 	}
 	req.Header = http.Header{
@@ -99,7 +99,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		c.log.Errorf("client.Do err=%v", err)
+		logh.Errorf("client.Do err=%v", err)
 		return nil, nil, errcode.ErrCrawler
 	}
 	defer resp.Body.Close()
@@ -107,12 +107,12 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	// 读取 Body 到字节数组
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		c.log.Errorf("failed to read response body: %v", err)
+		logh.Errorf("failed to read response body: %v", err)
 		return nil, nil, err
 	}
 	infos, Scs, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
 	if err != nil {
-		c.log.Errorf("extractUndergraduateData err=%v", err)
+		logh.Errorf("extractUndergraduateData err=%v", err)
 		return nil, nil, errcode.ErrCrawler
 	}
 	return infos, Scs, nil

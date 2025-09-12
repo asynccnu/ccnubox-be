@@ -3,14 +3,13 @@ package crawler
 import (
 	"context"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/test"
 	"testing"
 	"time"
 )
 
 func TestCrawler_GetClassInfosForUndergraduate(t *testing.T) {
 	var cookie = "JSESSIONID=98355539BF868E9B0675D58EE1D794A8"
-	crawler := NewClassCrawler(test.NewLogger())
+	crawler := NewClassCrawler()
 	start := time.Now()
 	infos, scs, err := crawler.GetClassInfosForUndergraduate(context.Background(), "testID", "2024", "2", cookie)
 	if err != nil {
@@ -29,7 +28,7 @@ func TestCrawler_GetClassInfosForUndergraduate(t *testing.T) {
 
 func BenchmarkCrawler_GetClassInfosForUndergraduate(b *testing.B) {
 	var cookie = "JSESSIONID=98355539BF868E9B0675D58EE1D794A8"
-	crawler := NewClassCrawler(test.NewLogger())
+	crawler := NewClassCrawler()
 
 	ctx := context.Background()
 
@@ -46,8 +45,8 @@ func BenchmarkCrawler_GetClassInfosForUndergraduate(b *testing.B) {
 }
 
 func TestCrawler_GetClassInfoForGraduateStudent(t *testing.T) {
-	var cookie = "JSESSIONID=5A195A5AB96A07ABAEBE6A8F17B6ADD4"
-	crawler := NewClassCrawler(test.NewLogger())
+	var cookie = "JSESSIONID=9BF9BFAD7E543259A65596CA5DFF4E60;route=f06bbbc827e6ce0f67fc73327c06186a"
+	crawler := NewClassCrawler()
 	start := time.Now()
 	infos, scs, err := crawler.GetClassInfoForGraduateStudent(context.Background(), "testID", "2024", "1", cookie)
 	if err != nil {

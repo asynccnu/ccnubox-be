@@ -33,15 +33,15 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	if err != nil {
 		return nil, nil, err
 	}
-	classInfoDBRepo := data.NewClassInfoDBRepo(dataData, logger)
+	classInfoDBRepo := data.NewClassInfoDBRepo(dataData)
 	redisClient := data.NewRedisDB(confData, logger)
-	classInfoCacheRepo := data.NewClassInfoCacheRepo(redisClient, confServer, logger)
+	classInfoCacheRepo := data.NewClassInfoCacheRepo(redisClient, confServer)
 	classInfoRepo := data.NewClassInfoRepo(classInfoDBRepo, classInfoCacheRepo)
-	studentAndCourseDBRepo := data.NewStudentAndCourseDBRepo(dataData, logger)
-	studentAndCourseCacheRepo := data.NewStudentAndCourseCacheRepo(redisClient, confServer, logger)
+	studentAndCourseDBRepo := data.NewStudentAndCourseDBRepo(dataData)
+	studentAndCourseCacheRepo := data.NewStudentAndCourseCacheRepo(redisClient, confServer)
 	studentAndCourseRepo := data.NewStudentAndCourseRepo(studentAndCourseDBRepo, studentAndCourseCacheRepo)
-	classRepo := data.NewClassRepo(classInfoRepo, dataData, studentAndCourseRepo, logger)
-	crawlerCrawler := crawler.NewClassCrawler(logger)
+	classRepo := data.NewClassRepo(classInfoRepo, dataData, studentAndCourseRepo)
+	crawlerCrawler := crawler.NewClassCrawler()
 	jxbDBRepo := data.NewJxbDBRepo(dataData, logger)
 	etcdRegistry := registry.NewRegistrarServer(confRegistry, logger)
 	userServiceClient, err := client.NewClient(etcdRegistry, confRegistry, logger)
@@ -59,7 +59,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 		return nil, nil, err
 	}
 	refreshLogRepo := data.NewRefreshLogRepo(db, confServer)
-	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawlerCrawler, jxbDBRepo, ccnuService, delayKafka, refreshLogRepo, confServer, logger)
+	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawlerCrawler, jxbDBRepo, ccnuService, delayKafka, refreshLogRepo, confServer)
 	classListService := service.NewClasserService(classUsecase, schoolDay, logger)
 	grpcServer := server.NewGRPCServer(confServer, classListService, logger)
 	app := newApp(logger, grpcServer, etcdRegistry)

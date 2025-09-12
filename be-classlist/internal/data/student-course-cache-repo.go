@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
-	"github.com/go-kratos/kratos/v2/log"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -13,7 +13,6 @@ import (
 type StudentAndCourseCacheRepo struct {
 	rdb               *redis.Client
 	recycleExpiration time.Duration
-	log               *log.Helper
 }
 
 type RecycleClassInfo struct {
@@ -21,7 +20,7 @@ type RecycleClassInfo struct {
 	IsAdded bool   `json:"isAdded"`
 }
 
-func NewStudentAndCourseCacheRepo(rdb *redis.Client, cf *conf.Server, logger log.Logger) *StudentAndCourseCacheRepo {
+func NewStudentAndCourseCacheRepo(rdb *redis.Client, cf *conf.Server) *StudentAndCourseCacheRepo {
 	expire := 30 * 24 * time.Hour
 
 	if cf.RecycleExpiration > 0 {
@@ -30,15 +29,15 @@ func NewStudentAndCourseCacheRepo(rdb *redis.Client, cf *conf.Server, logger log
 
 	return &StudentAndCourseCacheRepo{
 		rdb:               rdb,
-		log:               log.NewHelper(logger),
 		recycleExpiration: expire,
 	}
 }
 
 func (s StudentAndCourseCacheRepo) GetRecycledClassIds(ctx context.Context, key string) ([]string, error) {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	members, err := s.rdb.SMembers(ctx, key).Result()
 	if err != nil {
-		s.log.Errorf("redis: getrecycledClassIds key = %v failed: %v", key, err)
+		logh.Errorf("redis: getrecycledClassIds key = %v failed: %v", key, err)
 		return nil, err
 	}
 	var ids = make([]string, 0, len(members))
@@ -46,7 +45,7 @@ func (s StudentAndCourseCacheRepo) GetRecycledClassIds(ctx context.Context, key 
 		var recycledClass RecycleClassInfo
 		err = json.Unmarshal([]byte(member), &recycledClass)
 		if err != nil {
-			s.log.Errorf("redis: getrecycledClassIds key = %v failed: %v", key, err)
+			logh.Errorf("redis: getrecycledClassIds key = %v failed: %v", key, err)
 			return nil, err
 		}
 		ids = append(ids, recycledClass.ClassId)
@@ -54,9 +53,10 @@ func (s StudentAndCourseCacheRepo) GetRecycledClassIds(ctx context.Context, key 
 	return ids, nil
 }
 func (s StudentAndCourseCacheRepo) CheckRecycleIdIsExist(ctx context.Context, RecycledBinKey, classId string) bool {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	members, err := s.rdb.SMembers(ctx, RecycledBinKey).Result()
 	if err != nil {
-		s.log.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
+		logh.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
 		return false
 	}
 
@@ -64,7 +64,7 @@ func (s StudentAndCourseCacheRepo) CheckRecycleIdIsExist(ctx context.Context, Re
 		var recycledClass RecycleClassInfo
 		err = json.Unmarshal([]byte(member), &recycledClass)
 		if err != nil {
-			s.log.Errorf("redis: get member(%s) failed: %v", member, err)
+			logh.Errorf("redis: get member(%s) failed: %v", member, err)
 			continue
 		}
 		if recycledClass.ClassId == classId {
@@ -75,16 +75,17 @@ func (s StudentAndCourseCacheRepo) CheckRecycleIdIsExist(ctx context.Context, Re
 }
 
 func (s StudentAndCourseCacheRepo) IsRecycledCourseManual(ctx context.Context, RecycledBinKey, classId string) bool {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	members, err := s.rdb.SMembers(ctx, RecycledBinKey).Result()
 	if err != nil {
-		s.log.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
+		logh.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
 		return false
 	}
 	for _, member := range members {
 		var recycledClass RecycleClassInfo
 		err = json.Unmarshal([]byte(member), &recycledClass)
 		if err != nil {
-			s.log.Errorf("redis: get member(%s) failed: %v", member, err)
+			logh.Errorf("redis: get member(%s) failed: %v", member, err)
 			continue
 		}
 		if recycledClass.ClassId == classId {
@@ -95,24 +96,25 @@ func (s StudentAndCourseCacheRepo) IsRecycledCourseManual(ctx context.Context, R
 }
 
 func (s StudentAndCourseCacheRepo) RemoveClassFromRecycledBin(ctx context.Context, RecycledBinKey, classId string) error {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	members, err := s.rdb.SMembers(ctx, RecycledBinKey).Result()
 	if err != nil {
-		s.log.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
+		logh.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
 		return err
 	}
 
 	for _, member := range members {
 		var recycleInfo RecycleClassInfo
 		if err := json.Unmarshal([]byte(member), &recycleInfo); err != nil {
-			s.log.Errorf("redis: unmarshal recycleInfo(%s) failed: %v", member, err)
+			logh.Errorf("redis: unmarshal recycleInfo(%s) failed: %v", member, err)
 			continue
 		}
 		if recycleInfo.ClassId == classId {
 			if err := s.rdb.SRem(ctx, RecycledBinKey, member).Err(); err != nil {
-				s.log.Errorf("redis: remove recycleInfo(%s) failed: %v", member, err)
+				logh.Errorf("redis: remove recycleInfo(%s) failed: %v", member, err)
 				return err
 			}
-			s.log.Infof("redis: classId(%s) removed from set(%s)", classId, RecycledBinKey)
+			logh.Infof("redis: classId(%s) removed from set(%s)", classId, RecycledBinKey)
 			break
 		}
 	}
@@ -120,6 +122,7 @@ func (s StudentAndCourseCacheRepo) RemoveClassFromRecycledBin(ctx context.Contex
 }
 
 func (s StudentAndCourseCacheRepo) RecycleClassId(ctx context.Context, recycleBinKey string, classId string, isAdded bool) error {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	val := RecycleClassInfo{ClassId: classId, IsAdded: isAdded}
 
 	jsonVal, err := json.Marshal(val)
@@ -129,13 +132,13 @@ func (s StudentAndCourseCacheRepo) RecycleClassId(ctx context.Context, recycleBi
 
 	// 将 ClassId 放入回收站
 	if err := s.rdb.SAdd(ctx, recycleBinKey, jsonVal).Err(); err != nil {
-		s.log.Errorf("redis: add classId(%s) to set(%s) failed: %v", classId, recycleBinKey, err)
+		logh.Errorf("redis: add classId(%s) to set(%s) failed: %v", classId, recycleBinKey, err)
 		return err
 	}
 
 	// 设置回收站的过期时间
 	if err := s.rdb.Expire(ctx, recycleBinKey, s.recycleExpiration).Err(); err != nil {
-		s.log.Errorf("redis: set expiration for key(%s) failed: %v", recycleBinKey, err)
+		logh.Errorf("redis: set expiration for key(%s) failed: %v", recycleBinKey, err)
 		return err
 	}
 	return nil

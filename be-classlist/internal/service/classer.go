@@ -4,6 +4,7 @@ import (
 	"context"
 	pb "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1" //此处改成了be-api中的,方便其他服务调用.
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
@@ -16,18 +17,22 @@ type ClassListService struct {
 	pb.UnimplementedClasserServer
 	clu       *biz.ClassUsecase
 	schoolday *conf.SchoolDay
-	log       *log.Helper
+	logger    log.Logger
 }
 
 func NewClasserService(clu *biz.ClassUsecase, day *conf.SchoolDay, logger log.Logger) *ClassListService {
 	return &ClassListService{
 		clu:       clu,
-		log:       log.NewHelper(logger),
+		logger:    logger,
 		schoolday: day,
 	}
 }
 
 func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest) (*pb.GetClassResponse, error) {
+	valLogger := log.With(s.logger,
+		"stu_id", req.GetStuId(), "year", req.GetYear(), "semester", req.GetSemester())
+	ctx = classLog.WithLogger(ctx, valLogger)
+
 	if !tool.CheckSY(req.Semester, req.Year) {
 		return &pb.GetClassResponse{}, errcode.ErrParam
 	}
@@ -59,6 +64,9 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 	}, nil
 }
 func (s *ClassListService) AddClass(ctx context.Context, req *pb.AddClassRequest) (*pb.AddClassResponse, error) {
+	valLogger := log.With(s.logger,
+		"stu_id", req.GetStuId(), "year", req.GetYear(), "semester", req.GetSemester())
+	ctx = classLog.WithLogger(ctx, valLogger)
 	if !tool.CheckSY(req.Semester, req.Year) || req.GetWeeks() <= 0 || !tool.CheckIfThisYear(req.Year, req.Semester) {
 		return &pb.AddClassResponse{}, errcode.ErrParam
 	}
@@ -94,6 +102,9 @@ func (s *ClassListService) AddClass(ctx context.Context, req *pb.AddClassRequest
 	}, nil
 }
 func (s *ClassListService) DeleteClass(ctx context.Context, req *pb.DeleteClassRequest) (*pb.DeleteClassResponse, error) {
+	valLogger := log.With(s.logger,
+		"stu_id", req.GetStuId(), "year", req.GetYear(), "semester", req.GetSemester())
+	ctx = classLog.WithLogger(ctx, valLogger)
 	if !tool.CheckSY(req.Semester, req.Year) {
 		return &pb.DeleteClassResponse{}, errcode.ErrParam
 	}
@@ -113,6 +124,9 @@ func (s *ClassListService) DeleteClass(ctx context.Context, req *pb.DeleteClassR
 	}, nil
 }
 func (s *ClassListService) UpdateClass(ctx context.Context, req *pb.UpdateClassRequest) (*pb.UpdateClassResponse, error) {
+	valLogger := log.With(s.logger,
+		"stu_id", req.GetStuId(), "year", req.GetYear(), "semester", req.GetSemester())
+	ctx = classLog.WithLogger(ctx, valLogger)
 	if !tool.CheckSY(req.Semester, req.Year) {
 		return &pb.UpdateClassResponse{}, errcode.ErrParam
 	}
@@ -177,6 +191,9 @@ func (s *ClassListService) UpdateClass(ctx context.Context, req *pb.UpdateClassR
 	}, nil
 }
 func (s *ClassListService) GetRecycleBinClassInfos(ctx context.Context, req *pb.GetRecycleBinClassRequest) (*pb.GetRecycleBinClassResponse, error) {
+	valLogger := log.With(s.logger,
+		"stu_id", req.GetStuId(), "year", req.GetYear(), "semester", req.GetSemester())
+	ctx = classLog.WithLogger(ctx, valLogger)
 	if !tool.CheckSY(req.Semester, req.Year) {
 		return &pb.GetRecycleBinClassResponse{}, errcode.ErrParam
 	}
@@ -196,6 +213,9 @@ func (s *ClassListService) GetRecycleBinClassInfos(ctx context.Context, req *pb.
 	}, nil
 }
 func (s *ClassListService) RecoverClass(ctx context.Context, req *pb.RecoverClassRequest) (*pb.RecoverClassResponse, error) {
+	valLogger := log.With(s.logger,
+		"stu_id", req.GetStuId(), "year", req.GetYear(), "semester", req.GetSemester())
+	ctx = classLog.WithLogger(ctx, valLogger)
 	if !tool.CheckSY(req.Semester, req.Year) {
 		return &pb.RecoverClassResponse{
 			Msg: "恢复课程失败",
@@ -214,6 +234,9 @@ func (s *ClassListService) RecoverClass(ctx context.Context, req *pb.RecoverClas
 	}, nil
 }
 func (s *ClassListService) GetStuIdByJxbId(ctx context.Context, req *pb.GetStuIdByJxbIdRequest) (*pb.GetStuIdByJxbIdResponse, error) {
+	valLogger := log.With(s.logger,
+		"jxb_id", req.GetJxbId())
+	ctx = classLog.WithLogger(ctx, valLogger)
 	stuIds, err := s.clu.GetStuIdsByJxbId(ctx, req.GetJxbId())
 	if err != nil {
 
@@ -224,6 +247,8 @@ func (s *ClassListService) GetStuIdByJxbId(ctx context.Context, req *pb.GetStuId
 	}, nil
 }
 func (s *ClassListService) GetAllClassInfo(ctx context.Context, req *pb.GetAllClassInfoRequest) (*pb.GetAllClassInfoResponse, error) {
+	valLogger := log.With(s.logger, "year", req.GetYear(), "semester", req.GetSemester())
+	ctx = classLog.WithLogger(ctx, valLogger)
 	cursor, err := time.Parse("2006-01-02T15:04:05.000000", req.Cursor)
 	if err != nil {
 		return &pb.GetAllClassInfoResponse{}, errcode.ErrParam

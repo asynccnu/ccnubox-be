@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
-	"github.com/go-kratos/kratos/v2/log"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -16,12 +16,11 @@ const RedisNull = "redis_Null"
 
 type ClassInfoCacheRepo struct {
 	rdb                 *redis.Client
-	log                 *log.Helper
 	classExpiration     time.Duration
 	blackListExpiration time.Duration
 }
 
-func NewClassInfoCacheRepo(rdb *redis.Client, cf *conf.Server, logger log.Logger) *ClassInfoCacheRepo {
+func NewClassInfoCacheRepo(rdb *redis.Client, cf *conf.Server) *ClassInfoCacheRepo {
 	classExpire := 5 * 24 * time.Hour
 	if cf.ClassExpiration > 0 {
 		classExpire = time.Duration(cf.ClassExpiration) * time.Second
@@ -32,7 +31,6 @@ func NewClassInfoCacheRepo(rdb *redis.Client, cf *conf.Server, logger log.Logger
 	}
 	return &ClassInfoCacheRepo{
 		rdb:                 rdb,
-		log:                 log.NewHelper(logger),
 		classExpiration:     classExpire,
 		blackListExpiration: blackListExpiration,
 	}
@@ -45,6 +43,7 @@ func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, key string, 
 		expire time.Duration
 		//根据是否为空指针，来决定过期时间
 	)
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	//检查classInfos是否为空指针
 	if classInfos == nil {
 		val = RedisNull
@@ -52,7 +51,7 @@ func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, key string, 
 	} else {
 		valByte, err := json.Marshal(classInfos)
 		if err != nil {
-			c.log.Errorf("json Marshal (%v) err: %v", classInfos, err)
+			logh.Errorf("json Marshal (%v) err: %v", classInfos, err)
 			return err
 		}
 		val = string(valByte)
@@ -61,19 +60,21 @@ func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, key string, 
 
 	err := c.rdb.Set(ctx, key, val, expire).Err()
 	if err != nil {
-		c.log.Errorf("Redis:Set k(%s)-v(%s) failed: %v", key, val, err)
+		logh.Errorf("Redis:Set k(%s)-v(%s) failed: %v", key, val, err)
 		return err
 	}
 	return nil
 }
 func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, key string) ([]*do.ClassInfo, error) {
+	logh := classLog.GetLogHelperFromCtx(ctx)
+
 	var classInfos = make([]*do.ClassInfo, 0)
 	val, err := c.rdb.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return nil, fmt.Errorf("error getting classlist info from cache: %w", err)
 		}
-		c.log.Errorf("Redis:get key(%s) failed: %v", key, err)
+		logh.Errorf("Redis:get key(%s) failed: %v", key, err)
 		return nil, err
 	}
 	if val == RedisNull {
@@ -81,15 +82,16 @@ func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, key stri
 	}
 	err = json.Unmarshal([]byte(val), &classInfos)
 	if err != nil {
-		c.log.Errorf("json Unmarshal (%v) failed: %v", val, err)
+		logh.Errorf("json Unmarshal (%v) failed: %v", val, err)
 		return nil, err
 	}
 	return classInfos, nil
 }
 
 func (c ClassInfoCacheRepo) DeleteClassInfoFromCache(ctx context.Context, classInfosKey ...string) error {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	if err := c.rdb.Del(ctx, classInfosKey...).Err(); err != nil {
-		c.log.Errorf("redis delete key{%v} failed: %v", classInfosKey, err)
+		logh.Errorf("redis delete key{%v} failed: %v", classInfosKey, err)
 	}
 	return nil
 }

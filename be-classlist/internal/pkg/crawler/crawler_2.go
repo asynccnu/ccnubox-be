@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
-	"github.com/go-kratos/kratos/v2/log"
 	"io"
 	"net/http"
 	"regexp"
@@ -17,11 +17,10 @@ import (
 )
 
 type Crawler2 struct {
-	log    *log.Helper
 	client *http.Client
 }
 
-func NewClassCrawler2(logger log.Logger) *Crawler2 {
+func NewClassCrawler2() *Crawler2 {
 	client := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        100,              // 最大空闲连接
@@ -31,20 +30,19 @@ func NewClassCrawler2(logger log.Logger) *Crawler2 {
 		},
 	}
 	return &Crawler2{
-		log:    log.NewHelper(logger),
 		client: client,
 	}
 }
 
 func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
-
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	url := fmt.Sprintf(
 		"https://bkzhjw.ccnu.edu.cn/jsxsd/framework/mainV_index_loadkb.htmlx?zc=&kbjcmsid=16FD8C2BE55E15F9E0630100007FF6B5&xnxq01id=%s&xswk=false",
 		c.getys(year, semester))
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		c.log.Errorf("http.NewRequest err=%v", err)
+		logh.Errorf("http.NewRequest err=%v", err)
 		return nil, nil, err
 	}
 	req.Header = http.Header{
@@ -54,7 +52,7 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		c.log.Errorf("client.Do err=%v", err)
+		logh.Errorf("client.Do err=%v", err)
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
@@ -62,13 +60,13 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	// 读取 Body 到字节数组
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		c.log.Errorf("failed to read response body: %v", err)
+		logh.Errorf("failed to read response body: %v", err)
 		return nil, nil, err
 	}
 
-	infos, err := c.extractCourses(year, semester, string(bodyBytes))
+	infos, err := c.extractCourses(ctx, year, semester, string(bodyBytes))
 	if err != nil {
-		c.log.Errorf("failed to extract infos: %v", err)
+		logh.Errorf("failed to extract infos: %v", err)
 		return nil, nil, fmt.Errorf("failed to extract infos: %v", err)
 	}
 
@@ -100,7 +98,8 @@ func (c *Crawler2) getys(year, semester string) string {
 	return fmt.Sprintf("%d-%d-%s", y, y+1, semester)
 }
 
-func (c *Crawler2) extractCourses(year, semester, html string) ([]*biz.ClassInfo, error) {
+func (c *Crawler2) extractCourses(ctx context.Context, year, semester, html string) ([]*biz.ClassInfo, error) {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
 		return nil, fmt.Errorf("NewDocumentFromReader err: %v", err)
@@ -136,15 +135,15 @@ func (c *Crawler2) extractCourses(year, semester, html string) ([]*biz.ClassInfo
 			case 2:
 				classInfo.Where = c.parseClassRoom(str)
 			case 3:
-				classInfo.WeekDuration = c.parseWeekDuration(str)
+				classInfo.WeekDuration = c.parseWeekDuration(ctx, str)
 				classInfo.Weeks = c.parseWeeks(classInfo.WeekDuration)
 				//重新格式化week
 				classInfo.WeekDuration = tool.FormatWeeks(tool.ParseWeeks(classInfo.Weeks))
-				classInfo.Day = int64(weekdayMap[c.parseDay(str)])
+				classInfo.Day = int64(weekdayMap[c.parseDay(ctx, str)])
 			case 4:
 				classInfo.ClassWhen, err = c.parseClassWhen(str)
 				if err != nil {
-					c.log.Errorf("parseClassWhen: %v", err)
+					logh.Errorf("parseClassWhen: %v", err)
 				}
 			case 5:
 				classInfo.Credit = c.parseCredit(str)
@@ -174,12 +173,13 @@ func (c *Crawler2) extractAfterColon(s string) string {
 	return strings.TrimSpace(s[idx+len("："):])
 }
 
-func (c *Crawler2) parseWeekDuration(s string) string {
+func (c *Crawler2) parseWeekDuration(ctx context.Context, s string) string {
 	// 方法1：使用字符串操作
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	start := strings.Index(s, "[")
 	end := strings.Index(s, "周]")
 	if start == -1 || end == -1 || start >= end {
-		c.log.Error("parseWeekDuration err")
+		logh.Error("parseWeekDuration err")
 		return "1-17"
 	}
 	return s[start+1 : end]
@@ -216,11 +216,12 @@ func (c *Crawler2) parseNumber(s string) []int64 {
 	return numbers
 }
 
-func (c *Crawler2) parseDay(s string) string {
+func (c *Crawler2) parseDay(ctx context.Context, s string) string {
+	logh := classLog.GetLogHelperFromCtx(ctx)
 	if idx := strings.Index(s, "]"); idx != -1 && idx+1 < len(s) {
 		return s[idx+1:]
 	}
-	c.log.Error("parseDay err")
+	logh.Error("parseDay err")
 	return "星期一"
 }
 

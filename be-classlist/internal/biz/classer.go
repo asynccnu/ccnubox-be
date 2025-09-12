@@ -90,6 +90,8 @@ func NewClassUsecase(classRepo ClassRepo, crawler ClassCrawler,
 func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*ClassInfo, *time.Time, error) {
 	logh := classLog.GetLogHelperFromCtx(ctx)
 
+	noExpireCtx := classLog.WithLogger(context.Background(), logh.Logger())
+
 	var classInfos []*ClassInfo
 
 	var wg sync.WaitGroup
@@ -186,9 +188,9 @@ Local: //从本地获取数据
 
 			defer done()
 
-			crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(context.Background(), stuID, year, semester)
+			crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(noExpireCtx, stuID, year, semester)
 			if crawErr != nil {
-				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, do.Failed)
+				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(noExpireCtx, logID, do.Failed)
 				_ = cluc.sendRetryMsg(stuID, year, semester)
 				return
 			}
@@ -204,16 +206,16 @@ Local: //从本地获取数据
 
 			jxbIDs := extractJxb(crawClassInfos)
 
-			saveErr := cluc.classRepo.SaveClass(context.Background(), stuID, year, semester, crawClassInfos_, crawScs)
+			saveErr := cluc.classRepo.SaveClass(noExpireCtx, stuID, year, semester, crawClassInfos_, crawScs)
 			//更新log状态
 			if saveErr != nil {
-				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, do.Failed)
+				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(noExpireCtx, logID, do.Failed)
 				_ = cluc.sendRetryMsg(stuID, year, semester)
 			} else {
-				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, do.Ready)
+				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(noExpireCtx, logID, do.Ready)
 			}
 
-			_ = cluc.jxbRepo.SaveJxb(context.Background(), stuID, jxbIDs)
+			_ = cluc.jxbRepo.SaveJxb(noExpireCtx, stuID, jxbIDs)
 		}()
 
 		var addedClassInfos []*ClassInfo
@@ -253,7 +255,7 @@ wrapRes: //包装结果
 
 	// 随机执行删除log的操作
 	if refresh && cluc.goroutineSafeRandIntn(10)+1 <= 3 {
-		cluc.deleteRedundantLogs(context.Background(), stuID, year, semester)
+		cluc.deleteRedundantLogs(noExpireCtx, stuID, year, semester)
 	}
 
 	return classInfos, lastRefreshTime, nil

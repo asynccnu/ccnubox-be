@@ -12,7 +12,12 @@ func WithLogger(ctx context.Context, logger log.Logger) context.Context {
 }
 
 func GetLoggerFromCtx(ctx context.Context) log.Logger {
-	return ctx.Value(LoggerCtxKey{}).(log.Logger)
+	logger, ok := ctx.Value(LoggerCtxKey{}).(log.Logger)
+	if !ok || logger == nil {
+		log.Error("get logger from context failed, using default logger")
+		return log.DefaultLogger
+	}
+	return logger
 }
 
 func GetLogHelperFromCtx(ctx context.Context) *log.Helper {

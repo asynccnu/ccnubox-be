@@ -5,6 +5,16 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+var (
+	GlobalLogger    log.Logger
+	GlobalLogHelper *log.Helper
+)
+
+func InitGlobalLogger(logger log.Logger) {
+	GlobalLogger = logger
+	GlobalLogHelper = log.NewHelper(logger)
+}
+
 type LoggerCtxKey struct{}
 
 func WithLogger(ctx context.Context, logger log.Logger) context.Context {

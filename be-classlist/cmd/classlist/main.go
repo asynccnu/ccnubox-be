@@ -74,6 +74,7 @@ func main() {
 	logger := log.With(classLog.Logger(bc.Zaplog),
 		"service.id", id,
 		"service.name", Name)
+	classLog.InitGlobalLogger(logger)
 
 	//gorm的日志文件
 	//在main函数中声明,程序结束执行Close

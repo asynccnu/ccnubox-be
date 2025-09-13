@@ -38,7 +38,7 @@ type ClassUsecase struct {
 func (cluc *ClassUsecase) Close() {
 	if cluc.gpool != nil {
 		cluc.gpool.Release()
-		log.Info("ClassUsecase goroutine pool released")
+		classLog.GlobalLogHelper.Info("ClassUsecase goroutine pool released")
 	}
 }
 
@@ -78,7 +78,7 @@ func NewClassUsecase(classRepo ClassRepo, crawler ClassCrawler,
 	// 开启一个协程来处理重试消息
 	go func() {
 		if err := cluc.delayQue.Consume("be-classlist-refresh-retry", cluc.handleRetryMsg); err != nil {
-			log.Errorf("Error consuming retry message: %v", err)
+			classLog.GlobalLogHelper.Errorf("Error consuming retry message: %v", err)
 		}
 	}()
 
@@ -460,7 +460,7 @@ func (cluc *ClassUsecase) sendRetryMsg(stuID, year, semester string) error {
 	}
 	err = cluc.delayQue.Send([]byte(key), val)
 	if err != nil {
-		log.Errorf("Error sending retry message: %v", err)
+		classLog.GlobalLogHelper.Errorf("Error sending retry message: %v", err)
 	}
 	return err
 }
@@ -471,47 +471,51 @@ func (cluc *ClassUsecase) handleRetryMsg(key, val []byte) {
 
 	err := json.Unmarshal(val, &retryInfo)
 	if err != nil {
-		log.Errorf("Error unmarshalling retry info: %v", string(val))
+		classLog.GlobalLogHelper.Errorf("Error unmarshalling retry info: %v", string(val))
 		return
 	}
 	stuID, ok := retryInfo["stu_id"]
 	if !ok {
-		log.Errorf("Error getting stu_id from retry info: %v", string(val))
+		classLog.GlobalLogHelper.Errorf("Error getting stu_id from retry info: %v", string(val))
 		return
 	}
 	year, ok := retryInfo["year"]
 	if !ok {
-		log.Errorf("Error getting year from retry info: %v", string(val))
+		classLog.GlobalLogHelper.Errorf("Error getting year from retry info: %v", string(val))
 		return
 	}
 	semester, ok := retryInfo["semester"]
 	if !ok {
-		log.Errorf("Error getting semester from retry info: %v", string(val))
+		classLog.GlobalLogHelper.Errorf("Error getting semester from retry info: %v", string(val))
 		return
 	}
 
+	valLogger := log.With(classLog.GlobalLogger,
+		"stu_id", stuID, "year", year, "semester", semester)
+	ctx := classLog.WithLogger(context.Background(), valLogger)
+
 	//爬取课程信息
-	crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(context.Background(), stuID, year, semester)
+	crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(ctx, stuID, year, semester)
 	if crawErr != nil {
-		log.Errorf("Error retry getting class info from crawler: %v", crawErr)
+		classLog.GlobalLogHelper.Errorf("Error retry getting class info from crawler: %v", crawErr)
 		return
 	}
 
 	//保存课程信息
-	saveErr := cluc.classRepo.SaveClass(context.Background(), stuID, year, semester, crawClassInfos_, crawScs)
+	saveErr := cluc.classRepo.SaveClass(ctx, stuID, year, semester, crawClassInfos_, crawScs)
 	if saveErr != nil {
-		log.Errorf("Error after retry getting class,but saving class info to database: %v", saveErr)
+		classLog.GlobalLogHelper.Errorf("Error after retry getting class,but saving class info to database: %v", saveErr)
 		return
 	}
 
 	//插入一条log
-	logID, insertLogErr := cluc.refreshLogRepo.InsertRefreshLog(context.Background(), stuID, year, semester)
+	logID, insertLogErr := cluc.refreshLogRepo.InsertRefreshLog(ctx, stuID, year, semester)
 	if insertLogErr != nil {
-		log.Errorf("Error after retry getting class, but inserting refresh log: %v", insertLogErr)
+		classLog.GlobalLogHelper.Errorf("Error after retry getting class, but inserting refresh log: %v", insertLogErr)
 		return
 	}
 	//更新日志状态
-	_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(context.Background(), logID, do.Ready)
+	_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, do.Ready)
 }
 
 // goroutineSafeRandIntn 用于在多协程环境中安全地生成随机数

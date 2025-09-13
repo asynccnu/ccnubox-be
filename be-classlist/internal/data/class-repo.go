@@ -57,6 +57,8 @@ func NewClassRepo(ClaRepo *ClassInfoRepo, TxCtrl Transaction, Sac *StudentAndCou
 // GetClassesFromLocal 从本地获取课程
 func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*biz.ClassInfo, error) {
 	logh := classLog.GetLogHelperFromCtx(ctx)
+	noExpireCtx := classLog.WithLogger(context.Background(), logh.Logger())
+
 	var (
 		cacheGet = true
 		key      = cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester)
@@ -82,7 +84,7 @@ func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semes
 		go func() {
 			//将课程信息当作整体存入redis
 			//注意:如果未获取到，即classInfos为nil，redis仍然会设置key-value，只不过value为NULL
-			_ = cla.ClaRepo.Cache.AddClaInfosToCache(context.Background(), key, classInfos)
+			_ = cla.ClaRepo.Cache.AddClaInfosToCache(noExpireCtx, key, classInfos)
 		}()
 	}
 	//检查classInfos是否为空
@@ -226,6 +228,8 @@ func (cla ClassRepo) UpdateClass(ctx context.Context, stuID, year, semester, old
 	newClassInfo *biz.ClassInfo, newSc *biz.StudentCourse) error {
 
 	logh := classLog.GetLogHelperFromCtx(ctx)
+	noExpireCtx := classLog.WithLogger(context.Background(), logh.Logger())
+
 	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
 	if err != nil {
 		return err
@@ -263,7 +267,7 @@ func (cla ClassRepo) UpdateClass(ctx context.Context, stuID, year, semester, old
 	go func() {
 		//延迟双删
 		time.AfterFunc(1*time.Second, func() {
-			_ = cla.ClaRepo.Cache.DeleteClassInfoFromCache(context.Background(), cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
+			_ = cla.ClaRepo.Cache.DeleteClassInfoFromCache(noExpireCtx, cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
 		})
 	}()
 

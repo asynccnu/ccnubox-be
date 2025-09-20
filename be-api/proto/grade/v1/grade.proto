@@ -8,6 +8,7 @@ option go_package = "github.com/asynccnu/ccnubox-be/be-api/gen/proto/grade/v1;gr
 service GradeService {
   rpc GetGradeByTerm (GetGradeByTermReq) returns (GetGradeByTermResp) ;
   rpc GetGradeScore(GetGradeScoreReq)returns(GetGradeScoreResp);
+  rpc GetGraduateGrade(GetGraduateUpdateReq) returns (GetGraduateUpdateResp);
 }
 
 // 请求体
@@ -61,4 +62,40 @@ message TypeOfGradeScore{
 message GradeScore{
   string Kcmc   =1 ;  //课程名
   float Xf  =2 ;  //学分
+}
+
+message GraduateGrade{
+  string  jxbId = 1;          // 教学班ID
+  string  status = 2;         // 成绩审核状态
+  string  year = 3;           // 学年(2024-2025)
+  int64   term = 4;           // 学期
+  string  name = 5;           // 姓名
+  string  studentCategory = 6;// 学生类别
+  string  college = 7;        // 学院
+  string  major = 8;         // 专业
+  int64   grade = 9;         // 年级
+  string  classCode = 10;     // 课程代码
+  string  className = 11;     // 课程名称
+  string  classNature = 12;   // 课程性质
+  float   credit = 13;        // 学分
+  float   point = 14;         // 成绩
+  float   gradePoints = 15;   // 绩点
+  string  isAvailable = 16;   // 成绩是否作废
+  string  isDegree = 17;      // 是否学位课程
+  string  setCollege = 18;    // 开课学院
+  string  classMark = 19;     // 课程标记
+  string  classCategory = 20; // 课程类别
+  string  classID = 21;       // 教学班
+  string  teacher = 22;       // 任课教师
+}
+
+message GetGraduateUpdateReq{
+  string studentId = 1; // 学号
+  int64 xnm = 2;        // 学年(可选，不填取全部)
+  int64 xqm = 3;        // 学期(1/2/3，可选)
+  int64 cjzt = 4;       // 成绩状态（0-全部, 待审核, 审核中, 审核通过...）
+}
+
+message GetGraduateUpdateResp{
+  repeated GraduateGrade grades = 1;
 }

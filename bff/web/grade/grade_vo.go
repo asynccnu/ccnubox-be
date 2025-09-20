@@ -39,3 +39,40 @@ type GradeScore struct {
 	Kcmc string  `json:"kcmc" binding:"required"` //课程名称
 	Xf   float32 `json:"xf" binding:"required"`   //学分
 }
+
+type UpdateGraduateGradesReq struct {
+	Xnm  int64 `json:"xnm"`  // 学年，可选
+	Xqm  int64 `json:"xqm"`  // 学期(1/2/3)，可选
+	Cjzt int64 `json:"cjzt"` // 成绩状态(0-全部；不填也可)
+}
+
+type UpdateGraduateGradesResp struct {
+	Grades []GraduateGrade `json:"grades"`
+}
+
+type GraduateGrade struct {
+	StudentNum      string  `json:"studentNum"`
+	JxbId           string  `json:"jxbId"`
+	Status          string  `json:"status"`
+	Year            string  `json:"year"`
+	Term            int64   `json:"term"`
+	StudentID       string  `json:"studentID"`
+	Name            string  `json:"name"`
+	StudentCategory string  `json:"studentCategory"`
+	College         string  `json:"college"`
+	Major           string  `json:"major"`
+	Grade           int64   `json:"grade"`
+	ClassCode       string  `json:"classCode"`
+	ClassName       string  `json:"className"`
+	ClassNature     string  `json:"classNature"`
+	Credit          float32 `json:"credit"`
+	Point           float32 `json:"point"`
+	GradePoints     float32 `json:"gradePoints"`
+	IsAvailable     string  `json:"isAvailable"`
+	IsDegree        string  `json:"isDegree"`
+	SetCollege      string  `json:"setCollege"`
+	ClassMark       string  `json:"classMark"`
+	ClassCategory   string  `json:"classCategory"`
+	ClassID         string  `json:"classID"`
+	Teacher         string  `json:"teacher"`
+}

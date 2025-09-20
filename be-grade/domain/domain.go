@@ -26,3 +26,29 @@ type GradeScore struct {
 	Kcmc string  `json:"kcmc,omitempty"`
 	Xf   float32 `json:"xf,omitempty"`
 }
+
+type GraduateGrade struct {
+	StudentID       string  `json:"studentID"`
+	JxbId           string  `json:"jxbId"`
+	Status          string  `json:"status"`
+	Year            string  `json:"year"`
+	Term            int64   `json:"term"`
+	Name            string  `json:"name"`
+	StudentCategory string  `json:"studentCategory"`
+	College         string  `json:"college"`
+	Major           string  `json:"major"`
+	Grade           int64   `json:"grade"`
+	ClassCode       string  `json:"classCode"`
+	ClassName       string  `json:"className"`
+	ClassNature     string  `json:"classNature"`
+	Credit          float32 `json:"credit"`
+	Point           float32 `json:"point"`
+	GradePoints     float32 `json:"gradePoints"`
+	IsAvailable     string  `json:"isAvailable"`
+	IsDegree        string  `json:"isDegree"`
+	SetCollege      string  `json:"setCollege"`
+	ClassMark       string  `json:"classMark"`
+	ClassCategory   string  `json:"classCategory"`
+	ClassID         string  `json:"classID"`
+	Teacher         string  `json:"teacher"`
+}

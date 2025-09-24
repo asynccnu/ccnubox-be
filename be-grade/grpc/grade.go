@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+
 	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/grade/v1"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
@@ -81,6 +82,42 @@ func (s *GradeServiceServer) GetGradeScore(ctx context.Context, req *v1.GetGrade
 	}
 
 	return &v1.GetGradeScoreResp{TypeOfGradeScore: typeOfGradeScores}, nil
+}
+
+func (s *GradeServiceServer) GetGraduateGrade(ctx context.Context, req *v1.GetGraduateUpdateReq) (*v1.GetGraduateUpdateResp, error) {
+	grades, err := s.ser.GetGraduateUpdateScore(ctx, req.GetStudentId(), req.GetXnm(), req.GetXqm(), req.GetCjzt())
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &v1.GetGraduateUpdateResp{}
+	for _, g := range grades {
+		resp.Grades = append(resp.Grades, &v1.GraduateGrade{
+			JxbId:           g.JxbId,
+			Status:          g.Status,
+			Year:            g.Year,
+			Term:            g.Term,
+			Name:            g.Name,
+			StudentCategory: g.StudentCategory,
+			College:         g.College,
+			Major:           g.Major,
+			Grade:           g.Grade,
+			ClassCode:       g.ClassCode,
+			ClassName:       g.ClassName,
+			ClassNature:     g.ClassNature,
+			Credit:          g.Credit,
+			Point:           g.Point,
+			GradePoints:     g.GradePoints,
+			IsAvailable:     g.IsAvailable,
+			IsDegree:        g.IsDegree,
+			SetCollege:      g.SetCollege,
+			ClassMark:       g.ClassMark,
+			ClassCategory:   g.ClassCategory,
+			ClassID:         g.ClassID,
+			Teacher:         g.Teacher,
+		})
+	}
+	return resp, nil
 }
 
 func convGetGradeByTermReqFromProtoToDomain(req *v1.GetGradeByTermReq) *domain.GetGradeByTermReq {

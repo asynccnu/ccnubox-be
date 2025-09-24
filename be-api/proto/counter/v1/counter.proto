@@ -34,6 +34,14 @@ message ChangeCounterLevelsReq{
   int64 step =3;//表示降低几个等级,
 }
 
+// 等级常量定义
+enum CounterLevel {
+  LEVEL_UNSPECIFIED = 0;
+  LEVEL_ONE = 1;
+  LEVEL_TWO = 3;
+  LEVEL_THERE = 7;
+}
+
 message ChangeCounterLevelsResp{}
 
 message ClearCounterLevelsReq{}

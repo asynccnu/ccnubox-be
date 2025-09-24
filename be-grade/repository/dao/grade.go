@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	"gorm.io/gorm"
 )
@@ -11,6 +12,8 @@ type GradeDAO interface {
 	FirstOrCreate(ctx context.Context, grade *model.Grade) error
 	FindGrades(ctx context.Context, studentId string, Xnm int64, Xqm int64) ([]model.Grade, error)
 	BatchInsertOrUpdate(ctx context.Context, grades []model.Grade) (updateGrade []model.Grade, err error)
+	FindGraduateGrades(ctx context.Context, studentId string, year string, term int64) ([]model.GraduateGrade, error)
+	BatchInsertOrUpdateGraduate(ctx context.Context, grades []model.GraduateGrade) (affectedGrades []model.GraduateGrade, err error)
 }
 
 type gradeDAO struct {
@@ -61,7 +64,7 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 
 	// 查询已有记录
 	var existingGrades []model.Grade
-	if err := d.db.WithContext(ctx).
+	if err = d.db.WithContext(ctx).
 		Where("CONCAT(student_id, jxb_id) IN ?", ids).
 		Find(&existingGrades).Error; err != nil {
 		return nil, err
@@ -92,7 +95,7 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 
 	// 插入新增记录
 	if len(toInsert) > 0 {
-		if err := d.db.WithContext(ctx).Create(&toInsert).Error; err != nil {
+		if err = d.db.WithContext(ctx).Create(&toInsert).Error; err != nil {
 			return nil, err
 		}
 	}
@@ -100,7 +103,7 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 	// 批量更新已有但内容有变化的记录
 	if len(toUpdate) > 0 {
 		for _, g := range toUpdate {
-			if err := d.db.WithContext(ctx).Save(&g).Error; err != nil {
+			if err = d.db.WithContext(ctx).Save(&g).Error; err != nil {
 				return nil, err
 			}
 		}
@@ -125,4 +128,98 @@ func isGradeEqual(a, b model.Grade) bool {
 		a.FinalGradePercent == b.FinalGradePercent &&
 		a.FinalGrade == b.FinalGrade &&
 		a.Cj == b.Cj
+}
+
+func (d *gradeDAO) FindGraduateGrades(ctx context.Context, studentId string, year string, term int64) ([]model.GraduateGrade, error) {
+	var grades []model.GraduateGrade
+
+	query := d.db.WithContext(ctx).Model(&model.GraduateGrade{}).Where("student_id = ?", studentId)
+	if year != "" {
+		query = query.Where("year = ?", year)
+	}
+	if term != 0 {
+		query = query.Where("term = ?", term)
+	}
+
+	if err := query.Find(&grades).Error; err != nil {
+		return nil, err
+	}
+	return grades, nil
+}
+
+func (d *gradeDAO) BatchInsertOrUpdateGraduate(ctx context.Context, grades []model.GraduateGrade) (affectedGrades []model.GraduateGrade, err error) {
+	if len(grades) == 0 {
+		return nil, nil
+	}
+
+	ids := make([]string, len(grades))
+	for i, g := range grades {
+		ids[i] = g.StudentID + g.JxbId
+	}
+
+	var existing []model.GraduateGrade
+	if err = d.db.WithContext(ctx).
+		Where("CONCAT(student_id, jxb_id) IN ?", ids).
+		Find(&existing).Error; err != nil {
+		return nil, err
+	}
+
+	existMap := make(map[string]model.GraduateGrade, len(existing))
+	for _, eg := range existing {
+		existMap[eg.StudentID+eg.JxbId] = eg
+	}
+
+	var toInsert []model.GraduateGrade
+	var toUpdate []model.GraduateGrade
+
+	for _, g := range grades {
+		key := g.StudentID + g.JxbId
+		if old, ok := existMap[key]; !ok {
+			toInsert = append(toInsert, g)
+		} else if !isGraduateGradeEqual(old, g) {
+			toUpdate = append(toUpdate, g)
+		}
+	}
+
+	if len(toInsert) > 0 {
+		if err = d.db.WithContext(ctx).Create(&toInsert).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	if len(toUpdate) > 0 {
+		for _, g := range toUpdate {
+			if err = d.db.WithContext(ctx).Save(&g).Error; err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	affectedGrades = append(toInsert, toUpdate...)
+	return affectedGrades, nil
+}
+
+func isGraduateGradeEqual(a, b model.GraduateGrade) bool {
+	return a.Status == b.Status &&
+		a.Year == b.Year &&
+		a.Term == b.Term &&
+		a.StudentID == b.StudentID &&
+		a.Name == b.Name &&
+		a.StudentCategory == b.StudentCategory &&
+		a.College == b.College &&
+		a.Major == b.Major &&
+		a.Grade == b.Grade &&
+		a.ClassCode == b.ClassCode &&
+		a.ClassName == b.ClassName &&
+		a.ClassNature == b.ClassNature &&
+		a.Credit == b.Credit &&
+		a.Point == b.Point &&
+		a.GradePoints == b.GradePoints &&
+		a.IsAvailable == b.IsAvailable &&
+		a.IsDegree == b.IsDegree &&
+		a.SetCollege == b.SetCollege &&
+		a.ClassMark == b.ClassMark &&
+		a.ClassCategory == b.ClassCategory &&
+		a.ClassID == b.ClassID &&
+		a.Teacher == b.Teacher
 }

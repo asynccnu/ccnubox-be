@@ -1,10 +1,11 @@
 package service
 
 import (
-	"github.com/asynccnu/ccnubox-be/be-grade/domain"
-	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	"strconv"
 	"strings"
+
+	"github.com/asynccnu/ccnubox-be/be-grade/domain"
+	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 )
 
 //辅助函数
@@ -76,6 +77,49 @@ func aggregateGrades(detailItems []GetDetailItem, KcxzItems []GetKcxzItem) []mod
 	return grades
 }
 
+func convertGraduateGrade(graduateGrade []GraduatePoints) []model.GraduateGrade {
+	var grades []model.GraduateGrade
+	for _, p := range graduateGrade {
+		// 学期转换
+		var term int64
+		switch p.Xqm {
+		case "3":
+			term = 1
+		case "12":
+			term = 2
+		case "16":
+			term = 3
+		}
+
+		grades = append(grades, model.GraduateGrade{
+			JxbId:           p.JxbID,
+			Status:          p.Cjztmc,
+			Year:            p.Xnmmc,
+			Term:            term,
+			StudentID:       p.Xh,
+			Name:            p.Xm,
+			StudentCategory: p.Xslbmc,
+			College:         p.Jgmc,
+			Major:           p.Zymc,
+			Grade:           parseInt64(p.NjdmID),
+			ClassCode:       p.KchID,
+			ClassName:       p.Kcmc,
+			ClassNature:     p.Kcxzmc,
+			Credit:          parseFloat32(p.Xf),
+			Point:           parseFloat32(p.Cj),
+			GradePoints:     parseFloat32(p.Jd),
+			IsAvailable:     p.Cjsfzf,
+			IsDegree:        p.Sfxwkc,
+			SetCollege:      p.Kkbmmc,
+			ClassMark:       p.Kcbj,
+			ClassCategory:   p.Kclbmc,
+			ClassID:         p.JxbID,
+			Teacher:         p.Jsxm,
+		})
+	}
+	return grades
+}
+
 // parseInt64 辅助函数，将字符串转换为 int64
 func parseInt64(value string) int64 {
 	if i, err := strconv.Atoi(value); err == nil {
@@ -84,7 +128,7 @@ func parseInt64(value string) int64 {
 	return 0
 }
 
-// parseInt64 辅助函数，将字符串转换为 int64
+// parseFloat32 辅助函数，将字符串转换为 float32
 func parseFloat32(value string) float32 {
 	if i, err := strconv.ParseFloat(value, 32); err == nil {
 		return float32(i)
@@ -241,4 +285,36 @@ func aggregateGradeScore(grades []model.Grade) []domain.TypeOfGradeScore {
 	}
 
 	return result
+}
+
+func modelGraduateConvDomain(grades []model.GraduateGrade) []domain.GraduateGrade {
+	res := make([]domain.GraduateGrade, 0, len(grades))
+	for _, g := range grades {
+		res = append(res, domain.GraduateGrade{
+			StudentID:       g.StudentID,
+			JxbId:           g.JxbId,
+			Status:          g.Status,
+			Year:            g.Year,
+			Term:            g.Term,
+			Name:            g.Name,
+			StudentCategory: g.StudentCategory,
+			College:         g.College,
+			Major:           g.Major,
+			Grade:           g.Grade,
+			ClassCode:       g.ClassCode,
+			ClassName:       g.ClassName,
+			ClassNature:     g.ClassNature,
+			Credit:          g.Credit,
+			Point:           g.Point,
+			GradePoints:     g.GradePoints,
+			IsAvailable:     g.IsAvailable,
+			IsDegree:        g.IsDegree,
+			SetCollege:      g.SetCollege,
+			ClassMark:       g.ClassMark,
+			ClassCategory:   g.ClassCategory,
+			ClassID:         g.ClassID,
+			Teacher:         g.Teacher,
+		})
+	}
+	return res
 }

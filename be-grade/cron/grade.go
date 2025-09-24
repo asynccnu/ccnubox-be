@@ -3,6 +3,8 @@ package cron
 import (
 	"context"
 	"fmt"
+	"time"
+
 	classlistv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
 	counterv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/counter/v1"
 	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
@@ -10,7 +12,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-grade/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
 	"github.com/spf13/viper"
-	"time"
 )
 
 type GradeController struct {
@@ -93,14 +94,14 @@ func (c *GradeController) publishMSG(label string) {
 	}
 
 	for _, studentId := range resp.StudentIds {
-		//获取成绩
+		//获取本科生成绩
 		grades, err := c.gradeService.GetUpdateScore(ctx, studentId)
 		if err != nil {
 			c.l.Error("获取成绩失败", logger.Error(err))
 			return
 		}
 
-		//逐个推送
+		//逐个推送(本科生)
 		for _, grade := range grades {
 			//获取学生id
 			res, err := c.classlist.GetStuIdByJxbId(ctx, &classlistv1.GetStuIdByJxbIdRequest{JxbId: grade.JxbId})
@@ -108,11 +109,11 @@ func (c *GradeController) publishMSG(label string) {
 				return
 			}
 
-			//更改等级到最高级别7
+			//更改等级到最高级别
 			_, err = c.counter.ChangeCounterLevels(ctx, &counterv1.ChangeCounterLevelsReq{
 				StudentIds: res.StuId,
 				IsReduce:   false,
-				Step:       7,
+				Step:       int64(counterv1.CounterLevel_LEVEL_THERE),
 			})
 
 			if err != nil {
@@ -131,6 +132,47 @@ func (c *GradeController) publishMSG(label string) {
 			})
 			if err != nil {
 				c.l.Error("推送错误", logger.Error(err))
+			}
+		}
+
+		// 获取研究生成绩
+		graduateGrades, err := c.gradeService.GetGraduateUpdateScore(ctx, studentId, 0, 0, 0)
+		if err != nil {
+			c.l.Error("获取研究生成绩失败", logger.Error(err))
+			// 不直接 return，继续处理其他学生
+			continue
+		}
+
+		for _, g := range graduateGrades {
+			// 使用教学班ID映射学生ID
+			res, err := c.classlist.GetStuIdByJxbId(ctx, &classlistv1.GetStuIdByJxbIdRequest{JxbId: g.ClassID})
+			if err != nil {
+				c.l.Warn("获取教学班学生ID失败(研究生)", logger.Error(err))
+				continue
+			}
+
+			// 提升相关学生的优先级
+			_, err = c.counter.ChangeCounterLevels(ctx, &counterv1.ChangeCounterLevelsReq{
+				StudentIds: res.StuId,
+				IsReduce:   false,
+				Step:       int64(counterv1.CounterLevel_LEVEL_THERE),
+			})
+			if err != nil {
+				c.l.Error("更改优先级发生错误(研究生)", logger.Error(err))
+				continue
+			}
+
+			// 推送研究生成绩更新通知
+			_, err = c.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
+				StudentId: studentId,
+				Event: &feedv1.FeedEvent{
+					Type:    "grade",
+					Title:   "成绩更新提醒",
+					Content: fmt.Sprintf("您的课程:%s分数更新了,请及时查看", g.ClassName),
+				},
+			})
+			if err != nil {
+				c.l.Error("推送错误(研究生)", logger.Error(err))
 			}
 		}
 	}

@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GradeService_GetGradeByTerm_FullMethodName = "/grade.v1.GradeService/GetGradeByTerm"
-	GradeService_GetGradeScore_FullMethodName  = "/grade.v1.GradeService/GetGradeScore"
+	GradeService_GetGradeByTerm_FullMethodName   = "/grade.v1.GradeService/GetGradeByTerm"
+	GradeService_GetGradeScore_FullMethodName    = "/grade.v1.GradeService/GetGradeScore"
+	GradeService_GetGraduateGrade_FullMethodName = "/grade.v1.GradeService/GetGraduateGrade"
 )
 
 // GradeServiceClient is the client API for GradeService service.
@@ -31,6 +32,7 @@ const (
 type GradeServiceClient interface {
 	GetGradeByTerm(ctx context.Context, in *GetGradeByTermReq, opts ...grpc.CallOption) (*GetGradeByTermResp, error)
 	GetGradeScore(ctx context.Context, in *GetGradeScoreReq, opts ...grpc.CallOption) (*GetGradeScoreResp, error)
+	GetGraduateGrade(ctx context.Context, in *GetGraduateUpdateReq, opts ...grpc.CallOption) (*GetGraduateUpdateResp, error)
 }
 
 type gradeServiceClient struct {
@@ -61,6 +63,16 @@ func (c *gradeServiceClient) GetGradeScore(ctx context.Context, in *GetGradeScor
 	return out, nil
 }
 
+func (c *gradeServiceClient) GetGraduateGrade(ctx context.Context, in *GetGraduateUpdateReq, opts ...grpc.CallOption) (*GetGraduateUpdateResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGraduateUpdateResp)
+	err := c.cc.Invoke(ctx, GradeService_GetGraduateGrade_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GradeServiceServer is the server API for GradeService service.
 // All implementations must embed UnimplementedGradeServiceServer
 // for forward compatibility.
@@ -69,6 +81,7 @@ func (c *gradeServiceClient) GetGradeScore(ctx context.Context, in *GetGradeScor
 type GradeServiceServer interface {
 	GetGradeByTerm(context.Context, *GetGradeByTermReq) (*GetGradeByTermResp, error)
 	GetGradeScore(context.Context, *GetGradeScoreReq) (*GetGradeScoreResp, error)
+	GetGraduateGrade(context.Context, *GetGraduateUpdateReq) (*GetGraduateUpdateResp, error)
 	mustEmbedUnimplementedGradeServiceServer()
 }
 
@@ -84,6 +97,9 @@ func (UnimplementedGradeServiceServer) GetGradeByTerm(context.Context, *GetGrade
 }
 func (UnimplementedGradeServiceServer) GetGradeScore(context.Context, *GetGradeScoreReq) (*GetGradeScoreResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGradeScore not implemented")
+}
+func (UnimplementedGradeServiceServer) GetGraduateGrade(context.Context, *GetGraduateUpdateReq) (*GetGraduateUpdateResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGraduateGrade not implemented")
 }
 func (UnimplementedGradeServiceServer) mustEmbedUnimplementedGradeServiceServer() {}
 func (UnimplementedGradeServiceServer) testEmbeddedByValue()                      {}
@@ -142,6 +158,24 @@ func _GradeService_GetGradeScore_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GradeService_GetGraduateGrade_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGraduateUpdateReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GradeServiceServer).GetGraduateGrade(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GradeService_GetGraduateGrade_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GradeServiceServer).GetGraduateGrade(ctx, req.(*GetGraduateUpdateReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GradeService_ServiceDesc is the grpc.ServiceDesc for GradeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -156,6 +190,10 @@ var GradeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetGradeScore",
 			Handler:    _GradeService_GetGradeScore_Handler,
+		},
+		{
+			MethodName: "GetGraduateGrade",
+			Handler:    _GradeService_GetGraduateGrade_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

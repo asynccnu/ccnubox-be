@@ -10,6 +10,7 @@ message Bootstrap {
   Registry registry = 3;
   ZapLogConfigs zaplog = 4;
   SchoolDay schoolday = 5;
+  Defaults defaults = 6;
 }
 
 message Server {
@@ -72,3 +73,10 @@ message SchoolDay{
   string holidayTime = 1; //放假日期(正式放假的第一天)
   string schoolTime = 2;  //上学日期(正式上学的第一天)
 }
+
+// 前端不传参时使用的默认值
+message Defaults{ 
+  string year = 1;
+  string semester = 2;
+}
+

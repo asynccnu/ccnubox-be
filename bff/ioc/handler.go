@@ -150,6 +150,7 @@ func InitElecpriceHandler(client elecpricev1.ElecpriceServiceClient) *elecprice.
 			return element, struct{}{}
 		}))
 }
+
 func InitClassHandler(client1 classlistv1.ClasserClient, client2 cs.ClassServiceClient) *class.ClassHandler {
 	var administrators []string
 	err := viper.UnmarshalKey("administrators", &administrators)

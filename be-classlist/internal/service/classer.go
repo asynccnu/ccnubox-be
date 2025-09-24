@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"time"
+
 	pb "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1" //此处改成了be-api中的,方便其他服务调用.
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
@@ -10,7 +13,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/jinzhu/copier"
-	"time"
 )
 
 type ClassListService struct {
@@ -18,13 +20,15 @@ type ClassListService struct {
 	clu       *biz.ClassUsecase
 	schoolday *conf.SchoolDay
 	logger    log.Logger
+	defaults  *conf.Defaults
 }
 
-func NewClasserService(clu *biz.ClassUsecase, day *conf.SchoolDay, logger log.Logger) *ClassListService {
+func NewClasserService(clu *biz.ClassUsecase, day *conf.SchoolDay, logger log.Logger, defaults *conf.Defaults) *ClassListService {
 	return &ClassListService{
 		clu:       clu,
 		logger:    logger,
 		schoolday: day,
+		defaults:  defaults,
 	}
 }
 
@@ -32,6 +36,21 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 	valLogger := log.With(s.logger,
 		"stu_id", req.GetStuId(), "year", req.GetYear(), "semester", req.GetSemester())
 	ctx = classLog.WithLogger(ctx, valLogger)
+	hlog := log.NewHelper(valLogger)
+
+	if s.defaults == nil {
+		hlog.Warn("default 参数未在配置文件中配置")
+	}
+
+	if req.GetYear() == "" {
+		req.Year = s.defaults.Year
+		hlog.Warn(fmt.Sprintf("获取 Year 参数为空，使用默认值 %s", req.Year))
+	}
+
+	if req.GetSemester() == "" {
+		req.Semester = s.defaults.Semester
+		hlog.Warn(fmt.Sprintf("获取 Semester 参数为空，使用默认值 %s", req.Semester))
+	}
 
 	if !tool.CheckSY(req.Semester, req.Year) {
 		return &pb.GetClassResponse{}, errcode.ErrParam
@@ -280,46 +299,46 @@ func (s *ClassListService) GetSchoolDay(ctx context.Context, req *pb.GetSchoolDa
 	}, nil
 }
 
-func (s *ClassListService) UpdateClassNote(ctx context.Context,req *pb.UpdateClassNoteReq)(*pb.UpdateClassNoteResp,error){
-	if !tool.CheckSY(req.Semester,req.Year){
-		return &pb.UpdateClassNoteResp{},errcode.ErrParam
+func (s *ClassListService) UpdateClassNote(ctx context.Context, req *pb.UpdateClassNoteReq) (*pb.UpdateClassNoteResp, error) {
+	if !tool.CheckSY(req.Semester, req.Year) {
+		return &pb.UpdateClassNoteResp{}, errcode.ErrParam
 	}
-	exist:=s.clu.CheckSCIdsExist(ctx,req.StuId,req.Year,req.Semester,req.ClassId)
-	if !exist{
+	exist := s.clu.CheckSCIdsExist(ctx, req.StuId, req.Year, req.Semester, req.ClassId)
+	if !exist {
 		return &pb.UpdateClassNoteResp{
 			Msg: "该课程不存在",
-		},errcode.ErrClassIsExist
+		}, errcode.ErrClassIsExist
 	}
-	err:=s.clu.UpdateClassNote(ctx,req.StuId,req.Year,req.Semester,req.ClassId,req.Note)
-	if err!=nil{
+	err := s.clu.UpdateClassNote(ctx, req.StuId, req.Year, req.Semester, req.ClassId, req.Note)
+	if err != nil {
 		return &pb.UpdateClassNoteResp{
 			Msg: "更新课程备注失败",
-		},err
+		}, err
 	}
 	return &pb.UpdateClassNoteResp{
 		Msg: "更新课程备注成功",
-	},nil
+	}, nil
 }
 
-func (s *ClassListService) DeleteClassNote(ctx context.Context,req *pb.DeleteClassNoteReq)(*pb.DeleteClassNoteResp,error){
-	if !tool.CheckSY(req.Semester,req.Year){
-		return &pb.DeleteClassNoteResp{},errcode.ErrParam
+func (s *ClassListService) DeleteClassNote(ctx context.Context, req *pb.DeleteClassNoteReq) (*pb.DeleteClassNoteResp, error) {
+	if !tool.CheckSY(req.Semester, req.Year) {
+		return &pb.DeleteClassNoteResp{}, errcode.ErrParam
 	}
-	exist:=s.clu.CheckSCIdsExist(ctx,req.StuId,req.Year,req.Semester,req.ClassId)
-	if !exist{
+	exist := s.clu.CheckSCIdsExist(ctx, req.StuId, req.Year, req.Semester, req.ClassId)
+	if !exist {
 		return &pb.DeleteClassNoteResp{
 			Msg: "该课程不存在",
-		},errcode.ErrClassIsExist
+		}, errcode.ErrClassIsExist
 	}
-	err:=s.clu.UpdateClassNote(ctx,req.StuId,req.Year,req.Semester,req.ClassId,"")
-	if err!=nil{
+	err := s.clu.UpdateClassNote(ctx, req.StuId, req.Year, req.Semester, req.ClassId, "")
+	if err != nil {
 		return &pb.DeleteClassNoteResp{
 			Msg: "删除课程备注失败",
-		},err
+		}, err
 	}
 	return &pb.DeleteClassNoteResp{
 		Msg: "删除课程备注成功",
-	},nil
+	}, nil
 }
 
 func convertToShanghaiTimeStamp(t time.Time) int64 {

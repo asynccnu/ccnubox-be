@@ -56,3 +56,7 @@ zaplog:
 schoolday:
   holidayTime: "2025-07-05"
   schoolTime: "2025-02-17"
+
+defaults:
+  year: "2025"
+  semester: "1"

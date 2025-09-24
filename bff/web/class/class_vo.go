@@ -1,8 +1,8 @@
 package class
 
 type GetClassListRequest struct {
-	Year     string `form:"year" binding:"required"` //学年,格式为"2024"代表"2024-2025学年"`
-	Semester string `form:"semester" binding:"required"`
+	Year     string `form:"year"` // binding:"required" //学年,格式为"2024"代表"2024-2025学年"`
+	Semester string `form:"semester"`// binding:"required" // 为添加默认值处理的妥协做法
 	Refresh  *bool  `form:"refresh" binding:"required"`
 }
 

@@ -2,13 +2,14 @@ package main
 
 import (
 	"flag"
+	"os"
+
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/metrics"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/prometheus/client_golang/prometheus"
-	"os"
 
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
@@ -83,7 +84,7 @@ func main() {
 		bc.Data.Database.LogFileName, 6, 5, 30, false)
 	defer logfile.Close()
 
-	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, bc.Schoolday, logfile, logger)
+	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, bc.Schoolday, bc.Defaults, logfile, logger)
 	if err != nil {
 		panic(err)
 	}

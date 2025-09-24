@@ -27,7 +27,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, writer io.Writer, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, defaults *conf.Defaults, writer io.Writer, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewDB(confData, writer, logger)
 	dataData, cleanup, err := data.NewData(confData, db, logger)
 	if err != nil {
@@ -60,7 +60,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	}
 	refreshLogRepo := data.NewRefreshLogRepo(db, confServer)
 	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawlerCrawler, jxbDBRepo, ccnuService, delayKafka, refreshLogRepo, confServer)
-	classListService := service.NewClasserService(classUsecase, schoolDay, logger)
+	classListService := service.NewClasserService(classUsecase, schoolDay, logger, defaults)
 	grpcServer := server.NewGRPCServer(confServer, classListService, logger)
 	app := newApp(logger, grpcServer, etcdRegistry)
 	return app, func() {

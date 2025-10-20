@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-
 	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/be-user/service"
 	"google.golang.org/grpc"
@@ -30,11 +29,6 @@ func (s *UserServiceServer) SaveUser(ctx context.Context,
 func (s *UserServiceServer) GetCookie(ctx context.Context, request *userv1.GetCookieRequest) (*userv1.GetCookieResponse, error) {
 	u, err := s.svc.GetCookie(ctx, request.GetStudentId())
 	return &userv1.GetCookieResponse{Cookie: u}, err
-}
-
-func (s *UserServiceServer) GetLibraryCookie(ctx context.Context, request *userv1.GetLibraryCookieRequest) (*userv1.GetLibraryCookieResponse, error) {
-	cookie, err := s.svc.GetLibraryCookie(ctx, request.GetStudentId())
-	return &userv1.GetLibraryCookieResponse{Cookie: cookie}, err
 }
 
 func (s *UserServiceServer) CheckUser(ctx context.Context, req *userv1.CheckUserReq) (*userv1.CheckUserResp, error) {

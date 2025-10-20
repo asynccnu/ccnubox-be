@@ -2,15 +2,13 @@ package service
 
 import (
 	"context"
-	"time"
-
 	"github.com/asynccnu/ccnubox-be/be-ccnu/pkg/logger"
+	"time"
 )
 
 type CCNUService interface {
 	LoginCCNU(ctx context.Context, studentId string, password string) (bool, error)
 	GetXKCookie(ctx context.Context, studentId string, password string) (string, error)
-	GetLibraryCookie(ctx context.Context, studentId, password string) (string, error)
 }
 
 type ccnuService struct {

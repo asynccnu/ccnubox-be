@@ -13,7 +13,6 @@ import (
 	feedbackv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feedback_help/v1"
 	gradev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/grade/v1"
 	infoSumv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/infoSum/v1"
-	libraryv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1"
 	staticv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/static/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
 	websitev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/website/v1"
@@ -31,7 +30,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/grade"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/asynccnu/ccnubox-be/bff/web/infoSum"
-	"github.com/asynccnu/ccnubox-be/bff/web/library"
 	"github.com/asynccnu/ccnubox-be/bff/web/metrics"
 	"github.com/asynccnu/ccnubox-be/bff/web/static"
 	"github.com/asynccnu/ccnubox-be/bff/web/tube"
@@ -209,16 +207,6 @@ func InitUserHandler(hdl ijwt.Handler, userClient userv1.UserServiceClient) *use
 		panic(err)
 	}
 	return user.NewUserHandler(hdl, userClient)
-}
-
-func InitLibraryHandler(client libraryv1.LibraryClient) *library.LibraryHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
-	return library.NewLibraryHandler(client,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
 
 func InitTubeHandler(putPolicy storage.PutPolicy, mac *qbox.Mac) *tube.TubeHandler {

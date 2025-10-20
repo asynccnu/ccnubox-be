@@ -24,5 +24,6 @@ api:
            --experimental_allow_proto3_optional \
            --go-errors_out=paths=source_relative:./gen/proto \
  	       --go_out=paths=source_relative:./gen/proto \
+ 	       --go-http_out=paths=source_relative:./gen/proto \
  	       --go-grpc_out=paths=source_relative:./gen/proto \
 	       $(API_PROTO_FILES)

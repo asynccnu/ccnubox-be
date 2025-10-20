@@ -1,7 +1,6 @@
 go 1.23.7
 
 use (
-	./be-library
 	be-api
 	be-banner
 	be-calendar

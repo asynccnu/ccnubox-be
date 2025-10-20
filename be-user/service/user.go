@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"net/http"
-
 	ccnuv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/ccnu/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/be-user/pkg/crypto"
@@ -14,6 +12,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-user/tool"
 	"golang.org/x/sync/singleflight"
+	"net/http"
 )
 
 // 定义错误,这里将kratos的error作为一个重要部分传入
@@ -49,7 +48,6 @@ var (
 type UserService interface {
 	Save(ctx context.Context, studentId string, password string) error
 	GetCookie(ctx context.Context, studentId string) (string, error)
-	GetLibraryCookie(ctx context.Context, studentId string) (string, error)
 	Check(ctx context.Context, studentId string, password string) (bool, error)
 }
 
@@ -142,6 +140,7 @@ func (s *userService) GetCookie(ctx context.Context, studentId string) (string, 
 			if err != nil {
 				return "", err
 			}
+
 		} else {
 			//如果是从缓存获取的要验证是否可用
 			if !s.checkCookie(cookie) {
@@ -151,6 +150,7 @@ func (s *userService) GetCookie(ctx context.Context, studentId string) (string, 
 					return "", err
 				}
 			}
+
 		}
 
 		if newCookie != "" {
@@ -215,115 +215,6 @@ func (s *userService) checkCookie(cookie string) bool {
 
 	// 设置请求头
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Cookie", cookie)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")
-
-	// 创建HTTP客户端，禁止自动重定向
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // 禁止自动跳转，返回原始响应
-		},
-	}
-
-	// 发送请求
-	resp, err := client.Do(req)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-
-	return resp.StatusCode == 200
-}
-
-func (s *userService) GetLibraryCookie(ctx context.Context, studentId string) (string, error) {
-	key := "library_" + studentId
-	result, err, _ := s.sfGroup.Do(key, func() (interface{}, error) {
-		var cookie string
-		var newCookie string
-		//如果从缓存获取成功就直接返回,否则降级处理
-		cookie, err := s.cache.GetLibraryCookie(ctx, studentId)
-		if err != nil {
-			s.l.Info("从缓存获取图书馆cookie失败", logger.Error(err))
-
-			//直接获取新的
-			newCookie, err = s.getNewLibraryCookie(ctx, studentId)
-			if err != nil {
-				return "", err
-			}
-		} else {
-			//如果是从缓存获取的要验证是否可用
-			if !s.checkLibraryCookie(cookie) {
-				//直接获取新的
-				newCookie, err = s.getNewLibraryCookie(ctx, studentId)
-				if err != nil {
-					return "", err
-				}
-			}
-		}
-
-		if newCookie != "" {
-			cookie = newCookie
-			//异步回填
-			go func() {
-				err := s.cache.SetLibraryCookie(context.Background(), studentId, cookie)
-				if err != nil {
-					s.l.Error("回填图书馆cookie失败", logger.Error(err))
-				}
-			}()
-		}
-		return cookie, nil
-	})
-
-	if err != nil {
-		return "", SAVE_USER_ERROR(err)
-	}
-
-	cookie, ok := result.(string)
-	if !ok {
-		return "", nil
-	}
-
-	return cookie, nil
-}
-
-func (s *userService) getNewLibraryCookie(ctx context.Context, studentId string) (string, error) {
-	// 尝试从数据库获取
-	user, err := s.dao.FindByStudentId(ctx, studentId)
-	if err != nil {
-		return "", USER_NOT_FOUND_ERROR(err)
-	}
-
-	// 解密
-	decryptPassword, err := s.cryptoClient.Decrypt(user.Password)
-	if err != nil {
-		return "", DECRYPT_ERROR(err)
-	}
-
-	// 调用 be-ccnu
-	resp, err := tool.Retry(func() (*ccnuv1.GetLibraryCookieResponse, error) {
-		return s.ccnu.GetLibraryCookie(ctx, &ccnuv1.GetLibraryCookieRequest{
-			StudentId: user.StudentId,
-			Password:  decryptPassword,
-		})
-	})
-
-	if err != nil {
-		return "", CCNU_GETCOOKIE_ERROR(err)
-	}
-	return resp.Cookie, nil
-}
-
-func (s *userService) checkLibraryCookie(cookie string) bool {
-	// 试探性请求图书馆系统，验证cookie是否有效
-	req, err := http.NewRequest("GET", "http://kjyy.ccnu.edu.cn/", nil)
-	if err != nil {
-		return false
-	}
-
-	// 设置请求头
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Origin", "https://account.ccnu.edu.cn")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", cookie)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")

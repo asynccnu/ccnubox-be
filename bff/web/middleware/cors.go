@@ -21,13 +21,13 @@ func (c *CorsMiddleware) MiddlewareFunc() gin.HandlerFunc {
 		ExposeHeaders: []string{"x-jwt-token", "x-refresh-token"},
 		// 是否允许携带凭证（如 Cookies）
 		AllowCredentials: true,
-		// 解决跨域问题,当是以localhost或者muxixyz.com开头的时候就允许跨域
+		// 解决跨域问题,当是以localhost或者bigdust.space开头的时候就允许跨域
 		AllowOriginFunc: func(origin string) bool {
 			//检测请求来源是否以localhost开头
 			if strings.HasPrefix(origin, "localhost") {
 				return true
 			}
-			//检测请求来源是否以muxixyz.com开头 TODO 这里目前没有限制可能需要修改
+			//检测请求来源是否以bigdust.space开头 TODO 记得改成木犀的
 			return strings.Contains(origin, "")
 		},
 

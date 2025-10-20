@@ -20,13 +20,14 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/user"
 	"github.com/asynccnu/ccnubox-be/bff/web/website"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// 逆天参数数量,依赖注入一堆服务
 func InitGinServer(
 	loggerMiddleware *middleware.LoggerMiddleware,
 	loginMiddleware *middleware.LoginMiddleware,
 	corsMiddleware *middleware.CorsMiddleware,
-	basicAuthMiddleware *middleware.BasicAuthMiddleware,
 	prometheusMiddleware *middleware.PrometheusMiddleware,
 	classroom *classroom.ClassRoomHandler,
 	tube *tube.TubeHandler,
@@ -50,6 +51,9 @@ func InitGinServer(
 	engine := gin.Default()
 	//全局使用gin中间件
 	api := engine.Group("/api/v1")
+
+	//在所有的中间件之前进行打点路由的注册(这里是给Prometheus读取用的路由),中间件可能导致其失效所以放在最前面
+	api.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	//使用中间件
 	api.Use(
@@ -79,7 +83,7 @@ func InitGinServer(
 	grade.RegisterRoutes(api, authMiddleware)
 	card.RegisterRoute(api, authMiddleware)
 	tube.RegisterRoutes(api, authMiddleware)
-	metrics.RegisterRoutes(api, basicAuthMiddleware.MiddlewareFunc(), authMiddleware)
+	metrics.RegisterRoutes(api, authMiddleware)
 	classroom.RegisterRoutes(api, authMiddleware)
 	library.RegisterRoutes(api, authMiddleware)
 	//返回路由

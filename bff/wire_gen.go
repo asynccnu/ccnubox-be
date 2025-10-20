@@ -20,7 +20,6 @@ func InitApp() *App {
 	handler := ioc.InitJwtHandler(cmdable)
 	loginMiddleware := middleware.NewLoginMiddleWare(handler)
 	corsMiddleware := middleware.NewCorsMiddleware()
-	basicAuthMiddleware := middleware.NewBasicAuthMiddleware()
 	prometheusCounter := ioc.InitPrometheus()
 	prometheusMiddleware := middleware.NewPrometheusMiddleware(prometheusCounter)
 	client := ioc.InitEtcdClient()
@@ -60,7 +59,7 @@ func InitApp() *App {
 	metricsHandler := ioc.InitMetricsHandel(logger)
 	libraryClient := ioc.InitLibrary(client)
 	libraryHandler := ioc.InitLibraryHandler(libraryClient)
-	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, basicAuthMiddleware, prometheusMiddleware, classRoomHandler, tubeHandler, userHandler, staticHandler, bannerHandler, departmentHandler, websiteHandler, calendarHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, feedbackHelpHandler, infoSumHandler, cardHandler, metricsHandler, libraryHandler)
+	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, prometheusMiddleware, classRoomHandler, tubeHandler, userHandler, staticHandler, bannerHandler, departmentHandler, websiteHandler, calendarHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, feedbackHelpHandler, infoSumHandler, cardHandler, metricsHandler, libraryHandler)
 	app := NewApp(engine)
 	return app
 }

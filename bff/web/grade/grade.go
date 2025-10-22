@@ -41,6 +41,7 @@ func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 	//这里有三类路由,分别是ginx.WrapClaimsAndReq()有参数且要验证
 	sg.POST("/getGradeByTerm", authMiddleware, ginx.WrapClaimsAndReq(h.GetGradeByTerm))
 	sg.GET("/getGradeScore", authMiddleware, ginx.WrapClaims(h.GetGradeScore))
+	sg.GET("/getGradeType", ginx.Wrap(h.GetGradeType))
 }
 
 // GetGradeByTerm 查询按学年和学期的成绩
@@ -54,6 +55,12 @@ func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /grade/getGradeByTerm [post]
 func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, uc ijwt.UserClaims) (web.Response, error) {
+	if len(req.Kcxzmcs) == 0 {
+		return web.Response{
+			Msg:  "获取成绩成功！",
+			Data: GetGradeByTermResp{},
+		}, nil
+	}
 	grades, err := h.GradeClient.GetGradeByTerm(ctx, &gradev1.GetGradeByTermReq{
 		StudentId: uc.StudentId,
 		Terms:     convTermsToProto(req.Terms),
@@ -176,4 +183,28 @@ func convTermsToProto(terms []string) []*gradev1.Terms {
 	}
 
 	return result
+}
+
+// GetGradeType 获取课程类别
+// @Summary 获取课程类别
+// @Description 获取课程类别
+// @Tags grade
+// @Accept json
+// @Produce json
+// @Success 200 {object} web.Response{data=GetGradeTypeResp} "成功返回课程列表"
+// @Failure 500 {object} web.Response "系统异常，获取失败"
+// @Router /grade/getGradeType [get]
+func (h *GradeHandler) GetGradeType(ctx *gin.Context) (web.Response, error) {
+	list, err := h.GradeClient.GetGradeType(ctx, &gradev1.GetGradeTypeReq{})
+	if err != nil {
+		return web.Response{}, errs.GET_GRADE_TYPE_ERROR(err)
+	}
+
+	var resp GetGradeTypeResp
+	resp.Kcxzmc = list.GradeTypes
+
+	return web.Response{
+		Msg:  "获取课程类别成功！",
+		Data: resp,
+	}, nil
 }

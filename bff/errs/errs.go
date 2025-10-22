@@ -233,6 +233,10 @@ var (
 	GET_GRADE_SCORE_ERROR = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取成绩分数失败!", "grade", err)
 	}
+
+	GET_GRADE_TYPE_ERROR=func(err error)error{
+		return errorx.New(http.StatusInternalServerError,INTERNAL_SERVER_ERROR_CODE,"获取课程性质列表失败！","grade",err)
+	}
 )
 
 // static

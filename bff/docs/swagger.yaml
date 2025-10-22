@@ -754,8 +754,10 @@ definitions:
         description: |-
           Utime      time.Time
           Ctime      time.Time
+        format: int64
         type: integer
       id:
+        format: int64
         type: integer
       question:
         type: string
@@ -808,6 +810,16 @@ definitions:
         type: array
     required:
     - type_of_grade_scores
+    type: object
+  grade.GetGradeTypeResp:
+    properties:
+      kcxzmc:
+        description: 课程类别
+        items:
+          type: string
+        type: array
+    required:
+    - kcxzmc
     type: object
   grade.Grade:
     properties:
@@ -2822,6 +2834,30 @@ paths:
           schema:
             $ref: '#/definitions/web.Response'
       summary: 查询学分
+      tags:
+      - grade
+  /grade/getGradeType:
+    get:
+      consumes:
+      - application/json
+      description: 获取课程类别
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回课程列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/grade.GetGradeTypeResp'
+              type: object
+        "500":
+          description: 系统异常，获取失败
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 获取课程类别
       tags:
       - grade
   /library/cancel_reserve:

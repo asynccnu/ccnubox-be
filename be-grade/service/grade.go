@@ -26,6 +26,7 @@ type GradeService interface {
 	GetGradeByTerm(ctx context.Context, req *domain.GetGradeByTermReq) ([]domain.Grade, error)
 	GetGradeScore(ctx context.Context, studentId string) ([]domain.TypeOfGradeScore, error)
 	GetUpdateScore(ctx context.Context, studentId string) ([]domain.Grade, error)
+	GetDistinctGradeType(ctx context.Context)([]string,error)
 }
 
 type gradeService struct {
@@ -186,6 +187,15 @@ func (s *gradeService) fetchGradesFromRemoteAndUpdate(ctx context.Context, stude
 	}
 
 	return update, remote, nil
+}
+
+func (s *gradeService)GetDistinctGradeType(ctx context.Context)([]string,error){
+	res,err:=s.gradeDAO.GetDistinctGradeType(ctx)
+	if err!=nil{
+		s.l.Warn("获取课程性质列表失败",logger.Error(err))
+		return nil,err
+	}
+	return res,nil
 }
 
 type Student interface {

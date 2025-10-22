@@ -9,6 +9,7 @@ service GradeService {
   rpc GetGradeByTerm (GetGradeByTermReq) returns (GetGradeByTermResp) ;
   rpc GetGradeScore(GetGradeScoreReq)returns(GetGradeScoreResp);
   rpc GetGraduateGrade(GetGraduateUpdateReq) returns (GetGraduateUpdateResp);
+  rpc GetGradeType(GetGradeTypeReq)returns(GetGradeTypeResp);
 }
 
 // 请求体
@@ -98,4 +99,10 @@ message GetGraduateUpdateReq{
 
 message GetGraduateUpdateResp{
   repeated GraduateGrade grades = 1;
+}
+
+message GetGradeTypeReq{}
+
+message GetGradeTypeResp{
+  repeated string gradeTypes=1;
 }

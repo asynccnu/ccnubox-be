@@ -2383,6 +2383,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/grade/getGradeType": {
+            "get": {
+                "description": "获取课程类别",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "grade"
+                ],
+                "summary": "获取课程类别",
+                "responses": {
+                    "200": {
+                        "description": "成功返回课程列表",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/grade.GetGradeTypeResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，获取失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/library/cancel_reserve": {
             "post": {
                 "description": "取消预约",
@@ -4552,10 +4593,12 @@ const docTemplate = `{
                 },
                 "clickTimes": {
                     "description": "Utime      time.Time\nCtime      time.Time",
-                    "type": "integer"
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "question": {
                     "type": "string"
@@ -4632,6 +4675,21 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/grade.TypeOfGradeScore"
+                    }
+                }
+            }
+        },
+        "grade.GetGradeTypeResp": {
+            "type": "object",
+            "required": [
+                "kcxzmc"
+            ],
+            "properties": {
+                "kcxzmc": {
+                    "description": "课程类别",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
                     }
                 }
             }

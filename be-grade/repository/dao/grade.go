@@ -12,6 +12,7 @@ type GradeDAO interface {
 	FirstOrCreate(ctx context.Context, grade *model.Grade) error
 	FindGrades(ctx context.Context, studentId string, Xnm int64, Xqm int64) ([]model.Grade, error)
 	BatchInsertOrUpdate(ctx context.Context, grades []model.Grade) (updateGrade []model.Grade, err error)
+	GetDistinctGradeType(ctx context.Context)([]string,error)
 }
 
 type gradeDAO struct {
@@ -110,6 +111,14 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 	// 返回受影响的记录（新增 + 更新）
 	affectedGrades = append(toInsert, toUpdate...)
 	return affectedGrades, nil
+}
+
+func(d *gradeDAO)GetDistinctGradeType(ctx context.Context)([]string,error){
+	var results []string
+	if err:=d.db.WithContext(ctx).Model(&model.Grade{}).Distinct("kcxzmc").Pluck("kcxzmc",&results).Error;err!=nil{
+		return nil,err
+	}
+	return results,nil
 }
 
 func isGradeEqual(a, b model.Grade) bool {

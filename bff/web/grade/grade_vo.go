@@ -39,3 +39,7 @@ type GradeScore struct {
 	Kcmc string  `json:"kcmc" binding:"required"` //课程名称
 	Xf   float32 `json:"xf" binding:"required"`   //学分
 }
+
+type GetGradeTypeResp struct{
+	Kcxzmc []string `json:"kcxzmc" binding:"required"` //课程类别
+}

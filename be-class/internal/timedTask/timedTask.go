@@ -80,24 +80,33 @@ func (t Task) RegisterClearClassInfoTask() {
 
 func (t Task) RegisterCrawFreeClassroomTask(stuId string) {
 	ctx := context.Background()
-
-	schoolTime, err := t.classlistService.GetSchoolDay(ctx)
-	if err != nil {
-		clog.LogPrinter.Errorf("get school day failed: %v", err)
-		return
-	}
-	si, err := semesterInfo.GetSemesterInfo(schoolTime)
-	if err != nil {
-		clog.LogPrinter.Errorf("get semester info failed: %v", err)
-		return
-	}
 	go func() {
+		schoolTime, err := t.classlistService.GetSchoolDay(ctx)
+		if err != nil {
+			clog.LogPrinter.Errorf("get school day failed: %v", err)
+			return
+		}
+		si, err := semesterInfo.GetSemesterInfo(schoolTime)
+		if err != nil {
+			clog.LogPrinter.Errorf("get semester info failed: %v", err)
+			return
+		}
 		// 程序开始时先执行一次
 		t.freeClassroomBiz.LoadOneWeekFreeClassRoom(ctx, stuId, strconv.Itoa(si.Year), strconv.Itoa(si.Semester), si.WeekNumber)
 	}()
 
 	// 每周一4点执行
-	err = t.AddTask("0 4 * * 1", func() {
+	err := t.AddTask("0 4 * * 1", func() {
+		schoolTime, err := t.classlistService.GetSchoolDay(ctx)
+		if err != nil {
+			clog.LogPrinter.Errorf("get school day failed: %v", err)
+			return
+		}
+		si, err := semesterInfo.GetSemesterInfo(schoolTime)
+		if err != nil {
+			clog.LogPrinter.Errorf("get semester info failed: %v", err)
+			return
+		}
 		t.freeClassroomBiz.LoadOneWeekFreeClassRoom(ctx, stuId, strconv.Itoa(si.Year), strconv.Itoa(si.Semester), si.WeekNumber)
 	})
 	if err != nil {

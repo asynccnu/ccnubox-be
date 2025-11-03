@@ -1,7 +1,7 @@
 syntax = "proto3";
 package kratos.api;
 
-option go_package = "classlist/internal/conf;conf";
+option go_package = "github.com/asynccnu/ccnubox-be/be-class/internal/conf";
 
 import "google/protobuf/duration.proto";
 
@@ -9,6 +9,7 @@ message Bootstrap {
   Server server = 1;
   Data data = 2;
   Registry registry = 3;
+  string proxyStuId = 4; // 执行定时任务时使用的学生ID
 }
 
 message Server {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	pb "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/errcode"
 )

@@ -11,11 +11,12 @@ import (
 
 type GradeServiceServer struct {
 	v1.UnimplementedGradeServiceServer
-	ser service.GradeService
+	ser     service.GradeService
+	rankSer service.RankService // 具体见 rank.go
 }
 
-func NewGradeGrpcService(ser service.GradeService) *GradeServiceServer {
-	return &GradeServiceServer{ser: ser}
+func NewGradeGrpcService(ser service.GradeService, ser2 service.RankService) *GradeServiceServer {
+	return &GradeServiceServer{ser: ser, rankSer: ser2}
 }
 
 func (s *GradeServiceServer) Register(server grpc.ServiceRegistrar) {

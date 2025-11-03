@@ -21,15 +21,15 @@ type ClassListService interface {
 	AddClassInfoToClassListService(ctx context.Context, req *v1.AddClassRequest) (*v1.AddClassResponse, error)
 }
 
-type ClassSerivceUserCase struct {
+type ClassServiceUserCase struct {
 	es          EsProxy
 	cs          ClassListService
 	lockBuilder lock.Builder
 	cache       Cache
 }
 
-func NewClassSerivceUserCase(es EsProxy, cs ClassListService, lockBuilder lock.Builder, cache Cache) *ClassSerivceUserCase {
-	return &ClassSerivceUserCase{
+func NewClassServiceUserCase(es EsProxy, cs ClassListService, lockBuilder lock.Builder, cache Cache) *ClassServiceUserCase {
+	return &ClassServiceUserCase{
 		es:          es,
 		cs:          cs,
 		lockBuilder: lockBuilder,
@@ -37,15 +37,15 @@ func NewClassSerivceUserCase(es EsProxy, cs ClassListService, lockBuilder lock.B
 	}
 }
 
-func (c *ClassSerivceUserCase) AddClassInfoToClassListService(ctx context.Context, request *v1.AddClassRequest) (*v1.AddClassResponse, error) {
+func (c *ClassServiceUserCase) AddClassInfoToClassListService(ctx context.Context, request *v1.AddClassRequest) (*v1.AddClassResponse, error) {
 	return c.cs.AddClassInfoToClassListService(ctx, request)
 }
 
-func (c *ClassSerivceUserCase) SearchClassInfo(ctx context.Context, keyWords string, xnm, xqm string, page, pageSize int) ([]model.ClassInfo, error) {
+func (c *ClassServiceUserCase) SearchClassInfo(ctx context.Context, keyWords string, xnm, xqm string, page, pageSize int) ([]model.ClassInfo, error) {
 	return c.es.SearchClassInfo(ctx, keyWords, xnm, xqm, page, pageSize)
 }
 
-func (c *ClassSerivceUserCase) AddClassInfosToES(ctx context.Context, xnm, xqm string) {
+func (c *ClassServiceUserCase) AddClassInfosToES(ctx context.Context, xnm, xqm string) {
 	//xnm, xqm := tool.GetXnmAndXqm()
 	reqTime := "1949-10-01T00:00:00.000000"
 	var tasks []string
@@ -127,7 +127,7 @@ func (c *ClassSerivceUserCase) AddClassInfosToES(ctx context.Context, xnm, xqm s
 	}
 
 }
-func (c *ClassSerivceUserCase) DeleteSchoolClassInfosFromES(ctx context.Context, xnm, xqm string) {
+func (c *ClassServiceUserCase) DeleteSchoolClassInfosFromES(ctx context.Context, xnm, xqm string) {
 	//xnm, xqm := tool.GetXnmAndXqm()
 	c.es.ClearClassInfo(ctx, xnm, xqm)
 }

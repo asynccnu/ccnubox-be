@@ -19,7 +19,7 @@ func TestFreeClassroomBiz_crawFreeClassroom(t *testing.T) {
 		cookieCli: cli,
 		httpCli:   &http.Client{},
 	}
-	res, err := fcb.crawFreeClassroom(context.Background(), "2024", "2", "testID", 6, 2, []int{1, 2}, "71")
+	res, err := fcb.getFreeClassrooms(context.Background(), "2024", "2", "testID", 6, 2, []int{1, 2}, "71")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -809,6 +809,31 @@ definitions:
     required:
     - type_of_grade_scores
     type: object
+  grade.GetRankByTermReq:
+    properties:
+      refresh:
+        type: boolean
+      xnm_begin:
+        description: 学年学期四个字段为空则获取总成绩
+        type: integer
+      xnm_end:
+        type: integer
+      xqm_begin:
+        type: integer
+      xqm_end:
+        type: integer
+    type: object
+  grade.GetRankByTermResp:
+    properties:
+      include:
+        items:
+          type: string
+        type: array
+      rank:
+        type: string
+      score:
+        type: string
+    type: object
   grade.Grade:
     properties:
       Kclbmc:
@@ -2822,6 +2847,50 @@ paths:
           schema:
             $ref: '#/definitions/web.Response'
       summary: 查询学分
+      tags:
+      - grade
+  /grade/getRankByTerm:
+    get:
+      consumes:
+      - application/json
+      description: 根据学年号和学期号获取用户的学分绩排名以及分数和统计的科目，全为0则查总排名
+      parameters:
+      - description: 获取学年和学期的学分绩排名请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/grade.GetRankByTermReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回学年和学期的排名信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/grade.GetRankByTermResp'
+              type: object
+        "500":
+          description: 系统异常，获取失败
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 查询学分绩排名
+      tags:
+      - grade
+  /grade/loadRank:
+    get:
+      description: 当用户点开app时前端发现从未预加载过，调用该接口预加载总排名，每个用户只需调用一次即可
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 返回信息
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 预加载总排名
       tags:
       - grade
   /library/cancel_reserve:

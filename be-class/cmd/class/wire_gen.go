@@ -44,8 +44,8 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	redisClient := data.NewRedisClient(confData)
 	builder := lock.NewRedisLockBuilder(redisClient)
 	cache := data.NewCache(redisClient)
-	classSerivceUserCase := biz.NewClassSerivceUserCase(classData, classListService, builder, cache)
-	classServiceService := service.NewClassServiceService(classSerivceUserCase)
+	classServiceUserCase := biz.NewClassServiceUserCase(classData, classListService, builder, cache)
+	classServiceService := service.NewClassServiceService(classServiceUserCase)
 	freeClassroomData := data.NewFreeClassroomData(elasticClient)
 	cookieSvc, err := client.NewCookieSvc(etcdRegistry)
 	if err != nil {
@@ -58,7 +58,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	selectionUploader := service.NewSelectionUploader(freeClassroomBiz)
 	httpServer := server.NewHTTPServer(confServer, selectionUploader)
 	app := newApp(logger, grpcServer, httpServer, etcdRegistry)
-	task := timedTask.NewTask(classSerivceUserCase, freeClassroomBiz)
+	task := timedTask.NewTask(classServiceUserCase, freeClassroomBiz, classListService)
 	mainAPP := NewApp(app, task)
 	return mainAPP, func() {
 		cleanup()

@@ -22,3 +22,6 @@ registry:
     addr: "127.0.0.1:2379"
     username: root
     password: "12345678"
+
+## 执行job时使用的学号
+proxyStuId: "xxxxxxxxxx"

@@ -52,3 +52,23 @@ type GraduateGrade struct {
 	ClassID         string  `json:"classID"`
 	Teacher         string  `json:"teacher"`
 }
+
+// rank 部分
+type GetRankByTermReq struct {
+	StudentId string `json:"studentId"`
+	XnmBegin  int64  `json:"xnm_begin"`
+	XqmBegin  int64  `json:"xqm_begin"`
+	XnmEnd    int64  `json:"xnm_end"`
+	XqmEnd    int64  `json:"xqm_end"`
+	Refresh   bool   `json:"refresh"`
+}
+
+type GetRankByTermResp struct {
+	Rank    string
+	Score   string
+	Include []string
+}
+
+type LoadRankReq struct {
+	StudentId string `json:"studentId"`
+}

@@ -89,17 +89,21 @@ func main() {
 		panic(err)
 	}
 
-	APP, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger)
+	svc, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger)
 	if err != nil {
 		panic(err)
 	}
 	defer cleanup()
 
 	// 启动定时任务
-	APP.task.AddClassInfosToES()
-	APP.task.Clear()
+	svc.task.RegisterAddClassInfosToESTask()
+	svc.task.RegisterClearClassInfoTask()
+	svc.task.RegisterCrawFreeClassroomTask(bc.GetProxyStuId())
+	svc.task.Start()
+	defer svc.task.Stop()
+
 	// start and wait for stop signal
-	if err := APP.app.Run(); err != nil {
+	if err := svc.app.Run(); err != nil {
 		panic(err)
 	}
 

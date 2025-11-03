@@ -6,7 +6,7 @@ import (
 )
 
 func InitTables(db *gorm.DB) error {
-	err := db.AutoMigrate(&model.Grade{})
+	err := db.AutoMigrate(&model.Grade{}, &model.Rank{})
 	if err != nil {
 		return err
 	}

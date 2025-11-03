@@ -9,10 +9,9 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-class/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/data"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/registry"
-
 )
 
-func initCS() *ClassSerivceUserCase {
+func initCS() *ClassServiceUserCase {
 	cli, err := data.NewEsClient(&conf.Data{Es: &conf.Data_ES{
 		Url:      "http://127.0.0.1:9200",
 		Setsniff: false,
@@ -35,8 +34,8 @@ func initCS() *ClassSerivceUserCase {
 		panic(err)
 	}
 
-	cs := &ClassSerivceUserCase{
-		es:         dt,
+	cs := &ClassServiceUserCase{
+		es: dt,
 		cs: classListService,
 	}
 	return cs

@@ -9,6 +9,10 @@ service GradeService {
   rpc GetGradeByTerm (GetGradeByTermReq) returns (GetGradeByTermResp) ;
   rpc GetGradeScore(GetGradeScoreReq)returns(GetGradeScoreResp);
   rpc GetGraduateGrade(GetGraduateUpdateReq) returns (GetGraduateUpdateResp);
+
+  // 学业平均学分绩和排名
+  rpc GetRankByTerm (GetRankByTermReq) returns (GetRankByTermResp) ;
+  rpc LoadRank (LoadRankReq) returns (EmptyResp);
 }
 
 // 请求体
@@ -99,3 +103,25 @@ message GetGraduateUpdateReq{
 message GetGraduateUpdateResp{
   repeated GraduateGrade grades = 1;
 }
+
+// rank 部分
+message GetRankByTermReq {
+  string studentId = 1; //学号
+  int64 xnm_begin = 2; //开始学年
+  int64 xqm_begin = 3; //开始学期
+  int64 xnm_end = 4; //结束学年
+  int64 xqm_end = 5; //结束学期
+  bool refresh =6; //是否强制刷新
+}
+
+message GetRankByTermResp {
+  string rank = 1; //排名
+  string score = 2; //平均学业学分绩
+  repeated string include = 3; //统计的科目(教务系统好像不提供筛选科目统计的功能)
+}
+
+message LoadRankReq {
+  string studentId = 1;
+}
+
+message EmptyResp {}

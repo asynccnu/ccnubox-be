@@ -233,6 +233,10 @@ var (
 	GET_GRADE_SCORE_ERROR = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取成绩分数失败!", "grade", err)
 	}
+
+	GET_RANK_BY_TERM_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取学分绩排名失败!", "grade", err)
+	}
 )
 
 // static

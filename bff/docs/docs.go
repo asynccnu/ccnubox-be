@@ -2383,6 +2383,78 @@ const docTemplate = `{
                 }
             }
         },
+        "/grade/getRankByTerm": {
+            "get": {
+                "description": "根据学年号和学期号获取用户的学分绩排名以及分数和统计的科目，全为0则查总排名",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "grade"
+                ],
+                "summary": "查询学分绩排名",
+                "parameters": [
+                    {
+                        "description": "获取学年和学期的学分绩排名请求参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/grade.GetRankByTermReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回学年和学期的排名信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/grade.GetRankByTermResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，获取失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/grade/loadRank": {
+            "get": {
+                "description": "当用户点开app时前端发现从未预加载过，调用该接口预加载总排名，每个用户只需调用一次即可",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "grade"
+                ],
+                "summary": "预加载总排名",
+                "responses": {
+                    "200": {
+                        "description": "返回信息",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/library/cancel_reserve": {
             "post": {
                 "description": "取消预约",
@@ -4633,6 +4705,44 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/grade.TypeOfGradeScore"
                     }
+                }
+            }
+        },
+        "grade.GetRankByTermReq": {
+            "type": "object",
+            "properties": {
+                "refresh": {
+                    "type": "boolean"
+                },
+                "xnm_begin": {
+                    "description": "学年学期四个字段为空则获取总成绩",
+                    "type": "integer"
+                },
+                "xnm_end": {
+                    "type": "integer"
+                },
+                "xqm_begin": {
+                    "type": "integer"
+                },
+                "xqm_end": {
+                    "type": "integer"
+                }
+            }
+        },
+        "grade.GetRankByTermResp": {
+            "type": "object",
+            "properties": {
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "rank": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "string"
                 }
             }
         },

@@ -8,7 +8,7 @@ import (
 
 func TestStartTask(t *testing.T) {
 	taskManager := &Task{c: cron.New()}
-	err := taskManager.startTask("* * * * *", func() {
+	err := taskManager.AddTask("* * * * *", func() {
 		t.Log("task is executed")
 	})
 	if err != nil {

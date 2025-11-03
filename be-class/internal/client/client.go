@@ -80,6 +80,14 @@ func (c *ClassListService) AddClassInfoToClassListService(ctx context.Context, r
 
 }
 
+func (c *ClassListService) GetSchoolDay(ctx context.Context) (string, error) {
+	resp, err := c.cs.GetSchoolDay(ctx, &classlist.GetSchoolDayReq{})
+	if err != nil {
+		return "", err
+	}
+	return resp.SchoolTime, nil
+}
+
 type CookieSvc struct {
 	usc user.UserServiceClient
 }

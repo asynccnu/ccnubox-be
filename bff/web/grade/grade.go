@@ -41,6 +41,8 @@ func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 	//这里有三类路由,分别是ginx.WrapClaimsAndReq()有参数且要验证
 	sg.POST("/getGradeByTerm", authMiddleware, ginx.WrapClaimsAndReq(h.GetGradeByTerm))
 	sg.GET("/getGradeScore", authMiddleware, ginx.WrapClaims(h.GetGradeScore))
+	sg.GET("/getRankByTerm", authMiddleware, ginx.WrapClaimsAndReq(h.GetRankByTerm))
+	sg.GET("/loadRank", authMiddleware, ginx.WrapClaims(h.LoadRank))
 }
 
 // GetGradeByTerm 查询按学年和学期的成绩

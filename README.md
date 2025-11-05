@@ -29,29 +29,31 @@
 - **`be-infosum`**: 信息汇总服务，管理信息汇总服务
 - **`be-user`**: 用户服务，为其他服务提供cookie
 - **`be-website`**: 网站服务，管理网站信息
+- **`be-proxy`**: 代理服务, ip代理池
 - **`bff`**: 提供给前端使用的api
 
 
 
 **各个服务对应默认端口**
 
-| 服务          | 默认端口 |
-| ------------- | -------- |
-| be-banner     | 19080    |
-| be-calendar   | 19081    |
-| be-ccnu       | 19082    |
-| be-class      | 19083    |
-| be-classlist  | 19084    |
-| be-counter    | 19085    |
-| be-department | 19086    |
-| be-elecprice  | 19087    |
-| be-feed       | 19088    |
-| be-grade      | 19089    |
-| be-infosum    | 19090    |
-| be-user       | 19091    |
-| be-website    | 19092    |
-| be-library    | 19093    |
-| bff           | 8080     |
+| 服务            | 默认端口  |
+|---------------|-------|
+| be-banner     | 19080 |
+| be-calendar   | 19081 |
+| be-ccnu       | 19082 |
+| be-class      | 19083 |
+| be-classlist  | 19084 |
+| be-counter    | 19085 |
+| be-department | 19086 |
+| be-elecprice  | 19087 |
+| be-feed       | 19088 |
+| be-grade      | 19089 |
+| be-infosum    | 19090 |
+| be-user       | 19091 |
+| be-website    | 19092 |
+| be-library    | 19093 |
+| be-proxy      | 19094 |
+| bff           | 8080  |
 
 
 
@@ -191,6 +193,14 @@ services:
     volumes:
       - ./logs/be-website/:/logs/
       - ./configs/be-website.yaml:/data/conf/config.yaml
+  be-proxy:
+    container_name: be-proxy
+    image: be-proxy:v1
+    restart: "always"
+    network_mode: host
+    volumes:
+      - ./logs/be-proxy/:/logs/
+      - ./configs/be-proxy.yaml:/data/conf/config.yaml  
   bff:
     container_name: bff
     image: bff:v1

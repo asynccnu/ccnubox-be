@@ -27,7 +27,7 @@ func InitClassList(ecli *clientv3.Client) classlistv1.ClasserClient {
 	cc, err := grpc.DialInsecure(context.Background(),
 		grpc.WithEndpoint(cfg.Endpoint),
 		grpc.WithDiscovery(r),
-		grpc.WithTimeout(30*time.Second), //由于华师的速度比较慢这里地方需要强制给一个上下文超时的时间限制.否则kratos会使用默认的2s超时(有够脑瘫,为什么不自动沿用传入的ctx的上下文呢?)
+		grpc.WithTimeout(120*time.Second), //由于华师的速度比较慢这里地方需要强制给一个上下文超时的时间限制.否则kratos会使用默认的2s超时(有够脑瘫,为什么不自动沿用传入的ctx的上下文呢?)
 
 	)
 	if err != nil {

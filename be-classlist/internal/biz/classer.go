@@ -16,7 +16,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/panjf2000/ants/v2"
-
 )
 
 type ClassUsecase struct {
@@ -437,10 +436,7 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 			logh.Infof("Get cookie (stu_id:%v,success:%v) from other service,cost %v", stuID, cookieSuccess, time.Since(currentTime))
 		}(time.Now())
 
-		timeoutCtx, cancel := context.WithTimeout(ctx, cluc.waitUserSvcTime) //防止影响
-		defer cancel()                                                       // 确保在函数返回前取消上下文，防止资源泄漏
-
-		cookie, err := cluc.ccnu.GetCookie(timeoutCtx, stuID)
+		cookie, err := cluc.ccnu.GetCookie(ctx, stuID)
 		if err != nil {
 			cookieSuccess = false // 设置cookie获取状态
 			logh.Errorf("Error getting cookie(stu_id:%v) from other service: %v", stuID, err)
@@ -461,7 +457,7 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 		stu = &GraduateStudent{}
 	}
 
-	ci,sc,err := func() ([]*ClassInfo, []*StudentCourse, error) {
+	ci, sc, err := func() ([]*ClassInfo, []*StudentCourse, error) {
 		defer func(currentTime time.Time) {
 			logh.Infof("Craw class [%v,%v,%v] cost %v", stuID, year, semester, time.Since(currentTime))
 		}(time.Now())

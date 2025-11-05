@@ -27,7 +27,7 @@ func InitUserClient(ecli *clientv3.Client) userv1.UserServiceClient {
 	cc, err := grpc.DialInsecure(context.Background(),
 		grpc.WithEndpoint(cfg.Endpoint),
 		grpc.WithDiscovery(r),
-		grpc.WithTimeout(30*time.Second),
+		grpc.WithTimeout(120*time.Second),
 	)
 	if err != nil {
 		panic(err)

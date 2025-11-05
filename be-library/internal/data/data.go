@@ -7,7 +7,10 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-library/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/data/DO"
+	"github.com/asynccnu/ccnubox-be/be-library/internal/data/cache"
+	"github.com/asynccnu/ccnubox-be/be-library/internal/data/dao"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/sync/singleflight"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
@@ -17,27 +20,12 @@ import (
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewDB, NewRedisDB, NewAssembler, NewSeatRepo, NewCommentRepo, NewRecordRepo, NewCreditPointsRepo)
-
-// Data 做CURD时使用该框架
-type Data struct {
-	db    *gorm.DB
-	log   *log.Helper
-	cfg   *conf.Data
-	redis *redis.Client
-}
-
-// NewData
-func NewData(c *conf.Data, logger log.Logger, db *gorm.DB, rdb *redis.Client) (*Data, error) {
-	data := &Data{
-		log:   log.NewHelper(logger),
-		db:    db,
-		redis: rdb,
-		cfg:   c,
-	}
-
-	return data, nil
-}
+var ProviderSet = wire.NewSet(
+	NewDB, NewRedisDB, NewAssembler, NewSingleflight,
+	cache.ProviderSet,
+	dao.ProviderSet,
+	NewSeatRepo, NewCommentRepo, NewRecordRepo, NewCreditPointsRepo,
+)
 
 // NewDB 连接 MySQL 数据库并自动迁移
 func NewDB(c *conf.Data) (*gorm.DB, error) {
@@ -76,4 +64,8 @@ func NewRedisDB(c *conf.Data, logger log.Logger) *redis.Client {
 	}
 	log.NewHelper(logger).Info("redis connect success")
 	return rdb
+}
+
+func NewSingleflight() *singleflight.Group {
+	return &singleflight.Group{}
 }

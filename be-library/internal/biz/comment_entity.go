@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"context"
 	"time"
 )
 
@@ -14,9 +15,9 @@ type Comment struct {
 }
 
 type CommentRepo interface {
-	CreateComment(req *CreateCommentReq) (string, error)
-	GetCommentsBySeatID(seatID int) ([]*Comment, error)
-	DeleteComment(id int) (string, error)
+	CreateComment(ctx context.Context, req *CreateCommentReq) (string, error)
+	GetCommentsBySeatID(ctx context.Context, seatID int) ([]*Comment, error)
+	DeleteComment(ctx context.Context, id int) (string, error)
 }
 
 type CreateCommentReq struct {

@@ -152,7 +152,7 @@ func (a *Assembler) ConvertGetSeatResponse(data map[string][]*biz.Seat) *pb.GetS
 	return result
 }
 
-func (c *Assembler) ConvertMessages(data []*biz.Comment) *pb.GetCommentResp {
+func (a *Assembler) ConvertMessages(data []*biz.Comment) *pb.GetCommentResp {
 	if len(data) == 0 {
 		return &pb.GetCommentResp{}
 	}

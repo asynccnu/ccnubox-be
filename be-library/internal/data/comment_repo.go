@@ -1,29 +1,31 @@
 package data
 
 import (
+	"context"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-library/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/data/DO"
+	"github.com/asynccnu/ccnubox-be/be-library/internal/data/dao"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
 type CommentRepo struct {
-	data *Data
+	dao  *dao.CommentDAO
 	log  *log.Helper
 	conv *Assembler
 }
 
-func NewCommentRepo(data *Data, logger log.Logger, conv *Assembler) biz.CommentRepo {
+func NewCommentRepo(commentDAO *dao.CommentDAO, logger log.Logger, conv *Assembler) biz.CommentRepo {
 	return &CommentRepo{
 		log:  log.NewHelper(logger),
-		data: data,
+		dao:  commentDAO,
 		conv: conv,
 	}
 }
 
-func (r CommentRepo) CreateComment(req *biz.CreateCommentReq) (string, error) {
-	comment := DO.Comment{
+func (r CommentRepo) CreateComment(ctx context.Context, req *biz.CreateCommentReq) (string, error) {
+	comment := &DO.Comment{
 		SeatID:    req.SeatID,
 		Content:   req.Content,
 		Rating:    req.Rating,
@@ -31,26 +33,27 @@ func (r CommentRepo) CreateComment(req *biz.CreateCommentReq) (string, error) {
 		CreatedAt: time.Now(),
 	}
 
-	err := r.data.db.Create(&comment).Error
+	err := r.dao.CreateComment(ctx, comment)
 	if err != nil {
 		return "", err
 	}
 
-	return "success", err
+	return "success", nil
 }
 
-func (r CommentRepo) GetCommentsBySeatID(seatID int) ([]*biz.Comment, error) {
-	var comments []*DO.Comment
-	err := r.data.db.Where("seat_id = ?", seatID).Order("created_at desc").Find(&comments).Error
-	result := r.conv.ConvertDOCommentBiz(comments)
-	return result, err
-}
-
-func (r CommentRepo) DeleteComment(id int) (string, error) {
-	err := r.data.db.Delete(&DO.Comment{}, id).Error
+func (r CommentRepo) GetCommentsBySeatID(ctx context.Context, seatID int) ([]*biz.Comment, error) {
+	comments, err := r.dao.GetCommentsBySeatID(ctx, seatID)
 	if err != nil {
-		return "", nil
+		return nil, err
+	}
+	return r.conv.ConvertDOCommentBiz(comments), nil
+}
+
+func (r CommentRepo) DeleteComment(ctx context.Context, id int) (string, error) {
+	err := r.dao.DeleteComment(ctx, id)
+	if err != nil {
+		return "", err
 	}
 
-	return "success", err
+	return "success", nil
 }

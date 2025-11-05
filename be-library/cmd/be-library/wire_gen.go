@@ -12,6 +12,8 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-library/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/crawler"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/data"
+	"github.com/asynccnu/ccnubox-be/be-library/internal/data/cache"
+	"github.com/asynccnu/ccnubox-be/be-library/internal/data/dao"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/registry"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/server"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/service"
@@ -36,21 +38,24 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	ccnuServiceProxy := client.NewCCNUServiceProxy(userServiceClient)
 	duration := biz.NewWaitTime(confServer)
 	libraryCrawler := crawler.NewLibraryCrawler(logger, cookiePool, ccnuServiceProxy, duration)
+	redisClient := data.NewRedisDB(confData, logger)
+	seatCache := cache.NewSeatCache(redisClient, logger)
+	assembler := data.NewAssembler()
+	group := data.NewSingleflight()
+	seatRepo := data.NewSeatRepo(seatCache, confData, logger, assembler, group, libraryCrawler)
 	db, err := data.NewDB(confData)
 	if err != nil {
 		return nil, nil, err
 	}
-	redisClient := data.NewRedisDB(confData, logger)
-	dataData, err := data.NewData(confData, logger, db, redisClient)
-	if err != nil {
-		return nil, nil, err
-	}
-	seatRepo := data.NewSeatRepo(dataData, libraryCrawler)
-	recordRepo := data.NewRecordRepo(dataData)
-	creditPointsRepo := data.NewCreditPointsRepo(dataData)
+	recordDAO := dao.NewRecordDAO(db)
+	recordCache := cache.NewRecordCache(redisClient, logger)
+	recordRepo := data.NewRecordRepo(recordDAO, recordCache, logger, assembler)
+	creditPointDAO := dao.NewCreditPointDAO(db)
+	creditPointCache := cache.NewCreditPointCache(redisClient, logger)
+	creditPointsRepo := data.NewCreditPointsRepo(creditPointDAO, creditPointCache, logger, assembler)
 	libraryBiz := biz.NewLibraryBiz(libraryCrawler, logger, seatRepo, recordRepo, creditPointsRepo)
-	assembler := data.NewAssembler()
-	commentRepo := data.NewCommentRepo(dataData, logger, assembler)
+	commentDAO := dao.NewCommentDAO(db)
+	commentRepo := data.NewCommentRepo(commentDAO, logger, assembler)
 	libraryService := service.NewLibraryService(libraryBiz, logger, commentRepo)
 	grpcServer := server.NewGRPCServer(confServer, libraryService, logger)
 	app := newApp(logger, grpcServer, etcdRegistry)

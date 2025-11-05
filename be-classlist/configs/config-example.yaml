@@ -32,6 +32,7 @@ registry:
     username: "root"
     password: "12345678"
   usersvc: "discovery:///user"               # 用户服务地址
+  proxysvc: "discovery:///proxy"
 
 zaplog:
   ##日志级别

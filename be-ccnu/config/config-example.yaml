@@ -10,7 +10,9 @@ grpc:
     weight: 100
     addr: ":19082"
     etcdTTL: 60
-
+  client:
+    proxy:
+      endpoint: "discovery:///proxy"
 
 log:
   path: "/logs/app.log"  # 日志文件路径
@@ -18,14 +20,3 @@ log:
   maxBackups: 7          # 保留旧日志文件的最大数量
   maxAge: 30             # 日志文件保留天数
   compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
-
-# 代理这边配置要和电费服务同步, 那边也有爬虫但是没有拿过来
-kuai:
-  username: "username"
-  password: "password"
-  proxy: "proxy_addr"
-
-shenlong:
-  api: "api_addr"
-  interval: 114 # 单位: s
-  retry: 514

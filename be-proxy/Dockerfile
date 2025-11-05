@@ -1,5 +1,6 @@
 FROM golang:1.24 AS builder
 
+
 COPY . /src
 
 WORKDIR /src/be-proxy

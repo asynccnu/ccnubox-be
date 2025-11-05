@@ -19,6 +19,7 @@ func InitApp() App {
 		dao.NewElecpriceDAO,
 		// 第三方
 		ioc.InitEtcdClient,
+		ioc.InitProxyClient,
 		ioc.InitDB,
 		ioc.InitLogger,
 		ioc.InitGRPCxKratosServer,

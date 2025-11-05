@@ -3,7 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
+	"github.com/go-kratos/kratos/v2/log"
 	"net/http"
+	"net/url"
 
 	ccnuv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/ccnu/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
@@ -60,10 +63,12 @@ type userService struct {
 	ccnu         ccnuv1.CCNUServiceClient
 	sfGroup      singleflight.Group
 	l            logger.Logger
+	pClient      proxyv1.ProxyClient
 }
 
-func NewUserService(dao dao.UserDAO, cache cache.UserCache, cryptoClient *crypto.Crypto, ccnu ccnuv1.CCNUServiceClient, l logger.Logger) UserService {
-	return &userService{dao: dao, cache: cache, cryptoClient: cryptoClient, ccnu: ccnu, l: l}
+func NewUserService(dao dao.UserDAO, cache cache.UserCache, cryptoClient *crypto.Crypto, ccnu ccnuv1.CCNUServiceClient, l logger.Logger,
+	pClient proxyv1.ProxyClient) UserService {
+	return &userService{dao: dao, cache: cache, cryptoClient: cryptoClient, ccnu: ccnu, l: l, pClient: pClient}
 }
 
 func (s *userService) Save(ctx context.Context, studentId string, password string) error {
@@ -228,11 +233,11 @@ func (s *userService) checkCookie(cookie string) bool {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")
 
 	// 创建HTTP客户端，禁止自动重定向
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // 禁止自动跳转，返回原始响应
-		},
+	proxyAddr, err := s.getProxyAddr()
+	if err != nil {
+		log.Warn("get proxy addr err", logger.Error(err))
 	}
+	client := s.newClient(proxyAddr)
 
 	// 发送请求
 	resp, err := client.Do(req)
@@ -337,11 +342,11 @@ func (s *userService) checkLibraryCookie(cookie string) bool {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")
 
 	// 创建HTTP客户端，禁止自动重定向
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // 禁止自动跳转，返回原始响应
-		},
+	proxyAddr, err := s.getProxyAddr()
+	if err != nil {
+		log.Warn("get proxy addr err", logger.Error(err))
 	}
+	client := s.newClient(proxyAddr)
 
 	// 发送请求
 	resp, err := client.Do(req)
@@ -351,4 +356,31 @@ func (s *userService) checkLibraryCookie(cookie string) bool {
 	defer resp.Body.Close()
 
 	return resp.StatusCode == 200
+}
+
+func (s *userService) newClient(proxyAddr string) *http.Client {
+	cli := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	proxy, err := url.Parse(proxyAddr)
+	if err != nil {
+		log.Warn("url parse error", logger.Error(err))
+		return cli
+	}
+
+	p := http.ProxyURL(proxy)
+	cli.Transport = &http.Transport{Proxy: p}
+	return cli
+}
+
+func (s *userService) getProxyAddr() (string, error) {
+	res, err := s.pClient.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
+	if err != nil {
+		return "", err
+	}
+
+	return res.Addr, nil
 }

@@ -5,11 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,9 +23,11 @@ import (
 
 type Crawler2 struct {
 	client *http.Client
+	pc     proxyv1.ProxyClient
 }
 
-func NewClassCrawler2() *Crawler2 {
+func NewClassCrawler2(pc proxyv1.ProxyClient) *Crawler2 {
+	j, _ := cookiejar.New(nil)
 	client := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        100,              // 最大空闲连接
@@ -28,10 +35,39 @@ func NewClassCrawler2() *Crawler2 {
 			TLSHandshakeTimeout: 10 * time.Second, // TLS握手超时
 			DisableKeepAlives:   false,            // 确保不会意外关闭 Keep-Alive
 		},
+		Jar: j,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return nil
+		},
 	}
-	return &Crawler2{
+	c2 := &Crawler2{
 		client: client,
+		pc:     pc,
 	}
+	c2.pullProxy()
+
+	beginCronTask2(c2)
+
+	return c2
+}
+
+func (c *Crawler2) pullProxy() {
+	res, err := c.pc.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
+	if err != nil {
+		log.Error("GetProxyAddr in pull proxy err:", err)
+		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
+	}
+	proxy, err := url.Parse(res.Addr)
+	if err != nil {
+		log.Error("parse proxy in pull proxy addr err:", err)
+	}
+	c.client.Transport.(*http.Transport).Proxy = http.ProxyURL(proxy)
+}
+
+func beginCronTask2(c *Crawler2) {
+	cr := cron.New()
+	_, _ = cr.AddFunc("@every 160s", c.pullProxy)
+	cr.Start()
 }
 
 func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {

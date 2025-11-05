@@ -28,6 +28,8 @@ grpc:
       endpoint: "discovery:///feed"
     ccnu:
       endpoint: "discovery:///ccnu"
+    proxy:
+      endpoint: "discovery:///proxy"
 
 #成绩自动提醒
 gradeController:

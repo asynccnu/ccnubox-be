@@ -20,6 +20,9 @@ grpc:
   client:
     ccnu:
       endpoint: "discovery:///ccnu"
+      retryCnt: 3
+    proxy:
+      endpoint: "discovery:///proxy"
 
 log:
   path: "/logs/user.log"  # 日志文件路径

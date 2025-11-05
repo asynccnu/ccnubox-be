@@ -12,11 +12,12 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/google/wire"
+	"time"
 )
 
 const CLASSLISTSERVICE = "discovery:///be-classlist"
 
-var ProviderSet = wire.NewSet(NewClassListService, NewCookieSvc)
+var ProviderSet = wire.NewSet(NewClassListService, NewCookieSvc, InitProxyClient)
 
 type ClassListService struct {
 	cs classlist.ClasserClient
@@ -105,6 +106,7 @@ func NewCookieSvc(r *etcd.Registry) (*CookieSvc, error) {
 			tracing.Client(),
 			recovery.Recovery(),
 		),
+		grpc.WithTimeout(120*time.Second),
 	)
 	if err != nil {
 		clog.LogPrinter.Errorw("kind", "grpc-client", "reason", "GRPC_CLIENT_INIT_ERROR", "err", err)

@@ -3,6 +3,11 @@ package service
 import (
 	"context"
 	"errors"
+	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
+	"net/http"
+	"net/url"
 	"time"
 
 	"golang.org/x/sync/singleflight"
@@ -29,14 +34,44 @@ type GradeService interface {
 }
 
 type gradeService struct {
-	userClient userv1.UserServiceClient
-	gradeDAO   dao.GradeDAO
-	l          logger.Logger
-	sf         singleflight.Group
+	userClient  userv1.UserServiceClient
+	proxyClient proxyv1.ProxyClient
+	gradeDAO    dao.GradeDAO
+	l           logger.Logger
+	sf          singleflight.Group
 }
 
-func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.UserServiceClient) GradeService {
-	return &gradeService{gradeDAO: gradeDAO, l: l, userClient: userClient}
+func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.UserServiceClient, proxyClient proxyv1.ProxyClient) GradeService {
+	g := &gradeService{gradeDAO: gradeDAO, l: l, userClient: userClient, proxyClient: proxyClient}
+
+	g.pullProxyAddr()
+	beginCron(g)
+
+	return g
+}
+
+func beginCron(s *gradeService) {
+	cr := cron.New()
+	_, _ = cr.AddFunc("@every 160s", s.pullProxyAddr)
+	cr.Start()
+}
+
+func (s *gradeService) pullProxyAddr() {
+	res, err := s.proxyClient.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
+	if err != nil {
+		log.Warn("get proxy addr err: ", err)
+		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
+	}
+
+	proxy, err := url.Parse(res.Addr)
+	if err != nil {
+		log.Warn("parse proxy addr err: ", err)
+	}
+
+	p := http.ProxyURL(proxy)
+
+	client.Transport.(*http.Transport).Proxy = p
+	log.Debug("update client proxy addr, now: ", time.Now())
 }
 
 func (s *gradeService) GetGradeByTerm(ctx context.Context, req *domain.GetGradeByTermReq) ([]domain.Grade, error) {

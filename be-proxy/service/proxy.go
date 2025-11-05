@@ -1,13 +1,14 @@
-package proxy
+package service
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -23,11 +24,34 @@ type ShenLongProxy struct {
 }
 
 var (
-	once          sync.Once // 保证只初始化一次
-	shenLongProxy *ShenLongProxy
+	once sync.Once // 保证只初始化一次
+
+	ErrEmptyConfig = errors.New("empty config")
 )
 
-func InitShenLongProxy() {
+func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, error) {
+	// 懒初始化
+	if s == nil {
+		once.Do(func() {
+			NewProxyService()
+		})
+	}
+
+	// 未配置代理时使用
+	if s.Api == "" {
+		log.Warnf("empty proxy setting")
+		return "", ErrEmptyConfig
+	}
+
+	// 获取代理addr
+	s.mu.RLock()
+	proxyAddr := s.Addr
+	s.mu.RUnlock()
+
+	return proxyAddr, nil
+}
+
+func NewProxyService() ProxyService {
 	var config struct {
 		Api      string `json:"api"`
 		Interval int    `json:"interval"`
@@ -37,46 +61,24 @@ func InitShenLongProxy() {
 		panic(err)
 	}
 
-	shenLongProxy = &ShenLongProxy{
+	if config.Api == "" {
+		log.Warnf("use DefualtClient due to the empty of proxy setting (time:%s)", time.Now())
+		panic(ErrEmptyConfig)
+	}
+
+	s := &ShenLongProxy{
 		Api:          config.Api,
 		PollInterval: config.Interval,
 		RetryCount:   config.Retry,
 	}
 	// 初始化之后就要马上更新一次ip, 保证不是空的
-	shenLongProxy.fetchIp()
+	s.fetchIp()
 
 	c := cron.New()
-	c.AddFunc(fmt.Sprintf("@every %ds", shenLongProxy.PollInterval), shenLongProxy.fetchIp)
+	_, _ = c.AddFunc(fmt.Sprintf("@every %ds", s.PollInterval), s.fetchIp)
 	c.Start()
-}
 
-func NewShenLongHTTPClient() *http.Client {
-	// 懒初始化, 使用时才初始化, 保证尽可能只在调用方切换函数
-	if shenLongProxy == nil {
-		once.Do(InitShenLongProxy)
-	}
-
-	// 获取代理addr
-	shenLongProxy.mu.RLock()
-	proxyAddr := shenLongProxy.Addr
-	shenLongProxy.mu.RUnlock()
-
-	proxy, err := url.Parse(proxyAddr)
-	if err != nil {
-		return http.DefaultClient
-	}
-
-	netTransport := &http.Transport{
-		Proxy:                 http.ProxyURL(proxy),
-		MaxIdleConnsPerHost:   10,
-		ResponseHeaderTimeout: time.Second * time.Duration(5),
-	}
-
-	httpClient := &http.Client{
-		Transport: netTransport,
-	}
-
-	return httpClient
+	return s
 }
 
 func (s *ShenLongProxy) fetchIp() {
@@ -93,7 +95,7 @@ func (s *ShenLongProxy) fetchIp() {
 			log.Errorf("read resp when fetching ip fail(attempt %d): %v", i+1, s.RetryCount)
 			continue
 		}
-		resp.Body.Close() // 读取完就关闭, for里面defer有资源泄漏问题
+		_ = resp.Body.Close() // 读取完就关闭, for里面defer有资源泄漏问题
 
 		// 如果不能正常获取ip会是{code: xx, msg: xx}的json
 		if !strings.Contains(string(body), "code") {

@@ -50,4 +50,5 @@ message Etcd {
 }
 message Registry {
   Etcd etcd = 1;
+  string proxysvc = 2;
 }

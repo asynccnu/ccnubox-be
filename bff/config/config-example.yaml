@@ -37,7 +37,7 @@ grpc:
     elecprice:
       endpoint: "discovery:///elecprice"
     classlist:
-      endpoint: "discovery:///MuXi_ClassList"
+      endpoint: "discovery:///classlist"
     classService:
       endpoint: "discovery:///classService"
     feedbackHelp:

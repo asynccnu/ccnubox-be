@@ -39,7 +39,7 @@ func InitShenLongProxy() {
 	}
 
 	if config.Api == "" {
-		log.Warnf("use DefualtClient due to the empty of proxy setting (time:%s)", time.Now())
+		log.Warnf("use DefaultClient due to the empty of proxy setting (time:%s)", time.Now())
 		return
 	}
 
@@ -64,7 +64,7 @@ func NewShenLongHTTPClient() *http.Client {
 
 	// 未配置代理时使用默认client
 	if shenLongProxy == nil || shenLongProxy.Api == "" {
-		log.Warnf("use DefualtClient due to the empty of proxy setting")
+		log.Warnf("use DefaultClient due to the empty of proxy setting")
 		return NewHTTPClient()
 	}
 

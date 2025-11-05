@@ -52,7 +52,12 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 		cleanup()
 		return nil, nil, err
 	}
-	freeClassroomBiz := biz.NewFreeClassroomBiz(classData, freeClassroomData, cookieSvc, builder, cache)
+	proxyClient, err := client.InitProxyClient(etcdRegistry, confRegistry, logger)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	freeClassroomBiz := biz.NewFreeClassroomBiz(classData, freeClassroomData, cookieSvc, builder, cache, proxyClient)
 	freeClassroomSvc := service.NewFreeClassroomSvc(freeClassroomBiz)
 	grpcServer := server.NewGRPCServer(confServer, classServiceService, freeClassroomSvc, logger)
 	selectionUploader := service.NewSelectionUploader(freeClassroomBiz)

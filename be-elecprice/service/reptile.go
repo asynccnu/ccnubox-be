@@ -6,9 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/domain"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/pkg/proxy"
+	"github.com/go-kratos/kratos/v2/log"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,7 +17,13 @@ import (
 
 // 通用 HTTP 请求函数
 func sendRequest(ctx context.Context, url string) (string, error) {
-	client := proxy.NewShenLongHTTPClient()
+	var client *http.Client
+	proxyAddr, ok := ctx.Value(ProxyAddr).(string)
+	if !ok {
+		client = http.DefaultClient
+	}
+	client = newClient(proxyAddr)
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", fmt.Errorf("创建请求失败: %w", err)
@@ -40,6 +47,23 @@ func sendRequest(ctx context.Context, url string) (string, error) {
 	}
 
 	return string(body), nil
+}
+
+func newClient(proxyAddr string) *http.Client {
+	proxy, err := url.Parse(proxyAddr)
+	if err != nil {
+		log.Warn("url parse error:", err)
+		return http.DefaultClient
+	}
+	p := http.ProxyURL(proxy)
+
+	c := &http.Client{
+		Transport: &http.Transport{
+			Proxy: p,
+		},
+	}
+
+	return c
 }
 
 // 匹配正则工具

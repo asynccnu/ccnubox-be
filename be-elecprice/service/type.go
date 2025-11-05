@@ -1,6 +1,10 @@
 package service
 
 const (
+	ProxyAddr = "proxyAddr"
+)
+
+const (
 	EastRegion  = "东区学生宿舍"
 	YuanBaoShan = "元宝山学生宿舍"
 	SouthEast   = "东南区学生宿舍"

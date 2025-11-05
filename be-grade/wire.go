@@ -25,6 +25,7 @@ func InitApp() App {
 		ioc.InitLogger,
 		ioc.InitGRPCxKratosServer,
 		ioc.InitUserClient,
+		ioc.InitProxyClient,
 		ioc.InitCounterClient,
 		ioc.InitFeedClient,
 		ioc.InitClasslistClient,

@@ -3,12 +3,17 @@ package crawler
 import (
 	"context"
 	"fmt"
+	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
 	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -23,9 +28,11 @@ var semesterMap = map[string]string{
 
 type Crawler struct {
 	client *http.Client
+	pc     proxyv1.ProxyClient
 }
 
-func NewClassCrawler() *Crawler {
+func NewClassCrawler(pc proxyv1.ProxyClient) *Crawler {
+	j, _ := cookiejar.New(nil)
 	client := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        100,              // 最大空闲连接
@@ -33,10 +40,42 @@ func NewClassCrawler() *Crawler {
 			TLSHandshakeTimeout: 10 * time.Second, // TLS握手超时
 			DisableKeepAlives:   false,            // 确保不会意外关闭 Keep-Alive
 		},
+		Jar: j,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return nil
+		},
 	}
-	return &Crawler{
+
+	c := &Crawler{
 		client: client,
+		pc:     pc,
 	}
+	c.pullProxy()
+
+	beginCronTask(c)
+
+	return c
+}
+
+func (c *Crawler) pullProxy() {
+	res, err := c.pc.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
+	if err != nil {
+		log.Error("GetProxyAddr in pull proxy err:", err)
+		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
+	}
+	proxy, err := url.Parse(res.Addr)
+	if err != nil {
+		log.Error("parse proxy in pull proxy addr err:", err)
+	}
+
+	c.client.Transport.(*http.Transport).Proxy = http.ProxyURL(proxy)
+	log.Debug("pull proxy addr success, now: ", time.Now())
+}
+
+func beginCronTask(c *Crawler) {
+	cr := cron.New()
+	_, _ = cr.AddFunc("@every 160s", c.pullProxy)
+	cr.Start()
 }
 
 // GetClassInfoForGraduateStudent 获取研究生课程信息

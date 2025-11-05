@@ -26,7 +26,8 @@ func InitGRPCServer() grpcx.Server {
 	crypto := ioc.NewCrypto()
 	client := ioc.InitEtcdClient()
 	ccnuServiceClient := ioc.InitCCNUClient(client)
-	userService := service.NewUserService(userDAO, userCache, crypto, ccnuServiceClient, logger)
+	proxyClient := ioc.InitProxyClient(client)
+	userService := service.NewUserService(userDAO, userCache, crypto, ccnuServiceClient, logger, proxyClient)
 	userServiceServer := grpc.NewUserServiceServer(userService)
 	server := ioc.InitGRPCxKratosServer(userServiceServer, client, logger)
 	return server

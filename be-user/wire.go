@@ -21,6 +21,7 @@ func InitGRPCServer() grpcx.Server {
 		cache.NewRedisUserCache,
 		// 第三方
 		ioc.InitCCNUClient,
+		ioc.InitProxyClient,
 		ioc.InitEtcdClient,
 		ioc.NewCrypto,
 		ioc.InitRedis,

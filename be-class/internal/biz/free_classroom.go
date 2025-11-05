@@ -4,8 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -45,10 +49,11 @@ type FreeClassroomBiz struct {
 	cookieCli         CookieClient
 	lockBuilder       lock.Builder
 	cache             Cache
+	p                 proxyv1.ProxyClient
 	httpCli           *http.Client
 }
 
-func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli CookieClient, lockBuilder lock.Builder, cache Cache) *FreeClassroomBiz {
+func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli CookieClient, lockBuilder lock.Builder, cache Cache, p proxyv1.ProxyClient) *FreeClassroomBiz {
 	httpCli := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        100,              // 最大空闲连接
@@ -61,14 +66,40 @@ func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli 
 		MaxIdleConnsPerHost: 20, // 每个主机最大空闲连接
 	}
 
-	return &FreeClassroomBiz{
+	fcb := &FreeClassroomBiz{
 		classData:         classData,
 		freeClassRoomData: data,
 		cookieCli:         cookieCli,
 		httpCli:           httpCli,
 		lockBuilder:       lockBuilder,
 		cache:             cache,
+		p:                 p,
 	}
+	fcb.pullProxy()
+	beginCronTask(fcb)
+
+	return fcb
+}
+
+func (f *FreeClassroomBiz) pullProxy() {
+	res, err := f.p.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
+	if err != nil {
+		log.Error("GetProxyAddr in pull proxy err:", err)
+		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
+	}
+	proxy, err := url.Parse(res.Addr)
+	if err != nil {
+		log.Error("parse proxy in pull proxy addr err:", err)
+	}
+
+	f.httpCli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxy)
+	log.Debug("pull proxy addr success, now: ", time.Now())
+}
+
+func beginCronTask(f *FreeClassroomBiz) {
+	cr := cron.New()
+	_, _ = cr.AddFunc("@every 160s", f.pullProxy)
+	cr.Start()
 }
 
 func (f *FreeClassroomBiz) ClearClassroomOccupancyFromES(ctx context.Context, year, semester string) error {

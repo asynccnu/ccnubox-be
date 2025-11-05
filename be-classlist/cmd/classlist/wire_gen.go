@@ -41,9 +41,14 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	studentAndCourseCacheRepo := data.NewStudentAndCourseCacheRepo(redisClient, confServer)
 	studentAndCourseRepo := data.NewStudentAndCourseRepo(studentAndCourseDBRepo, studentAndCourseCacheRepo)
 	classRepo := data.NewClassRepo(classInfoRepo, dataData, studentAndCourseRepo)
-	crawlerCrawler := crawler.NewClassCrawler()
-	jxbDBRepo := data.NewJxbDBRepo(dataData, logger)
 	etcdRegistry := registry.NewRegistrarServer(confRegistry, logger)
+	proxyClient, err := client.InitProxyClient(etcdRegistry, confRegistry, logger)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	crawlerCrawler := crawler.NewClassCrawler(proxyClient)
+	jxbDBRepo := data.NewJxbDBRepo(dataData, logger)
 	userServiceClient, err := client.NewClient(etcdRegistry, confRegistry, logger)
 	if err != nil {
 		cleanup()

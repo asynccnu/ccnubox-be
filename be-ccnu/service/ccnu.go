@@ -4,7 +4,10 @@ import (
 	"context"
 	"crypto/rsa"
 	"errors"
+	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
+	"github.com/go-kratos/kratos/v2/log"
 	"net/http"
+	"time"
 
 	ccnuv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/ccnu/v1"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/crawler"
@@ -42,8 +45,13 @@ func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, passwor
 
 func (c *ccnuService) LoginCCNU(ctx context.Context, studentId string, password string) (bool, error) {
 	if len(studentId) > 4 && (studentId[4] == '1' || studentId[4] == '0') {
+		addr, err := c.GetProxyAddr(ctx)
+		if err != nil {
+			log.Warn("LoginCCNU GetProxyAddr err=%v", err)
+		}
+
 		// 研究生
-		pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.timeout))
+		pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.timeout, addr))
 		return c.loginGrad(ctx, pg, studentId, password)
 	} else if len(studentId) > 4 && studentId[4] == '2' {
 		//本科生
@@ -87,8 +95,13 @@ func (c *ccnuService) loginGrad(ctx context.Context, pg *crawler.PostGraduate, s
 }
 
 func (c *ccnuService) loginUnderGrad(ctx context.Context, studentId string, password string) (*http.Client, bool, error) {
+	addr, err := c.GetProxyAddr(ctx)
+	if err != nil {
+		log.Warn("loginUnderGrad GetProxyAddr err=%v", err)
+	}
+
 	var (
-		ps = crawler.NewPassport(crawler.NewCrawlerClient(c.timeout))
+		ps = crawler.NewPassport(crawler.NewCrawlerClient(c.timeout, addr))
 	)
 
 	flag, err := ps.LoginPassport(ctx, studentId, password)
@@ -99,9 +112,14 @@ func (c *ccnuService) loginUnderGrad(ctx context.Context, studentId string, pass
 }
 
 func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password string) (string, error) {
+	addr, err := c.GetProxyAddr(ctx)
+	if err != nil {
+		log.Warn("getUnderGradCookie GetProxyAddr err=%v", err)
+	}
+
 	//初始化client
 	var (
-		ug = crawler.NewUnderGrad(crawler.NewCrawlerClient(c.timeout))
+		ug = crawler.NewUnderGrad(crawler.NewCrawlerClient(c.timeout, addr))
 	)
 
 	client, ok, err := c.loginUnderGrad(ctx, stuId, password)
@@ -131,7 +149,12 @@ func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password st
 }
 
 func (c *ccnuService) getGradCookie(ctx context.Context, stuId, password string) (string, error) {
-	pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.timeout))
+	addr, err := c.GetProxyAddr(ctx)
+	if err != nil {
+		log.Warn("getGradCookie GetProxyAddr err=%v", err)
+	}
+
+	pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.timeout, addr))
 	pubkey, err := tool.Retry(func() (*rsa.PublicKey, error) {
 		return pg.FetchPublicKey(ctx)
 	})
@@ -142,9 +165,14 @@ func (c *ccnuService) getGradCookie(ctx context.Context, stuId, password string)
 }
 
 func (c *ccnuService) GetLibraryCookie(ctx context.Context, studentId, password string) (string, error) {
+	addr, err := c.GetProxyAddr(ctx)
+	if err != nil {
+		log.Warn("GetLibraryCookie GetProxyAddr err=%v", err)
+	}
+
 	// 初始化Client
 	var (
-		l = crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout))
+		l = crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout, addr))
 	)
 
 	client, ok, err := c.loginUnderGrad(ctx, studentId, password)
@@ -165,4 +193,16 @@ func (c *ccnuService) GetLibraryCookie(ctx context.Context, studentId, password 
 	}
 
 	return cookie, nil
+}
+
+func (c *ccnuService) GetProxyAddr(ctx context.Context) (string, error) {
+	cctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+	res, err := c.p.GetProxyAddr(cctx, &proxyv1.GetProxyAddrRequest{})
+	if err != nil {
+		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
+		return "", err
+	}
+
+	return res.Addr, nil
 }

@@ -451,6 +451,7 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 
 	if len(cookie) == 0 {
 		crawSuccess = false
+		logh.Errorf("the cookie from other service is empty for stu_id:%v", stuID)
 		return nil, nil, fmt.Errorf("the cookie from other service is empty for stu_id:%v", stuID)
 	}
 

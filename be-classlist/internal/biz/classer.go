@@ -449,6 +449,11 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 		return nil, nil, err
 	}
 
+	if len(cookie) == 0 {
+		crawSuccess = false
+		return nil, nil, fmt.Errorf("the cookie from other service is empty for stu_id:%v", stuID)
+	}
+
 	var stu Student
 	//针对是否是本科生，进行分类
 	if tool.CheckIsUndergraduate(stuID) {

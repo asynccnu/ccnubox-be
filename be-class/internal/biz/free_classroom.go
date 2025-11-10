@@ -121,11 +121,10 @@ func (f *FreeClassroomBiz) SaveFreeClassRoomFromLocal(ctx context.Context, year,
 		classes, total, err := f.classData.GetBatchClassInfos(ctx, year, semester, page, pageSize)
 		if err != nil {
 			clog.LogPrinter.Errorf("failed to get batch classlist infos: %v", err)
-			return err
 		}
 		if len(classes) == 0 {
 			clog.LogPrinter.Warnf("get class from local es, but the length of res is 0")
-			return nil
+			break
 		}
 
 		// 加锁

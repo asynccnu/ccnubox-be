@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	classlist "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
 	user "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/errcode"
@@ -122,8 +123,11 @@ func (c *CookieSvc) GetCookie(ctx context.Context, stuID string) (string, error)
 		StudentId: stuID,
 	})
 	if err != nil {
-		return "", errcode.ErrCCNULogin
+		return "", fmt.Errorf("%s:%v", errcode.ErrCCNULogin, err)
 	}
 	cookie := resp.Cookie
+	if len(cookie) == 0 {
+		return "", fmt.Errorf("cookie is empty")
+	}
 	return cookie, nil
 }

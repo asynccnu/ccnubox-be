@@ -246,6 +246,9 @@ func (f *FreeClassroomBiz) SaveFreeClassRoomInfo(ctx context.Context, year, seme
 }
 
 func (f *FreeClassroomBiz) SearchAvailableClassroom(ctx context.Context, year, semester, stuID string, week, day int, sections []int, wherePrefix string) ([]service.AvailableClassroomStat, error) {
+
+	year = strings.Split(year, "-")[0]
+
 	// 先获取全部教室
 	classroomSet, err := f.getAllClassrooms(ctx, wherePrefix)
 
@@ -384,10 +387,9 @@ func (f *FreeClassroomBiz) getFreeClassrooms(ctx context.Context, year, semester
 	if wherePrefix[0] == 'n' {
 		campus = 2
 	}
-	preYear := strings.Split(year, "-")[0]
 
 	// 先从缓存拿数据
-	freeClassroomCache, err := f.GetFreeClassRoomFromCache(ctx, preYear, semester, week, campus, day, sections, wherePrefix)
+	freeClassroomCache, err := f.GetFreeClassRoomFromCache(ctx, year, semester, week, campus, day, sections, wherePrefix)
 	if err == nil {
 		return freeClassroomCache, nil
 	}
@@ -402,7 +404,7 @@ func (f *FreeClassroomBiz) getFreeClassrooms(ctx context.Context, year, semester
 	}
 
 	for _, section := range sections {
-		classrooms, err := f.sendReqFindFreeClassRoom(campus, preYear, semester, wherePrefix, week, day, section, cookie)
+		classrooms, err := f.sendReqFindFreeClassRoom(campus, year, semester, wherePrefix, week, day, section, cookie)
 		if err != nil {
 			return nil, err
 		}
@@ -411,7 +413,7 @@ func (f *FreeClassroomBiz) getFreeClassrooms(ctx context.Context, year, semester
 	}
 
 	// 加载查询周所有空教室
-	go f.LoadOneWeekFreeClassRoom(context.Background(), stuID, preYear, semester, week)
+	go f.LoadOneWeekFreeClassRoom(context.Background(), stuID, year, semester, week)
 
 	return freeClassroomMp, nil
 }

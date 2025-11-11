@@ -16,11 +16,13 @@ type ClassInfoProxy interface {
 type ClassServiceService struct {
 	pb.UnimplementedClassServiceServer
 	cp ClassInfoProxy
+	cs CultivateStrategy
 }
 
-func NewClassServiceService(cp ClassInfoProxy) *ClassServiceService {
+func NewClassServiceService(cp ClassInfoProxy, cs CultivateStrategy) *ClassServiceService {
 	return &ClassServiceService{
 		cp: cp,
+		cs: cs,
 	}
 }
 
@@ -67,6 +69,40 @@ func (s *ClassServiceService) AddClass(ctx context.Context, req *pb.AddClassRequ
 		Msg: resp.Msg,
 	}, nil
 }
+
+func (s *ClassServiceService) GetClassToBeStudied(ctx context.Context, req *pb.GetClassToBeStudiedRequest) (*pb.GetClassToBeStudiedReply, error) {
+	classes, err := s.cs.GetToBeStudiedClass(ctx, req.StuId, req.Status)
+	if err != nil {
+		return &pb.GetClassToBeStudiedReply{}, err
+	}
+
+	return &pb.GetClassToBeStudiedReply{
+		IdentityDevelop: batchToProto(classes.IdentityDevelop),
+		SpecificSkill:   batchToProto(classes.SpecificSkill),
+		CommonEducate:   batchToProto(classes.CommonEducate),
+	}, nil
+}
+
+func toProto(c *ToBeStudiedClass) *pb.GetClassToBeStudiedReply_ClassToBeStudiedInfo {
+	return &pb.GetClassToBeStudiedReply_ClassToBeStudiedInfo{
+		Id:        c.Id,
+		Name:      c.Name,
+		Property:  c.Property,
+		Status:    c.Status,
+		Credit:    c.Credit,
+		Studiable: c.Studiable,
+	}
+}
+
+func batchToProto(classes []ToBeStudiedClass) []*pb.GetClassToBeStudiedReply_ClassToBeStudiedInfo {
+	var respClasses = make([]*pb.GetClassToBeStudiedReply_ClassToBeStudiedInfo, 0, len(classes))
+	for _, class := range classes {
+		respClasses = append(respClasses, toProto(&class))
+	}
+
+	return respClasses
+}
+
 func HandleClassInfo(classInfo model.ClassInfo) *pb.ClassInfo {
 	return &pb.ClassInfo{
 		Day:          classInfo.Day,

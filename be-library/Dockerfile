@@ -4,6 +4,7 @@ COPY . /src
 
 WORKDIR /src/be-library
 
+
 ENV GOPROXY=https://goproxy.cn,direct
 
 RUN go mod tidy

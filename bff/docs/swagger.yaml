@@ -215,6 +215,34 @@ definitions:
     - where
     - year
     type: object
+  class.ClassToBeStudiedInfo:
+    properties:
+      credit:
+        description: 学分
+        type: string
+      id:
+        description: 课程ID
+        type: string
+      name:
+        description: 课程名称
+        type: string
+      property:
+        description: 课程性质，
+        type: string
+      status:
+        description: 课程状态，未修读/修读中/已修读
+        type: string
+      studiable:
+        description: 开设学年期
+        type: string
+    required:
+    - credit
+    - id
+    - name
+    - property
+    - status
+    - studiable
+    type: object
   class.DeleteClassNoteReq:
     properties:
       classId:
@@ -278,6 +306,36 @@ definitions:
     required:
     - holiday_time
     - school_time
+    type: object
+  class.GetToBeStudiedClassReq:
+    properties:
+      status:
+        description: 课程状态，未修读/修读中/已修读
+        type: string
+    required:
+    - status
+    type: object
+  class.GetToBeStudiedClassResp:
+    properties:
+      common_educate:
+        description: 通识教育课
+        items:
+          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+        type: array
+      identity_develop:
+        description: 个性发展课
+        items:
+          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+        type: array
+      specific_skill:
+        description: 专业主干课
+        items:
+          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+        type: array
+    required:
+    - common_educate
+    - identity_develop
+    - specific_skill
     type: object
   class.RecoverClassRequest:
     properties:
@@ -1922,6 +1980,78 @@ paths:
       summary: 搜索课程
       tags:
       - class
+  /class/toBeStudied:
+    get:
+      consumes:
+      - application/json
+      description: 获取需要上的课程, 返回全部课程
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取待修课程
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  allOf:
+                  - $ref: '#/definitions/class.GetToBeStudiedClassResp'
+                  - properties:
+                      common_educate:
+                        items:
+                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+                        type: array
+                      identity_develop:
+                        items:
+                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+                        type: array
+                      specific_skill:
+                        items:
+                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+                        type: array
+                    type: object
+              type: object
+      summary: 获取人培课程(全部)
+      tags:
+      - class
+    post:
+      consumes:
+      - application/json
+      description: 根据用户选择返回各种状态的课程
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 获取待修课请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/class.GetToBeStudiedClassReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取待修课程
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.GetToBeStudiedClassResp'
+              type: object
+      summary: 获取人培课程(部分)
+      tags:
+      - class
   /class/update:
     put:
       consumes:
@@ -3471,7 +3601,7 @@ paths:
       tags:
       - user
   /users/logout:
-    post:
+    get:
       consumes:
       - application/json
       description: 通过短token登出

@@ -869,6 +869,128 @@
                 }
             }
         },
+        "/class/toBeStudied": {
+            "get": {
+                "description": "获取需要上的课程, 返回全部课程",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "获取人培课程(全部)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功获取待修课程",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/class.GetToBeStudiedClassResp"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "common_educate": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                                                            }
+                                                        },
+                                                        "identity_develop": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                                                            }
+                                                        },
+                                                        "specific_skill": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "根据用户选择返回各种状态的课程",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "获取人培课程(部分)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "获取待修课请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/class.GetToBeStudiedClassReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功获取待修课程",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/class.GetToBeStudiedClassResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/class/update": {
             "put": {
                 "description": "根据课表ID更新课表信息",
@@ -3374,7 +3496,7 @@
             }
         },
         "/users/logout": {
-            "post": {
+            "get": {
                 "description": "通过短token登出",
                 "consumes": [
                     "application/json"
@@ -3831,6 +3953,43 @@
                 }
             }
         },
+        "class.ClassToBeStudiedInfo": {
+            "type": "object",
+            "required": [
+                "credit",
+                "id",
+                "name",
+                "property",
+                "status",
+                "studiable"
+            ],
+            "properties": {
+                "credit": {
+                    "description": "学分",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "课程ID",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "课程名称",
+                    "type": "string"
+                },
+                "property": {
+                    "description": "课程性质，",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "课程状态，未修读/修读中/已修读",
+                    "type": "string"
+                },
+                "studiable": {
+                    "description": "开设学年期",
+                    "type": "string"
+                }
+            }
+        },
         "class.DeleteClassNoteReq": {
             "type": "object",
             "required": [
@@ -3920,6 +4079,49 @@
                 },
                 "school_time": {
                     "type": "integer"
+                }
+            }
+        },
+        "class.GetToBeStudiedClassReq": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "description": "课程状态，未修读/修读中/已修读",
+                    "type": "string"
+                }
+            }
+        },
+        "class.GetToBeStudiedClassResp": {
+            "type": "object",
+            "required": [
+                "common_educate",
+                "identity_develop",
+                "specific_skill"
+            ],
+            "properties": {
+                "common_educate": {
+                    "description": "通识教育课",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                    }
+                },
+                "identity_develop": {
+                    "description": "个性发展课",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                    }
+                },
+                "specific_skill": {
+                    "description": "专业主干课",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                    }
                 }
             }
         },

@@ -28,6 +28,7 @@ message  CheckUserResp {
 
 message GetCookieRequest {
   string studentId = 1;
+  string type = 2;
 }
 
 message GetCookieResponse {

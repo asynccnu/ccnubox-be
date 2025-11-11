@@ -11,10 +11,13 @@ import (
 const (
 	loginCCNUPassPortURL = "https://account.ccnu.edu.cn/cas/login"
 
-	//CASURL               = loginCCNUPassPortURL + "?service=https://bkzhjw.ccnu.edu.cn/jsxsd/framework/xsMainV.htmlx"
-	//pgUrl                = "https://bkzhjw.ccnu.edu.cn/jsxsd/"
-	CASURL = loginCCNUPassPortURL + "?service=http%3A%2F%2Fxk.ccnu.edu.cn%2Fsso%2Fpziotlogin"
-	pgUrl  = "http://xk.ccnu.edu.cn/jwglxt"
+	NewCASURL = loginCCNUPassPortURL + "?service=https://bkzhjw.ccnu.edu.cn/jsxsd/framework/xsMainV.htmlx"
+	NewpgUrl  = "https://bkzhjw.ccnu.edu.cn/jsxsd/"
+	CASURL    = loginCCNUPassPortURL + "?service=http%3A%2F%2Fxk.ccnu.edu.cn%2Fsso%2Fpziotlogin"
+	pgUrl     = "http://xk.ccnu.edu.cn/jwglxt"
+
+	old  = "old"
+	new_ = "new"
 )
 
 // 存放本科生院相关的爬虫
@@ -29,9 +32,13 @@ func NewUnderGrad(client *http.Client) *UnderGrad {
 }
 
 // 1.LoginPUnderGradSystem 教务系统模拟登录
-func (c *UnderGrad) LoginUnderGradSystem(ctx context.Context) error {
+func (c *UnderGrad) LoginUnderGradSystem(ctx context.Context, tpe ...string) error {
+	finalUrl := CASURL //默认用老的
+	if len(tpe) != 0 && tpe[0] == new_ {
+		finalUrl = NewCASURL
+	}
 
-	request, err := http.NewRequestWithContext(ctx, "POST", CASURL, nil)
+	request, err := http.NewRequestWithContext(ctx, "POST", finalUrl, nil)
 	if err != nil {
 		return err
 	}
@@ -47,8 +54,13 @@ func (c *UnderGrad) LoginUnderGradSystem(ctx context.Context) error {
 }
 
 // 2.GetCookieFromUnderGradSystem 从教务系统中提取Cookie
-func (c *UnderGrad) GetCookieFromUnderGradSystem() (string, error) {
-	parsedURL, err := url.Parse(pgUrl)
+func (c *UnderGrad) GetCookieFromUnderGradSystem(tpe ...string) (string, error) {
+	finalUrl := pgUrl //默认用老的
+	if len(tpe) != 0 && tpe[0] == new_ {
+		finalUrl = NewpgUrl
+	}
+
+	parsedURL, err := url.Parse(finalUrl)
 	if err != nil {
 		return "", fmt.Errorf("解析 URL 出错: %v", err)
 	}

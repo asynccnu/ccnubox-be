@@ -130,6 +130,10 @@ var (
 	SEARCH_CLASS_ERROR = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "搜索课程失败!", "Class", err)
 	}
+
+	GET_TO_BE_STUDIED_CLASS_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取待修读课程失败!", "Class", err)
+	}
 )
 
 var (

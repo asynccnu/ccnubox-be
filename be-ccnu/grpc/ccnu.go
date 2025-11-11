@@ -22,7 +22,7 @@ func (s *CCNUServiceServer) Register(server grpc.ServiceRegistrar) {
 }
 
 func (s *CCNUServiceServer) GetXKCookie(ctx context.Context, request *ccnuv1.GetXKCookieRequest) (*ccnuv1.GetXKCookieResponse, error) {
-	cookie, err := s.ccnu.GetXKCookie(ctx, request.GetStudentId(), request.GetPassword())
+	cookie, err := s.ccnu.GetXKCookie(ctx, request.GetStudentId(), request.GetPassword(), request.Type) // 这里传入了type, 判断用哪一个系统的cookie
 	return &ccnuv1.GetXKCookieResponse{Cookie: cookie}, err
 }
 

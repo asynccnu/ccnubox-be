@@ -51,7 +51,7 @@ var (
 
 type UserService interface {
 	Save(ctx context.Context, studentId string, password string) error
-	GetCookie(ctx context.Context, studentId string) (string, error)
+	GetCookie(ctx context.Context, studentId string, tpe ...string) (string, error)
 	GetLibraryCookie(ctx context.Context, studentId string) (string, error)
 	Check(ctx context.Context, studentId string, password string) (bool, error)
 }
@@ -140,7 +140,7 @@ func (s *userService) Check(ctx context.Context, studentId string, password stri
 	}
 }
 
-func (s *userService) GetCookie(ctx context.Context, studentId string) (string, error) {
+func (s *userService) GetCookie(ctx context.Context, studentId string, tpe ...string) (string, error) {
 	key := studentId
 	result, err, _ := s.sfGroup.Do(key, func() (interface{}, error) {
 		var cookie string
@@ -151,7 +151,7 @@ func (s *userService) GetCookie(ctx context.Context, studentId string) (string, 
 			s.l.Info("从缓存获取cookie失败", logger.Error(err))
 
 			//直接获取新的
-			newCookie, err = s.getNewCookie(ctx, studentId)
+			newCookie, err = s.getNewCookie(ctx, studentId, tpe...)
 			if err != nil {
 				return "", err
 			}
@@ -159,7 +159,7 @@ func (s *userService) GetCookie(ctx context.Context, studentId string) (string, 
 			//如果是从缓存获取的要验证是否可用
 			if !s.checkCookie(cookie) {
 				//直接获取新的
-				newCookie, err = s.getNewCookie(ctx, studentId)
+				newCookie, err = s.getNewCookie(ctx, studentId, tpe...)
 				if err != nil {
 					return "", err
 				}
@@ -191,7 +191,7 @@ func (s *userService) GetCookie(ctx context.Context, studentId string) (string, 
 	return cookie, nil
 }
 
-func (s *userService) getNewCookie(ctx context.Context, studentId string) (string, error) {
+func (s *userService) getNewCookie(ctx context.Context, studentId string, tpe ...string) (string, error) {
 	//失败则重试
 	//尝试从数据库获取
 	user, err := s.dao.FindByStudentId(ctx, studentId)
@@ -206,10 +206,14 @@ func (s *userService) getNewCookie(ctx context.Context, studentId string) (strin
 	}
 
 	resp, err := tool.Retry(func() (*ccnuv1.GetXKCookieResponse, error) {
-		return s.ccnu.GetXKCookie(ctx, &ccnuv1.GetXKCookieRequest{
+		req := &ccnuv1.GetXKCookieRequest{
 			StudentId: user.StudentId,
 			Password:  decryptPassword,
-		})
+		}
+		if len(tpe) != 0 {
+			req.Type = tpe[0]
+		}
+		return s.ccnu.GetXKCookie(ctx, req)
 	})
 
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 
 type CCNUService interface {
 	LoginCCNU(ctx context.Context, studentId string, password string) (bool, error)
-	GetXKCookie(ctx context.Context, studentId string, password string) (string, error)
+	GetXKCookie(ctx context.Context, studentId string, password string, tpe ...string) (string, error) // 传入可变参数, 代码侵入性低
 	GetLibraryCookie(ctx context.Context, studentId, password string) (string, error)
 }
 

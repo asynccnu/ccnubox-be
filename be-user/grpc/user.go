@@ -28,7 +28,7 @@ func (s *UserServiceServer) SaveUser(ctx context.Context,
 }
 
 func (s *UserServiceServer) GetCookie(ctx context.Context, request *userv1.GetCookieRequest) (*userv1.GetCookieResponse, error) {
-	u, err := s.svc.GetCookie(ctx, request.GetStudentId())
+	u, err := s.svc.GetCookie(ctx, request.GetStudentId(), request.Type)
 	return &userv1.GetCookieResponse{Cookie: u}, err
 }
 

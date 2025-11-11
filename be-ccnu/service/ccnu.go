@@ -30,14 +30,14 @@ var (
 	}
 )
 
-func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, password string) (string, error) {
+func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, password string, tpe ...string) (string, error) {
 
 	if len(studentId) > 4 && (studentId[4] == '1' || studentId[4] == '0') {
 		// 研究生
 		return c.getGradCookie(ctx, studentId, password)
 	} else if len(studentId) > 4 && studentId[4] == '2' {
 		//本科生
-		return c.getUnderGradCookie(ctx, studentId, password)
+		return c.getUnderGradCookie(ctx, studentId, password, tpe...)
 	} else {
 		return "", Invalid_SidOrPwd_ERROR(errors.New("账号密码错误"))
 	}
@@ -111,7 +111,7 @@ func (c *ccnuService) loginUnderGrad(ctx context.Context, studentId string, pass
 	return ps.Client, flag, err
 }
 
-func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password string) (string, error) {
+func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password string, tpe ...string) (string, error) {
 	addr, err := c.GetProxyAddr(ctx)
 	if err != nil {
 		log.Warn("getUnderGradCookie GetProxyAddr err=%v", err)
@@ -130,7 +130,7 @@ func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password st
 	ug.Client = client
 
 	_, err = tool.Retry(func() (string, error) {
-		err := ug.LoginUnderGradSystem(ctx)
+		err := ug.LoginUnderGradSystem(ctx, tpe...)
 		if err != nil {
 			return "", err
 		}
@@ -140,7 +140,7 @@ func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password st
 		return "", err
 	}
 
-	cookie, err := ug.GetCookieFromUnderGradSystem()
+	cookie, err := ug.GetCookieFromUnderGradSystem(tpe...)
 	if err != nil {
 		return "", err
 	}

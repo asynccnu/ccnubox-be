@@ -41,7 +41,7 @@ type ClassData interface {
 }
 
 type CookieClient interface {
-	GetCookie(ctx context.Context, stuID string) (string, error)
+	GetCookie(ctx context.Context, stuID string, tpe ...string) (string, error)
 }
 
 type FreeClassroomBiz struct {

@@ -169,6 +169,10 @@ func (f *FreeClassroomBiz) SaveFreeClassRoomFromLocal(ctx context.Context, year,
 
 		var cwtPairs []model.CTWPair
 		for _, class := range classes {
+			if tmp := strings.TrimSpace(class.Where); len(tmp) == 0 {
+				continue
+			}
+
 			var (
 				sections []int
 				weeks    []int

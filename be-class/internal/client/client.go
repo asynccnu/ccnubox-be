@@ -117,11 +117,15 @@ func NewCookieSvc(r *etcd.Registry) (*CookieSvc, error) {
 	return &CookieSvc{usc: usc}, nil
 }
 
-func (c *CookieSvc) GetCookie(ctx context.Context, stuID string) (string, error) {
+func (c *CookieSvc) GetCookie(ctx context.Context, stuID string, tpe ...string) (string, error) {
 
-	resp, err := c.usc.GetCookie(ctx, &user.GetCookieRequest{
+	req := &user.GetCookieRequest{
 		StudentId: stuID,
-	})
+	}
+	if len(tpe) != 0 {
+		req.Type = tpe[0]
+	}
+	resp, err := c.usc.GetCookie(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("%s:%v", errcode.ErrCCNULogin, err)
 	}

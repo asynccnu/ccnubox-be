@@ -11,6 +11,8 @@ service ClassService {
   rpc SearchClass (SearchRequest) returns (SearchReply) ;
   //添加课程
   rpc AddClass (AddClassRequest) returns (AddClassReply) ;
+  // 获取未修读课程
+  rpc GetClassToBeStudied (GetClassToBeStudiedRequest) returns (GetClassToBeStudiedReply) ;
 }
 
 message SearchRequest {
@@ -78,4 +80,32 @@ message  ClassInfo {
   string year=10;
   //课程唯一标识id
   string id=11;
+}
+
+message GetClassToBeStudiedRequest {
+  //学号
+  string stu_id = 1;
+  // 修读状态, 可选字段，默认为空字符串，表示获取所有状态的课程
+  string status = 2;
+}
+
+message GetClassToBeStudiedReply {
+  message ClassToBeStudiedInfo {
+    //课程编号
+    string id=1;
+    //课程名称
+    string name=2;
+    //修读状态
+    string status=3;
+    //学分
+    string credit=4;
+    //课程性质
+    string property=5;
+    //开设学年期
+    string studiable=6;
+  }
+  //课程信息
+  repeated ClassToBeStudiedInfo identity_develop = 1 ;
+  repeated ClassToBeStudiedInfo specific_skill = 2 ;
+  repeated ClassToBeStudiedInfo common_educate = 3 ;
 }

@@ -13,6 +13,7 @@ service CCNUService {
 message GetXKCookieRequest{
   string student_id = 1;
   string password = 2;
+  string type = 3; // 新教务或者老教务
 }
 
 message GetXKCookieResponse{

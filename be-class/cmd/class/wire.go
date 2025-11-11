@@ -17,10 +17,11 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-class/internal/timedTask"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
+	"io"
 )
 
 // wireApp init kratos application.
-func wireApp(*conf.Server, *conf.Data, *conf.Registry, log.Logger) (*APP, func(), error) {
+func wireApp(*conf.Server, *conf.Data, *conf.Registry, log.Logger, io.Writer) (*APP, func(), error) {
 	panic(wire.Build(server.ProviderSet,
 		data.ProviderSet,
 		biz.ProviderSet,

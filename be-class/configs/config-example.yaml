@@ -17,6 +17,12 @@ data:
   redis:
     addr: "localhost:6379"
     password: "12345678"
+  database:
+    dsn: "root:root@tcp(114.514.1919.810:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
+    data_alive: 1
+    log_level: warn
+    log_file_name: class.log
+    log_path: /var/log/class_log
 registry:
   etcd:
     addr: "127.0.0.1:2379"

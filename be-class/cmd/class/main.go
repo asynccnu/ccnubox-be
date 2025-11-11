@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 
+	classLog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/metrics"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/timedTask"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
@@ -89,7 +90,11 @@ func main() {
 		panic(err)
 	}
 
-	svc, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger)
+	logfile := classLog.NewLumberjackLogger(bc.Data.Database.LogPath,
+		bc.Data.Database.LogFileName, 6, 5, 30, false)
+	defer logfile.Close()
+
+	svc, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger, logfile)
 	if err != nil {
 		panic(err)
 	}

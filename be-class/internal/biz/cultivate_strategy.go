@@ -278,10 +278,10 @@ func (c *CultivateStrategyBiz) GetCultivateStrategyFromCCNU(ctx context.Context,
 	}
 
 	resp, err := c.httpCli.Do(req)
-	defer func() { _ = resp.Body.Close() }()
 	if err != nil {
 		return service.ToBeStudiedClasses{}, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	res, err := extractUnstudiedClasses(resp.Body, stuId)
 	if err != nil {

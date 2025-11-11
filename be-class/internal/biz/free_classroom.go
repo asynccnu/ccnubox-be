@@ -109,7 +109,7 @@ func (f *FreeClassroomBiz) ClearClassroomOccupancyFromES(ctx context.Context, ye
 
 // SaveFreeClassRoomFromLocal 保存空教室信息从本地ES
 func (f *FreeClassroomBiz) SaveFreeClassRoomFromLocal(ctx context.Context, year, semester string) error {
-	const pageSize = 100 // 每批获取500条
+	const pageSize = 500 // 每批获取500条
 	page := 1
 	var tasks []string
 

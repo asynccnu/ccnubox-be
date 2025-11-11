@@ -106,13 +106,9 @@ func (c ClassInfoDBRepo) GetAllClassInfos(ctx context.Context, xnm, xqm string, 
 		cla = make([]*do.ClassInfo, 0)
 	)
 	err := db.Table(do.ClassInfoTableName).
-		Where(fmt.Sprintf(
-			`%s.year = ? AND %s.semester = ? AND %s.created_at > ?`, do.ClassInfoTableName, do.ClassInfoTableName, do.ClassInfoTableName),
-			xnm, xqm, cursor,
-		).
-		Order(fmt.Sprintf(
-			"%s.created_at ASC", do.ClassInfoTableName,
-		)).
+		Where("created_at > ? and id in (select distinct cla_id from student_course where year = ? and semester = ? and is_manually_added = ?)",
+			cursor, xnm, xqm, false).
+		Order("created_at ASC").
 		Limit(100). //最多100个
 		Find(&cla).Error
 

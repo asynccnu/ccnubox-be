@@ -3554,6 +3554,25 @@ paths:
       summary: 获取图床访问令牌
       tags:
       - tube
+  /tube/upload/official:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/tube.GetTubeTokenData'
+              type: object
+      summary: 获取上传应用的令牌
+      tags:
+      - tube
   /users/deactivate:
     post:
       consumes:

@@ -40,7 +40,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/website"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
-	"github.com/qiniu/api.v7/v7/storage"
 	"github.com/spf13/viper"
 )
 
@@ -222,8 +221,8 @@ func InitLibraryHandler(client libraryv1.LibraryClient) *library.LibraryHandler 
 		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
 
-func InitTubeHandler(putPolicy storage.PutPolicy, mac *qbox.Mac) *tube.TubeHandler {
-	return tube.NewTubeHandler(putPolicy, mac, viper.GetString("oss.domainName"))
+func InitTubeHandler(tb *TubePolicies, mac *qbox.Mac) *tube.TubeHandler {
+	return tube.NewTubeHandler(tb.defaultPolicy, tb.officialSite, mac, viper.GetString("oss.domainName"))
 }
 
 func InitMetricsHandel(l logger.Logger) *metrics.MetricsHandler {

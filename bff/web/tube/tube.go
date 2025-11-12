@@ -10,22 +10,25 @@ import (
 )
 
 type TubeHandler struct {
-	putPolicy  storage.PutPolicy
-	mac        *qbox.Mac
-	domainName string
+	putPolicy             storage.PutPolicy
+	officialSitePutPolicy storage.PutPolicy
+	mac                   *qbox.Mac
+	domainName            string
 }
 
-func NewTubeHandler(putPolicy storage.PutPolicy, mac *qbox.Mac, domainName string) *TubeHandler {
+func NewTubeHandler(putPolicy storage.PutPolicy, officialSitePutPolicy storage.PutPolicy, mac *qbox.Mac, domainName string) *TubeHandler {
 	return &TubeHandler{
-		putPolicy:  putPolicy,
-		mac:        mac,
-		domainName: domainName,
+		putPolicy:             putPolicy,
+		officialSitePutPolicy: officialSitePutPolicy,
+		mac:                   mac,
+		domainName:            domainName,
 	}
 }
 
-func (t *TubeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
+func (t *TubeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.HandlerFunc, basicAuthMiddleware gin.HandlerFunc) {
 	tg := s.Group("/tube")
 	tg.GET("/access_token", authMiddleware, ginx.WrapClaims(t.GetTubeToken))
+	tg.GET("/upload/official", basicAuthMiddleware, ginx.Wrap(t.GetOfficialUploadToken))
 }
 
 // @Summary 获取图床访问令牌
@@ -37,6 +40,24 @@ func (t *TubeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 // @Router /tube/access_token [get]
 func (t *TubeHandler) GetTubeToken(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 	accessToken := t.putPolicy.UploadToken(t.mac)
+	return web.Response{
+		Msg: "Success",
+		Data: GetTubeTokenData{
+			AccessToken: accessToken,
+			DomainName:  t.domainName,
+		},
+	}, nil
+}
+
+// @Summary 获取上传应用的令牌
+// @Description
+// @Tags tube
+// @Accept json
+// @Produce json
+// @Success 200 {object} web.Response{data=GetTubeTokenData} "成功"
+// @Router /tube/upload/official [get]
+func (t *TubeHandler) GetOfficialUploadToken(ctx *gin.Context) (web.Response, error) {
+	accessToken := t.officialSitePutPolicy.UploadToken(t.mac)
 	return web.Response{
 		Msg: "Success",
 		Data: GetTubeTokenData{

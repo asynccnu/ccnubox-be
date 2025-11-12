@@ -80,7 +80,7 @@ func InitGinServer(
 	infoSum.RegisterRoutes(api, authMiddleware)
 	grade.RegisterRoutes(api, authMiddleware)
 	card.RegisterRoute(api, authMiddleware)
-	tube.RegisterRoutes(api, authMiddleware)
+	tube.RegisterRoutes(api, authMiddleware, basicAuthMiddleware.MiddlewareFunc())
 	metrics.RegisterRoutes(api, basicAuthMiddleware.MiddlewareFunc(), authMiddleware)
 	classroom.RegisterRoutes(api, authMiddleware)
 	library.RegisterRoutes(api, authMiddleware)

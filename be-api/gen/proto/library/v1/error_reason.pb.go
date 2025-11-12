@@ -25,8 +25,9 @@ const (
 type ErrorReason int32
 
 const (
-	ErrorReason_CCNULogin_Error ErrorReason = 0
-	ErrorReason_Crawler_Error   ErrorReason = 1
+	ErrorReason_CCNULogin_Error     ErrorReason = 0
+	ErrorReason_Crawler_Error       ErrorReason = 1
+	ErrorReason_CreateComment_Error ErrorReason = 2
 )
 
 // Enum value maps for ErrorReason.
@@ -34,10 +35,12 @@ var (
 	ErrorReason_name = map[int32]string{
 		0: "CCNULogin_Error",
 		1: "Crawler_Error",
+		2: "CreateComment_Error",
 	}
 	ErrorReason_value = map[string]int32{
-		"CCNULogin_Error": 0,
-		"Crawler_Error":   1,
+		"CCNULogin_Error":     0,
+		"Crawler_Error":       1,
+		"CreateComment_Error": 2,
 	}
 )
 
@@ -73,10 +76,11 @@ var File_library_v1_error_reason_proto protoreflect.FileDescriptor
 const file_library_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
 	"\x1dlibrary/v1/error_reason.proto\x12\n" +
-	"library.v1\x1a\x13errors/errors.proto*;\n" +
+	"library.v1\x1a\x13errors/errors.proto*T\n" +
 	"\vErrorReason\x12\x13\n" +
 	"\x0fCCNULogin_Error\x10\x00\x12\x11\n" +
-	"\rCrawler_Error\x10\x01\x1a\x04\xa0E\xf4\x03BFZDgithub.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1;libraryv1b\x06proto3"
+	"\rCrawler_Error\x10\x01\x12\x17\n" +
+	"\x13CreateComment_Error\x10\x02\x1a\x04\xa0E\xf4\x03BFZDgithub.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1;libraryv1b\x06proto3"
 
 var (
 	file_library_v1_error_reason_proto_rawDescOnce sync.Once

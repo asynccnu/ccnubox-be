@@ -26,6 +26,7 @@ func NewCommentRepo(commentDAO *dao.CommentDAO, logger log.Logger, conv *Assembl
 
 func (r CommentRepo) CreateComment(ctx context.Context, req *biz.CreateCommentReq) (string, error) {
 	comment := &DO.Comment{
+		Floor:     req.Floor,
 		SeatID:    req.SeatID,
 		Content:   req.Content,
 		Rating:    req.Rating,
@@ -41,16 +42,16 @@ func (r CommentRepo) CreateComment(ctx context.Context, req *biz.CreateCommentRe
 	return "success", nil
 }
 
-func (r CommentRepo) GetCommentsBySeatID(ctx context.Context, seatID int) ([]*biz.Comment, error) {
-	comments, err := r.dao.GetCommentsBySeatID(ctx, seatID)
+func (r CommentRepo) GetCommentsBySeatID(ctx context.Context, req *biz.GetCommentReq) ([]*biz.Comment, error) {
+	comments, err := r.dao.GetCommentsBySeatID(ctx, req.Floor, req.SeatID)
 	if err != nil {
 		return nil, err
 	}
 	return r.conv.ConvertDOCommentBiz(comments), nil
 }
 
-func (r CommentRepo) DeleteComment(ctx context.Context, id int) (string, error) {
-	err := r.dao.DeleteComment(ctx, id)
+func (r CommentRepo) DeleteComment(ctx context.Context, req *biz.DeleteCommentReq) (string, error) {
+	err := r.dao.DeleteComment(ctx, req.Username, req.Floor, req.SeatID)
 	if err != nil {
 		return "", err
 	}

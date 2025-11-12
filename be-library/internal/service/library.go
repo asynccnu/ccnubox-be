@@ -125,6 +125,7 @@ func (ls *LibraryService) ReserveSeatRandomly(ctx context.Context, req *pb.Reser
 
 func (ls *LibraryService) CreateComment(ctx context.Context, req *pb.CreateCommentReq) (*pb.Resp, error) {
 	msg, err := ls.comment.CreateComment(ctx, &biz.CreateCommentReq{
+		Floor:    req.Floor,
 		SeatID:   req.SeatId,
 		Content:  req.Content,
 		Rating:   int(req.Rating),
@@ -140,8 +141,11 @@ func (ls *LibraryService) CreateComment(ctx context.Context, req *pb.CreateComme
 	}, nil
 }
 
-func (ls *LibraryService) GetComments(ctx context.Context, req *pb.ID) (*pb.GetCommentResp, error) {
-	comments, err := ls.comment.GetCommentsBySeatID(ctx, int(req.Id))
+func (ls *LibraryService) GetComments(ctx context.Context, req *pb.GetCommentReq) (*pb.GetCommentResp, error) {
+	comments, err := ls.comment.GetCommentsBySeatID(ctx, &biz.GetCommentReq{
+		Floor:  req.Floor,
+		SeatID: req.SeatId,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -151,8 +155,12 @@ func (ls *LibraryService) GetComments(ctx context.Context, req *pb.ID) (*pb.GetC
 	return result, nil
 }
 
-func (ls *LibraryService) DeleteComment(ctx context.Context, req *pb.ID) (*pb.Resp, error) {
-	msg, err := ls.comment.DeleteComment(ctx, int(req.Id))
+func (ls *LibraryService) DeleteComment(ctx context.Context, req *pb.DeleteCommentReq) (*pb.Resp, error) {
+	msg, err := ls.comment.DeleteComment(ctx, &biz.DeleteCommentReq{
+		Username: req.Username,
+		Floor:    req.Floor,
+		SeatID:   req.SeatId,
+	})
 	if err != nil {
 		return nil, err
 	}

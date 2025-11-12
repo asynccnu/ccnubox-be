@@ -368,6 +368,10 @@ var (
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "创建评论失败!", "Library", err)
 	}
 
+	COMMENT_PARAMATER_ERROR = func(err error) error {
+		return errorx.New(http.StatusBadRequest, INVALID_PARAM_VALUE_ERROR_CODE, "参数有误!", "Library", err)
+	}
+
 	GET_COMMENT_ERROR = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取评论失败!", "Library", err)
 	}

@@ -1784,10 +1784,11 @@ type Comment struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	SeatId        string                 `protobuf:"bytes,2,opt,name=seat_id,json=seatId,proto3" json:"seat_id,omitempty"`
-	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
-	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
-	Rating        int64                  `protobuf:"varint,5,opt,name=rating,proto3" json:"rating,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Floor         string                 `protobuf:"bytes,3,opt,name=floor,proto3" json:"floor,omitempty"`
+	Username      string                 `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	Content       string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
+	Rating        int64                  `protobuf:"varint,6,opt,name=rating,proto3" json:"rating,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1836,6 +1837,13 @@ func (x *Comment) GetSeatId() string {
 	return ""
 }
 
+func (x *Comment) GetFloor() string {
+	if x != nil {
+		return x.Floor
+	}
+	return ""
+}
+
 func (x *Comment) GetUsername() string {
 	if x != nil {
 		return x.Username
@@ -1867,9 +1875,10 @@ func (x *Comment) GetCreatedAt() string {
 type CreateCommentReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SeatId        string                 `protobuf:"bytes,1,opt,name=seat_id,json=seatId,proto3" json:"seat_id,omitempty"`
-	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
-	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
-	Rating        int64                  `protobuf:"varint,4,opt,name=rating,proto3" json:"rating,omitempty"`
+	Floor         string                 `protobuf:"bytes,2,opt,name=floor,proto3" json:"floor,omitempty"`
+	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
+	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	Rating        int64                  `protobuf:"varint,5,opt,name=rating,proto3" json:"rating,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1911,6 +1920,13 @@ func (x *CreateCommentReq) GetSeatId() string {
 	return ""
 }
 
+func (x *CreateCommentReq) GetFloor() string {
+	if x != nil {
+		return x.Floor
+	}
+	return ""
+}
+
 func (x *CreateCommentReq) GetUsername() string {
 	if x != nil {
 		return x.Username
@@ -1932,6 +1948,58 @@ func (x *CreateCommentReq) GetRating() int64 {
 	return 0
 }
 
+type GetCommentReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Floor         string                 `protobuf:"bytes,1,opt,name=floor,proto3" json:"floor,omitempty"`
+	SeatId        string                 `protobuf:"bytes,2,opt,name=seat_id,json=seatId,proto3" json:"seat_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCommentReq) Reset() {
+	*x = GetCommentReq{}
+	mi := &file_library_v1_library_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCommentReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCommentReq) ProtoMessage() {}
+
+func (x *GetCommentReq) ProtoReflect() protoreflect.Message {
+	mi := &file_library_v1_library_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCommentReq.ProtoReflect.Descriptor instead.
+func (*GetCommentReq) Descriptor() ([]byte, []int) {
+	return file_library_v1_library_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *GetCommentReq) GetFloor() string {
+	if x != nil {
+		return x.Floor
+	}
+	return ""
+}
+
+func (x *GetCommentReq) GetSeatId() string {
+	if x != nil {
+		return x.SeatId
+	}
+	return ""
+}
+
 type GetCommentResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Comment       []*Comment             `protobuf:"bytes,1,rep,name=Comment,proto3" json:"Comment,omitempty"`
@@ -1941,7 +2009,7 @@ type GetCommentResp struct {
 
 func (x *GetCommentResp) Reset() {
 	*x = GetCommentResp{}
-	mi := &file_library_v1_library_proto_msgTypes[31]
+	mi := &file_library_v1_library_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1953,7 +2021,7 @@ func (x *GetCommentResp) String() string {
 func (*GetCommentResp) ProtoMessage() {}
 
 func (x *GetCommentResp) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[31]
+	mi := &file_library_v1_library_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1966,7 +2034,7 @@ func (x *GetCommentResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCommentResp.ProtoReflect.Descriptor instead.
 func (*GetCommentResp) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{31}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetCommentResp) GetComment() []*Comment {
@@ -1974,6 +2042,66 @@ func (x *GetCommentResp) GetComment() []*Comment {
 		return x.Comment
 	}
 	return nil
+}
+
+type DeleteCommentReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Floor         string                 `protobuf:"bytes,2,opt,name=floor,proto3" json:"floor,omitempty"`
+	SeatId        string                 `protobuf:"bytes,3,opt,name=seat_id,json=seatId,proto3" json:"seat_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteCommentReq) Reset() {
+	*x = DeleteCommentReq{}
+	mi := &file_library_v1_library_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCommentReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCommentReq) ProtoMessage() {}
+
+func (x *DeleteCommentReq) ProtoReflect() protoreflect.Message {
+	mi := &file_library_v1_library_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteCommentReq.ProtoReflect.Descriptor instead.
+func (*DeleteCommentReq) Descriptor() ([]byte, []int) {
+	return file_library_v1_library_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *DeleteCommentReq) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *DeleteCommentReq) GetFloor() string {
+	if x != nil {
+		return x.Floor
+	}
+	return ""
+}
+
+func (x *DeleteCommentReq) GetSeatId() string {
+	if x != nil {
+		return x.SeatId
+	}
+	return ""
 }
 
 // 通用ID项
@@ -1986,7 +2114,7 @@ type ID struct {
 
 func (x *ID) Reset() {
 	*x = ID{}
-	mi := &file_library_v1_library_proto_msgTypes[32]
+	mi := &file_library_v1_library_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1998,7 +2126,7 @@ func (x *ID) String() string {
 func (*ID) ProtoMessage() {}
 
 func (x *ID) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[32]
+	mi := &file_library_v1_library_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2011,7 +2139,7 @@ func (x *ID) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ID.ProtoReflect.Descriptor instead.
 func (*ID) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{32}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ID) GetId() int64 {
@@ -2031,7 +2159,7 @@ type Resp struct {
 
 func (x *Resp) Reset() {
 	*x = Resp{}
-	mi := &file_library_v1_library_proto_msgTypes[33]
+	mi := &file_library_v1_library_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2043,7 +2171,7 @@ func (x *Resp) String() string {
 func (*Resp) ProtoMessage() {}
 
 func (x *Resp) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[33]
+	mi := &file_library_v1_library_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2056,7 +2184,7 @@ func (x *Resp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Resp.ProtoReflect.Descriptor instead.
 func (*Resp) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{33}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *Resp) GetMessage() string {
@@ -2194,26 +2322,35 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\x06stu_id\x18\x03 \x01(\tR\x05stuId\x12\x19\n" +
 	"\broom_ids\x18\x04 \x03(\tR\aroomIds\"7\n" +
 	"\x1bReserveSeatRandomlyResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"\x9f\x01\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\xb5\x01\n" +
 	"\aComment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
-	"\aseat_id\x18\x02 \x01(\tR\x06seatId\x12\x1a\n" +
+	"\aseat_id\x18\x02 \x01(\tR\x06seatId\x12\x14\n" +
+	"\x05floor\x18\x03 \x01(\tR\x05floor\x12\x1a\n" +
+	"\busername\x18\x04 \x01(\tR\busername\x12\x18\n" +
+	"\acontent\x18\x05 \x01(\tR\acontent\x12\x16\n" +
+	"\x06rating\x18\x06 \x01(\x03R\x06rating\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\a \x01(\tR\tcreatedAt\"\x8f\x01\n" +
+	"\x10CreateCommentReq\x12\x17\n" +
+	"\aseat_id\x18\x01 \x01(\tR\x06seatId\x12\x14\n" +
+	"\x05floor\x18\x02 \x01(\tR\x05floor\x12\x1a\n" +
 	"\busername\x18\x03 \x01(\tR\busername\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12\x16\n" +
-	"\x06rating\x18\x05 \x01(\x03R\x06rating\x12\x1d\n" +
-	"\n" +
-	"created_at\x18\x06 \x01(\tR\tcreatedAt\"y\n" +
-	"\x10CreateCommentReq\x12\x17\n" +
-	"\aseat_id\x18\x01 \x01(\tR\x06seatId\x12\x1a\n" +
-	"\busername\x18\x02 \x01(\tR\busername\x12\x18\n" +
-	"\acontent\x18\x03 \x01(\tR\acontent\x12\x16\n" +
-	"\x06rating\x18\x04 \x01(\x03R\x06rating\"?\n" +
+	"\x06rating\x18\x05 \x01(\x03R\x06rating\">\n" +
+	"\rGetCommentReq\x12\x14\n" +
+	"\x05floor\x18\x01 \x01(\tR\x05floor\x12\x17\n" +
+	"\aseat_id\x18\x02 \x01(\tR\x06seatId\"?\n" +
 	"\x0eGetCommentResp\x12-\n" +
-	"\aComment\x18\x01 \x03(\v2\x13.library.v1.CommentR\aComment\"\x14\n" +
+	"\aComment\x18\x01 \x03(\v2\x13.library.v1.CommentR\aComment\"]\n" +
+	"\x10DeleteCommentReq\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
+	"\x05floor\x18\x02 \x01(\tR\x05floor\x12\x17\n" +
+	"\aseat_id\x18\x03 \x01(\tR\x06seatId\"\x14\n" +
 	"\x02ID\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\" \n" +
 	"\x04Resp\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\x8b\b\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\xa4\b\n" +
 	"\aLibrary\x12B\n" +
 	"\aGetSeat\x12\x1a.library.v1.GetSeatRequest\x1a\x1b.library.v1.GetSeatResponse\x12N\n" +
 	"\vReserveSeat\x12\x1e.library.v1.ReserveSeatRequest\x1a\x1f.library.v1.ReserveSeatResponse\x12T\n" +
@@ -2227,9 +2364,9 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\x11ReserveDiscussion\x12$.library.v1.ReserveDiscussionRequest\x1a%.library.v1.ReserveDiscussionResponse\x12T\n" +
 	"\rCancelReserve\x12 .library.v1.CancelReserveRequest\x1a!.library.v1.CancelReserveResponse\x12f\n" +
 	"\x13ReserveSeatRandomly\x12&.library.v1.ReserveSeatRandomlyRequest\x1a'.library.v1.ReserveSeatRandomlyResponse\x12?\n" +
-	"\rCreateComment\x12\x1c.library.v1.CreateCommentReq\x1a\x10.library.v1.Resp\x129\n" +
-	"\vGetComments\x12\x0e.library.v1.ID\x1a\x1a.library.v1.GetCommentResp\x121\n" +
-	"\rDeleteComment\x12\x0e.library.v1.ID\x1a\x10.library.v1.RespBFZDgithub.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1;libraryv1b\x06proto3"
+	"\rCreateComment\x12\x1c.library.v1.CreateCommentReq\x1a\x10.library.v1.Resp\x12D\n" +
+	"\vGetComments\x12\x19.library.v1.GetCommentReq\x1a\x1a.library.v1.GetCommentResp\x12?\n" +
+	"\rDeleteComment\x12\x1c.library.v1.DeleteCommentReq\x1a\x10.library.v1.RespBFZDgithub.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1;libraryv1b\x06proto3"
 
 var (
 	file_library_v1_library_proto_rawDescOnce sync.Once
@@ -2243,7 +2380,7 @@ func file_library_v1_library_proto_rawDescGZIP() []byte {
 	return file_library_v1_library_proto_rawDescData
 }
 
-var file_library_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_library_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_library_v1_library_proto_goTypes = []any{
 	(*GetSeatRequest)(nil),              // 0: library.v1.GetSeatRequest
 	(*GetSeatResponse)(nil),             // 1: library.v1.GetSeatResponse
@@ -2276,9 +2413,11 @@ var file_library_v1_library_proto_goTypes = []any{
 	(*ReserveSeatRandomlyResponse)(nil), // 28: library.v1.ReserveSeatRandomlyResponse
 	(*Comment)(nil),                     // 29: library.v1.Comment
 	(*CreateCommentReq)(nil),            // 30: library.v1.CreateCommentReq
-	(*GetCommentResp)(nil),              // 31: library.v1.GetCommentResp
-	(*ID)(nil),                          // 32: library.v1.ID
-	(*Resp)(nil),                        // 33: library.v1.Resp
+	(*GetCommentReq)(nil),               // 31: library.v1.GetCommentReq
+	(*GetCommentResp)(nil),              // 32: library.v1.GetCommentResp
+	(*DeleteCommentReq)(nil),            // 33: library.v1.DeleteCommentReq
+	(*ID)(nil),                          // 34: library.v1.ID
+	(*Resp)(nil),                        // 35: library.v1.Resp
 }
 var file_library_v1_library_proto_depIdxs = []int32{
 	2,  // 0: library.v1.GetSeatResponse.room_seats:type_name -> library.v1.RoomSeat
@@ -2302,8 +2441,8 @@ var file_library_v1_library_proto_depIdxs = []int32{
 	25, // 18: library.v1.Library.CancelReserve:input_type -> library.v1.CancelReserveRequest
 	27, // 19: library.v1.Library.ReserveSeatRandomly:input_type -> library.v1.ReserveSeatRandomlyRequest
 	30, // 20: library.v1.Library.CreateComment:input_type -> library.v1.CreateCommentReq
-	32, // 21: library.v1.Library.GetComments:input_type -> library.v1.ID
-	32, // 22: library.v1.Library.DeleteComment:input_type -> library.v1.ID
+	31, // 21: library.v1.Library.GetComments:input_type -> library.v1.GetCommentReq
+	33, // 22: library.v1.Library.DeleteComment:input_type -> library.v1.DeleteCommentReq
 	1,  // 23: library.v1.Library.GetSeat:output_type -> library.v1.GetSeatResponse
 	6,  // 24: library.v1.Library.ReserveSeat:output_type -> library.v1.ReserveSeatResponse
 	8,  // 25: library.v1.Library.GetSeatRecord:output_type -> library.v1.GetSeatRecordResponse
@@ -2314,9 +2453,9 @@ var file_library_v1_library_proto_depIdxs = []int32{
 	24, // 30: library.v1.Library.ReserveDiscussion:output_type -> library.v1.ReserveDiscussionResponse
 	26, // 31: library.v1.Library.CancelReserve:output_type -> library.v1.CancelReserveResponse
 	28, // 32: library.v1.Library.ReserveSeatRandomly:output_type -> library.v1.ReserveSeatRandomlyResponse
-	33, // 33: library.v1.Library.CreateComment:output_type -> library.v1.Resp
-	31, // 34: library.v1.Library.GetComments:output_type -> library.v1.GetCommentResp
-	33, // 35: library.v1.Library.DeleteComment:output_type -> library.v1.Resp
+	35, // 33: library.v1.Library.CreateComment:output_type -> library.v1.Resp
+	32, // 34: library.v1.Library.GetComments:output_type -> library.v1.GetCommentResp
+	35, // 35: library.v1.Library.DeleteComment:output_type -> library.v1.Resp
 	23, // [23:36] is the sub-list for method output_type
 	10, // [10:23] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
@@ -2335,7 +2474,7 @@ func file_library_v1_library_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_library_v1_library_proto_rawDesc), len(file_library_v1_library_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   34,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -28,20 +28,20 @@ func (b *commentUsecase) CreateComment(ctx context.Context, req CreateCommentReq
 	return message, nil
 }
 
-func (b *commentUsecase) GetCommentsBySeatID(ctx context.Context, seatID int) ([]*Comment, error) {
-	comments, err := b.repo.GetCommentsBySeatID(ctx, seatID)
+func (b *commentUsecase) GetCommentsBySeatID(ctx context.Context, req GetCommentReq) ([]*Comment, error) {
+	comments, err := b.repo.GetCommentsBySeatID(ctx, &req)
 	if err != nil {
-		b.log.Errorf("Get comments failed (seat_id = %d)", seatID)
+		b.log.Errorf("Get comments failed (floor = %s,seat_id = %s)", req.Floor, req.SeatID)
 		return nil, err
 	}
 
 	return comments, nil
 }
 
-func (b *commentUsecase) DeleteComment(ctx context.Context, id int) (string, error) {
-	message, err := b.repo.DeleteComment(ctx, id)
+func (b *commentUsecase) DeleteComment(ctx context.Context, req DeleteCommentReq) (string, error) {
+	message, err := b.repo.DeleteComment(ctx, &req)
 	if err != nil {
-		b.log.Errorf("Deleted comments failed (id = %d)", id)
+		b.log.Errorf("Deleted comments failed (username = %s,floor = %s,seatID = %s)", req.Username, req.Floor, req.SeatID)
 		return "", err
 	}
 

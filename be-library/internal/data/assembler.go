@@ -19,6 +19,7 @@ func (a *Assembler) ConvertDOCommentBiz(comments []*DO.Comment) []*biz.Comment {
 	for _, comment := range comments {
 		result = append(result, &biz.Comment{
 			ID:        comment.ID,
+			Floor:     comment.Floor,
 			SeatID:    comment.SeatID,
 			Username:  comment.Username,
 			Content:   comment.Content,

@@ -11,4 +11,5 @@ enum ErrorReason {
   option (errors.default_code) = 500;
   CCNULogin_Error = 0;
   Crawler_Error = 1;
+  CreateComment_Error = 2;
 }

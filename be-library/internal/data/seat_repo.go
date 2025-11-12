@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-library/internal/biz"
@@ -107,6 +108,7 @@ func (r *SeatRepo) GetSeatInfos(ctx context.Context, stuID string, roomIDs []str
 		return val.(map[string][]*biz.Seat), nil
 
 	}
+	fmt.Println("repo:", result)
 
 	return result, nil
 }

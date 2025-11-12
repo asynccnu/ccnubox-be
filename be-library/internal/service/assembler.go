@@ -161,6 +161,7 @@ func (a *Assembler) ConvertMessages(data []*biz.Comment) *pb.GetCommentResp {
 	for _, r := range data {
 		result = append(result, &pb.Comment{
 			Id:        int64(r.ID),
+			Floor:     r.Floor,
 			SeatId:    r.SeatID,
 			Username:  r.Username,
 			Content:   r.Content,

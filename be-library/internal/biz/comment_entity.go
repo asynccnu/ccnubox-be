@@ -7,6 +7,7 @@ import (
 
 type Comment struct {
 	ID        int       // 评论ID
+	Floor     string    // 楼层
 	SeatID    string    // 关联座位
 	Username  string    // 发表评论的用户
 	Content   string    // 评论内容
@@ -16,13 +17,25 @@ type Comment struct {
 
 type CommentRepo interface {
 	CreateComment(ctx context.Context, req *CreateCommentReq) (string, error)
-	GetCommentsBySeatID(ctx context.Context, seatID int) ([]*Comment, error)
-	DeleteComment(ctx context.Context, id int) (string, error)
+	GetCommentsBySeatID(ctx context.Context, req *GetCommentReq) ([]*Comment, error)
+	DeleteComment(ctx context.Context, req *DeleteCommentReq) (string, error)
 }
 
 type CreateCommentReq struct {
+	Floor    string
 	SeatID   string
 	Content  string
 	Rating   int
 	Username string
+}
+
+type GetCommentReq struct {
+	Floor  string
+	SeatID string
+}
+
+type DeleteCommentReq struct {
+	Username string
+	Floor    string
+	SeatID   string
 }

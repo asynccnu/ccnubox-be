@@ -16,8 +16,8 @@ service Library {
     rpc CancelReserve (CancelReserveRequest) returns (CancelReserveResponse);
     rpc ReserveSeatRandomly (ReserveSeatRandomlyRequest) returns (ReserveSeatRandomlyResponse);
     rpc CreateComment (CreateCommentReq) returns (Resp);
-    rpc GetComments (ID) returns (GetCommentResp);
-    rpc DeleteComment (ID) returns (Resp);
+    rpc GetComments (GetCommentReq) returns (GetCommentResp);
+    rpc DeleteComment (DeleteCommentReq) returns (Resp);
 }
 
 // 获取座位信息
@@ -198,7 +198,7 @@ message ReserveSeatRandomlyRequest {
     string start = 1;
     string end = 2;
     string stu_id = 3;
-    string room_id = 4;
+    repeated string room_ids = 4;
 }
 
 message ReserveSeatRandomlyResponse {
@@ -209,22 +209,35 @@ message ReserveSeatRandomlyResponse {
 message Comment {
     int64 id = 1;
     string seat_id = 2;
-    string username = 3;
-    string content = 4;
-    int64 rating = 5;
-    string created_at = 6;
+    string floor = 3;
+    string username = 4;
+    string content = 5;
+    int64 rating = 6;
+    string created_at = 7;
 }
 
 
 message CreateCommentReq {
     string seat_id = 1;
-    string username = 2;
-    string content = 3;
-    int64 rating = 4;
+    string floor = 2;
+    string username = 3;
+    string content = 4;
+    int64 rating = 5;
+}
+
+message GetCommentReq {
+    string floor = 1;
+    string seat_id = 2;
 }
 
 message GetCommentResp {
     repeated Comment Comment = 1;
+}
+
+message DeleteCommentReq {
+    string username = 1;
+    string floor = 2;
+    string seat_id = 3;
 }
 
 // 通用ID项

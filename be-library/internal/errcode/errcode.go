@@ -6,6 +6,7 @@ import (
 )
 
 var (
-	ErrCrawler   = errors.New(456, v1.ErrorReason_Crawler_Error.String(), "爬虫失败")
-	ErrCCNULogin = errors.New(457, v1.ErrorReason_CCNULogin_Error.String(), "请求user登录服务错误")
+	ErrCrawler       = errors.New(456, v1.ErrorReason_Crawler_Error.String(), "爬虫失败")
+	ErrCCNULogin     = errors.New(457, v1.ErrorReason_CCNULogin_Error.String(), "请求user登录服务错误")
+	ErrCreateComment = errors.New(458, v1.ErrorReason_CreateComment_Error.String(), "创建请求失败")
 )

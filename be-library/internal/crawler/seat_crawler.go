@@ -62,8 +62,6 @@ func (c *Crawler) getClient(ctx context.Context, stuID string) (*client.CookieCl
 			return nil, err
 		}
 
-		// fmt.Println("这里是cookie", cookie)
-
 		return c.cookiePool.GetClient(cookie)
 	})
 }
@@ -135,6 +133,7 @@ func (c *Crawler) GetSeatInfos(ctx context.Context, stuID string, roomIDs []stri
 	}
 
 	wg.Wait()
+	fmt.Println("infos:", results)
 	return results, nil
 }
 
@@ -163,6 +162,8 @@ func (c *Crawler) getSeatInfos(ctx context.Context, client *client.CookieClient,
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("body:", string(body))
 
 	// 用 gjson 解析
 	data := gjson.GetBytes(body, "data")
@@ -199,6 +200,7 @@ func (c *Crawler) getSeatInfos(ctx context.Context, client *client.CookieClient,
 		return true
 	})
 
+	fmt.Println("info:", result)
 	return result, nil
 }
 

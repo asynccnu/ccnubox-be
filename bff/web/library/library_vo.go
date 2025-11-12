@@ -163,12 +163,20 @@ type Comment struct {
 }
 
 type CreateCommentReq struct {
+	Floor    string `json:"floor"`
 	SeatID   string `json:"seat_id"`
 	Content  string `json:"content"`
 	Rating   int    `json:"rating"`
 	Username string `json:"username"`
 }
 
-type IDreq struct {
-	ID int `json:"id" form:"id"`
+type GetCommentReq struct {
+	Floor  string `json:"floor"`
+	SeatID string `json:"seat_id"`
+}
+
+type DeleteCommentReq struct {
+	Username string `json:"username"`
+	Floor    string `json:"floor"`
+	SeatID   string `json:"seat_id"`
 }

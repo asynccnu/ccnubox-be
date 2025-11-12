@@ -49,8 +49,8 @@ func (t *TubeHandler) GetTubeToken(ctx *gin.Context, uc ijwt.UserClaims) (web.Re
 	}, nil
 }
 
-// @Summary 获取上传应用的令牌
-// @Description
+// @Summary 获取官网上传令牌
+// @Description 获取用于前端 CD 部署时上传官网资源到七牛云的令牌
 // @Tags tube
 // @Accept json
 // @Produce json

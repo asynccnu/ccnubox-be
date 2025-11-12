@@ -28,7 +28,7 @@ func InitPutPolicy() storage.PutPolicy {
 
 func InitOfficialSitePutPolicy() storage.PutPolicy {
 	return storage.PutPolicy{
-		Scope:   fmt.Sprintf("%s%s:%s", viper.GetString("oss.bucketName"), viper.GetString("oss.baseName"), viper.GetString("oss.appName")),
+		Scope:   fmt.Sprintf("%s:%s%s", viper.GetString("oss.bucketName"), viper.GetString("oss.baseName"), viper.GetString("oss.appName")),
 		Expires: 60 * 60,
 	}
 }

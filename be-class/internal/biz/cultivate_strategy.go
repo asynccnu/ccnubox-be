@@ -94,7 +94,6 @@ func NewCultivateStrategyBiz(cookieCli CookieClient, cache Cache, csData Cultiva
 			IdleConnTimeout:     90 * time.Second, // 空闲连接超时
 			MaxIdleConnsPerHost: 20,               // 每个主机最大空闲连接
 		},
-		Timeout: 30 * time.Second, // 总请求超时
 	}
 
 	c := &CultivateStrategyBiz{
@@ -137,11 +136,13 @@ func (c *CultivateStrategyBiz) GetToBeStudiedClass(ctx context.Context, stuId, s
 		er, err error
 	)
 	// 优先使用数据库的新数据
+	log.Debug("Trying to get fresh unstudied classes from DB")
 	res, err = c.GetCultivateStrategyFromDB(ctx, stuId, status, c.csData.DataAlive())
 	if err == nil {
 		return res, nil
 	}
 
+	log.Debug("No fresh unstudied classes from DB, try crawl from ccnu")
 	// 如果数据库里面没有, 去爬数据, 然后更新
 	if errors.Is(err, ErrRecordNotFound) {
 		res, er = c.GetCultivateStrategyFromCCNU(ctx, stuId)
@@ -164,6 +165,7 @@ func (c *CultivateStrategyBiz) GetToBeStudiedClass(ctx context.Context, stuId, s
 
 			return res, nil
 		}
+		log.Error("Get unstudied classes from CCNU err: ", er)
 	}
 
 	// 如果没有新数据 + 爬虫没爬到数据, 去查看旧数据
@@ -172,6 +174,7 @@ func (c *CultivateStrategyBiz) GetToBeStudiedClass(ctx context.Context, stuId, s
 		return res, nil
 	}
 
+	log.Warn("No old unstudied classes from DB")
 	return service.ToBeStudiedClasses{}, err
 }
 

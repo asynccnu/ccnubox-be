@@ -63,6 +63,8 @@ oss:
   secretKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   bucketName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   domainName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # CDN 域名
+  baseName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  fileName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # 日志配置
 log:

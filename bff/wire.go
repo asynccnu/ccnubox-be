@@ -38,7 +38,7 @@ func InitApp() *App {
 		ioc.InitLibrary,
 
 		//http服务
-		ioc.InitPutPolicy,
+		ioc.InitTubePolicies,
 		ioc.InitMac,
 		ioc.InitClassRoomHandler,
 		ioc.InitTubeHandler,

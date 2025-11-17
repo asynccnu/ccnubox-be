@@ -16,23 +16,19 @@ func NewRecordDAO(db *gorm.DB) *RecordDAO {
 	return &RecordDAO{db: db}
 }
 
-func (d *RecordDAO) UpsertFutureRecords(ctx context.Context, records []DO.FutureRecord) error {
-	if len(records) == 0 {
+func (d *RecordDAO) SyncFutureRecords(ctx context.Context, stuID string, records []DO.FutureRecord) error {
+	return d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("stu_id = ?", stuID).Delete(&DO.FutureRecord{}).Error; err != nil {
+			return err
+		}
+		if len(records) == 0 {
+			return nil
+		}
+		if err := tx.Create(&records).Error; err != nil {
+			return err
+		}
 		return nil
-	}
-
-	return d.db.WithContext(ctx).
-		Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "stu_id"},
-				{Name: "start"},
-				{Name: "end"},
-			},
-			DoUpdates: clause.AssignmentColumns([]string{
-				"remote_id", "owner", "time_desc", "states", "dev_name", "room_id", "room_name", "lab_name",
-			}),
-		}).
-		Create(&records).Error
+	})
 }
 
 func (d *RecordDAO) ListFutureRecords(ctx context.Context, stuID string) ([]DO.FutureRecord, error) {

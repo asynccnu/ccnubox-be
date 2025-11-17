@@ -10,10 +10,10 @@ import (
 )
 
 type recordRepo struct {
-	dao    *dao.RecordDAO
-	cache  *cache.RecordCache
-	log    *log.Helper
-	cov    *Assembler
+	dao   *dao.RecordDAO
+	cache *cache.RecordCache
+	log   *log.Helper
+	cov   *Assembler
 }
 
 func NewRecordRepo(dao *dao.RecordDAO, cache *cache.RecordCache, logger log.Logger, cov *Assembler) biz.RecordRepo {
@@ -27,12 +27,9 @@ func NewRecordRepo(dao *dao.RecordDAO, cache *cache.RecordCache, logger log.Logg
 
 // UpsertFutureRecords 复合唯一键去重,写库成功后删除缓存
 func (r *recordRepo) UpsertFutureRecords(ctx context.Context, stuID string, list []*biz.FutureRecords) error {
-	if len(list) == 0 {
-		return nil
-	}
 	dos := ConvertBizFutureRecordsDO(stuID, list)
 
-	if err := r.dao.UpsertFutureRecords(ctx, dos); err != nil {
+	if err := r.dao.SyncFutureRecords(ctx, stuID, dos); err != nil {
 		return err
 	}
 

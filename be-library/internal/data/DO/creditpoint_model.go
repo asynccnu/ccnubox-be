@@ -12,7 +12,7 @@ func (CreditSummary) TableName() string {
 }
 
 type CreditRecord struct {
-	StuID    string `gorm:"column:stu_id;size:20;not null;primaryKey'"`
+	StuID    string `gorm:"column:stu_id;size:20;not null;primaryKey"`
 	Title    string `gorm:"column:title;size:100;not null"`
 	Subtitle string `gorm:"column:subtitle;size:150;not null"`
 	Location string `gorm:"column:location;size:100;not null"`

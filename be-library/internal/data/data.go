@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-library/internal/conf"
-	"github.com/asynccnu/ccnubox-be/be-library/internal/data/DO"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/data/cache"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/data/dao"
 	"github.com/redis/go-redis/v9"
@@ -27,7 +26,7 @@ var ProviderSet = wire.NewSet(
 	NewSeatRepo, NewCommentRepo, NewRecordRepo, NewCreditPointsRepo,
 )
 
-// NewDB 连接 MySQL 数据库并自动迁移
+// NewDB 连接 MySQL 数据库
 func NewDB(c *conf.Data) (*gorm.DB, error) {
 	if c == nil {
 		return nil, fmt.Errorf("config data is nil")
@@ -40,10 +39,6 @@ func NewDB(c *conf.Data) (*gorm.DB, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect database: %w", err)
-	}
-
-	if err = db.AutoMigrate(&DO.Seat{}, &DO.TimeSlot{}, &DO.Comment{}, &DO.FutureRecord{}, &DO.HistoryRecord{}, &DO.CreditSummary{}, &DO.CreditRecord{}); err != nil {
-		return nil, fmt.Errorf("auto migrate failed: %w", err)
 	}
 
 	return db, nil

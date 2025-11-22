@@ -12,6 +12,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-library/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/crawler"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/data"
+	"github.com/asynccnu/ccnubox-be/be-library/internal/data/cache"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/registry"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
@@ -32,7 +33,6 @@ var libraryCrawler crawler.Crawler
 // TestMain 在所有测试前初始化依赖
 func TestMain(m *testing.M) {
 	flag.Parse()
-
 	c := config.New(
 		config.WithSource(file.NewSource(confPath)),
 	)
@@ -46,18 +46,10 @@ func TestMain(m *testing.M) {
 	if err := c.Scan(&bc); err != nil {
 		panic(err)
 	}
-
-	// 初始化 DB + Redis
-	db, err := data.NewDB(bc.Data)
-	if err != nil {
-		panic(err)
-	}
 	rdb := data.NewRedisDB(bc.Data, log.NewStdLogger(os.Stdout))
-
 	confServer := bc.Server
 	confRegistry := bc.Registry
 	logger := log.NewStdLogger(os.Stdout)
-
 	cookiePool := client.NewCookiePoolProvider()
 	etcdRegistry := registry.NewRegistrarServer(confRegistry, logger)
 	userServiceClient, err := client.NewClient(etcdRegistry, confRegistry, logger)
@@ -67,13 +59,10 @@ func TestMain(m *testing.M) {
 	ccnuServiceProxy := client.NewCCNUServiceProxy(userServiceClient)
 	duration := biz.NewWaitTime(confServer)
 	libraryCrawler := crawler.NewLibraryCrawler(logger, cookiePool, ccnuServiceProxy, duration)
-
-	d, err := data.NewData(bc.Data, log.NewStdLogger(os.Stdout), db, rdb)
-	if err != nil {
-		panic(err)
-	}
-
-	repo = data.NewSeatRepo(d, libraryCrawler).(*data.SeatRepo)
+	seatCache := cache.NewSeatCache(rdb, logger)
+	assembler := data.NewAssembler()
+	group := data.NewSingleflight()
+	repo := data.NewSeatRepo(seatCache, bc.Data, logger, assembler, group, libraryCrawler)
 	bizz = biz.NewLibraryBiz(libraryCrawler, log.NewStdLogger(os.Stdout), repo, nil, nil)
 
 	// 执行测试

@@ -2,14 +2,24 @@ package crawler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
+
+	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
+	"google.golang.org/grpc"
 )
+
+type MockProxy struct{}
+
+func (m *MockProxy) GetProxyAddr(ctx context.Context, in *proxyv1.GetProxyAddrRequest, opts ...grpc.CallOption) (*proxyv1.GetProxyAddrResponse, error) {
+	return nil, errors.New("mock")
+}
 
 func TestCrawler_GetClassInfosForUndergraduate(t *testing.T) {
 	var cookie = "JSESSIONID=98355539BF868E9B0675D58EE1D794A8"
-	crawler := NewClassCrawler()
+	crawler := NewClassCrawler(&MockProxy{})
 	start := time.Now()
 	infos, scs, err := crawler.GetClassInfosForUndergraduate(context.Background(), "testID", "2024", "2", cookie)
 	if err != nil {
@@ -28,7 +38,7 @@ func TestCrawler_GetClassInfosForUndergraduate(t *testing.T) {
 
 func BenchmarkCrawler_GetClassInfosForUndergraduate(b *testing.B) {
 	var cookie = "JSESSIONID=98355539BF868E9B0675D58EE1D794A8"
-	crawler := NewClassCrawler()
+	crawler := NewClassCrawler(&MockProxy{})
 
 	ctx := context.Background()
 
@@ -46,7 +56,7 @@ func BenchmarkCrawler_GetClassInfosForUndergraduate(b *testing.B) {
 
 func TestCrawler_GetClassInfoForGraduateStudent(t *testing.T) {
 	var cookie = "JSESSIONID=9BF9BFAD7E543259A65596CA5DFF4E60;route=f06bbbc827e6ce0f67fc73327c06186a"
-	crawler := NewClassCrawler()
+	crawler := NewClassCrawler(&MockProxy{})
 	start := time.Now()
 	infos, scs, err := crawler.GetClassInfoForGraduateStudent(context.Background(), "testID", "2024", "1", cookie)
 	if err != nil {

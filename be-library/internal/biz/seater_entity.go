@@ -69,6 +69,9 @@ type SeatRepo interface {
 	// 获取所有楼层座位信息
 	GetSeatInfos(ctx context.Context, stuID string, roomIDs []string) (map[string][]*Seat, error)
 
+	// 缓存方法
+	SaveRoomSeatsInRedis(ctx context.Context, stuID string, roomID []string) error
+
 	// 更新方法
 	// UpdateTimeSlots(ctx context.Context, devID string, timeSlots []*TimeSlot) error
 }

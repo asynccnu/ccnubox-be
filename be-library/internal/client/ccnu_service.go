@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	user "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
@@ -14,6 +13,7 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
+	"github.com/pkg/errors"
 )
 
 type CCNUService struct {
@@ -29,8 +29,7 @@ func (c *CCNUService) GetLibraryCookie(ctx context.Context, stuID string) (strin
 		StudentId: stuID,
 	})
 	if err != nil {
-		fmt.Println(err)
-		return "", errcode.ErrCCNULogin
+		return "", errors.Wrapf(err, "failed to login: %s", errcode.ErrCCNULogin)
 	}
 	cookie := resp.Cookie
 	return cookie, nil

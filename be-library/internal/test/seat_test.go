@@ -26,9 +26,9 @@ func init() {
 }
 
 // 全局 repo
-var repo *data.SeatRepo
+var repo biz.SeatRepo
 var bizz biz.LibraryBiz
-var libraryCrawler crawler.Crawler
+var ccnuServiceProxy biz.CCNUServiceProxy
 
 // TestMain 在所有测试前初始化依赖
 func TestMain(m *testing.M) {
@@ -56,13 +56,13 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	ccnuServiceProxy := client.NewCCNUServiceProxy(userServiceClient)
+	ccnuServiceProxy = client.NewCCNUServiceProxy(userServiceClient)
 	duration := biz.NewWaitTime(confServer)
 	libraryCrawler := crawler.NewLibraryCrawler(logger, cookiePool, ccnuServiceProxy, duration)
 	seatCache := cache.NewSeatCache(rdb, logger)
 	assembler := data.NewAssembler()
 	group := data.NewSingleflight()
-	repo := data.NewSeatRepo(seatCache, bc.Data, logger, assembler, group, libraryCrawler)
+	repo = data.NewSeatRepo(seatCache, bc.Data, logger, assembler, group, libraryCrawler)
 	bizz = biz.NewLibraryBiz(libraryCrawler, log.NewStdLogger(os.Stdout), repo, nil, nil)
 
 	// 执行测试
@@ -71,7 +71,7 @@ func TestMain(m *testing.M) {
 
 // 10s -> 8s
 func TestSaveRoomSeatsInRedis(t *testing.T) {
-	stuID := ""
+	stuID := "2024214744"
 	ctx := context.Background()
 
 	err := repo.SaveRoomSeatsInRedis(ctx, stuID, biz.RoomIDs)
@@ -80,9 +80,19 @@ func TestSaveRoomSeatsInRedis(t *testing.T) {
 	}
 }
 
+func TestGetGetLibraryCookie(t *testing.T) {
+	stuID := "2024214744"
+	ctx := context.Background()
+	cookie, err := ccnuServiceProxy.GetLibraryCookie(ctx, stuID)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(cookie)
+}
+
 func TestGetSeat(t *testing.T) {
 	ctx := context.Background()
-	stuID := ""
+	stuID := "2024214744"
 
 	seats, err := repo.GetSeatInfos(ctx, stuID, biz.RoomIDs)
 	if err != nil {

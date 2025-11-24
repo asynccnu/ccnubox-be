@@ -284,7 +284,7 @@ func (s *userService) GetLibraryCookie(ctx context.Context, studentId string) (s
 	})
 
 	if err != nil {
-		return "", SAVE_USER_ERROR(err)
+		return "", CCNU_GETCOOKIE_ERROR(err)
 	}
 
 	cookie, ok := result.(string)

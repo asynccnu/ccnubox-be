@@ -112,7 +112,7 @@ func (c *SeatCache) SaveRoomSeats(ctx context.Context, stuID string, roomID []st
 		return err
 	}
 
-	c.log.Infof("All seats saved in Redis successfully")
+	c.log.Infof("seats saved in Redis successfully (room_id:%v)", roomID)
 	return nil
 }
 

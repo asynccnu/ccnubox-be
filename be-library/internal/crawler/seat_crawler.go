@@ -119,8 +119,9 @@ func (c *Crawler) GetSeatInfos(ctx context.Context, stuID string, roomIDs []stri
 		go func(roomID string) {
 			defer wg.Done()
 			seats, err := c.getSeatInfos(ctx, cli, roomID)
+			c.log.Infof("Fetching RoomSeat (room_id: %s stu_id: %s)", roomID, stuID)
 			if err != nil {
-				c.log.Errorf("获取房间 %s 座位失败: %v", roomID, err)
+				c.log.Errorf("Fetching RoomSeat Failed (room_id: %s stu_id: %s)", roomID, stuID)
 				mutex.Lock()
 				results[roomID] = nil
 				mutex.Unlock()
@@ -133,7 +134,7 @@ func (c *Crawler) GetSeatInfos(ctx context.Context, stuID string, roomIDs []stri
 	}
 
 	wg.Wait()
-	fmt.Println("infos:", results)
+	// fmt.Println("infos:", results)
 	return results, nil
 }
 
@@ -163,7 +164,7 @@ func (c *Crawler) getSeatInfos(ctx context.Context, client *client.CookieClient,
 		return nil, err
 	}
 
-	fmt.Println("body:", string(body))
+	// fmt.Println("body:", string(body))
 
 	// 用 gjson 解析
 	data := gjson.GetBytes(body, "data")
@@ -200,7 +201,7 @@ func (c *Crawler) getSeatInfos(ctx context.Context, client *client.CookieClient,
 		return true
 	})
 
-	fmt.Println("info:", result)
+	// fmt.Println("info:", result)
 	return result, nil
 }
 

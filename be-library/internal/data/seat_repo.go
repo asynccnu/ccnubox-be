@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-library/internal/biz"
@@ -53,18 +52,21 @@ func (r *SeatRepo) FindFirstAvailableSeat(ctx context.Context, start, end int64,
 	return r.cache.FindFirstAvailableSeat(ctx, start, end, roomID)
 }
 
-// GetSeatInfos 按楼层查缓存
+// GetSeatInfos 按楼层查缓存，若缓存不存在或过期会即时更新
 func (r *SeatRepo) GetSeatInfos(ctx context.Context, stuID string, roomIDs []string) (map[string][]*biz.Seat, error) {
 	now := time.Now()
 	result := make(map[string][]*biz.Seat, len(biz.RoomIDs))
 
-	// 是否需要后台刷新
-	needRefresh := false
-
 	// 循环每个房间
 	for _, roomID := range roomIDs {
+		// 是否需要后台刷新
+		needRefresh := false
+
+		// 情况A：数据全是新鲜的，直接返回
 		seats, ts, err := r.cache.GetSeatsByRoom(ctx, roomID)
+
 		if err != nil {
+			// 缓存里没有
 			r.log.Warnf("get room seats cache(room_id:%s) err: %v", roomID, err)
 			needRefresh = true
 		} else if ts.IsZero() || now.Sub(*ts) > seatsFreshness {
@@ -72,43 +74,35 @@ func (r *SeatRepo) GetSeatInfos(ctx context.Context, stuID string, roomIDs []str
 			needRefresh = true
 		}
 
-		// 这里需要刷新的房间数据不应该是必须得到的吗，这里异步不会导致这几个加载的房间数据无法传递吗
+		// 情况B：房间信息过期，阻塞返回
 		if needRefresh {
-			go func(roomID string) {
-				bgCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-				defer cancel()
-				_, _, _ = r.sf.Do("lib:getSeatInfos:refresh:"+roomID, func() (interface{}, error) {
-					err := r.SaveRoomSeatsInRedis(bgCtx, stuID, []string{roomID})
-					return nil, err
-				})
-			}(roomID)
+			key := "lib:getSeatInfos:refresh:" + roomID
 
-			continue
+			// 为保证可用性，阻塞爬虫座位数据
+			_, err, _ := r.sf.Do(key, func() (interface{}, error) {
+				refreshCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+				defer cancel()
+
+				return nil, r.SaveRoomSeatsInRedis(refreshCtx, stuID, []string{roomID})
+			})
+
+			if err != nil {
+				// 如果刷新失败，且之前也没有旧缓存(seats == nil)，那这个房间就真的拿不到数据了
+				// 但如果之前是过期数据，seats 还是有的，下面依然可以返回旧数据作为兜底数据
+				// 如果这个旧数据太过久远（半小时以上，由硬过期时间配置）可用性太低，直接跳过获取
+				r.log.Warnf("refresh room %s failed: %v", roomID, err)
+			} else {
+				// 刷新成功后，重新从缓存读一次最新数据
+				// 因为 SaveRoomSeatsInRedis 只是存到了 Redis，这里要读出来放到 result 里
+				// 到这里说明爬虫更新数据成功了，这个房间必有数据
+				newSeats, _, err := r.cache.GetSeatsByRoom(ctx, roomID)
+				if err == nil {
+					seats = newSeats
+				}
+			}
 		}
 		result[roomID] = seats
 	}
-
-	if len(result) == 0 {
-		// 走到这里说明完全没有缓存,阻塞一次并拉取座位信息
-		// 这里的sf键要与前面的键不同，否则当缓存中完全没有数据时会导致键冲突
-		val, err, _ := r.sf.Do("lib:getSeatInfos:refresh:all", func() (interface{}, error) {
-			ctx2, cancel := context.WithTimeout(ctx, 30*time.Second)
-			defer cancel()
-			err := r.SaveRoomSeatsInRedis(ctx2, stuID, roomIDs)
-			if err != nil {
-				return nil, err
-			}
-
-			return r.GetSeatInfos(ctx2, stuID, roomIDs)
-
-		})
-		if err != nil {
-			return nil, err
-		}
-		return val.(map[string][]*biz.Seat), nil
-
-	}
-	fmt.Println("repo:", result)
 
 	return result, nil
 }

@@ -71,7 +71,7 @@ func TestMain(m *testing.M) {
 
 // 10s -> 8s
 func TestSaveRoomSeatsInRedis(t *testing.T) {
-	stuID := "2024214744"
+	stuID := ""
 	ctx := context.Background()
 
 	err := repo.SaveRoomSeatsInRedis(ctx, stuID, biz.RoomIDs)
@@ -81,7 +81,7 @@ func TestSaveRoomSeatsInRedis(t *testing.T) {
 }
 
 func TestGetGetLibraryCookie(t *testing.T) {
-	stuID := "2024214744"
+	stuID := ""
 	ctx := context.Background()
 	cookie, err := ccnuServiceProxy.GetLibraryCookie(ctx, stuID)
 	if err != nil {
@@ -92,15 +92,17 @@ func TestGetGetLibraryCookie(t *testing.T) {
 
 func TestGetSeat(t *testing.T) {
 	ctx := context.Background()
-	stuID := "2024214744"
+	stuID := ""
 
 	seats, err := repo.GetSeatInfos(ctx, stuID, biz.RoomIDs)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, seat := range seats {
-		fmt.Println(seat)
+	for _, seatLine := range seats {
+		for _, seat := range seatLine {
+			fmt.Println(seat)
+		}
 	}
 }
 

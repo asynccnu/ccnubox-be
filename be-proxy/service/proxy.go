@@ -19,6 +19,8 @@ type ShenLongProxy struct {
 	Addr         string
 	PollInterval int
 	RetryCount   int
+	Username     string
+	Password     string
 
 	mu sync.RWMutex // 异步写+并发读
 }
@@ -56,6 +58,8 @@ func NewProxyService() ProxyService {
 		Api      string `json:"api"`
 		Interval int    `json:"interval"`
 		Retry    int    `json:"retry"`
+		Username string `json:"username"`
+		Password string `json:"password"`
 	}
 	if err := viper.UnmarshalKey("shenlong", &config); err != nil {
 		panic(err)
@@ -70,6 +74,8 @@ func NewProxyService() ProxyService {
 		Api:          config.Api,
 		PollInterval: config.Interval,
 		RetryCount:   config.Retry,
+		Username:     config.Username,
+		Password:     config.Password,
 	}
 	// 初始化之后就要马上更新一次ip, 保证不是空的
 	s.fetchIp()
@@ -102,7 +108,7 @@ func (s *ShenLongProxy) fetchIp() {
 
 			log.Debug("fetch ip success, now: ", time.Now())
 			s.mu.Lock()
-			s.Addr = wrapRes(string(body))
+			s.Addr = s.wrapRes(string(body))
 			s.mu.Unlock()
 
 			break
@@ -113,7 +119,7 @@ func (s *ShenLongProxy) fetchIp() {
 
 }
 
-func wrapRes(res string) string {
+func (s *ShenLongProxy) wrapRes(res string) string {
 	// 会返回\t\n, 提供方那边去不了
-	return fmt.Sprintf("http://%s", strings.TrimSpace(res))
+	return fmt.Sprintf("http://%s:%s@%s", s.Username, s.Password, strings.TrimSpace(res))
 }

@@ -23,3 +23,5 @@ shenlong:
   api: "api.com"
   interval: 114514 # 单位: s
   retry: 1919810
+  username: "username"
+  password: "password"

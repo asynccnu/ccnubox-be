@@ -21,7 +21,14 @@ func (c *SwagHandler) RegisterRoutes(s *gin.RouterGroup, basicAuthMiddleware gin
 	s.GET("/swag", basicAuthMiddleware, ginx.Wrap(c.GetOpenApi3))
 }
 
-// GetOpenApi3 直接返回 YAML 原文
+// GetOpenApi3 获取/重新生成 OpenAPI3 接口文档
+// @Summary 获取 OpenAPI3 接口文档 (YAML)
+// @Description 接口直接返回 docs/openapi3.yaml yaml格式的原始内容
+// @Tags swag
+// @Produce application/x-yaml
+// @Security BasicAuth
+// @Success 200 {string} string
+// @Router /swag [get]
 func (c *SwagHandler) GetOpenApi3(ctx *gin.Context) (web.Response, error) {
 	// 每次访问该接口直接重新生成并获取swag实现开发端和运行端获取的接口文档跟实际使用代码相同
 	cmd := exec.Command("make", "swag")

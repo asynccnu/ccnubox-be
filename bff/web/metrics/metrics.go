@@ -28,7 +28,7 @@ func (h *MetricsHandler) RegisterRoutes(s *gin.RouterGroup, basicAuthMiddleware 
 
 // MetricsExporter 导出 Prometheus 监控指标
 // @Summary 导出 Prometheus 监控指标
-// @Description 暴露标准的 Prometheus 监控数据，供 Prometheus 定时拉取。
+// @Description 暴露标准的 Prometheus 监控数据，供 Prometheus 定时拉取，使用BasicAuth进行验证
 // @Tags metrics
 // @Produce text/plain
 // @Success 200 {string} string "Prometheus Exporter Text Data"

@@ -23,7 +23,7 @@ func (c *SwagHandler) RegisterRoutes(s *gin.RouterGroup, basicAuthMiddleware gin
 
 // GetOpenApi3 获取/重新生成 OpenAPI3 接口文档
 // @Summary 获取 OpenAPI3 接口文档 (YAML)
-// @Description 接口直接返回 docs/openapi3.yaml yaml格式的原始内容
+// @Description 接口直接返回 docs/openapi3.yaml yaml格式的原始内容，使用BasicAuth进行验证
 // @Tags swag
 // @Produce application/x-yaml
 // @Security BasicAuth

@@ -20,6 +20,7 @@ type PrometheusCounter struct {
 	RouterCounter     *prometheus.CounterVec
 	ActiveConnections *prometheus.GaugeVec
 	DurationTime      *prometheus.HistogramVec
+	DailyActiveUsers  *prometheus.GaugeVec
 }
 
 // NewPrometheus 创建一个新的 Prometheus 工具包实例

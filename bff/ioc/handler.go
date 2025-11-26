@@ -19,6 +19,7 @@ import (
 	websitev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/website/v1"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/htmlx"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/prometheusx"
 	"github.com/asynccnu/ccnubox-be/bff/web/banner"
 	"github.com/asynccnu/ccnubox-be/bff/web/calendar"
 	"github.com/asynccnu/ccnubox-be/bff/web/card"
@@ -40,6 +41,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/website"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )
 
@@ -225,8 +227,8 @@ func InitTubeHandler(tb *TubePolicies, mac *qbox.Mac) *tube.TubeHandler {
 	return tube.NewTubeHandler(tb.defaultPolicy, tb.officialSite, mac, viper.GetString("oss.domainName"))
 }
 
-func InitMetricsHandel(l logger.Logger) *metrics.MetricsHandler {
-	return metrics.NewMetricsHandler(l)
+func InitMetricsHandel(l logger.Logger, redisClient redis.Cmdable, prometheus *prometheusx.PrometheusCounter) *metrics.MetricsHandler {
+	return metrics.NewMetricsHandler(l, redisClient, prometheus)
 }
 
 func InitSwagHandler() *swag.SwagHandler {

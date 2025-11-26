@@ -90,6 +90,10 @@ prometheus:
     name: "http_request_duration_seconds"  # 请求时长直方图名称
     help: "Histogram of response times for HTTP requests" # 指标说明
 
+  dailyActiveUsers:
+    name: "daily_active_users"  # 日活指标名称
+    help: "Number of active users in last 24 hours calculated by Redis HyperLogLog" # 指标说明
+
 basicAuth:
   username: "user"
   password: "password"

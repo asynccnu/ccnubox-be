@@ -25,6 +25,11 @@ func InitPrometheus() *prometheusx.PrometheusCounter {
 			Name string `yaml:"name"`
 			Help string `yaml:"help"`
 		} `yaml:"durationTime"`
+
+		DailyActiveUsers struct {
+			Name string `yaml:"name"`
+			Help string `yaml:"help"`
+		} `yaml:"dailyActiveUsers"`
 	}
 
 	var conf PrometheusConfig
@@ -39,5 +44,6 @@ func InitPrometheus() *prometheusx.PrometheusCounter {
 		RouterCounter:     p.RegisterCounter(conf.RouterCounter.Name, conf.RouterCounter.Help, []string{"method", "endpoint", "status"}),
 		ActiveConnections: p.RegisterGauge(conf.ActiveConnections.Name, conf.RouterCounter.Help, []string{"endpoint"}),
 		DurationTime:      p.RegisterHistogram(conf.DurationTime.Name, conf.DurationTime.Help, []string{"endpoint", "status"}, prometheus.DefBuckets),
+		DailyActiveUsers:  p.RegisterGauge(conf.DailyActiveUsers.Name, conf.DailyActiveUsers.Help, []string{"service"}),
 	}
 }

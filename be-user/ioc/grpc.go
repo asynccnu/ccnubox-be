@@ -16,7 +16,6 @@ import (
 	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.opentelemetry.io/otel/trace"
 )
 
 func InitGRPCxKratosServer(userServer *grpc.UserServiceServer, ecli *clientv3.Client, l logger.Logger) grpcx.Server {
@@ -62,14 +61,6 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 			if !ok {
 				return handler(ctx, req)
 			}
-
-			var traceId, spanId string
-			span := trace.SpanFromContext(ctx)
-			if span.SpanContext().IsValid() {
-				traceId = span.SpanContext().TraceID().String()
-				spanId = span.SpanContext().SpanID().String()
-			}
-
 			// 记录请求开始时间
 			start := time.Now()
 
@@ -98,8 +89,6 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 						logger.String("file", customError.File),
 						logger.Int("line", customError.Line),
 						logger.String("function", customError.Function),
-						logger.String("trace_id", traceId),
-						logger.String("span_id", spanId),
 					)
 					//转化为 kratos 的错误,非常的优雅
 					err = customError.ERR
@@ -113,8 +102,6 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 					logger.String("reqHeader", fmt.Sprintf("%v", reqHeader)),
 					logger.String("duration", duration.String()),
 					logger.String("timestamp", time.Now().Format(time.RFC3339)),
-					logger.String("trace_id", traceId),
-					logger.String("span_id", spanId),
 				)
 			}
 

@@ -266,7 +266,7 @@ func (s *userService) GetLibraryCookie(ctx context.Context, studentId string) (s
 		//如果从缓存获取成功就直接返回,否则降级处理
 		cookie, err := s.cache.GetLibraryCookie(ctx, studentId)
 		if err != nil {
-			tlog.Info("从缓存获取图书馆cookie失败", logger.Error(err))
+			tlog.Warn("从缓存获取图书馆cookie失败", logger.Error(err))
 
 			//直接获取新的
 			newCookie, err = s.getNewLibraryCookie(ctx, studentId)

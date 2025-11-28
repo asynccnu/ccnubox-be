@@ -1,6 +1,10 @@
 package logger
 
+import "context"
+
 type Logger interface {
+	WithContext(ctx context.Context) Logger
+
 	Debug(msg string, args ...Field)
 	Info(msg string, args ...Field)
 	Warn(msg string, args ...Field)

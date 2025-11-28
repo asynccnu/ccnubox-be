@@ -58,12 +58,12 @@ func InitGinServer(
 	api.Use(
 		// 跨域中间件
 		corsMiddleware.MiddlewareFunc(),
+		// 追踪中间件
+		otelMiddleware.Middleware(),
 		// 打点中间件
 		prometheusMiddleware.MiddlewareFunc(),
 		// 日志中间件
 		loggerMiddleware.MiddlewareFunc(),
-		// 追踪中间件
-		otelMiddleware.Middleware(),
 	)
 
 	//创建用户认证中间件

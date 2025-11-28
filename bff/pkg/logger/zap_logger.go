@@ -10,7 +10,7 @@ type ZapLogger struct {
 	l *zap.Logger
 }
 
-// NewZapLogger 创建一个新的 ZapLogger 实例
+// NewZapLogger 创建一个新的 ZapLogger 实例zz
 // l 是传入的 zap.Logger 实例
 func NewZapLogger(l *zap.Logger) Logger {
 	return &ZapLogger{

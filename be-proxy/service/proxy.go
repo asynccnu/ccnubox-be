@@ -104,7 +104,6 @@ func (s *ShenLongProxy) fetchIp() {
 			continue
 		}
 		_ = resp.Body.Close() // 读取完就关闭, for里面defer有资源泄漏问题
-		fmt.Println("fetch ip resp:", string(body))
 
 		// 如果不能正常获取ip会是{code: xx, msg: xx}的json
 		if !strings.Contains(string(body), "code") {

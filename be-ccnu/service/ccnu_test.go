@@ -29,6 +29,10 @@ func (t *TestLogger) Error(msg string, args ...logger.Field) {
 
 }
 
+func (t *TestLogger) WithContext(ctx context.Context) logger.Logger {
+	return &TestLogger{}
+}
+
 type MockProxy struct{}
 
 func (m *MockProxy) GetProxyAddr(ctx context.Context, in *proxyv1.GetProxyAddrRequest, opts ...grpc.CallOption) (*proxyv1.GetProxyAddrResponse, error) {

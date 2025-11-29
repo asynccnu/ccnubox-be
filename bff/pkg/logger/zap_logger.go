@@ -1,54 +1,89 @@
 package logger
 
 import (
+	"context"
+	"errors"
+
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-// ZapLogger 封装了一个 zap.Logger 实例
 type ZapLogger struct {
-	l *zap.Logger
+	l   *zap.Logger
+	ctx context.Context
 }
 
-// NewZapLogger 创建一个新的 ZapLogger 实例
-// l 是传入的 zap.Logger 实例
 func NewZapLogger(l *zap.Logger) Logger {
 	return &ZapLogger{
-		l: l,
+		l:   l,
+		ctx: context.Background(),
 	}
 }
 
-// Debug 方法记录一条调试级别的日志消息
-// msg 是日志消息
-// args 是可变参数，表示附加的字段
+// WithContext 创建并返回一个持有传入 ctx 的新 zapLogger 指针
+// 该 ctx 一般包含 trace 相关信息
+func (z *ZapLogger) WithContext(ctx context.Context) Logger {
+	return &ZapLogger{
+		l:   z.l,
+		ctx: ctx,
+	}
+}
+
 func (z *ZapLogger) Debug(msg string, args ...Field) {
-	z.l.Debug(msg, z.toArgs(args)...)
+	z.log(zapcore.DebugLevel, msg, args...)
 }
 
-// Info 方法记录一条信息级别的日志消息
-// msg 是日志消息
-// args 是可变参数，表示附加的字段
 func (z *ZapLogger) Info(msg string, args ...Field) {
-	z.l.Info(msg, z.toArgs(args)...)
+	z.log(zapcore.InfoLevel, msg, args...)
 }
 
-// Warn 方法记录一条警告级别的日志消息
-// msg 是日志消息
-// args 是可变参数，表示附加的字段
 func (z *ZapLogger) Warn(msg string, args ...Field) {
-	z.l.Warn(msg, z.toArgs(args)...)
+	z.log(zapcore.ErrorLevel, msg, args...)
 }
 
-// Error 方法记录一条错误级别的日志消息
-// msg 是日志消息
-// args 是可变参数，表示附加的字段
+// 单独对 Error 级别进行特殊处理，向 Span 报告错误
 func (z *ZapLogger) Error(msg string, args ...Field) {
-	z.l.Error(msg, z.toArgs(args)...)
+	span := trace.SpanFromContext(z.ctx)
+
+	// 判断是否在 Trace 中
+	if span.SpanContext().IsValid() {
+		span.RecordError(errors.New(msg))
+		span.SetStatus(codes.Error, msg)
+	}
+
+	z.log(zapcore.ErrorLevel, msg, args...)
 }
 
-// toArgs 方法将自定义的 Field 类型转换为 zap.Field 类型
-// args 是 Field 类型的切片
-// 返回值是 zap.Field 类型的切片
+// 这里使用统一的日志处理逻辑负责把 trace_id 和 span_id 注入到 zap 的字段里
+func (z *ZapLogger) log(level zapcore.Level, msg string, args ...Field) {
+	zapFields := z.toArgs(args)
+
+	// 尝试从 Context 提取 Trace 信息
+	span := trace.SpanFromContext(z.ctx)
+	if span.SpanContext().IsValid() {
+		// 注入 TraceID 和 SpanID
+		zapFields = append(zapFields,
+			zap.String("trace_id", span.SpanContext().TraceID().String()),
+			zap.String("span_id", span.SpanContext().SpanID().String()),
+		)
+	}
+
+	switch level {
+	case zapcore.DebugLevel:
+		z.l.Debug(msg, zapFields...)
+	case zapcore.InfoLevel:
+		z.l.Info(msg, zapFields...)
+	case zapcore.WarnLevel:
+		z.l.Warn(msg, zapFields...)
+	case zapcore.ErrorLevel:
+		z.l.Error(msg, zapFields...)
+	default:
+		z.l.Info(msg, zapFields...)
+	}
+}
+
 func (z *ZapLogger) toArgs(args []Field) []zap.Field {
 	res := make([]zap.Field, 0, len(args))
 	for _, arg := range args {
@@ -56,6 +91,7 @@ func (z *ZapLogger) toArgs(args []Field) []zap.Field {
 	}
 	return res
 }
+
 func ProdEncoderConfig() zapcore.EncoderConfig {
 	return zapcore.EncoderConfig{
 		TimeKey:       "@timestamp",

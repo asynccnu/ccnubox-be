@@ -3,17 +3,20 @@ package ioc
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-ccnu/grpc"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/pkg/logger"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport"
 	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"time"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func InitGRPCxKratosServer(grpcServer *grpc.CCNUServiceServer, ecli *clientv3.Client, l logger.Logger) grpcx.Server {
@@ -33,6 +36,7 @@ func InitGRPCxKratosServer(grpcServer *grpc.CCNUServiceServer, ecli *clientv3.Cl
 		kgrpc.Address(cfg.Addr),
 		kgrpc.Middleware(
 			recovery.Recovery(),
+			tracing.Server(), // 必须放 log 前，不然日志获取不到 traceid
 			LoggingMiddleware(l),
 		),
 		kgrpc.Timeout(2*time.Minute), //给一个最终死亡时间2分钟
@@ -57,6 +61,13 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 			tr, ok := transport.FromServerContext(ctx)
 			if !ok {
 				return handler(ctx, req)
+			}
+
+			var traceId, spanId string
+			span := trace.SpanFromContext(ctx)
+			if span.SpanContext().IsValid() {
+				traceId = span.SpanContext().TraceID().String()
+				spanId = span.SpanContext().SpanID().String()
 			}
 
 			// 记录请求开始时间
@@ -87,6 +98,8 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 						logger.String("file", customError.File),
 						logger.Int("line", customError.Line),
 						logger.String("function", customError.Function),
+						logger.String("trace_id", traceId),
+						logger.String("span_id", spanId),
 					)
 					//转化为 kratos 的错误,非常的优雅
 					err = customError.ERR
@@ -100,6 +113,8 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 					logger.String("reqHeader", fmt.Sprintf("%v", reqHeader)),
 					logger.String("duration", duration.String()),
 					logger.String("timestamp", time.Now().Format(time.RFC3339)),
+					logger.String("trace_id", traceId),
+					logger.String("span_id", spanId),
 				)
 			}
 

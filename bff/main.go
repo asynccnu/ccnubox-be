@@ -1,6 +1,11 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/asynccnu/ccnubox-be/bff/ioc"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/pflag" // 导入 pflag 包，用于命令行参数解析
 	"github.com/spf13/viper" // 导入 viper 包，用于配置文件解析
@@ -8,6 +13,16 @@ import (
 
 func main() {
 	initViper() // 初始化 viper 以读取配置文件
+
+	// 初始化 OTel 并注册优雅关闭
+	shutdown := ioc.InitOTel()
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := shutdown(ctx); err != nil {
+			panic(fmt.Sprintln("OTel shutdown error:", err))
+		}
+	}()
 
 	app := InitApp()
 	app.Start()

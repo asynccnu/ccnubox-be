@@ -11,6 +11,8 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // user板块的控制路由
@@ -45,9 +47,15 @@ func (h *UserHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 // @Success 200 {object} web.Response "Success"
 // @Router /users/login_ccnu [post]
 func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Response, error) {
+	// otelgin 中间件将 Span 注入的是这个标准 go context
+	c := ctx.Request.Context()
+
+	// 记录学号存入 span
+	span := trace.SpanFromContext(c)
+	span.SetAttributes(attribute.String("student_id", req.Password))
 
 	// 检测是否学生证账号密码正确,如果通行证失败的话会去查本地,如果本地也失败就会丢出系统异常错误,否则是账号密码不正确
-	resp, err := h.userSvc.CheckUser(ctx, &userv1.CheckUserReq{
+	resp, err := h.userSvc.CheckUser(c, &userv1.CheckUserReq{
 		StudentId: req.StudentId,
 		Password:  req.Password,
 	})
@@ -66,7 +74,7 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 	}
 
 	// FindOrCreate
-	_, err = h.userSvc.SaveUser(ctx, &userv1.SaveUserReq{StudentId: req.StudentId, Password: req.Password})
+	_, err = h.userSvc.SaveUser(c, &userv1.SaveUserReq{StudentId: req.StudentId, Password: req.Password})
 	if err != nil {
 		return web.Response{}, errs.LOGIN_BY_CCNU_ERROR(err)
 	}

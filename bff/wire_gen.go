@@ -23,6 +23,7 @@ func InitApp() *App {
 	basicAuthMiddleware := middleware.NewBasicAuthMiddleware()
 	prometheusCounter := ioc.InitPrometheus()
 	prometheusMiddleware := middleware.NewPrometheusMiddleware(prometheusCounter, cmdable)
+	otelMiddleware := middleware.NewOtelMiddlerware()
 	client := ioc.InitEtcdClient()
 	freeClassroomSvcClient := ioc.InitFreeClassroomClient(client)
 	classRoomHandler := ioc.InitClassRoomHandler(freeClassroomSvcClient)
@@ -61,7 +62,7 @@ func InitApp() *App {
 	libraryClient := ioc.InitLibrary(client)
 	libraryHandler := ioc.InitLibraryHandler(libraryClient)
 	swagHandler := ioc.InitSwagHandler()
-	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, basicAuthMiddleware, prometheusMiddleware, classRoomHandler, tubeHandler, userHandler, staticHandler, bannerHandler, departmentHandler, websiteHandler, calendarHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, feedbackHelpHandler, infoSumHandler, cardHandler, metricsHandler, libraryHandler, swagHandler)
+	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, basicAuthMiddleware, prometheusMiddleware, otelMiddleware, classRoomHandler, tubeHandler, userHandler, staticHandler, bannerHandler, departmentHandler, websiteHandler, calendarHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, feedbackHelpHandler, infoSumHandler, cardHandler, metricsHandler, libraryHandler, swagHandler)
 	app := NewApp(engine)
 	return app
 }

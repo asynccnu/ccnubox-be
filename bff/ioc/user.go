@@ -2,12 +2,12 @@ package ioc
 
 import (
 	"context"
+
 	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/grpcx"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
-	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"time"
 )
 
 func InitUserClient(ecli *clientv3.Client) userv1.UserServiceClient {
@@ -24,14 +24,8 @@ func InitUserClient(ecli *clientv3.Client) userv1.UserServiceClient {
 
 	r := etcd.New(ecli)
 	//grpc启动!
-	cc, err := grpc.DialInsecure(context.Background(),
-		grpc.WithEndpoint(cfg.Endpoint),
-		grpc.WithDiscovery(r),
-		grpc.WithTimeout(120*time.Second),
-	)
-	if err != nil {
-		panic(err)
-	}
+	cc := grpcx.Dial(context.Background(), r, cfg.Endpoint)
+
 	//创建一个用户服务实体
 	client := userv1.NewUserServiceClient(cc)
 	return client

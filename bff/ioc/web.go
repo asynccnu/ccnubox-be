@@ -29,6 +29,7 @@ func InitGinServer(
 	corsMiddleware *middleware.CorsMiddleware,
 	basicAuthMiddleware *middleware.BasicAuthMiddleware,
 	prometheusMiddleware *middleware.PrometheusMiddleware,
+	otelMiddleware *middleware.OtelMiddleware,
 	classroom *classroom.ClassRoomHandler,
 	tube *tube.TubeHandler,
 	user *user.UserHandler,
@@ -57,6 +58,8 @@ func InitGinServer(
 	api.Use(
 		// 跨域中间件
 		corsMiddleware.MiddlewareFunc(),
+		// 追踪中间件
+		otelMiddleware.Middleware(),
 		// 打点中间件
 		prometheusMiddleware.MiddlewareFunc(),
 		// 日志中间件

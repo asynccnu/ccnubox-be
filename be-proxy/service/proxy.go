@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-proxy/pkg/logger"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
-	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-proxy/pkg/logger"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
+	"github.com/spf13/viper"
 )
 
 type ShenLongProxy struct {
@@ -87,7 +88,6 @@ func (s *ShenLongProxy) fetchIp() {
 
 		resp, err := http.Get(s.Api)
 		if err != nil {
-			log.Errorf("fetch ip fail(attempt %d/%d): %v", i+1, s.RetryCount, err)
 			s.l.Error("fetch ip fail",
 				logger.Error(err),
 				logger.Int("attempt", i+1),
@@ -96,7 +96,6 @@ func (s *ShenLongProxy) fetchIp() {
 		}
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Errorf("read resp when fetching ip fail(attempt %d): %v", i+1, s.RetryCount)
 			s.l.Error("read resp when fetching ip fail",
 				logger.Error(err),
 				logger.Int("attempt", i+1),
@@ -115,7 +114,6 @@ func (s *ShenLongProxy) fetchIp() {
 
 			break
 		} else {
-			log.Errorf("fetch ip fail, invalid resp(attempt %d): %s", i+1, string(body))
 			s.l.Error("fetch ip fail, invalid resp",
 				logger.String("resp", string(body)),
 				logger.Int("attempt", i+1),

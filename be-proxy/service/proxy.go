@@ -4,14 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
-	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-proxy/pkg/logger"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
+	"github.com/spf13/viper"
 )
 
 type ShenLongProxy struct {
@@ -23,22 +25,14 @@ type ShenLongProxy struct {
 	Password     string
 
 	mu sync.RWMutex // 异步写+并发读
+	l  logger.Logger
 }
 
 var (
-	once sync.Once // 保证只初始化一次
-
 	ErrEmptyConfig = errors.New("empty config")
 )
 
 func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, error) {
-	// 懒初始化
-	if s == nil {
-		once.Do(func() {
-			NewProxyService()
-		})
-	}
-
 	// 未配置代理时使用
 	if s.Api == "" {
 		log.Warnf("empty proxy setting")
@@ -53,7 +47,7 @@ func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, error) {
 	return proxyAddr, nil
 }
 
-func NewProxyService() ProxyService {
+func NewProxyService(l logger.Logger) ProxyService {
 	var config struct {
 		Api      string `json:"api"`
 		Interval int    `json:"interval"`
@@ -76,6 +70,8 @@ func NewProxyService() ProxyService {
 		RetryCount:   config.Retry,
 		Username:     config.Username,
 		Password:     config.Password,
+
+		l: l,
 	}
 	// 初始化之后就要马上更新一次ip, 保证不是空的
 	s.fetchIp()
@@ -92,26 +88,37 @@ func (s *ShenLongProxy) fetchIp() {
 
 		resp, err := http.Get(s.Api)
 		if err != nil {
-			log.Errorf("fetch ip fail(attempt %d/%d): %v", i+1, s.RetryCount, err)
-			// TODO: log
+			s.l.Error("fetch ip fail",
+				logger.Error(err),
+				logger.Int("attempt", i+1),
+			)
 			continue
 		}
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Errorf("read resp when fetching ip fail(attempt %d): %v", i+1, s.RetryCount)
+			s.l.Error("read resp when fetching ip fail",
+				logger.Error(err),
+				logger.Int("attempt", i+1),
+			)
 			continue
 		}
 		_ = resp.Body.Close() // 读取完就关闭, for里面defer有资源泄漏问题
 
 		// 如果不能正常获取ip会是{code: xx, msg: xx}的json
 		if !strings.Contains(string(body), "code") {
-
-			log.Debug("fetch ip success, now: ", time.Now())
+			s.l.Info("fetch ip success",
+				logger.String("time", time.Now().Format(time.RFC3339)),
+			)
 			s.mu.Lock()
 			s.Addr = s.wrapRes(string(body))
 			s.mu.Unlock()
 
 			break
+		} else {
+			s.l.Error("fetch ip fail, invalid resp",
+				logger.String("resp", string(body)),
+				logger.Int("attempt", i+1),
+			)
 		}
 
 		time.Sleep(time.Second * 2)

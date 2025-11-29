@@ -106,7 +106,7 @@ func (s *ShenLongProxy) fetchIp() {
 
 		// 如果不能正常获取ip会是{code: xx, msg: xx}的json
 		if !strings.Contains(string(body), "code") {
-			s.l.Error("fetch ip success",
+			s.l.Info("fetch ip success",
 				logger.String("time", time.Now().Format(time.RFC3339)),
 			)
 			s.mu.Lock()

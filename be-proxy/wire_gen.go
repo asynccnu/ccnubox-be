@@ -16,10 +16,10 @@ import (
 // Injectors from wire.go:
 
 func InitGRPCServer() grpcx.Server {
-	proxyService := service.NewProxyService()
+	logger := ioc.InitLogger()
+	proxyService := service.NewProxyService(logger)
 	proxyServiceServer := grpc.NewProxyServiceServer(proxyService)
 	client := ioc.InitEtcdClient()
-	logger := ioc.InitLogger()
 	server := ioc.InitGRPCxKratosServer(proxyServiceServer, client, logger)
 	return server
 }

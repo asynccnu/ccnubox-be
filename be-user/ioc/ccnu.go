@@ -2,12 +2,14 @@ package ioc
 
 import (
 	"context"
+	"time"
+
 	ccnuv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/ccnu/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
+	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
-	"time"
 )
 
 func InitCCNUClient(etcdClient *etcdv3.Client) ccnuv1.CCNUServiceClient {
@@ -27,6 +29,9 @@ func InitCCNUClient(etcdClient *etcdv3.Client) ccnuv1.CCNUServiceClient {
 		grpc.WithEndpoint(cfg.Endpoint),
 		grpc.WithDiscovery(r),
 		grpc.WithTimeout(2*time.Minute), // 华师的超时设置为2分钟
+		grpc.WithMiddleware(
+			tracing.Client(),
+		),
 	)
 	if err != nil {
 		panic(err)

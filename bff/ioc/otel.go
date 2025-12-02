@@ -16,7 +16,6 @@ type OtelConfig struct {
 	Endpoint       string `yaml:"endpoint"`
 }
 
-// 提供给中间件优雅关闭函数
 // InitOTel 初始化
 func InitOTel() func(ctx context.Context) error {
 	var cfg OtelConfig

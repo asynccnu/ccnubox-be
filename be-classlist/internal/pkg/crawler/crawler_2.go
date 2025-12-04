@@ -82,9 +82,21 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 		return nil, nil, err
 	}
 	req.Header = http.Header{
-		"Cookie":       []string{cookie},
-		"Content-Type": []string{"application/x-www-form-urlencoded;charset=UTF-8"},
-		"User-Agent":   []string{"Mozilla/5.0"}, // 精简UA
+		"Accept":             []string{"*/*"},
+		"Accept-Language":    []string{"zh-CN,zh;q=0.9,en;q=0.8"},
+		"Connection":         []string{"keep-alive"},
+		"Content-Type":       []string{"application/x-www-form-urlencoded;charset=UTF-8"},
+		"Origin":             []string{"https://xk.ccnu.edu.cn"},
+		"Referer":            []string{"https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXskbcxIndex.html?gnmkdm=N2151&layout=default"},
+		"Sec-Ch-Ua":          []string{`"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`},
+		"Sec-Ch-Ua-Mobile":   []string{"?0"},
+		"Sec-Ch-Ua-Platform": []string{`"Windows"`},
+		"Sec-Fetch-Dest":     []string{"empty"},
+		"Sec-Fetch-Mode":     []string{"cors"},
+		"Sec-Fetch-Site":     []string{"same-origin"},
+		"Cookie":             []string{cookie},
+		"User-Agent":         []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"},
+		"X-Requested-With":   []string{"XMLHttpRequest"},
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {

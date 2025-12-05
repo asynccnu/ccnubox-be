@@ -2,14 +2,15 @@ package middleware
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"time"
 )
 
 type LoggerMiddleware struct {
@@ -39,7 +40,7 @@ func (lm *LoggerMiddleware) MiddlewareFunc() gin.HandlerFunc {
 
 // 提取的日志逻辑：记录自定义错误日志
 func (lm *LoggerMiddleware) logCustomError(customError *errorx.CustomError, ctx *gin.Context) {
-	lm.log.Error("处理请求出错",
+	lm.log.WithContext(ctx.Request.Context()).Error("处理请求出错",
 		logger.Error(customError),
 		logger.String("timestamp", time.Now().Format(time.RFC3339)),
 		logger.String("ip", ctx.ClientIP()),
@@ -58,7 +59,7 @@ func (lm *LoggerMiddleware) logCustomError(customError *errorx.CustomError, ctx 
 
 // 提取的日志逻辑：记录未知错误日志
 func (lm *LoggerMiddleware) logUnexpectedError(err error, ctx *gin.Context) {
-	lm.log.Error("意外错误类型",
+	lm.log.WithContext(ctx.Request.Context()).Error("意外错误类型",
 		logger.Error(err),
 		logger.String("timestamp", time.Now().Format(time.RFC3339)),
 		logger.String("ip", ctx.ClientIP()),
@@ -69,7 +70,7 @@ func (lm *LoggerMiddleware) logUnexpectedError(err error, ctx *gin.Context) {
 }
 
 func (lm *LoggerMiddleware) commonInfo(ctx *gin.Context) {
-	lm.log.Info("请求正常",
+	lm.log.WithContext(ctx.Request.Context()).Info("请求正常",
 		logger.String("timestamp", time.Now().Format(time.RFC3339)),
 		logger.String("ip", ctx.ClientIP()),
 		logger.String("path", ctx.Request.URL.Path),

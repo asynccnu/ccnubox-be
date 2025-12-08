@@ -52,7 +52,7 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 
 	// 记录学号存入 span
 	span := trace.SpanFromContext(c)
-	span.SetAttributes(attribute.String("student_id", req.Password))
+	span.SetAttributes(attribute.String("student_id", req.StudentId))
 
 	// 检测是否学生证账号密码正确,如果通行证失败的话会去查本地,如果本地也失败就会丢出系统异常错误,否则是账号密码不正确
 	resp, err := h.userSvc.CheckUser(c, &userv1.CheckUserReq{

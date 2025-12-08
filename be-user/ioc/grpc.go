@@ -75,11 +75,13 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 			// 计算耗时
 			duration := time.Since(start)
 
+			tlog := l.WithContext(ctx)
+
 			if err != nil {
 				customError := errorx.ToCustomError(err)
 				if customError != nil {
 					// 捕获错误并记录
-					l.Error("执行业务逻辑出错",
+					tlog.Error("执行业务逻辑出错",
 						logger.Error(err),
 						logger.String("operationName", operationName),
 						logger.String("endPointName", endPointName),
@@ -95,7 +97,7 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 				}
 			} else {
 				// 记录常规日志
-				l.Info("请求成功",
+				tlog.Info("请求成功",
 					logger.String("operationName", operationName),
 					logger.String("endPointName", endPointName),
 					logger.String("request", fmt.Sprintf("%v", req)),

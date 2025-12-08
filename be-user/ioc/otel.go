@@ -3,11 +3,9 @@ package ioc
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/asynccnu/ccnubox-be/be-user/pkg/otelx"
 	"github.com/spf13/viper"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 )

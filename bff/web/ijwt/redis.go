@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
+	"github.com/asynccnu/ccnubox-be/be-pkg/ginx"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"

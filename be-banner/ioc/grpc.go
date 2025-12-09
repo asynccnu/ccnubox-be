@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/asynccnu/ccnubox-be/be-banner/grpc"
 	"github.com/asynccnu/ccnubox-be/be-banner/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-banner/pkg/grpcx"
+	"github.com/asynccnu/ccnubox-be/be-pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-banner/pkg/logger"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"

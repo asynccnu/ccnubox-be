@@ -2,9 +2,10 @@ package infoSum
 
 import (
 	"fmt"
+
 	InfoSumv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/infoSum/v1"
+	"github.com/asynccnu/ccnubox-be/be-pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/department"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"

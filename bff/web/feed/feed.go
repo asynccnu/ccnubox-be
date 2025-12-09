@@ -2,14 +2,15 @@ package feed
 
 import (
 	"fmt"
+	"time"
+
 	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
+	"github.com/asynccnu/ccnubox-be/be-pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
-	"time"
 )
 
 type FeedHandler struct {

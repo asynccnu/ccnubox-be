@@ -4,8 +4,8 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/asynccnu/ccnubox-be/be-pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/gin-gonic/gin"
 )

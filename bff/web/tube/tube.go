@@ -1,7 +1,7 @@
 package tube
 
 import (
-	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
+	"github.com/asynccnu/ccnubox-be/be-pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/gin-gonic/gin"

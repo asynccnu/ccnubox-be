@@ -7,8 +7,8 @@ import (
 
 	cs "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
 	classlistv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
+	"github.com/asynccnu/ccnubox-be/be-pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/gin-gonic/gin"

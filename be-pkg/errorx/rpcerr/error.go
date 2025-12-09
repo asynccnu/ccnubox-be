@@ -1,9 +1,12 @@
-package errorx
+// 由于 rpc 层和 api 层的错误处理机制不一样
+// 这里拆成两个子包来作为公共包
+package rpcerr
 
 import (
 	"errors"
 	"fmt"
-	"runtime"
+
+	"github.com/asynccnu/ccnubox-be/be-pkg/errorx"
 )
 
 // CustomError 自定义错误类型,相比一般的错误减少了code部分,code完全让bff来控制
@@ -29,7 +32,7 @@ func (e *CustomError) Error() string {
 // New 创建新的 CustomError
 func New(ERR error, category string, cause error) error {
 	// 获取调用栈信息
-	file, line, function := getCallerInfo(3)
+	file, line, function := errorx.GetCallerInfo(3)
 	return &CustomError{
 		ERR:      ERR,
 		Category: category,
@@ -38,17 +41,6 @@ func New(ERR error, category string, cause error) error {
 		Line:     line,
 		Function: function,
 	}
-}
-
-// getCallerInfo 获取调用信息
-func getCallerInfo(skip int) (string, int, string) {
-	// skip: 调用栈层级，1 表示当前函数，2 表示上层调用函数,3表示上层函数(一般用3,因为要额外包一层)
-	pc, file, line, ok := runtime.Caller(skip)
-	if !ok {
-		return "unknown", 0, "unknown"
-	}
-	function := runtime.FuncForPC(pc).Name()
-	return file, line, function
 }
 
 // 转换为自定义错误类型

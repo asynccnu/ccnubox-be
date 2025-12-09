@@ -3,7 +3,8 @@
 ## 更新包依赖
 
 ds=(
-  "be-api"
+  "common/be-api"
+  "common/pkg"
   "be-banner"
   "be-calendar"
   "be-ccnu"

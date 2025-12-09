@@ -3,11 +3,12 @@ package biz
 import (
 	"context"
 	"fmt"
-	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-class/internal/lock"
 	clog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/model"
-	"time"
+	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1"
 )
 
 type EsProxy interface {

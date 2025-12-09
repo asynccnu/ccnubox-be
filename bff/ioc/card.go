@@ -2,12 +2,13 @@ package ioc
 
 import (
 	"context"
-	cardv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/card/v1"
+	"time"
+
+	cardv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/card/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"time"
 )
 
 func InitCardClient(ecli *clientv3.Client) cardv1.CardClient {

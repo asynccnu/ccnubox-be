@@ -4,13 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -19,6 +12,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
 )
 
 type Crawler2 struct {

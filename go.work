@@ -1,10 +1,10 @@
 go 1.24.0
 
 use (
-	be-pkg
+	common/pkg
+	common/be-api
 	be-library
 	be-proxy
-	be-api
 	be-banner
 	be-calendar
 	be-ccnu

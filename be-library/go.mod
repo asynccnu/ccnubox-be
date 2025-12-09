@@ -2,11 +2,11 @@ module github.com/asynccnu/ccnubox-be/be-library
 
 go 1.24.0
 
-replace github.com/asynccnu/ccnubox-be/be-api => ../be-api
+replace github.com/asynccnu/ccnubox-be/common/be-api => ./../common/be-api
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.3
-	github.com/asynccnu/ccnubox-be/be-api v0.0.0-20250405084424-22872348780a
+	github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-20250405084424-22872348780a
 	github.com/go-kratos/kratos/contrib/log/zap/v2 v2.0.0-20250527152916-d6f5f00cf562
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20250527152916-d6f5f00cf562
 	github.com/go-kratos/kratos/v2 v2.8.4

@@ -5,18 +5,19 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	elecpricev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/elecprice/v1"
-	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
+	"net/url"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-elecprice/domain"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/model"
+	elecpricev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/elecprice/v1"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
 	"github.com/go-kratos/kratos/v2/log"
-	"net/url"
-	"strconv"
-	"sync"
-	"time"
 )
 
 var (

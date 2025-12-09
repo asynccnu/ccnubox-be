@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	pb "github.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/biz"
+	pb "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/library/v1"
 	"github.com/go-kratos/kratos/v2/log"
 )
 

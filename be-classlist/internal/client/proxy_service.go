@@ -2,14 +2,15 @@ package client
 
 import (
 	"context"
-	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	"time"
 )
 
 func InitProxyClient(r *etcd.Registry, cf *conf.Registry, logger log.Logger) (proxyv1.ProxyClient, error) {

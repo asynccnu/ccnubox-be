@@ -2,12 +2,13 @@ package ioc
 
 import (
 	"context"
-	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
+	"time"
+
+	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
-	"time"
 )
 
 func InitUserClient(etcdClient *etcdv3.Client) userv1.UserServiceClient {

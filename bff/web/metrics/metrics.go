@@ -3,11 +3,11 @@ package metrics
 import (
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-pkg/ginx"
-	"github.com/asynccnu/ccnubox-be/be-pkg/logger"
-	"github.com/asynccnu/ccnubox-be/be-pkg/prometheusx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/prometheusx"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"

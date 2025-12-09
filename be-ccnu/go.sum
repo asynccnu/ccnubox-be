@@ -1,7 +1,7 @@
 cel.dev/expr v0.19.1 h1:NciYrtDRIR0lNCnH1LFJegdjspNx9fI59O7TWcua/W4=
 cel.dev/expr v0.19.1/go.mod h1:MrpN08Q+lEBs+bGYdLxxHkZoUSsCp0nSKTs0nTymJgw=
-github.com/asynccnu/ccnubox-be/be-api v0.0.0-20251113070925-e10c26a8683c h1:Mq5n/o3TDTZZAnCpYj3NR9fLIWEpFw0RMTaADtrd8S4=
-github.com/asynccnu/ccnubox-be/be-api v0.0.0-20251113070925-e10c26a8683c/go.mod h1:rmJRoduzJaoaQGfOSvpWrNq4DWo9L1sSoqQwHa1gR/0=
+github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-20251113070925-e10c26a8683c h1:Mq5n/o3TDTZZAnCpYj3NR9fLIWEpFw0RMTaADtrd8S4=
+github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-20251113070925-e10c26a8683c/go.mod h1:rmJRoduzJaoaQGfOSvpWrNq4DWo9L1sSoqQwHa1gR/0=
 github.com/cncf/xds/go v0.0.0-20241223141626-cff3c89139a3 h1:boJj011Hh+874zpIySeApCX4GeOjPl9qhRF3QuIZq+Q=
 github.com/cncf/xds/go v0.0.0-20241223141626-cff3c89139a3/go.mod h1:W+zGtBO5Y1IgJhy4+A9GOqVhqLpfZi+vwmdNXUehLA8=
 github.com/coreos/go-semver v0.3.0 h1:wkHLiw0WNATZnSG7epLsujiMCgPAc9xhjJ4tgnAxmfM=

@@ -3,13 +3,6 @@ package crawler
 import (
 	"context"
 	"fmt"
-	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
-	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -17,6 +10,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
+	"github.com/valyala/fastjson"
 )
 
 // Notice: 爬虫相关

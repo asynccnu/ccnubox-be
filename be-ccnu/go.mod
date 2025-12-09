@@ -4,8 +4,10 @@ go 1.24.0
 
 toolchain go1.24.4
 
+replace github.com/asynccnu/ccnubox-be/common/be-api => ./../common/be-api
+
 require (
-	github.com/asynccnu/ccnubox-be/be-api v0.0.0-20251113070925-e10c26a8683c
+	github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-20251113070925-e10c26a8683c
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20250403070952-9580f086e326
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/google/wire v0.6.0

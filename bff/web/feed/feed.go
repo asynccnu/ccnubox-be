@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
-	"github.com/asynccnu/ccnubox-be/be-pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )

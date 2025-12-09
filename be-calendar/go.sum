@@ -8,8 +8,8 @@ github.com/alex-ant/gomath v0.0.0-20160516115720-89013a210a82 h1:7dONQ3WNZ1zy960
 github.com/alex-ant/gomath v0.0.0-20160516115720-89013a210a82/go.mod h1:nLnM0KdK1CmygvjpDUO6m1TjSsiQtL61juhNsvV/JVI=
 github.com/andybalholm/cascadia v1.3.3 h1:AG2YHrzJIm4BZ19iwJ/DAua6Btl3IwJX+VI4kktS1LM=
 github.com/andybalholm/cascadia v1.3.3/go.mod h1:xNd9bqTn98Ln4DwST8/nG+H0yuB8Hmgu1YHNnWw0GeA=
-github.com/asynccnu/ccnubox-be/be-api v0.0.0-20251028152349-764b4868c185 h1:d7Lg+iKtpTEYEorFlQheEJE6Bzlos/49EddWeSI5tJo=
-github.com/asynccnu/ccnubox-be/be-api v0.0.0-20251028152349-764b4868c185/go.mod h1:rmJRoduzJaoaQGfOSvpWrNq4DWo9L1sSoqQwHa1gR/0=
+github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-20251028152349-764b4868c185 h1:d7Lg+iKtpTEYEorFlQheEJE6Bzlos/49EddWeSI5tJo=
+github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-20251028152349-764b4868c185/go.mod h1:rmJRoduzJaoaQGfOSvpWrNq4DWo9L1sSoqQwHa1gR/0=
 github.com/boombuler/barcode v1.0.0/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=
 github.com/bsm/ginkgo/v2 v2.12.0/go.mod h1:SwYbGRRDovPVboqFv0tPTcG1sN61LM1Z4ARdbAV9g4c=

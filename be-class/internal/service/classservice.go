@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"errors"
-	pb "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
-	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
+
 	"github.com/asynccnu/ccnubox-be/be-class/internal/model"
+	pb "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classService/v1"
+	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1"
 )
 
 type ClassInfoProxy interface {

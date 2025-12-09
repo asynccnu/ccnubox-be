@@ -2,10 +2,10 @@ module github.com/asynccnu/ccnubox-be/bff
 
 go 1.24.0
 
-replace github.com/asynccnu/ccnubox-be/be-api => ../be-api
+replace github.com/asynccnu/ccnubox-be/common/be-api => ./../common/be-api
 
 require (
-	github.com/asynccnu/ccnubox-be/be-api v0.0.0-00010101000000-000000000000
+	github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-00010101000000-000000000000
 	github.com/ecodeclub/ekit v0.0.9
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-gonic/gin v1.10.1

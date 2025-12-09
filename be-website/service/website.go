@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	websitev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/website/v1"
 	"github.com/asynccnu/ccnubox-be/be-website/domain"
 	"github.com/asynccnu/ccnubox-be/be-website/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/be-website/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-website/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-website/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-website/repository/model"
+	websitev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/website/v1"
 	"github.com/jinzhu/copier"
 )
 

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/producer"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/topic"
@@ -11,6 +11,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
 )
 
 // FeedEventService

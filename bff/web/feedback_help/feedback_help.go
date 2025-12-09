@@ -3,11 +3,11 @@ package feedback_help
 import (
 	"fmt"
 
-	feedback_helpv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feedback_help/v1"
-	"github.com/asynccnu/ccnubox-be/be-pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	feedback_helpv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feedback_help/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/gin-gonic/gin"
 )
 

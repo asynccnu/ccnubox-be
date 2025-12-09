@@ -4,19 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
-	"github.com/asynccnu/ccnubox-be/be-class/internal/model"
-	"github.com/asynccnu/ccnubox-be/be-class/internal/service"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
-	"gorm.io/gorm"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/asynccnu/ccnubox-be/be-class/internal/model"
+	"github.com/asynccnu/ccnubox-be/be-class/internal/service"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
+	"gorm.io/gorm"
 )
 
 const (

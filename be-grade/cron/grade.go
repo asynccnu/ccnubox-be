@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	classlistv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
-	counterv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/counter/v1"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
-	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/be-grade/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
+	classlistv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1"
+	counterv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/counter/v1"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
+	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
 	"github.com/go-redsync/redsync/v4"
 	"github.com/spf13/viper"
 )

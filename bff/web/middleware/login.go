@@ -4,9 +4,9 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/asynccnu/ccnubox-be/be-pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/ecodeclub/ekit/set"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

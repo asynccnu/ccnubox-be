@@ -3,7 +3,7 @@ package errs
 import (
 	"net/http"
 
-	errorx "github.com/asynccnu/ccnubox-be/be-pkg/errorx/apierr"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/apierr"
 )
 
 // TODO 细化错误码,根据错误类型区分不同的错误码

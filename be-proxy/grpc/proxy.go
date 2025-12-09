@@ -3,8 +3,8 @@ package grpc
 import (
 	"context"
 
-	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
 	"github.com/asynccnu/ccnubox-be/be-proxy/service"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
 	"google.golang.org/grpc"
 )
 

@@ -2,7 +2,8 @@ package ioc
 
 import (
 	"context"
-	websitev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/website/v1"
+
+	websitev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/website/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"

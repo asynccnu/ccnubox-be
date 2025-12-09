@@ -2,9 +2,10 @@ package grpc
 
 import (
 	"context"
-	bannerv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/banner/v1"
+
 	"github.com/asynccnu/ccnubox-be/be-banner/domain"
 	"github.com/asynccnu/ccnubox-be/be-banner/service"
+	bannerv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/banner/v1"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 )
 

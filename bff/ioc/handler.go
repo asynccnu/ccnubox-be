@@ -1,6 +1,7 @@
 package ioc
 
 import (
+	"github.com/asynccnu/ccnubox-be/bff/pkg/htmlx"
 	"github.com/asynccnu/ccnubox-be/bff/web/banner"
 	"github.com/asynccnu/ccnubox-be/bff/web/calendar"
 	"github.com/asynccnu/ccnubox-be/bff/web/card"
@@ -36,7 +37,6 @@ import (
 	staticv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/static/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
 	websitev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/website/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/htmlx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/prometheusx"
 	"github.com/ecodeclub/ekit/slice"

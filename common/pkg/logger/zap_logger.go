@@ -40,7 +40,7 @@ func (z *ZapLogger) Info(msg string, args ...Field) {
 }
 
 func (z *ZapLogger) Warn(msg string, args ...Field) {
-	z.log(zapcore.ErrorLevel, msg, args...)
+	z.log(zapcore.WarnLevel, msg, args...)
 }
 
 // 单独对 Error 级别进行特殊处理，向 Span 报告错误

@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-banner/domain"
-	"github.com/asynccnu/ccnubox-be/be-banner/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-banner/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-banner/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-banner/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-banner/repository/model"
 	bannerv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/banner/v1"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/jinzhu/copier"
 )
 

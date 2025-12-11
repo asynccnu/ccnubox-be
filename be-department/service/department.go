@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-department/domain"
-	"github.com/asynccnu/ccnubox-be/be-department/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-department/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-department/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-department/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-department/repository/model"
 	departmentv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/department/v1"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/jinzhu/copier"
 )
 

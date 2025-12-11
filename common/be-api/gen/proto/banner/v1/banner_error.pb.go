@@ -79,7 +79,7 @@ const file_banner_v1_banner_error_proto_rawDesc = "" +
 	"\x11BannerErrorReason\x12\x1a\n" +
 	"\x10GET_BANNER_ERROR\x10\x00\x1a\x04\xa8E\xf5\x03\x12\x1a\n" +
 	"\x10DEL_BANNER_ERROR\x10\x01\x1a\x04\xa8E\xf6\x03\x12\x1b\n" +
-	"\x11SAVE_BANNER_ERROR\x10\x02\x1a\x04\xa8E\xf7\x03\x1a\x04\xa0E\xf4\x03BDZBgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/banner/v1;bannerv1b\x06proto3"
+	"\x11SAVE_BANNER_ERROR\x10\x02\x1a\x04\xa8E\xf7\x03\x1a\x04\xa0E\xf4\x03BKZIgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/banner/v1;bannerv1b\x06proto3"
 
 var (
 	file_banner_v1_banner_error_proto_rawDescOnce sync.Once

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-banner/grpc"
-	"github.com/asynccnu/ccnubox-be/be-banner/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-banner/pkg/logger"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport"

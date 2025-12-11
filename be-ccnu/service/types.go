@@ -6,7 +6,7 @@ import (
 
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
 
-	"github.com/asynccnu/ccnubox-be/be-ccnu/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type CCNUService interface {

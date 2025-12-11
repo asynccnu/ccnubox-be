@@ -2,15 +2,17 @@ package grpcx
 
 import (
 	"context"
-	"github.com/asynccnu/ccnubox-be/be-banner/pkg/logger"
-	"github.com/asynccnu/ccnubox-be/be-banner/pkg/netx"
+
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/netx"
+
+	"net"
+	"strconv"
+	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/naming/endpoints"
 	"google.golang.org/grpc"
-	"net"
-	"strconv"
-	"time"
 )
 
 type GRPCServer struct {

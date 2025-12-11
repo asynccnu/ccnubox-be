@@ -122,7 +122,7 @@ const file_classlist_v1_error_reason_proto_rawDesc = "" +
 	"\rRECOVERFAILED\x10\n" +
 	"\x12\x13\n" +
 	"\x0fGETSTUIDBYJXBID\x10\v\x12\x10\n" +
-	"\fCLASSISEXIST\x10\f\x1a\x04\xa0E\xf4\x03BHZFgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1;classerv1b\x06proto3"
+	"\fCLASSISEXIST\x10\f\x1a\x04\xa0E\xf4\x03BOZMgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1;classerv1b\x06proto3"
 
 var (
 	file_classlist_v1_error_reason_proto_rawDescOnce sync.Once

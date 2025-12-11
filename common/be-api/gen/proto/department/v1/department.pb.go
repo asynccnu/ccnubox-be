@@ -364,7 +364,7 @@ const file_department_v1_department_proto_rawDesc = "" +
 	"\x11DepartmentService\x12]\n" +
 	"\x0eGetDepartments\x12$.department.v1.GetDepartmentsRequest\x1a%.department.v1.GetDepartmentsResponse\x12]\n" +
 	"\x0eSaveDepartment\x12$.department.v1.SaveDepartmentRequest\x1a%.department.v1.SaveDepartmentResponse\x12Z\n" +
-	"\rDelDepartment\x12#.department.v1.DelDepartmentRequest\x1a$.department.v1.DelDepartmentResponseBLZJgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/department/v1;departmentv1b\x06proto3"
+	"\rDelDepartment\x12#.department.v1.DelDepartmentRequest\x1a$.department.v1.DelDepartmentResponseBSZQgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/department/v1;departmentv1b\x06proto3"
 
 var (
 	file_department_v1_department_proto_rawDescOnce sync.Once

@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.19.4
-// source: proto/grade/v1/grade.proto
+// source: grade/v1/grade.proto
 
 package gradev1
 
@@ -275,5 +275,5 @@ var GradeService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/grade/v1/grade.proto",
+	Metadata: "grade/v1/grade.proto",
 }

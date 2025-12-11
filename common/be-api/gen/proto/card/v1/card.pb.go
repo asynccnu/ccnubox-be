@@ -412,7 +412,7 @@ const file_card_v1_card_proto_rawDesc = "" +
 	"\n" +
 	"CreateUser\x12\x1e.api.card.v1.CreateUserRequest\x1a\x1e.api.card.v1.OperationResponse\x12R\n" +
 	"\rUpdateUserKey\x12!.api.card.v1.UpdateUserKeyRequest\x1a\x1e.api.card.v1.OperationResponse\x12q\n" +
-	"\x16GetRecordOfConsumption\x12*.api.card.v1.GetRecordOfConsumptionRequest\x1a+.api.card.v1.GetRecordOfConsumptionResponseB@Z>github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/card/v1;cardv1b\x06proto3"
+	"\x16GetRecordOfConsumption\x12*.api.card.v1.GetRecordOfConsumptionRequest\x1a+.api.card.v1.GetRecordOfConsumptionResponseBGZEgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/card/v1;cardv1b\x06proto3"
 
 var (
 	file_card_v1_card_proto_rawDescOnce sync.Once

@@ -367,7 +367,7 @@ const file_static_v1_static_proto_rawDesc = "" +
 	"\x0fGetStaticByName\x12!.static.v1.GetStaticByNameRequest\x1a\".static.v1.GetStaticByNameResponse\x12I\n" +
 	"\n" +
 	"SaveStatic\x12\x1c.static.v1.SaveStaticRequest\x1a\x1d.static.v1.SaveStaticResponse\x12a\n" +
-	"\x12GetStaticsByLabels\x12$.static.v1.GetStaticsByLabelsRequest\x1a%.static.v1.GetStaticsByLabelsResponseBDZBgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/static/v1;staticv1b\x06proto3"
+	"\x12GetStaticsByLabels\x12$.static.v1.GetStaticsByLabelsRequest\x1a%.static.v1.GetStaticsByLabelsResponseBKZIgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/static/v1;staticv1b\x06proto3"
 
 var (
 	file_static_v1_static_proto_rawDescOnce sync.Once

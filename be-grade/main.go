@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/be-grade/cron"
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/grpcx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )

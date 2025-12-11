@@ -14,12 +14,12 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	gradev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/grade/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 var (

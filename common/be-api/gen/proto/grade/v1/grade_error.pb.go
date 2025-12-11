@@ -71,7 +71,7 @@ const file_grade_v1_grade_error_proto_rawDesc = "" +
 	"\n" +
 	"\x1agrade/v1/grade_error.proto\x12\bgrade.v1\x1a\x13errors/errors.proto*3\n" +
 	"\x10GradeErrorReason\x12\x19\n" +
-	"\x0fGET_GRADE_ERROR\x10\x00\x1a\x04\xa8E\xf5\x03\x1a\x04\xa0E\xf4\x03BBZ@github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/grade/v1;gradev1b\x06proto3"
+	"\x0fGET_GRADE_ERROR\x10\x00\x1a\x04\xa8E\xf5\x03\x1a\x04\xa0E\xf4\x03BIZGgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/grade/v1;gradev1b\x06proto3"
 
 var (
 	file_grade_v1_grade_error_proto_rawDescOnce sync.Once

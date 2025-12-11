@@ -381,7 +381,7 @@ const file_infoSum_v1_infoSum_proto_rawDesc = "" +
 	"\vGetInfoSums\x12\x1e.infoSum.v1.GetInfoSumsRequest\x1a\x1f.infoSum.v1.GetInfoSumsResponse\x12N\n" +
 	"\vSaveInfoSum\x12\x1e.infoSum.v1.SaveInfoSumRequest\x1a\x1f.infoSum.v1.SaveInfoSumResponse\x12K\n" +
 	"\n" +
-	"DelInfoSum\x12\x1d.infoSum.v1.DelInfoSumRequest\x1a\x1e.infoSum.v1.DelInfoSumResponseBFZDgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/infoSum/v1;infoSumv1b\x06proto3"
+	"DelInfoSum\x12\x1d.infoSum.v1.DelInfoSumRequest\x1a\x1e.infoSum.v1.DelInfoSumResponseBMZKgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/infoSum/v1;infoSumv1b\x06proto3"
 
 var (
 	file_infoSum_v1_infoSum_proto_rawDescOnce sync.Once

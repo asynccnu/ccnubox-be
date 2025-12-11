@@ -10,10 +10,10 @@ import (
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
 
 	"github.com/asynccnu/ccnubox-be/be-ccnu/crawler"
-	"github.com/asynccnu/ccnubox-be/be-ccnu/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/tool"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/ccnu/v1"
 	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 // 定义错误,这里将kratos的error作为一个重要部分传入,此处的错误并不直接在service中去捕获,而是选择在更底层的爬虫去捕获,因为爬虫的错误处理非常复杂

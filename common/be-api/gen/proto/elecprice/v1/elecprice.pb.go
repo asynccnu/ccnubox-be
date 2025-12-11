@@ -850,7 +850,7 @@ const file_elecprice_v1_elecprice_proto_rawDesc = "" +
 	"\bGetPrice\x12\x1d.elecprice.v1.GetPriceRequest\x1a\x1e.elecprice.v1.GetPriceResponse\x12R\n" +
 	"\vSetStandard\x12 .elecprice.v1.SetStandardRequest\x1a!.elecprice.v1.SetStandardResponse\x12^\n" +
 	"\x0fGetStandardList\x12$.elecprice.v1.GetStandardListRequest\x1a%.elecprice.v1.GetStandardListResponse\x12[\n" +
-	"\x0eCancelStandard\x12#.elecprice.v1.CancelStandardRequest\x1a$.elecprice.v1.CancelStandardResponseBJZHgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/elecprice/v1;elecpricev1b\x06proto3"
+	"\x0eCancelStandard\x12#.elecprice.v1.CancelStandardRequest\x1a$.elecprice.v1.CancelStandardResponseBQZOgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/elecprice/v1;elecpricev1b\x06proto3"
 
 var (
 	file_elecprice_v1_elecprice_proto_rawDescOnce sync.Once

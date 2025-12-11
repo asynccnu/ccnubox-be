@@ -381,7 +381,7 @@ const file_website_v1_website_proto_rawDesc = "" +
 	"\vGetWebsites\x12\x1e.website.v1.GetWebsitesRequest\x1a\x1f.website.v1.GetWebsitesResponse\x12N\n" +
 	"\vSaveWebsite\x12\x1e.website.v1.SaveWebsiteRequest\x1a\x1f.website.v1.SaveWebsiteResponse\x12K\n" +
 	"\n" +
-	"DelWebsite\x12\x1d.website.v1.DelWebsiteRequest\x1a\x1e.website.v1.DelWebsiteResponseBFZDgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/website/v1;websitev1b\x06proto3"
+	"DelWebsite\x12\x1d.website.v1.DelWebsiteRequest\x1a\x1e.website.v1.DelWebsiteResponseBMZKgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/website/v1;websitev1b\x06proto3"
 
 var (
 	file_website_v1_website_proto_rawDescOnce sync.Once

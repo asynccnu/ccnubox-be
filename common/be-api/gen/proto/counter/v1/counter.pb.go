@@ -444,7 +444,7 @@ const file_counter_v1_counter_proto_rawDesc = "" +
 	"AddCounter\x12\x19.counter.v1.AddCounterReq\x1a\x1a.counter.v1.AddCounterResp\x12U\n" +
 	"\x10GetCounterLevels\x12\x1f.counter.v1.GetCounterLevelsReq\x1a .counter.v1.GetCounterLevelsResp\x12^\n" +
 	"\x13ChangeCounterLevels\x12\".counter.v1.ChangeCounterLevelsReq\x1a#.counter.v1.ChangeCounterLevelsResp\x12[\n" +
-	"\x12ClearCounterLevels\x12!.counter.v1.ClearCounterLevelsReq\x1a\".counter.v1.ClearCounterLevelsRespBFZDgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/counter/v1;counterv1b\x06proto3"
+	"\x12ClearCounterLevels\x12!.counter.v1.ClearCounterLevelsReq\x1a\".counter.v1.ClearCounterLevelsRespBMZKgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/counter/v1;counterv1b\x06proto3"
 
 var (
 	file_counter_v1_counter_proto_rawDescOnce sync.Once

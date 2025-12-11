@@ -3,9 +3,10 @@ package saramax
 import (
 	"context"
 	"encoding/json"
-	"github.com/IBM/sarama"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/logger"
 	"time"
+
+	"github.com/IBM/sarama"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type BatchHandler[T any] struct {

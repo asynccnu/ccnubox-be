@@ -1392,7 +1392,7 @@ const file_feed_v1_feed_proto_rawDesc = "" +
 	"\x15PublicMuxiOfficialMSG\x12!.feed.v1.PublicMuxiOfficialMSGReq\x1a\".feed.v1.PublicMuxiOfficialMSGResp\x12X\n" +
 	"\x13StopMuxiOfficialMSG\x12\x1f.feed.v1.StopMuxiOfficialMSGReq\x1a .feed.v1.StopMuxiOfficialMSGResp\x12g\n" +
 	"\x18GetToBePublicOfficialMSG\x12$.feed.v1.GetToBePublicOfficialMSGReq\x1a%.feed.v1.GetToBePublicOfficialMSGResp\x12L\n" +
-	"\x0fPublicFeedEvent\x12\x1b.feed.v1.PublicFeedEventReq\x1a\x1c.feed.v1.PublicFeedEventRespB@Z>github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1;feedv1b\x06proto3"
+	"\x0fPublicFeedEvent\x12\x1b.feed.v1.PublicFeedEventReq\x1a\x1c.feed.v1.PublicFeedEventRespBGZEgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1;feedv1b\x06proto3"
 
 var (
 	file_feed_v1_feed_proto_rawDescOnce sync.Once

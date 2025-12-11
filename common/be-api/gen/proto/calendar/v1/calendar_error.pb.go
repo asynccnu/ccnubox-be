@@ -79,7 +79,7 @@ const file_calendar_v1_calendar_error_proto_rawDesc = "" +
 	"\x13CalendarErrorReason\x12\x1c\n" +
 	"\x12GET_CALENDAR_ERROR\x10\x00\x1a\x04\xa8E\xf5\x03\x12\x1c\n" +
 	"\x12DEL_CALENDAR_ERROR\x10\x01\x1a\x04\xa8E\xf6\x03\x12\x1d\n" +
-	"\x13SAVE_CALENDAR_ERROR\x10\x02\x1a\x04\xa8E\xf7\x03\x1a\x04\xa0E\xf4\x03BHZFgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/calendar/v1;calendarv1b\x06proto3"
+	"\x13SAVE_CALENDAR_ERROR\x10\x02\x1a\x04\xa8E\xf7\x03\x1a\x04\xa0E\xf4\x03BOZMgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/calendar/v1;calendarv1b\x06proto3"
 
 var (
 	file_calendar_v1_calendar_error_proto_rawDescOnce sync.Once

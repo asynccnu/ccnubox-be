@@ -333,7 +333,7 @@ const file_calendar_v1_calendar_proto_rawDesc = "" +
 	"\x0fCalendarService\x12S\n" +
 	"\fGetCalendars\x12 .calendar.v1.GetCalendarsRequest\x1a!.calendar.v1.GetCalendarsResponse\x12S\n" +
 	"\fSaveCalendar\x12 .calendar.v1.SaveCalendarRequest\x1a!.calendar.v1.SaveCalendarResponse\x12P\n" +
-	"\vDelCalendar\x12\x1f.calendar.v1.DelCalendarRequest\x1a .calendar.v1.DelCalendarResponseBHZFgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/calendar/v1;calendarv1b\x06proto3"
+	"\vDelCalendar\x12\x1f.calendar.v1.DelCalendarRequest\x1a .calendar.v1.DelCalendarResponseBOZMgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/calendar/v1;calendarv1b\x06proto3"
 
 var (
 	file_calendar_v1_calendar_proto_rawDescOnce sync.Once

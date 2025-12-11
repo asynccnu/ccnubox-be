@@ -1,7 +1,5 @@
 cel.dev/expr v0.24.0 h1:56OvJKSH3hDGL0ml5uSxZmz3/3Pq4tJ+fb1unVLAFcY=
 cel.dev/expr v0.24.0/go.mod h1:hLPLo1W4QUmuYdA72RBX06QTs6MXw941piREPl3Yfiw=
-github.com/asynccnu/ccnubox-be/be-banner v0.0.0-20251208080139-be828fd1b0cf h1:lo5pPJJkdvM4FYXGxgA6DvAJTFk7blMxs9oq3bcjKTI=
-github.com/asynccnu/ccnubox-be/be-banner v0.0.0-20251208080139-be828fd1b0cf/go.mod h1:e7Ihhaw3mQcjAr7NiAp3zRpymKEamlHEV7S8WgUA5lA=
 github.com/asynccnu/ccnubox-be/bff v0.0.0-20251208080139-be828fd1b0cf h1:stkjCiM/kHmr6QUVZ2f3papBKLdMaHVCt8WfshlP0AE=
 github.com/asynccnu/ccnubox-be/bff v0.0.0-20251208080139-be828fd1b0cf/go.mod h1:l/gvY3N4U9iv7QkMzhMhxIuz4S0ltZhYX9TslilxBrQ=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=

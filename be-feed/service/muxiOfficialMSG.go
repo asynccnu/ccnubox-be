@@ -6,11 +6,11 @@ import (
 	"sync"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"github.com/redis/go-redis/v9"
 )
 

@@ -3,7 +3,6 @@ module github.com/asynccnu/ccnubox-be/common/pkg
 go 1.24.0
 
 require (
-	github.com/asynccnu/ccnubox-be/be-banner v0.0.0-20251208080139-be828fd1b0cf
 	github.com/asynccnu/ccnubox-be/bff v0.0.0-20251208080139-be828fd1b0cf
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20251205160234-b9fab9a5a5ab

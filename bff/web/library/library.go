@@ -490,10 +490,10 @@ func (h *LibraryHandler) DeleteComment(ctx *gin.Context, req IDreq, uc ijwt.User
 // @Router /library/reserve_randomly [post]
 func (h *LibraryHandler) ReserveSeatRandomly(ctx *gin.Context, req ReserveSeatRandomlyRequest, uc ijwt.UserClaims) (web.Response, error) {
 	msg, err := h.LibraryClient.ReserveSeatRandomly(ctx, &libraryv1.ReserveSeatRandomlyRequest{
-		Start:   req.Start,
-		End:     req.End,
-		StuId:   uc.StudentId,
-		RoomIds: req.RoomIDs,
+		Start:  req.Start,
+		End:    req.End,
+		StuId:  uc.StudentId,
+		RoomId: req.RoomID,
 	})
 	if err != nil {
 		return web.Response{}, errs.RESERVE_SEAT_ERROR(err)

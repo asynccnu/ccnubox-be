@@ -112,7 +112,7 @@ const file_feed_v1_feed_error_proto_rawDesc = "" +
 	"\x13GET_MUXI_FEED_ERROR\x10\b\x1a\x04\xa8E\xfd\x03\x12 \n" +
 	"\x16INSERT_MUXI_FEED_ERROR\x10\t\x1a\x04\xa8E\xfe\x03\x12 \n" +
 	"\x16REMOVE_MUXI_FEED_ERROR\x10\n" +
-	"\x1a\x04\xa8E\xff\x03\x1a\x04\xa0E\xf4\x03B@Z>github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1;feedv1b\x06proto3"
+	"\x1a\x04\xa8E\xff\x03\x1a\x04\xa0E\xf4\x03BGZEgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1;feedv1b\x06proto3"
 
 var (
 	file_feed_v1_feed_error_proto_rawDescOnce sync.Once

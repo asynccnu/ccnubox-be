@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-elecprice/domain"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/model"
 	elecpricev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/elecprice/v1"
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/log"
 )
 

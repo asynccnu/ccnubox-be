@@ -1672,7 +1672,7 @@ type ReserveSeatRandomlyRequest struct {
 	Start         string                 `protobuf:"bytes,1,opt,name=start,proto3" json:"start,omitempty"`
 	End           string                 `protobuf:"bytes,2,opt,name=end,proto3" json:"end,omitempty"`
 	StuId         string                 `protobuf:"bytes,3,opt,name=stu_id,json=stuId,proto3" json:"stu_id,omitempty"`
-	RoomIds       []string               `protobuf:"bytes,4,rep,name=room_ids,json=roomIds,proto3" json:"room_ids,omitempty"`
+	RoomId        string                 `protobuf:"bytes,4,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1728,11 +1728,11 @@ func (x *ReserveSeatRandomlyRequest) GetStuId() string {
 	return ""
 }
 
-func (x *ReserveSeatRandomlyRequest) GetRoomIds() []string {
+func (x *ReserveSeatRandomlyRequest) GetRoomId() string {
 	if x != nil {
-		return x.RoomIds
+		return x.RoomId
 	}
-	return nil
+	return ""
 }
 
 type ReserveSeatRandomlyResponse struct {
@@ -2187,12 +2187,12 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06stu_id\x18\x02 \x01(\tR\x05stuId\"1\n" +
 	"\x15CancelReserveResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"v\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"t\n" +
 	"\x1aReserveSeatRandomlyRequest\x12\x14\n" +
 	"\x05start\x18\x01 \x01(\tR\x05start\x12\x10\n" +
 	"\x03end\x18\x02 \x01(\tR\x03end\x12\x15\n" +
-	"\x06stu_id\x18\x03 \x01(\tR\x05stuId\x12\x19\n" +
-	"\broom_ids\x18\x04 \x03(\tR\aroomIds\"7\n" +
+	"\x06stu_id\x18\x03 \x01(\tR\x05stuId\x12\x17\n" +
+	"\aroom_id\x18\x04 \x01(\tR\x06roomId\"7\n" +
 	"\x1bReserveSeatRandomlyResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"\x9f\x01\n" +
 	"\aComment\x12\x0e\n" +
@@ -2229,7 +2229,7 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\x13ReserveSeatRandomly\x12&.library.v1.ReserveSeatRandomlyRequest\x1a'.library.v1.ReserveSeatRandomlyResponse\x12?\n" +
 	"\rCreateComment\x12\x1c.library.v1.CreateCommentReq\x1a\x10.library.v1.Resp\x129\n" +
 	"\vGetComments\x12\x0e.library.v1.ID\x1a\x1a.library.v1.GetCommentResp\x121\n" +
-	"\rDeleteComment\x12\x0e.library.v1.ID\x1a\x10.library.v1.RespBFZDgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/library/v1;libraryv1b\x06proto3"
+	"\rDeleteComment\x12\x0e.library.v1.ID\x1a\x10.library.v1.RespBMZKgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/library/v1;libraryv1b\x06proto3"
 
 var (
 	file_library_v1_library_proto_rawDescOnce sync.Once

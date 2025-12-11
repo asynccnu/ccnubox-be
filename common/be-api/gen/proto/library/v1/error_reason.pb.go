@@ -76,7 +76,7 @@ const file_library_v1_error_reason_proto_rawDesc = "" +
 	"library.v1\x1a\x13errors/errors.proto*;\n" +
 	"\vErrorReason\x12\x13\n" +
 	"\x0fCCNULogin_Error\x10\x00\x12\x11\n" +
-	"\rCrawler_Error\x10\x01\x1a\x04\xa0E\xf4\x03BFZDgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/library/v1;libraryv1b\x06proto3"
+	"\rCrawler_Error\x10\x01\x1a\x04\xa0E\xf4\x03BMZKgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/library/v1;libraryv1b\x06proto3"
 
 var (
 	file_library_v1_error_reason_proto_rawDescOnce sync.Once

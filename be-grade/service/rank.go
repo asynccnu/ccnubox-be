@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 const (

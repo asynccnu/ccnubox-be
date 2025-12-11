@@ -363,7 +363,7 @@ const file_banner_v1_banner_proto_rawDesc = "" +
 	"GetBanners\x12\x1c.banner.v1.GetBannersRequest\x1a\x1d.banner.v1.GetBannersResponse\x12I\n" +
 	"\n" +
 	"SaveBanner\x12\x1c.banner.v1.SaveBannerRequest\x1a\x1d.banner.v1.SaveBannerResponse\x12F\n" +
-	"\tDelBanner\x12\x1b.banner.v1.DelBannerRequest\x1a\x1c.banner.v1.DelBannerResponseBDZBgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/banner/v1;bannerv1b\x06proto3"
+	"\tDelBanner\x12\x1b.banner.v1.DelBannerRequest\x1a\x1c.banner.v1.DelBannerResponseBKZIgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/banner/v1;bannerv1b\x06proto3"
 
 var (
 	file_banner_v1_banner_proto_rawDescOnce sync.Once

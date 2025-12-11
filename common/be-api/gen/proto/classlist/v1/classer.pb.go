@@ -1731,7 +1731,7 @@ const file_classlist_v1_classer_proto_rawDesc = "" +
 	"\x0fGetStuIdByJxbId\x12\".classer.v1.GetStuIdByJxbIdRequest\x1a#.classer.v1.GetStuIdByJxbIdResponse\x12K\n" +
 	"\fGetSchoolDay\x12\x1b.classer.v1.GetSchoolDayReq\x1a\x1c.classer.v1.GetSchoolDayResp\"\x00\x12R\n" +
 	"\x0fUpdateClassNote\x12\x1e.classer.v1.UpdateClassNoteReq\x1a\x1f.classer.v1.UpdateClassNoteResp\x12R\n" +
-	"\x0fDeleteClassNote\x12\x1e.classer.v1.DeleteClassNoteReq\x1a\x1f.classer.v1.DeleteClassNoteRespBHZFgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1;classerv1b\x06proto3"
+	"\x0fDeleteClassNote\x12\x1e.classer.v1.DeleteClassNoteReq\x1a\x1f.classer.v1.DeleteClassNoteRespBOZMgithub.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1;classerv1b\x06proto3"
 
 var (
 	file_classlist_v1_classer_proto_rawDescOnce sync.Once

@@ -4,6 +4,8 @@ go 1.24.0
 
 replace github.com/asynccnu/ccnubox-be/common/be-api => ./../common/be-api
 
+replace github.com/asynccnu/ccnubox-be/common/pkg => ./../common/pkg
+
 require (
 	github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-00010101000000-000000000000
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20250403070952-9580f086e326

@@ -1,13 +1,14 @@
 package grpcx
 
 import (
-	"github.com/asynccnu/ccnubox-be/be-banner/pkg/logger"
+	"strconv"
+	"time"
+
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	etcd "github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	etcdv3 "go.etcd.io/etcd/client/v3"
-	"strconv"
-	"time"
 )
 
 type KratosServer struct {

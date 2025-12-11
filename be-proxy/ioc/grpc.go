@@ -3,17 +3,18 @@ package ioc
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-proxy/grpc"
-	"github.com/asynccnu/ccnubox-be/be-proxy/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-proxy/pkg/grpcx"
-	"github.com/asynccnu/ccnubox-be/be-proxy/pkg/logger"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport"
 	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"time"
 )
 
 func InitGRPCxKratosServer(proxyServer *grpc.ProxyServiceServer, ecli *clientv3.Client, l logger.Logger) grpcx.Server {

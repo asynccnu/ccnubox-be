@@ -1,14 +1,15 @@
 package elecprice
 
 import (
-	elecpricev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/elecprice/v1"
-	"github.com/asynccnu/ccnubox-be/bff/errs"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
-	"github.com/asynccnu/ccnubox-be/bff/web"
-	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	"github.com/gin-gonic/gin"
 	"sort"
 	"strconv"
+
+	"github.com/asynccnu/ccnubox-be/bff/errs"
+	"github.com/asynccnu/ccnubox-be/bff/web"
+	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	elecpricev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/elecprice/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
+	"github.com/gin-gonic/gin"
 )
 
 type ElecPriceHandler struct {

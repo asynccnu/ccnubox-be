@@ -1,7 +1,7 @@
 package ioc
 
 import (
-	"github.com/asynccnu/ccnubox-be/bff/pkg/prometheusx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/prometheusx"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 )

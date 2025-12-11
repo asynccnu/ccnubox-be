@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-proxy/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"

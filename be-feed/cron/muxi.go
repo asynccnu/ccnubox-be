@@ -2,11 +2,12 @@ package cron
 
 import (
 	"context"
-	"github.com/asynccnu/ccnubox-be/be-feed/domain"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/logger"
-	"github.com/asynccnu/ccnubox-be/be-feed/service"
-	"github.com/spf13/viper"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-feed/domain"
+	"github.com/asynccnu/ccnubox-be/be-feed/service"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/spf13/viper"
 )
 
 type MuxiController struct {

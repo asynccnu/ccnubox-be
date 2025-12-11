@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/asynccnu/ccnubox-be/be-ccnu/pkg/otelx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/otelx"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"

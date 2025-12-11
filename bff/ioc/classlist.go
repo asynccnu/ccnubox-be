@@ -2,12 +2,13 @@ package ioc
 
 import (
 	"context"
-	classlistv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
+	"time"
+
+	classlistv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"time"
 )
 
 func InitClassList(ecli *clientv3.Client) classlistv1.ClasserClient {

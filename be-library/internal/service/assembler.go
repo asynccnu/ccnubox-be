@@ -1,8 +1,8 @@
 package service
 
 import (
-	pb "github.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/biz"
+	pb "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/library/v1"
 )
 
 type Assembler struct{}

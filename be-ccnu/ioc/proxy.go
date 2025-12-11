@@ -2,12 +2,13 @@ package ioc
 
 import (
 	"context"
-	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
+	"time"
+
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
-	"time"
 )
 
 func InitProxyClient(etcdClient *etcdv3.Client) proxyv1.ProxyClient {

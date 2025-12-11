@@ -2,11 +2,12 @@ package service
 
 import (
 	"context"
+	"sync"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/pkg/jpush"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
-	"sync"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type pushService struct {

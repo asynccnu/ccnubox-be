@@ -3,8 +3,8 @@ package grpc
 import (
 	"context"
 
-	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/be-user/service"
+	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
 	"google.golang.org/grpc"
 )
 

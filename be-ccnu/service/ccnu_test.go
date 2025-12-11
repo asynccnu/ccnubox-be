@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	proxyv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/proxy/v1"
-	"github.com/asynccnu/ccnubox-be/be-ccnu/pkg/logger"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"google.golang.org/grpc"
 )
 

@@ -1,9 +1,10 @@
 package ioc
 
 import (
-	"github.com/asynccnu/ccnubox-be/be-user/pkg/crypto"
 	"log"
 	"os"
+
+	"github.com/asynccnu/ccnubox-be/be-user/pkg/crypto"
 )
 
 // NewCrypto 创建一个新的 Crypto 实例，key 必须是 16, 24, 或 32 字节长度（对应 AES-128, AES-192, AES-256）

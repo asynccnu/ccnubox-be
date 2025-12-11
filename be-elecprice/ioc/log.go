@@ -1,7 +1,7 @@
 package ioc
 
 import (
-	"github.com/asynccnu/ccnubox-be/be-elecprice/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

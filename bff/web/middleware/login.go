@@ -2,13 +2,14 @@ package middleware
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/ecodeclub/ekit/set"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"strings"
 )
 
 type LoginMiddleware struct {

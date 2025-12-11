@@ -3,17 +3,18 @@ package client
 import (
 	"context"
 	"fmt"
-	classlist "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
-	user "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-class/internal/errcode"
 	clog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/model"
+	classlist "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1"
+	user "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/google/wire"
-	"time"
 )
 
 const CLASSLISTSERVICE = "discovery:///be-classlist"

@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/bff/web"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/apierr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 

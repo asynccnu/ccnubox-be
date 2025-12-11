@@ -9,7 +9,7 @@ package main
 import (
 	"github.com/asynccnu/ccnubox-be/be-infosum/grpc"
 	"github.com/asynccnu/ccnubox-be/be-infosum/ioc"
-	"github.com/asynccnu/ccnubox-be/be-infosum/pkg/grpcx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-infosum/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-infosum/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-infosum/service"

@@ -2,10 +2,11 @@ package saramax
 
 import (
 	"encoding/json"
-	"github.com/IBM/sarama"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/logger"
-	"github.com/spf13/viper"
 	"time"
+
+	"github.com/IBM/sarama"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/spf13/viper"
 )
 
 type MSG struct {

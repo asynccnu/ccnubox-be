@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 
-	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/grade/v1"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
+	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/grade/v1"
 	"google.golang.org/grpc"
 )
 

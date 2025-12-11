@@ -3,7 +3,7 @@ module github.com/asynccnu/ccnubox-be/be-proxy
 go 1.24.0
 
 require (
-	github.com/asynccnu/ccnubox-be/be-api v0.0.0-20251104041517-50ea11a6b472
+	github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-20251104041517-50ea11a6b472
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20251015020953-cdff24709025
 	github.com/go-kratos/kratos/v2 v2.9.1
 	github.com/google/wire v0.7.0

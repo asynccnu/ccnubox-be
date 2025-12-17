@@ -7,27 +7,28 @@ import (
 	"strings"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	counterv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/counter/v1"
 	gradev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/grade/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
 type GradeHandler struct {
-	GradeClient    gradev1.GradeServiceClient //注入的是grpc服务
+	GradeClient    gradev1.GradeServiceClient // 注入的是grpc服务
 	CounterClient  counterv1.CounterServiceClient
-	Administrators map[string]struct{} //这里注入的是管理员权限验证配置
+	Administrators map[string]struct{} // 这里注入的是管理员权限验证配置
 	l              logger.Logger
 }
 
 func NewGradeHandler(
-	GradeClient gradev1.GradeServiceClient, //注入的是grpc服务
+	GradeClient gradev1.GradeServiceClient, // 注入的是grpc服务
 	CounterClient counterv1.CounterServiceClient,
 	l logger.Logger,
-	administrators map[string]struct{}) *GradeHandler {
+	administrators map[string]struct{},
+) *GradeHandler {
 	return &GradeHandler{
 		GradeClient:    GradeClient,
 		CounterClient:  CounterClient,
@@ -38,7 +39,7 @@ func NewGradeHandler(
 
 func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	sg := s.Group("/grade")
-	//这里有三类路由,分别是ginx.WrapClaimsAndReq()有参数且要验证
+	// 这里有三类路由,分别是ginx.WrapClaimsAndReq()有参数且要验证
 	sg.POST("/getGradeByTerm", authMiddleware, ginx.WrapClaimsAndReq(h.GetGradeByTerm))
 	sg.GET("/getGradeScore", authMiddleware, ginx.WrapClaims(h.GetGradeScore))
 	sg.GET("/getRankByTerm", authMiddleware, ginx.WrapClaimsAndReq(h.GetRankByTerm))
@@ -62,7 +63,6 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 		Kcxzmcs:   req.Kcxzmcs,
 		Refresh:   req.Refresh,
 	})
-
 	if err != nil {
 		return web.Response{}, errs.GET_GRADE_BY_TERM_ERROR(err)
 	}
@@ -86,7 +86,7 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 		})
 	}
 
-	//这里做了一个异步的增加用户的feedCount
+	// 这里做了一个异步的增加用户的feedCount
 	go func() {
 		ct := context.Background()
 		_, err := h.CounterClient.AddCounter(ct, &counterv1.AddCounterReq{StudentId: uc.StudentId})

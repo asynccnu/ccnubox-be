@@ -2,10 +2,10 @@ package library
 
 import (
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	libraryv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/library/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/gin-gonic/gin"
 )
 
@@ -50,12 +50,10 @@ func (h *LibraryHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /library/get_seat [post]
 func (h *LibraryHandler) GetSeatInfos(ctx *gin.Context, req GetSeatRequest, uc ijwt.UserClaims) (web.Response, error) {
-
 	res, err := h.LibraryClient.GetSeat(ctx, &libraryv1.GetSeatRequest{
 		RoomIds: req.RoomIDs,
 		StuId:   uc.StudentId,
 	})
-
 	if err != nil {
 		return web.Response{}, errs.GET_SEAT_ERROR(err)
 	}

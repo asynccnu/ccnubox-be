@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"go.opentelemetry.io/otel/attribute"
@@ -133,7 +133,7 @@ func (h *UserHandler) RefreshToken(ctx *gin.Context) (web.Response, error) {
 	if err != nil || ok {
 		return web.Response{}, errs.JWT_SYSTEM_ERROR(err)
 	}
-	//这里设置到相应头里了(非常神秘的模式),这里的jwt参数居然直接被耦合到服务里面去了
+	// 这里设置到相应头里了(非常神秘的模式),这里的jwt参数居然直接被耦合到服务里面去了
 	err = h.SetJWTToken(ctx, ijwt.ClaimParams{
 		StudentId: rc.StudentId,
 		Password:  rc.Password,

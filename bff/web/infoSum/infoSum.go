@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/department"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	InfoSumv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/infoSum/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
@@ -19,7 +19,8 @@ type InfoSumHandler struct {
 }
 
 func NewInfoSumHandler(InfoSumClient InfoSumv1.InfoSumServiceClient,
-	administrators map[string]struct{}) *InfoSumHandler {
+	administrators map[string]struct{},
+) *InfoSumHandler {
 	return &InfoSumHandler{InfoSumClient: InfoSumClient, Administrators: administrators}
 }
 
@@ -41,7 +42,7 @@ func (h *InfoSumHandler) GetInfoSums(ctx *gin.Context) (web.Response, error) {
 	if err != nil {
 		return web.Response{}, errs.GET_INFOSUM_ERROR(err)
 	}
-	//类型转换
+	// 类型转换
 	var resp GetInfoSumsResponse
 	err = copier.Copy(&resp.InfoSums, &InfoSums.InfoSums)
 	if err != nil {

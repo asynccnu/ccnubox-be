@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/ecodeclub/ekit/set"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -45,7 +45,7 @@ func (m *LoginMiddleware) MiddlewareFunc() gin.HandlerFunc {
 		// 放行游客可访问的路由，
 		uc, err := m.extractUserClaimsFromAuthorizationHeader(ctx)
 		if err == nil {
-			//设置claims
+			// 设置claims
 			ginx.SetClaims[ijwt.UserClaims](ctx, uc)
 		} else {
 			if m.allowRestrictedAccess(ctx.Request.URL.Path) {

@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/prometheusx"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"

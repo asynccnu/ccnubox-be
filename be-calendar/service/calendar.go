@@ -7,7 +7,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-calendar/repository/cache" // 替换为calendar的cache路径
 	"github.com/asynccnu/ccnubox-be/be-calendar/repository/dao"   // 替换为calendar的dao路径
 	"github.com/asynccnu/ccnubox-be/be-calendar/repository/model"
-	calendarv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/calendar/v1"
+	calendarv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/calendar/v1"
 	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger" // 替换为calendar的logger路径
 )

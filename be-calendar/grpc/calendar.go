@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/asynccnu/ccnubox-be/be-calendar/domain"
-	"github.com/asynccnu/ccnubox-be/be-calendar/service"                            // 替换为calendar的服务路径
-	calendarv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/calendar/v1" // 替换为calendar的proto包路径
+	"github.com/asynccnu/ccnubox-be/be-calendar/service"                         // 替换为calendar的服务路径
+	calendarv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/calendar/v1" // 替换为calendar的proto包路径
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 )
 

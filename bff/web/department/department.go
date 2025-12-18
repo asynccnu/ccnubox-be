@@ -7,7 +7,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	departmentv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/department/v1"
+	departmentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/department/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )

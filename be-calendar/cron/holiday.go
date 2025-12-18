@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-calendar/pkg/lunar"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/spf13/viper"
 )
 

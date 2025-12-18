@@ -10,8 +10,8 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	counterv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/counter/v1"
-	gradev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/grade/v1"
+	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
+	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/gin-gonic/gin"
 )

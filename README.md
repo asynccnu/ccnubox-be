@@ -15,7 +15,7 @@
 ## 二、组成模块
 
 **模块解释**
-- **`be-api`** : 定义了各个微服务的API，主要由protobuf定义
+- **`api`** : 定义了各个微服务的API，主要由protobuf定义
 - **`be-banner`** : banner服务，管理banner
 - **`be-calendar`** : 日历服务，管理日历
 - **`be-ccnu`**: CCNU服务，管理CCNU一站式登录服务

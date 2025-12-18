@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	"google.golang.org/grpc"
 )
 

@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
-	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 )
 
 // 好长的函数名称

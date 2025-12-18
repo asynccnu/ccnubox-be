@@ -8,7 +8,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-class/internal/lock"
 	clog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/model"
-	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 )
 
 type EsProxy interface {

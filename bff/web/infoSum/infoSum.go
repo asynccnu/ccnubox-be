@@ -8,7 +8,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/department"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	InfoSumv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/infoSum/v1"
+	InfoSumv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/infoSum/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )

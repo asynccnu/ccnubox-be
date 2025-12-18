@@ -5,7 +5,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-counter/domain"
 	"github.com/asynccnu/ccnubox-be/be-counter/service"
-	counterv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/counter/v1"
+	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 )
 

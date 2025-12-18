@@ -1,22 +1,18 @@
-grpc:
-  server:
-    name: "banner"
-    weight: 100
-    addr: ":19080"
-    etcdTTL: 60
-
 etcd:
   endpoints:
     - "localhost:2379"
   username: root
   password: "12345678"
 
-redis:
-  addr: "localhost:6379"
-  password: "12345678"
-
-mysql:
-  dsn: "root:123456@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+grpc:
+  server:
+    name: "ccnu"
+    weight: 100
+    addr: ":19082"
+    etcdTTL: 60
+  client:
+    proxy:
+      endpoint: "discovery:///proxy"
 
 log:
   path: "/logs/app.log"  # 日志文件路径
@@ -24,3 +20,8 @@ log:
   maxBackups: 7          # 保留旧日志文件的最大数量
   maxAge: 30             # 日志文件保留天数
   compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+
+otel:
+  serviceName: "be-ccnu"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"

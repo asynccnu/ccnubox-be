@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 30s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'ccnubox'
+    metrics_path: '/api/v1/metrics'
+    static_configs:
+      - targets:
+          - '81.69.160.157:8080'
+    basic_auth:
+      username: "root"
+      password: "12345678"
+
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets:
+          - '127.0.0.1:9100'

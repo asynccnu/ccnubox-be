@@ -1,6 +1,6 @@
 etcd:
   endpoints:
-    - "localhost:12379"
+    - "localhost:2379"
   username: root
   password: "12345678"
 

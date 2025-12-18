@@ -1,20 +1,27 @@
 etcd:
   endpoints:
     - "localhost:2379"
-  username: root
+  username: "root"
   password: "12345678"
 
 grpc:
   server:
-    name: "ccnu"
+    name: "proxy"
     weight: 100
-    addr: ":19082"
+    addr: ":19094"
     etcdTTL: 60
 
-
 log:
-  path: "/logs/app.log"  # 日志文件路径
+  path: "/logs/proxy.log"  # 日志文件路径
   maxSize: 100           # 单个日志文件的最大大小（MB）
   maxBackups: 7          # 保留旧日志文件的最大数量
   maxAge: 30             # 日志文件保留天数
   compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+
+
+shenlong:
+  api: "api.com"
+  interval: 114514 # 单位: s
+  retry: 1919810
+  username: "username"
+  password: "password"

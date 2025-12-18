@@ -19,7 +19,7 @@ redis:
   password: "12345678"
 
 mysql:
-  dsn: "root:12345678@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "root:12345678@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
 
 qiniu:
   accessKey : "xxxxxxxxxxx"#秘钥

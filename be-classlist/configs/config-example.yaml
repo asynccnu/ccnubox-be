@@ -14,7 +14,7 @@ server:
 data:
   database:
     source: "root:12345678@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
-    logPath: "/var/log/sql_log"
+    logPath: "/logs"
     logFileName: "sql.log"
     logLevel: "info"
   redis:
@@ -24,7 +24,7 @@ data:
     write_timeout: 200      # 注意：单位为毫秒
   kafka:
     brokers:
-      - "localhost:9094"
+      - "localhost:9092"
 
 registry:
   etcd:
@@ -40,7 +40,7 @@ zaplog:
   ##日志格式
   log_format: "json"
   ##日志路径
-  log_path: "/var/log/app_log"
+  log_path: "/logs"
   ##日志文件名
   log_file_name: "app.log"
   ##日志文件最大大小

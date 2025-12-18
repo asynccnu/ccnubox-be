@@ -1,9 +1,11 @@
 mysql:
-  dsn: "root:root@tcp(localhost:3306)/ccnubox"
+  dsn: "root:12345678@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
 
 etcd:
   endpoints:
-    - "localhost:12379"
+    - "localhost:2379"
+  username: root
+  password: "12345678"
 
 grpc:
   server:

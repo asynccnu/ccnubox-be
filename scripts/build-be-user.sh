@@ -5,7 +5,7 @@ trap 'echo "Script interrupted."; exit 1' SIGINT
 
 imageRepo=$1
 
-CRYPTO_KEY=$2
+CRYPTO_KEY=${2:"12345678"}
 
 speciald="be-user"
 

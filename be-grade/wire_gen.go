@@ -8,6 +8,8 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/be-grade/cron"
+	"github.com/asynccnu/ccnubox-be/be-grade/events"
+	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
 	"github.com/asynccnu/ccnubox-be/be-grade/grpc"
 	"github.com/asynccnu/ccnubox-be/be-grade/ioc"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
@@ -23,7 +25,9 @@ func InitApp() App {
 	client := ioc.InitEtcdClient()
 	userServiceClient := ioc.InitUserClient(client)
 	proxyClient := ioc.InitProxyClient(client)
-	gradeService := service.NewGradeService(gradeDAO, logger, userServiceClient, proxyClient)
+	saramaClient := ioc.InitKafka()
+	producerProducer := producer.NewSaramaProducer(saramaClient)
+	gradeService := service.NewGradeService(gradeDAO, logger, userServiceClient, proxyClient, producerProducer)
 	rankDAO := dao.NewRankDAO(db)
 	rankService := service.NewRankService(rankDAO, logger, userServiceClient)
 	gradeServiceServer := grpc.NewGradeGrpcService(gradeService, rankService)
@@ -35,6 +39,8 @@ func InitApp() App {
 	redsync := ioc.InitRedisLock(redisClient)
 	gradeController := cron.NewGradeController(logger, counterServiceClient, userServiceClient, feedServiceClient, classerClient, gradeService, rankService, redsync)
 	v := cron.NewCron(gradeController)
-	app := NewApp(server, v)
+	gradeDetailEventConsumerHandler := events.NewGradeDetailEventConsumerHandler(saramaClient, logger, gradeService)
+	v2 := ioc.InitConsumers(gradeDetailEventConsumerHandler)
+	app := NewApp(server, v, v2)
 	return app
 }

@@ -48,7 +48,7 @@ type Grade struct {
 	KSDW     string  `json:"ksdw"`   // 开课单位
 	XQMC     string  `json:"xqmc"`   // 学期名称
 	XF       float32 `json:"xf"`     // 学分
-	ZXS      int     `json:"zxs"`    // 总学时
+	ZXS      float32 `json:"zxs"`    // 总学时
 	KSFS     string  `json:"ksfs"`   // 考试方式
 	KCSX     string  `json:"kcsx"`   // 课程属性
 	XQStr    string  `json:"xqstr"`

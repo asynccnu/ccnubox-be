@@ -321,7 +321,7 @@ func (h *LibraryHandler) GetDiscussion(ctx *gin.Context, req GetDiscussionReques
 // @Param request query SearchUserRequest true "搜索学生ID的请求参数"
 // @Success 200 {object} web.Response{data=SearchUserResponse} "成功返回学生的ID"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
-// @Router /library/search_user [post]
+// @Router /library/search_user [get]
 func (h *LibraryHandler) SearchUser(ctx *gin.Context, req SearchUserRequest, uc ijwt.UserClaims) (web.Response, error) {
 	res, err := h.LibraryClient.SearchUser(ctx, &libraryv1.SearchUserRequest{
 		StudentId: req.StudentID,

@@ -3,17 +3,19 @@ package ioc
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-user/grpc"
-	"github.com/asynccnu/ccnubox-be/be-user/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-user/pkg/grpcx"
-	"github.com/asynccnu/ccnubox-be/be-user/pkg/logger"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport"
 	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"time"
 )
 
 func InitGRPCxKratosServer(userServer *grpc.UserServiceServer, ecli *clientv3.Client, l logger.Logger) grpcx.Server {
@@ -33,6 +35,7 @@ func InitGRPCxKratosServer(userServer *grpc.UserServiceServer, ecli *clientv3.Cl
 		kgrpc.Address(cfg.Addr),
 		kgrpc.Middleware(
 			recovery.Recovery(),
+			tracing.Server(), // 必须放 log 前，不然日志获取不到 traceid
 			LoggingMiddleware(l),
 		),
 		kgrpc.Timeout(2*time.Minute), //涉及华师的接口都改成2分钟
@@ -58,7 +61,6 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 			if !ok {
 				return handler(ctx, req)
 			}
-
 			// 记录请求开始时间
 			start := time.Now()
 
@@ -73,11 +75,13 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 			// 计算耗时
 			duration := time.Since(start)
 
+			tlog := l.WithContext(ctx)
+
 			if err != nil {
 				customError := errorx.ToCustomError(err)
 				if customError != nil {
 					// 捕获错误并记录
-					l.Error("执行业务逻辑出错",
+					tlog.Error("执行业务逻辑出错",
 						logger.Error(err),
 						logger.String("operationName", operationName),
 						logger.String("endPointName", endPointName),
@@ -93,7 +97,7 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 				}
 			} else {
 				// 记录常规日志
-				l.Info("请求成功",
+				tlog.Info("请求成功",
 					logger.String("operationName", operationName),
 					logger.String("endPointName", endPointName),
 					logger.String("request", fmt.Sprintf("%v", req)),

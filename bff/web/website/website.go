@@ -2,12 +2,13 @@ package website
 
 import (
 	"fmt"
-	websitev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/website/v1"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/department"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	websitev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/website/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
@@ -18,7 +19,8 @@ type WebsiteHandler struct {
 }
 
 func NewWebsiteHandler(websiteClient websitev1.WebsiteServiceClient,
-	administrators map[string]struct{}) *WebsiteHandler {
+	administrators map[string]struct{},
+) *WebsiteHandler {
 	return &WebsiteHandler{websiteClient: websiteClient, Administrators: administrators}
 }
 
@@ -40,7 +42,7 @@ func (h *WebsiteHandler) GetWebsites(ctx *gin.Context) (web.Response, error) {
 	if err != nil {
 		return web.Response{}, errs.GET_WEBSITES_ERROR(err)
 	}
-	//类型转换
+	// 类型转换
 	var resp GetWebsitesResponse
 	err = copier.Copy(&resp.Websites, &websites.Websites)
 	if err != nil {

@@ -4,15 +4,18 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 
-	ccnuv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/ccnu/v1"
-	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+
 	"github.com/asynccnu/ccnubox-be/be-user/pkg/crypto"
-	"github.com/asynccnu/ccnubox-be/be-user/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-user/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-user/tool"
+	ccnuv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/ccnu/v1"
+	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -48,7 +51,7 @@ var (
 
 type UserService interface {
 	Save(ctx context.Context, studentId string, password string) error
-	GetCookie(ctx context.Context, studentId string) (string, error)
+	GetCookie(ctx context.Context, studentId string, tpe ...string) (string, error)
 	GetLibraryCookie(ctx context.Context, studentId string) (string, error)
 	Check(ctx context.Context, studentId string, password string) (bool, error)
 }
@@ -60,10 +63,12 @@ type userService struct {
 	ccnu         ccnuv1.CCNUServiceClient
 	sfGroup      singleflight.Group
 	l            logger.Logger
+	pClient      proxyv1.ProxyClient
 }
 
-func NewUserService(dao dao.UserDAO, cache cache.UserCache, cryptoClient *crypto.Crypto, ccnu ccnuv1.CCNUServiceClient, l logger.Logger) UserService {
-	return &userService{dao: dao, cache: cache, cryptoClient: cryptoClient, ccnu: ccnu, l: l}
+func NewUserService(dao dao.UserDAO, cache cache.UserCache, cryptoClient *crypto.Crypto, ccnu ccnuv1.CCNUServiceClient, l logger.Logger,
+	pClient proxyv1.ProxyClient) UserService {
+	return &userService{dao: dao, cache: cache, cryptoClient: cryptoClient, ccnu: ccnu, l: l, pClient: pClient}
 }
 
 func (s *userService) Save(ctx context.Context, studentId string, password string) error {
@@ -104,6 +109,7 @@ func (s *userService) Save(ctx context.Context, studentId string, password strin
 }
 
 func (s *userService) Check(ctx context.Context, studentId string, password string) (bool, error) {
+	tlog := s.l.WithContext(ctx)
 
 	_, err := tool.Retry(func() (*ccnuv1.LoginCCNUResponse, error) {
 		return s.ccnu.LoginCCNU(ctx, &ccnuv1.LoginCCNURequest{StudentId: studentId, Password: password})
@@ -115,7 +121,7 @@ func (s *userService) Check(ctx context.Context, studentId string, password stri
 	case ccnuv1.IsInvalidSidOrPwd(err):
 		return false, InCorrectPassword(errors.New("invalid sid or password"))
 	}
-	s.l.Warn("尝试从ccnu登录失败!", logger.Error(err))
+	tlog.Warn("尝试从ccnu登录失败!", logger.Error(err))
 
 	//尝试查找用户
 	password, err = s.cryptoClient.Encrypt(password)
@@ -133,9 +139,10 @@ func (s *userService) Check(ctx context.Context, studentId string, password stri
 	default:
 		return false, DEFAULT_DAO_ERROR(err)
 	}
-
 }
-func (s *userService) GetCookie(ctx context.Context, studentId string) (string, error) {
+
+func (s *userService) GetCookie(ctx context.Context, studentId string, tpe ...string) (string, error) {
+	tlog := s.l.WithContext(ctx)
 	key := studentId
 	result, err, _ := s.sfGroup.Do(key, func() (interface{}, error) {
 		var cookie string
@@ -143,18 +150,18 @@ func (s *userService) GetCookie(ctx context.Context, studentId string) (string, 
 		//如果从缓存获取成功就直接返回,否则降级处理
 		cookie, err := s.cache.GetCookie(ctx, studentId)
 		if err != nil {
-			s.l.Info("从缓存获取cookie失败", logger.Error(err))
+			tlog.Info("从缓存获取cookie失败", logger.Error(err))
 
 			//直接获取新的
-			newCookie, err = s.getNewCookie(ctx, studentId)
+			newCookie, err = s.getNewCookie(ctx, studentId, tpe...)
 			if err != nil {
 				return "", err
 			}
 		} else {
 			//如果是从缓存获取的要验证是否可用
-			if !s.checkCookie(cookie) {
+			if !s.checkCookie(ctx, cookie) {
 				//直接获取新的
-				newCookie, err = s.getNewCookie(ctx, studentId)
+				newCookie, err = s.getNewCookie(ctx, studentId, tpe...)
 				if err != nil {
 					return "", err
 				}
@@ -165,9 +172,10 @@ func (s *userService) GetCookie(ctx context.Context, studentId string) (string, 
 			cookie = newCookie
 			//异步回填
 			go func() {
+				// 防止父 ctx 超时导致回填被取消使用新 ctx
 				err := s.cache.SetCookie(context.Background(), studentId, cookie)
 				if err != nil {
-					s.l.Error("回填cookie失败", logger.Error(err))
+					tlog.Error("回填cookie失败", logger.Error(err))
 				}
 			}()
 		}
@@ -186,7 +194,7 @@ func (s *userService) GetCookie(ctx context.Context, studentId string) (string, 
 	return cookie, nil
 }
 
-func (s *userService) getNewCookie(ctx context.Context, studentId string) (string, error) {
+func (s *userService) getNewCookie(ctx context.Context, studentId string, tpe ...string) (string, error) {
 	//失败则重试
 	//尝试从数据库获取
 	user, err := s.dao.FindByStudentId(ctx, studentId)
@@ -201,10 +209,14 @@ func (s *userService) getNewCookie(ctx context.Context, studentId string) (strin
 	}
 
 	resp, err := tool.Retry(func() (*ccnuv1.GetXKCookieResponse, error) {
-		return s.ccnu.GetXKCookie(ctx, &ccnuv1.GetXKCookieRequest{
+		req := &ccnuv1.GetXKCookieRequest{
 			StudentId: user.StudentId,
 			Password:  decryptPassword,
-		})
+		}
+		if len(tpe) != 0 {
+			req.Type = tpe[0]
+		}
+		return s.ccnu.GetXKCookie(ctx, req)
 	})
 
 	if err != nil {
@@ -213,7 +225,8 @@ func (s *userService) getNewCookie(ctx context.Context, studentId string) (strin
 	return resp.Cookie, nil
 }
 
-func (s *userService) checkCookie(cookie string) bool {
+func (s *userService) checkCookie(ctx context.Context, cookie string) bool {
+	tlog := s.l.WithContext(ctx)
 
 	// 试探性请求，保证cookie长时间有效
 	req, err := http.NewRequest("GET", "https://xk.ccnu.edu.cn/jwglxt/dlflgl/flzyqr_cxFlzyqrxx.html", nil)
@@ -228,11 +241,11 @@ func (s *userService) checkCookie(cookie string) bool {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")
 
 	// 创建HTTP客户端，禁止自动重定向
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // 禁止自动跳转，返回原始响应
-		},
+	proxyAddr, err := s.getProxyAddr(ctx)
+	if err != nil {
+		tlog.Warn("get proxy addr err", logger.Error(err))
 	}
+	client := s.newClient(ctx, proxyAddr)
 
 	// 发送请求
 	resp, err := client.Do(req)
@@ -245,6 +258,7 @@ func (s *userService) checkCookie(cookie string) bool {
 }
 
 func (s *userService) GetLibraryCookie(ctx context.Context, studentId string) (string, error) {
+	tlog := s.l.WithContext(ctx)
 	key := "library_" + studentId
 	result, err, _ := s.sfGroup.Do(key, func() (interface{}, error) {
 		var cookie string
@@ -252,7 +266,7 @@ func (s *userService) GetLibraryCookie(ctx context.Context, studentId string) (s
 		//如果从缓存获取成功就直接返回,否则降级处理
 		cookie, err := s.cache.GetLibraryCookie(ctx, studentId)
 		if err != nil {
-			s.l.Info("从缓存获取图书馆cookie失败", logger.Error(err))
+			tlog.Warn("从缓存获取图书馆cookie失败", logger.Error(err))
 
 			//直接获取新的
 			newCookie, err = s.getNewLibraryCookie(ctx, studentId)
@@ -261,7 +275,7 @@ func (s *userService) GetLibraryCookie(ctx context.Context, studentId string) (s
 			}
 		} else {
 			//如果是从缓存获取的要验证是否可用
-			if !s.checkLibraryCookie(cookie) {
+			if !s.checkLibraryCookie(ctx, cookie) {
 				//直接获取新的
 				newCookie, err = s.getNewLibraryCookie(ctx, studentId)
 				if err != nil {
@@ -276,7 +290,7 @@ func (s *userService) GetLibraryCookie(ctx context.Context, studentId string) (s
 			go func() {
 				err := s.cache.SetLibraryCookie(context.Background(), studentId, cookie)
 				if err != nil {
-					s.l.Error("回填图书馆cookie失败", logger.Error(err))
+					tlog.Error("回填图书馆cookie失败", logger.Error(err))
 				}
 			}()
 		}
@@ -322,7 +336,8 @@ func (s *userService) getNewLibraryCookie(ctx context.Context, studentId string)
 	return resp.Cookie, nil
 }
 
-func (s *userService) checkLibraryCookie(cookie string) bool {
+func (s *userService) checkLibraryCookie(ctx context.Context, cookie string) bool {
+	tlog := s.l.WithContext(ctx)
 	// 试探性请求图书馆系统，验证cookie是否有效
 	req, err := http.NewRequest("GET", "http://kjyy.ccnu.edu.cn/", nil)
 	if err != nil {
@@ -337,11 +352,11 @@ func (s *userService) checkLibraryCookie(cookie string) bool {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")
 
 	// 创建HTTP客户端，禁止自动重定向
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // 禁止自动跳转，返回原始响应
-		},
+	proxyAddr, err := s.getProxyAddr(ctx)
+	if err != nil {
+		tlog.Warn("get proxy addr err", logger.Error(err))
 	}
+	client := s.newClient(ctx, proxyAddr)
 
 	// 发送请求
 	resp, err := client.Do(req)
@@ -351,4 +366,32 @@ func (s *userService) checkLibraryCookie(cookie string) bool {
 	defer resp.Body.Close()
 
 	return resp.StatusCode == 200
+}
+
+func (s *userService) newClient(ctx context.Context, proxyAddr string) *http.Client {
+	tlog := s.l.WithContext(ctx)
+	cli := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	proxy, err := url.Parse(proxyAddr)
+	if err != nil {
+		tlog.Warn("url parse error", logger.Error(err))
+		return cli
+	}
+
+	p := http.ProxyURL(proxy)
+	cli.Transport = &http.Transport{Proxy: p}
+	return cli
+}
+
+func (s *userService) getProxyAddr(ctx context.Context) (string, error) {
+	res, err := s.pClient.GetProxyAddr(ctx, &proxyv1.GetProxyAddrRequest{})
+	if err != nil {
+		return "", err
+	}
+
+	return res.Addr, nil
 }

@@ -1,23 +1,25 @@
 package elecprice
 
 import (
-	elecpricev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/elecprice/v1"
+	"sort"
+	"strconv"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	elecpricev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/elecprice/v1"
 	"github.com/gin-gonic/gin"
-	"sort"
-	"strconv"
 )
 
 type ElecPriceHandler struct {
-	ElecPriceClient elecpricev1.ElecpriceServiceClient //注入的是grpc服务
-	Administrators  map[string]struct{}                //这里注入的是管理员权限验证配置
+	ElecPriceClient elecpricev1.ElecpriceServiceClient // 注入的是grpc服务
+	Administrators  map[string]struct{}                // 这里注入的是管理员权限验证配置
 }
 
 func NewElecPriceHandler(elecPriceClient elecpricev1.ElecpriceServiceClient,
-	administrators map[string]struct{}) *ElecPriceHandler {
+	administrators map[string]struct{},
+) *ElecPriceHandler {
 	return &ElecPriceHandler{ElecPriceClient: elecPriceClient, Administrators: administrators}
 }
 

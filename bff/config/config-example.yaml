@@ -37,7 +37,7 @@ grpc:
     elecprice:
       endpoint: "discovery:///elecprice"
     classlist:
-      endpoint: "discovery:///MuXi_ClassList"
+      endpoint: "discovery:///classlist"
     classService:
       endpoint: "discovery:///classService"
     feedbackHelp:
@@ -56,12 +56,15 @@ grpc:
 jwt:
   jwtKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   refreshKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  encKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 oss:
   accessKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   secretKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   bucketName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   domainName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # CDN 域名
+  baseName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  fileName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # 日志配置
 log:
@@ -87,6 +90,15 @@ prometheus:
     name: "http_request_duration_seconds"  # 请求时长直方图名称
     help: "Histogram of response times for HTTP requests" # 指标说明
 
-  basicAuth:
-    username: "prometheus_user"
-    password: "prometheus_password"
+  dailyActiveUsers:
+    name: "daily_active_users"  # 日活指标名称
+    help: "Number of active users in last 24 hours calculated by Redis HyperLogLog" # 指标说明
+
+basicAuth:
+  username: "user"
+  password: "password"
+
+otel:
+  serviceName: "bff"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"

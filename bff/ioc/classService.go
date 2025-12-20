@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	cs "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
+	cs "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classService/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
@@ -29,7 +29,7 @@ func InitClassService(ecli *clientv3.Client) cs.ClassServiceClient {
 		context.Background(),
 		grpc.WithEndpoint(cfg.Endpoint),
 		grpc.WithDiscovery(r),
-		grpc.WithTimeout(30*time.Second), //由于华师的速度比较慢这里地方需要强制给一个上下文超时的时间限制.否则kratos会使用默认的2s超时(有够脑瘫,为什么不自动沿用传入的ctx的上下文呢?)
+		grpc.WithTimeout(120*time.Second), //由于华师的速度比较慢这里地方需要强制给一个上下文超时的时间限制.否则kratos会使用默认的2s超时(有够脑瘫,为什么不自动沿用传入的ctx的上下文呢?)
 
 	)
 

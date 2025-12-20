@@ -38,7 +38,7 @@ func InitApp() *App {
 		ioc.InitLibrary,
 
 		//http服务
-		ioc.InitPutPolicy,
+		ioc.InitTubePolicies,
 		ioc.InitMac,
 		ioc.InitClassRoomHandler,
 		ioc.InitTubeHandler,
@@ -57,6 +57,7 @@ func InitApp() *App {
 		ioc.InitCardHandler,
 		ioc.InitMetricsHandel,
 		ioc.InitLibraryHandler,
+		ioc.InitSwagHandler,
 
 		//中间件
 		middleware.NewLoggerMiddleware,
@@ -64,6 +65,7 @@ func InitApp() *App {
 		middleware.NewLoginMiddleWare,
 		middleware.NewPrometheusMiddleware,
 		middleware.NewBasicAuthMiddleware,
+		middleware.NewOtelMiddlerware,
 		//注册api
 		ioc.InitGinServer,
 		NewApp,

@@ -1,24 +1,7 @@
 package ioc
 
 import (
-	bannerv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/banner/v1"
-	calendarv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/calendar/v1"
-	cardv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/card/v1"
-	cs "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
-	classlistv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
-	counterv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/counter/v1"
-	departmentv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/department/v1"
-	elecpricev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/elecprice/v1"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
-	feedbackv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feedback_help/v1"
-	gradev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/grade/v1"
-	infoSumv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/infoSum/v1"
-	libraryv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1"
-	staticv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/static/v1"
-	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
-	websitev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/website/v1"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/htmlx"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/bff/web/banner"
 	"github.com/asynccnu/ccnubox-be/bff/web/calendar"
 	"github.com/asynccnu/ccnubox-be/bff/web/card"
@@ -34,12 +17,31 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/library"
 	"github.com/asynccnu/ccnubox-be/bff/web/metrics"
 	"github.com/asynccnu/ccnubox-be/bff/web/static"
+	"github.com/asynccnu/ccnubox-be/bff/web/swag"
 	"github.com/asynccnu/ccnubox-be/bff/web/tube"
 	"github.com/asynccnu/ccnubox-be/bff/web/user"
 	"github.com/asynccnu/ccnubox-be/bff/web/website"
+	bannerv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/banner/v1"
+	calendarv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/calendar/v1"
+	cardv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/card/v1"
+	cs "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classService/v1"
+	classlistv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1"
+	counterv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/counter/v1"
+	departmentv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/department/v1"
+	elecpricev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/elecprice/v1"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
+	feedbackv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feedback_help/v1"
+	gradev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/grade/v1"
+	infoSumv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/infoSum/v1"
+	libraryv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/library/v1"
+	staticv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/static/v1"
+	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
+	websitev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/website/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/prometheusx"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
-	"github.com/qiniu/api.v7/v7/storage"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )
 
@@ -221,10 +223,14 @@ func InitLibraryHandler(client libraryv1.LibraryClient) *library.LibraryHandler 
 		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
 
-func InitTubeHandler(putPolicy storage.PutPolicy, mac *qbox.Mac) *tube.TubeHandler {
-	return tube.NewTubeHandler(putPolicy, mac, viper.GetString("oss.domainName"))
+func InitTubeHandler(tb *TubePolicies, mac *qbox.Mac) *tube.TubeHandler {
+	return tube.NewTubeHandler(tb.defaultPolicy, tb.officialSite, mac, viper.GetString("oss.domainName"))
 }
 
-func InitMetricsHandel(l logger.Logger) *metrics.MetricsHandler {
-	return metrics.NewMetricsHandler(l)
+func InitMetricsHandel(l logger.Logger, redisClient redis.Cmdable, prometheus *prometheusx.PrometheusCounter) *metrics.MetricsHandler {
+	return metrics.NewMetricsHandler(l, redisClient, prometheus)
+}
+
+func InitSwagHandler() *swag.SwagHandler {
+	return swag.NewSwagHandler()
 }

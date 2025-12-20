@@ -1,126 +1,19 @@
 package service
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
+	"github.com/asynccnu/ccnubox-be/be-grade/crawler"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 )
 
-//辅助函数
-
-func aggregateGrades(detailItems []GetDetailItem, KcxzItems []GetKcxzItem) []model.Grade {
-	// 2. 用于按 JxbId 进行聚合
-	gradeMap := make(map[string]*model.Grade)
-	//初始化gradeMap
-	for _, item := range KcxzItems {
-		// 以 JxbId 作为唯一 key 进行聚合
-		key := item.JxbID
-		// 如果当前 JxbId 不在 map 中，初始化 Grade 结构体
-		if _, exists := gradeMap[key]; !exists {
-			//进行转换
-			var xqm int64
-			switch item.Xqm {
-			case "3":
-				xqm = 1
-			case "12":
-				xqm = 2
-			case "16":
-				xqm = 3
-			}
-			gradeMap[key] = &model.Grade{
-				Kcxzmc:              item.Kcxzmc,
-				Kclbmc:              item.Kclbmc,
-				Kcbj:                item.Kcbj,
-				Studentid:           item.Xh,
-				JxbId:               item.JxbID,
-				Jd:                  parseFloat32(item.Jd),
-				Kcmc:                item.Kcmc,
-				Xnm:                 parseInt64(item.Xnm),
-				Xqm:                 xqm,
-				Xf:                  parseFloat32(item.Xf),
-				Cj:                  parseFloat32(item.Cj),
-				RegularGradePercent: "平时(0%)",
-				FinalGradePercent:   "期末(0%)",
-			}
-		}
-	}
-
-	//二次遍历
-	for _, item := range detailItems {
-		// 以 JxbId 作为唯一 key 进行聚合
-		key := item.JxbID
-		// 如果当前 JxbId存在于gradeMap中那么进行判断并赋值
-		if _, exists := gradeMap[key]; exists {
-			// 根据 xmblmc 字段的内容分配字段值
-			if strings.Contains(item.Xmblmc, "平时") {
-				gradeMap[key].RegularGradePercent = item.Xmblmc
-				gradeMap[key].RegularGrade = parseFloat32(item.Xmcj)
-			} else if strings.Contains(item.Xmblmc, "期末") {
-				gradeMap[key].FinalGradePercent = item.Xmblmc
-				gradeMap[key].FinalGrade = parseFloat32(item.Xmcj)
-			} else if strings.Contains(item.Xmblmc, "总评") {
-				gradeMap[key].Cj = parseFloat32(item.Xmcj)
-			}
-
-		}
-
-	}
-
-	// 4. 将 map 转换为切片返回
-	var grades []model.Grade
-	for _, grade := range gradeMap {
-		grades = append(grades, *grade)
-	}
-
-	return grades
-}
-
-func convertGraduateGrade(graduateGrade []GraduatePoints) []model.Grade {
-	var grades []model.Grade
-	for _, p := range graduateGrade {
-		var xqm int64
-		switch p.Xqm {
-		case "3":
-			xqm = 1
-		case "12":
-			xqm = 2
-		case "16":
-			xqm = 3
-		}
-		grades = append(grades, model.Grade{
-			Studentid: p.Xh,
-			JxbId:     p.JxbID,
-			Kcmc:      p.Kcmc,
-			Xnm:       parseInt64(p.Xnm),
-			Xqm:       xqm,
-			Xf:        parseFloat32(p.Xf),
-			Kcxzmc:    p.Kcxzmc,
-			Kclbmc:    p.Kclbmc,
-			Kcbj:      p.Kcbj,
-			Jd:        parseFloat32(p.Jd),
-			Cj:        parseFloat32(p.Cj),
-		})
-	}
-	return grades
-}
-
-// parseInt64 辅助函数，将字符串转换为 int64
-func parseInt64(value string) int64 {
-	if i, err := strconv.Atoi(value); err == nil {
-		return int64(i)
-	}
-	return 0
-}
-
-// parseFloat32 辅助函数，将字符串转换为 float32
-func parseFloat32(value string) float32 {
-	if i, err := strconv.ParseFloat(value, 32); err == nil {
-		return float32(i)
-	}
-	return 0
-}
+const (
+	RegularGradePercentMSG = "平时成绩缺失"
+	FinalGradePercentMAG   = "期末成绩缺失"
+)
 
 func modelConvDomain(grades []model.Grade) []domain.Grade {
 	// 预分配切片容量，避免动态扩容
@@ -129,8 +22,10 @@ func modelConvDomain(grades []model.Grade) []domain.Grade {
 	// 遍历 grades，转换为 domain.Grade
 	for _, grade := range grades {
 		domainGrade := domain.Grade{
+			StudentId:           grade.StudentId,
 			Xnm:                 grade.Xnm,
 			Xqm:                 grade.Xqm,
+			KcId:                grade.KcId,  //课程id
 			JxbId:               grade.JxbId, //教学班id
 			Kcmc:                grade.Kcmc,  // 课程名称
 			Xf:                  grade.Xf,    // 学分
@@ -271,6 +166,114 @@ func aggregateGradeScore(grades []model.Grade) []domain.TypeOfGradeScore {
 	}
 
 	return result
+}
+
+func aggregateGrade(grades []crawler.Grade, details map[string]crawler.Score) []model.Grade {
+	var result = make([]model.Grade, len(grades))
+	for i, grade := range grades {
+		// 解析学年和学期
+		var xnm int
+		var xqm int
+		parts := strings.Split(grade.XQMC, "-")
+		if len(parts) == 3 {
+			xnm, _ = strconv.Atoi(parts[0])
+			xqm, _ = strconv.Atoi(parts[2])
+		}
+
+		// 计算绩点
+		jd := calcJd(grade.ZCJ)
+		key := grade.XS0101ID + grade.JX0404ID
+		detail := details[key]
+		if detail.Cjxm1bl == "" && detail.Cjxm3bl == "" && detail.Cjxm1 == 0 && detail.Cjxm3 == 0 {
+			detail.Cjxm1bl = FinalGradePercentMAG
+			detail.Cjxm3bl = RegularGradePercentMSG
+			detail.Cjxm1 = 0
+			detail.Cjxm3 = 0
+			details[key] = detail
+		}
+
+		result[i] = model.Grade{
+			StudentId:           grade.XS0101ID,
+			JxbId:               grade.JX0404ID,
+			Kcmc:                grade.KCMC,
+			Xnm:                 int64(xnm),
+			Xqm:                 int64(xqm),
+			Xf:                  grade.XF,
+			Kcxzmc:              grade.KCXZMC,
+			Kclbmc:              grade.KCSX,
+			Kcbj:                "是否辅修字段暂时缺失",
+			Jd:                  jd,
+			RegularGradePercent: detail.Cjxm3bl,
+			RegularGrade:        detail.Cjxm3,
+			FinalGradePercent:   detail.Cjxm1bl,
+			FinalGrade:          detail.Cjxm1,
+			Cj:                  grade.ZCJ,
+		}
+	}
+	return result
+}
+
+// 根据成绩计算绩点
+func calcJd(score float32) float32 {
+	if score >= 95 {
+		return 4.5
+	}
+	if score < 60 {
+		return 0
+	}
+	// 每下降5分绩点下降0.5
+	diff := int(math.Ceil(float64((95 - score) / 5)))
+	return 4.5 - float32(diff)*0.5
+}
+
+type FetchGrades struct {
+	update []model.Grade
+	final  []model.Grade
+}
+
+func ConvertGraduateGrade(graduateGrade []crawler.GraduatePoints) []model.Grade {
+	var grades []model.Grade
+	for _, p := range graduateGrade {
+		var xqm int64
+		switch p.Xqm {
+		case "3":
+			xqm = 1
+		case "12":
+			xqm = 2
+		case "16":
+			xqm = 3
+		}
+		grades = append(grades, model.Grade{
+			StudentId: p.Xh,
+			JxbId:     p.JxbID,
+			Kcmc:      p.Kcmc,
+			Xnm:       parseInt64(p.Xnm),
+			Xqm:       xqm,
+			Xf:        parseFloat32(p.Xf),
+			Kcxzmc:    p.Kcxzmc,
+			Kclbmc:    p.Kclbmc,
+			Kcbj:      p.Kcbj,
+			Jd:        parseFloat32(p.Jd),
+			Cj:        parseFloat32(p.Cj),
+		})
+	}
+	return grades
+}
+
+// parseInt64 辅助函数，将字符串转换为 int64
+func parseInt64(value string) int64 {
+	if i, err := strconv.Atoi(value); err == nil {
+		return int64(i)
+	}
+	return 0
+}
+
+// parseFloat32 辅助函数，将字符串转换为 float32
+func parseFloat32(value string) float32 {
+	if i, err := strconv.ParseFloat(value, 32); err == nil {
+		return float32(i)
+	}
+	return 0
 }
 
 func modelGraduateConvDomain(grades []model.Grade) []domain.Grade {

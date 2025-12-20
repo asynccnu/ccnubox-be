@@ -2,11 +2,12 @@ package department
 
 import (
 	"fmt"
-	departmentv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/department/v1"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	departmentv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/department/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
@@ -17,7 +18,8 @@ type DepartmentHandler struct {
 }
 
 func NewDepartmentHandler(departmentClient departmentv1.DepartmentServiceClient,
-	administrators map[string]struct{}) *DepartmentHandler {
+	administrators map[string]struct{},
+) *DepartmentHandler {
 	return &DepartmentHandler{departmentClient: departmentClient, Administrators: administrators}
 }
 
@@ -41,7 +43,7 @@ func (h *DepartmentHandler) GetDepartments(ctx *gin.Context) (web.Response, erro
 		return web.Response{}, errs.GET_DEPARTMENT_ERROR(err)
 	}
 
-	//类型转换
+	// 类型转换
 	var resp GetDepartmentsResponse
 	err = copier.Copy(&resp.Departments, &departments.Departments)
 	if err != nil {
@@ -77,7 +79,6 @@ func (h *DepartmentHandler) SaveDepartment(ctx *gin.Context, req SaveDepartmentR
 			Time:  req.Time,
 		},
 	})
-
 	if err != nil {
 		return web.Response{}, errs.SAVE_DEPARTMENT_ERROR(err)
 	}

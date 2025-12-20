@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 
+	classLog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/metrics"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/timedTask"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
@@ -89,17 +90,25 @@ func main() {
 		panic(err)
 	}
 
-	APP, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger)
+	logfile := classLog.NewLumberjackLogger(bc.Data.Database.LogPath,
+		bc.Data.Database.LogFileName, 6, 5, 30, false)
+	defer logfile.Close()
+
+	svc, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger, logfile)
 	if err != nil {
 		panic(err)
 	}
 	defer cleanup()
 
 	// 启动定时任务
-	APP.task.AddClassInfosToES()
-	APP.task.Clear()
+	svc.task.RegisterAddClassInfosToESTask()
+	svc.task.RegisterClearClassInfoTask()
+	svc.task.RegisterCrawFreeClassroomTask(bc.GetProxyStuId())
+	svc.task.Start()
+	defer svc.task.Stop()
+
 	// start and wait for stop signal
-	if err := APP.app.Run(); err != nil {
+	if err := svc.app.Run(); err != nil {
 		panic(err)
 	}
 

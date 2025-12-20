@@ -3,8 +3,8 @@ package grpc
 import (
 	"context"
 
-	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/be-user/service"
+	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
 	"google.golang.org/grpc"
 )
 
@@ -28,7 +28,16 @@ func (s *UserServiceServer) SaveUser(ctx context.Context,
 }
 
 func (s *UserServiceServer) GetCookie(ctx context.Context, request *userv1.GetCookieRequest) (*userv1.GetCookieResponse, error) {
-	u, err := s.svc.GetCookie(ctx, request.GetStudentId())
+	var (
+		u   string
+		err error
+	)
+	if request.Type == "" {
+		u, err = s.svc.GetCookie(ctx, request.GetStudentId())
+	} else {
+		u, err = s.svc.GetCookie(ctx, request.GetStudentId(), request.Type)
+
+	}
 	return &userv1.GetCookieResponse{Cookie: u}, err
 }
 

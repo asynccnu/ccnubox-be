@@ -1,24 +1,32 @@
-FROM golang:1.23.7 AS builder
+FROM golang:1.24 AS builder
+
+ENV GOPROXY=https://goproxy.cn,direct \
+    GO111MODULE=on
 
 COPY . /src
 
 WORKDIR /src/bff
 RUN go mod tidy
-
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/bff  .
+RUN go install github.com/swaggo/swag/cmd/swag@latest 
+RUN go build -o ./bin/bff  .
 
 FROM debian:stable-slim
 
 ENV TZ=Asia/Shanghai
 
+# 安装运行依赖 + 构建 Swagger 所需工具
 RUN apt-get update && apt-get install -y --no-install-recommends \
-		ca-certificates  \
+        ca-certificates \
         netbase \
-        && rm -rf /var/lib/apt/lists/ \
-        && apt-get autoremove -y && apt-get autoclean -y
+        make \
+        nodejs \
+        npm \
+    && npm install -g swagger2openapi \
+    && rm -rf /var/lib/apt/lists/*
 
+COPY --from=builder /src/bff /app
+COPY --from=builder /go/bin/swag /usr/local/bin/swag
 
-COPY --from=builder /src/bff/bin /app
 
 WORKDIR /app
 
@@ -26,4 +34,4 @@ EXPOSE 8080
 
 VOLUME /data/conf
 
-CMD ["./bff", "--config", "/data/conf/config.yaml"]
+CMD ["./bin/bff", "--config", "/data/conf/config.yaml"]

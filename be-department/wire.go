@@ -6,10 +6,10 @@ package main
 import (
 	"github.com/asynccnu/ccnubox-be/be-department/grpc"
 	"github.com/asynccnu/ccnubox-be/be-department/ioc"
-	"github.com/asynccnu/ccnubox-be/be-department/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-department/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-department/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-department/service"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/google/wire"
 )
 

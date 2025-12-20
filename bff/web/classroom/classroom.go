@@ -1,10 +1,10 @@
 package classroom
 
 import (
-	cs "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	cs "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classService/v1"
 	"github.com/gin-gonic/gin"
 )
 
@@ -58,5 +58,4 @@ func (c *ClassRoomHandler) GetFreeClassRoom(ctx *gin.Context, req GetFreeClassRo
 		Msg:  "查询成功",
 		Data: convertToGetFreeClassRoomResp(resp),
 	}, nil
-
 }

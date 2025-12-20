@@ -1,8 +1,10 @@
-go 1.23.7
+go 1.24.0
 
 use (
-	./be-library
-	be-api
+	common/pkg
+	common/be-api
+	be-library
+	be-proxy
 	be-banner
 	be-calendar
 	be-ccnu

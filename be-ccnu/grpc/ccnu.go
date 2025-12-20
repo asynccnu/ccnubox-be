@@ -3,8 +3,8 @@ package grpc
 import (
 	"context"
 
-	ccnuv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/ccnu/v1"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/service"
+	ccnuv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/ccnu/v1"
 	"google.golang.org/grpc"
 )
 
@@ -22,7 +22,15 @@ func (s *CCNUServiceServer) Register(server grpc.ServiceRegistrar) {
 }
 
 func (s *CCNUServiceServer) GetXKCookie(ctx context.Context, request *ccnuv1.GetXKCookieRequest) (*ccnuv1.GetXKCookieResponse, error) {
-	cookie, err := s.ccnu.GetXKCookie(ctx, request.GetStudentId(), request.GetPassword())
+	var (
+		cookie string
+		err    error
+	)
+	if request.Type == "" {
+		cookie, err = s.ccnu.GetXKCookie(ctx, request.GetStudentId(), request.GetPassword())
+	} else {
+		cookie, err = s.ccnu.GetXKCookie(ctx, request.GetStudentId(), request.GetPassword(), request.Type) // 这里传入了type, 判断用哪一个系统的cookie
+	}
 	return &ccnuv1.GetXKCookieResponse{Cookie: cookie}, err
 }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-class/internal/service"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/timedTask"
 	"github.com/go-kratos/kratos/v2/log"
+	"io"
 )
 
 import (
@@ -26,7 +27,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, logger log.Logger) (*APP, func(), error) {
+func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, logger log.Logger, writer io.Writer) (*APP, func(), error) {
 	elasticClient, err := data.NewEsClient(confData)
 	if err != nil {
 		return nil, nil, err
@@ -44,21 +45,29 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	redisClient := data.NewRedisClient(confData)
 	builder := lock.NewRedisLockBuilder(redisClient)
 	cache := data.NewCache(redisClient)
-	classSerivceUserCase := biz.NewClassSerivceUserCase(classData, classListService, builder, cache)
-	classServiceService := service.NewClassServiceService(classSerivceUserCase)
-	freeClassroomData := data.NewFreeClassroomData(elasticClient)
+	classServiceUserCase := biz.NewClassServiceUserCase(classData, classListService, builder, cache)
 	cookieSvc, err := client.NewCookieSvc(etcdRegistry)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	freeClassroomBiz := biz.NewFreeClassroomBiz(classData, freeClassroomData, cookieSvc, builder, cache)
+	db := data.NewDB(confData, writer)
+	cultivateStrategyData := data.NewCultivateStrategyData(db, confData)
+	proxyClient, err := client.InitProxyClient(etcdRegistry, confRegistry, logger)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	cultivateStrategy := biz.NewCultivateStrategyBiz(cookieSvc, cache, cultivateStrategyData, proxyClient)
+	classServiceService := service.NewClassServiceService(classServiceUserCase, cultivateStrategy)
+	freeClassroomData := data.NewFreeClassroomData(elasticClient)
+	freeClassroomBiz := biz.NewFreeClassroomBiz(classData, freeClassroomData, cookieSvc, builder, cache, proxyClient)
 	freeClassroomSvc := service.NewFreeClassroomSvc(freeClassroomBiz)
 	grpcServer := server.NewGRPCServer(confServer, classServiceService, freeClassroomSvc, logger)
 	selectionUploader := service.NewSelectionUploader(freeClassroomBiz)
 	httpServer := server.NewHTTPServer(confServer, selectionUploader)
 	app := newApp(logger, grpcServer, httpServer, etcdRegistry)
-	task := timedTask.NewTask(classSerivceUserCase, freeClassroomBiz)
+	task := timedTask.NewTask(classServiceUserCase, freeClassroomBiz, classListService)
 	mainAPP := NewApp(app, task)
 	return mainAPP, func() {
 		cleanup()

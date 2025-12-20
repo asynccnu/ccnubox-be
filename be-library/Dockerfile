@@ -1,8 +1,9 @@
-FROM golang:1.23.7 AS builder
+FROM golang:1.24 AS builder
 
 COPY . /src
 
 WORKDIR /src/be-library
+
 
 ENV GOPROXY=https://goproxy.cn,direct
 

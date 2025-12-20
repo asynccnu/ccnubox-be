@@ -3,12 +3,13 @@ package banner
 import (
 	"context"
 	"fmt"
-	bannerv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/banner/v1"
-	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	bannerv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/banner/v1"
+	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
@@ -23,7 +24,8 @@ type BannerHandler struct {
 // NewBannerHandler 创建一个新的 BannerHandler 实例
 func NewBannerHandler(bannerClient bannerv1.BannerServiceClient,
 	userClient userv1.UserServiceClient,
-	administrators map[string]struct{}) *BannerHandler {
+	administrators map[string]struct{},
+) *BannerHandler {
 	return &BannerHandler{bannerClient: bannerClient, userClient: userClient, Administrators: administrators}
 }
 
@@ -42,11 +44,10 @@ func (h *BannerHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Ha
 // @Success 200 {object} web.Response{data=GetBannersResponse} "成功"
 // @Router /banner/getBanners [get]
 func (h *BannerHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
-
 	go func() {
-		//此处做一个cookie预热
-		//为什么在这里做呢?
-		//因为用户打开匣子必然会发送这个请求,如果短时间(5分钟)内要获取课表或者是成绩会体验感好很多
+		// 此处做一个cookie预热
+		// 为什么在这里做呢?
+		// 因为用户打开匣子必然会发送这个请求,如果短时间(5分钟)内要获取课表或者是成绩会体验感好很多
 		_, _ = h.userClient.GetCookie(context.Background(), &userv1.GetCookieRequest{StudentId: uc.StudentId})
 	}()
 
@@ -55,7 +56,7 @@ func (h *BannerHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.Re
 		return web.Response{}, errs.GET_BANNER_ERROR(err)
 	}
 
-	//类型转换
+	// 类型转换
 	var resp GetBannersResponse
 	err = copier.Copy(&resp.Banners, &banners.Banners)
 	if err != nil {
@@ -77,7 +78,6 @@ func (h *BannerHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.Re
 // @Success 200 {object} web.Response "成功"
 // @Router /banner/saveBanner [post]
 func (h *BannerHandler) SaveBanner(ctx *gin.Context, req SaveBannerRequest, uc ijwt.UserClaims) (web.Response, error) {
-
 	if !h.isAdmin(uc.StudentId) {
 		return web.Response{}, errs.ROLE_ERROR(fmt.Errorf("没有访问权限: %s", uc.StudentId))
 	}

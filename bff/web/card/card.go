@@ -1,22 +1,23 @@
 package card
 
 import (
-	cardv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/card/v1"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	cardv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/card/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/ptypes"
 )
 
 type CardHandler struct {
 	CardClient     cardv1.CardClient
-	Administrators map[string]struct{} //这里注入的是管理员权限验证配置
+	Administrators map[string]struct{} // 这里注入的是管理员权限验证配置
 }
 
 func NewCardHandler(CardClient cardv1.CardClient,
-	administrators map[string]struct{}) *CardHandler {
+	administrators map[string]struct{},
+) *CardHandler {
 	return &CardHandler{CardClient: CardClient, Administrators: administrators}
 }
 

@@ -1,6 +1,6 @@
 package classroom
 
-import cs "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
+import cs "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classService/v1"
 
 type GetFreeClassRoomReq struct {
 	Year        string  `form:"year"`        // 学年

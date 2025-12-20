@@ -2,22 +2,24 @@ package feedback_help
 
 import (
 	"fmt"
-	feedback_helpv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feedback_help/v1"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	feedback_helpv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feedback_help/v1"
 	"github.com/gin-gonic/gin"
 )
 
 // TODO 删除反馈,改为使用木犀反馈中台服务
 type FeedbackHelpHandler struct {
-	FeedbackHelpClient feedback_helpv1.FeedbackHelpClient //注入的是grpc服务
-	Administrators     map[string]struct{}                //这里注入的是管理员权限验证配置
+	FeedbackHelpClient feedback_helpv1.FeedbackHelpClient // 注入的是grpc服务
+	Administrators     map[string]struct{}                // 这里注入的是管理员权限验证配置
 }
 
 func NewFeedbackHelpHandler(FeedbackHelpClient feedback_helpv1.FeedbackHelpClient,
-	administrators map[string]struct{}) *FeedbackHelpHandler {
+	administrators map[string]struct{},
+) *FeedbackHelpHandler {
 	return &FeedbackHelpHandler{FeedbackHelpClient: FeedbackHelpClient, Administrators: administrators}
 }
 
@@ -41,7 +43,6 @@ func (h *FeedbackHelpHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware 
 // @Router /feedback_help/getQuestion [get]
 func (h *FeedbackHelpHandler) GetQuestions(c *gin.Context) (web.Response, error) {
 	q, err := h.FeedbackHelpClient.GetQuestions(c, &feedback_helpv1.EmptyRequest{})
-
 	if err != nil {
 		return web.Response{}, errs.GET_QUESTION_ERROR(err)
 	}
@@ -60,7 +61,6 @@ func (h *FeedbackHelpHandler) GetQuestions(c *gin.Context) (web.Response, error)
 		Msg:  "Success",
 		Data: resp,
 	}, nil
-
 }
 
 // @Summary 创建一个问题与答复
@@ -81,7 +81,6 @@ func (h *FeedbackHelpHandler) CreateQuestion(c *gin.Context, req CreateQuestionR
 		Question: req.Question,
 		Anwser:   req.Answer,
 	})
-
 	if err != nil {
 		return web.Response{}, errs.CREATE_QUESTION_ERROR(err)
 	}
@@ -109,7 +108,6 @@ func (h *FeedbackHelpHandler) ChangeQuestion(c *gin.Context, req ChangeQuestionR
 		Question:   req.Question,
 		Anwser:     req.Answer,
 	})
-
 	if err != nil {
 		return web.Response{}, errs.CHANGE_QUESTION_ERROR(err)
 	}
@@ -135,7 +133,6 @@ func (h *FeedbackHelpHandler) DeleteQuestion(c *gin.Context, req DeleteQuestionR
 	_, err := h.FeedbackHelpClient.DeleteQuestion(c, &feedback_helpv1.DeleteQuestionRequest{
 		QuestionId: req.QuestionId,
 	})
-
 	if err != nil {
 		return web.Response{}, errs.DELETE_QUESTION_ERROR(err)
 	}
@@ -157,7 +154,6 @@ func (h *FeedbackHelpHandler) FindQuestionsByName(c *gin.Context, req FindQuesti
 	q, err := h.FeedbackHelpClient.FindQuestionByName(c, &feedback_helpv1.FindQuestionByNameRequest{
 		Question: req.Question,
 	})
-
 	if err != nil {
 		return web.Response{
 			Code: errs.INTERNAL_SERVER_ERROR_CODE,
@@ -195,7 +191,6 @@ func (h *FeedbackHelpHandler) NoteQuestion(c *gin.Context, req NoteQuestionReq) 
 		QuestionId: req.QuestionId,
 		IfOver:     req.IfOver,
 	})
-
 	if err != nil {
 		return web.Response{}, errs.NOTE_QUESTION_ERROR(err)
 	}
@@ -204,6 +199,7 @@ func (h *FeedbackHelpHandler) NoteQuestion(c *gin.Context, req NoteQuestionReq) 
 		Msg: "Success",
 	}, nil
 }
+
 func (h *FeedbackHelpHandler) isAdmin(studentId string) bool {
 	_, exists := h.Administrators[studentId]
 	return exists

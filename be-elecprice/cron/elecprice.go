@@ -3,11 +3,12 @@ package cron
 import (
 	"context"
 	"fmt"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/pkg/logger"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/service"
-	"github.com/spf13/viper"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-elecprice/service"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/spf13/viper"
 )
 
 type ElecpriceController struct {

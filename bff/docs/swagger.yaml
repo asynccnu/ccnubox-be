@@ -215,6 +215,34 @@ definitions:
     - where
     - year
     type: object
+  class.ClassToBeStudiedInfo:
+    properties:
+      credit:
+        description: 学分
+        type: string
+      id:
+        description: 课程ID
+        type: string
+      name:
+        description: 课程名称
+        type: string
+      property:
+        description: 课程性质，
+        type: string
+      status:
+        description: 课程状态，未修读/修读中/已修读
+        type: string
+      studiable:
+        description: 开设学年期
+        type: string
+    required:
+    - credit
+    - id
+    - name
+    - property
+    - status
+    - studiable
+    type: object
   class.DeleteClassNoteReq:
     properties:
       classId:
@@ -278,6 +306,36 @@ definitions:
     required:
     - holiday_time
     - school_time
+    type: object
+  class.GetToBeStudiedClassReq:
+    properties:
+      status:
+        description: 课程状态，未修读/修读中/已修读
+        type: string
+    required:
+    - status
+    type: object
+  class.GetToBeStudiedClassResp:
+    properties:
+      common_educate:
+        description: 通识教育课
+        items:
+          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+        type: array
+      identity_develop:
+        description: 个性发展课
+        items:
+          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+        type: array
+      specific_skill:
+        description: 专业主干课
+        items:
+          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+        type: array
+    required:
+    - common_educate
+    - identity_develop
+    - specific_skill
     type: object
   class.RecoverClassRequest:
     properties:
@@ -754,10 +812,8 @@ definitions:
         description: |-
           Utime      time.Time
           Ctime      time.Time
-        format: int64
         type: integer
       id:
-        format: int64
         type: integer
       question:
         type: string
@@ -820,6 +876,31 @@ definitions:
         type: array
     required:
     - kcxzmc
+    type: object
+  grade.GetRankByTermReq:
+    properties:
+      refresh:
+        type: boolean
+      xnm_begin:
+        description: 学年学期四个字段为空则获取总成绩
+        type: integer
+      xnm_end:
+        type: integer
+      xqm_begin:
+        type: integer
+      xqm_end:
+        type: integer
+    type: object
+  grade.GetRankByTermResp:
+    properties:
+      include:
+        items:
+          type: string
+        type: array
+      rank:
+        type: string
+      score:
+        type: string
     type: object
   grade.Grade:
     properties:
@@ -1162,9 +1243,7 @@ definitions:
       end:
         type: string
       room_ids:
-        items:
-          type: string
-        type: array
+        type: string
       start:
         type: string
     type: object
@@ -1907,6 +1986,78 @@ paths:
                   $ref: '#/definitions/class.SearchClassResp'
               type: object
       summary: 搜索课程
+      tags:
+      - class
+  /class/toBeStudied:
+    get:
+      consumes:
+      - application/json
+      description: 获取需要上的课程, 返回全部课程
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取待修课程
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  allOf:
+                  - $ref: '#/definitions/class.GetToBeStudiedClassResp'
+                  - properties:
+                      common_educate:
+                        items:
+                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+                        type: array
+                      identity_develop:
+                        items:
+                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+                        type: array
+                      specific_skill:
+                        items:
+                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+                        type: array
+                    type: object
+              type: object
+      summary: 获取人培课程(全部)
+      tags:
+      - class
+    post:
+      consumes:
+      - application/json
+      description: 根据用户选择返回各种状态的课程
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 获取待修课请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/class.GetToBeStudiedClassReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取待修课程
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.GetToBeStudiedClassResp'
+              type: object
+      summary: 获取人培课程(部分)
       tags:
       - class
   /class/update:
@@ -2860,6 +3011,50 @@ paths:
       summary: 获取课程类别
       tags:
       - grade
+  /grade/getRankByTerm:
+    get:
+      consumes:
+      - application/json
+      description: 根据学年号和学期号获取用户的学分绩排名以及分数和统计的科目，全为0则查总排名
+      parameters:
+      - description: 获取学年和学期的学分绩排名请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/grade.GetRankByTermReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回学年和学期的排名信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/grade.GetRankByTermResp'
+              type: object
+        "500":
+          description: 系统异常，获取失败
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 查询学分绩排名
+      tags:
+      - grade
+  /grade/loadRank:
+    get:
+      description: 当用户点开app时前端发现从未预加载过，调用该接口预加载总排名，每个用户只需调用一次即可
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 返回信息
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 预加载总排名
+      tags:
+      - grade
   /library/cancel_reserve:
     post:
       consumes:
@@ -3248,7 +3443,7 @@ paths:
       tags:
       - library
   /library/search_user:
-    post:
+    get:
       consumes:
       - application/json
       description: 传入学生学号获取对应的学生ID
@@ -3281,6 +3476,21 @@ paths:
       summary: 搜索学生ID
       tags:
       - library
+  /metrics:
+    get:
+      description: 暴露标准的 Prometheus 监控数据，供 Prometheus 定时拉取，使用BasicAuth进行验证
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Prometheus Exporter Text Data
+          schema:
+            type: string
+      security:
+      - BasicAuth: []
+      summary: 导出 Prometheus 监控指标
+      tags:
+      - metrics
   /metrics/:type/:name:
     post:
       description: 用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/banner/xxx)表示跳转banner的xxx页面,使用这一路由必须携带Auth请求头
@@ -3372,6 +3582,21 @@ paths:
       summary: 保存静态内容
       tags:
       - statics[Deprecation]
+  /swag:
+    get:
+      description: 接口直接返回 docs/openapi3.yaml yaml格式的原始内容，使用BasicAuth进行验证
+      produces:
+      - application/x-yaml
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      security:
+      - BasicAuth: []
+      summary: 获取 OpenAPI3 接口文档 (YAML)
+      tags:
+      - swag
   /tube/access_token:
     get:
       consumes:
@@ -3389,6 +3614,26 @@ paths:
                   $ref: '#/definitions/tube.GetTubeTokenData'
               type: object
       summary: 获取图床访问令牌
+      tags:
+      - tube
+  /tube/upload/official:
+    get:
+      consumes:
+      - application/json
+      description: 获取用于前端 CD 部署时上传官网资源到七牛云的令牌
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/tube.GetTubeTokenData'
+              type: object
+      summary: 获取官网上传令牌
       tags:
       - tube
   /users/deactivate:
@@ -3438,7 +3683,7 @@ paths:
       tags:
       - user
   /users/logout:
-    post:
+    get:
       consumes:
       - application/json
       description: 通过短token登出

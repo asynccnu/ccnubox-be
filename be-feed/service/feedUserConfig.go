@@ -2,14 +2,15 @@ package service
 
 import (
 	"context"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
+	"reflect"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"golang.org/x/exp/slices"
-	"reflect"
 )
 
 type FeedUserConfigService interface {

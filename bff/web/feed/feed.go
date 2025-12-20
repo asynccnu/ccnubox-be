@@ -2,14 +2,15 @@ package feed
 
 import (
 	"fmt"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
-	"time"
 )
 
 type FeedHandler struct {
@@ -18,7 +19,8 @@ type FeedHandler struct {
 }
 
 func NewFeedHandler(feedClient feedv1.FeedServiceClient,
-	administrators map[string]struct{}) *FeedHandler {
+	administrators map[string]struct{},
+) *FeedHandler {
 	return &FeedHandler{feedClient: feedClient, Administrators: administrators}
 }
 
@@ -51,7 +53,7 @@ func (h *FeedHandler) GetFeedEvents(ctx *gin.Context, uc ijwt.UserClaims) (web.R
 		return web.Response{}, errs.GET_FEED_EVENTS_ERROR(err)
 	}
 
-	//类型转换
+	// 类型转换
 	var resp GetFeedEventsResp
 
 	err = copier.Copy(&resp, &feeds)
@@ -78,11 +80,10 @@ func (h *FeedHandler) GetFeedEvents(ctx *gin.Context, uc ijwt.UserClaims) (web.R
 // @Router /feed/clearFeedEvent [post]
 func (h *FeedHandler) ClearFeedEvent(ctx *gin.Context, req ClearFeedEventReq, uc ijwt.UserClaims) (web.Response, error) {
 	_, err := h.feedClient.ClearFeedEvent(ctx, &feedv1.ClearFeedEventReq{
-		StudentId: uc.StudentId, //用户的id
+		StudentId: uc.StudentId, // 用户的id
 		FeedId:    req.FeedId,
 		Status:    req.Status,
 	})
-
 	if err != nil {
 		return web.Response{}, errs.CLEAR_FEED_EVENT_ERROR(err)
 	}
@@ -127,7 +128,6 @@ func (h *FeedHandler) ReadFeedEvent(ctx *gin.Context, req ReadFeedEventReq) (web
 // @Failure 500 {object} web.Response "系统异常"
 // @Router /feed/changeFeedAllowList [post]
 func (h *FeedHandler) ChangeFeedAllowList(ctx *gin.Context, req ChangeFeedAllowListReq, uc ijwt.UserClaims) (web.Response, error) {
-
 	_, err := h.feedClient.ChangeFeedAllowList(ctx, &feedv1.ChangeFeedAllowListReq{
 		AllowList: &feedv1.AllowList{
 			StudentId: uc.StudentId,
@@ -137,7 +137,6 @@ func (h *FeedHandler) ChangeFeedAllowList(ctx *gin.Context, req ChangeFeedAllowL
 			Energy:    req.Energy,
 		},
 	})
-
 	if err != nil {
 		return web.Response{}, errs.CHANGE_FEED_ALLOW_LIST_ERROR(err)
 	}
@@ -157,7 +156,6 @@ func (h *FeedHandler) ChangeFeedAllowList(ctx *gin.Context, req ChangeFeedAllowL
 // @Failure 500 {object} web.Response "系统异常"
 // @Router /feed/getFeedAllowList [get]
 func (h *FeedHandler) GetFeedAllowList(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
-
 	allowlist, err := h.feedClient.GetFeedAllowList(ctx, &feedv1.GetFeedAllowListReq{StudentId: uc.StudentId})
 	if err != nil {
 		return web.Response{}, errs.GET_FEED_ALLOW_LIST_ERROR(err)
@@ -189,7 +187,6 @@ func (h *FeedHandler) SaveFeedToken(ctx *gin.Context, req SaveFeedTokenReq, uc i
 		StudentId: uc.StudentId,
 		Token:     req.Token,
 	})
-
 	if err != nil {
 		return web.Response{}, errs.SAVE_FEED_TOKEN_ERROR(err)
 	}
@@ -244,7 +241,6 @@ func (h *FeedHandler) PublicMuxiOfficialMSG(ctx *gin.Context, req PublicMuxiOffi
 			PublicTime:   time.Now().Add(time.Duration(req.LaterTime) * time.Second).Unix(),
 		},
 	})
-
 	if err != nil {
 		return web.Response{
 			Code: errs.INTERNAL_SERVER_ERROR_CODE,
@@ -276,7 +272,6 @@ func (h *FeedHandler) StopMuxiOfficialMSG(ctx *gin.Context, req StopMuxiOfficial
 	_, err := h.feedClient.StopMuxiOfficialMSG(ctx, &feedv1.StopMuxiOfficialMSGReq{
 		Id: req.Id,
 	})
-
 	if err != nil {
 		return web.Response{}, errs.STOP_MUXI_OFFICIAL_MSG_ERROR(err)
 	}

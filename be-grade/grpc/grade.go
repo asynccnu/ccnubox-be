@@ -3,19 +3,20 @@ package grpc
 import (
 	"context"
 
-	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/grade/v1"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
+	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/grade/v1"
 	"google.golang.org/grpc"
 )
 
 type GradeServiceServer struct {
 	v1.UnimplementedGradeServiceServer
-	ser service.GradeService
+	ser     service.GradeService
+	rankSer service.RankService // 具体见 rank.go
 }
 
-func NewGradeGrpcService(ser service.GradeService) *GradeServiceServer {
-	return &GradeServiceServer{ser: ser}
+func NewGradeGrpcService(ser service.GradeService, ser2 service.RankService) *GradeServiceServer {
+	return &GradeServiceServer{ser: ser, rankSer: ser2}
 }
 
 func (s *GradeServiceServer) Register(server grpc.ServiceRegistrar) {

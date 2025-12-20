@@ -1,7 +1,7 @@
 syntax = "proto3";
 package kratos.api;
 
-option go_package = "classlist/internal/conf;conf";
+option go_package = "github.com/asynccnu/ccnubox-be/be-class/internal/conf";
 
 import "google/protobuf/duration.proto";
 
@@ -9,6 +9,7 @@ message Bootstrap {
   Server server = 1;
   Data data = 2;
   Registry registry = 3;
+  string proxyStuId = 4; // 执行定时任务时使用的学生ID
 }
 
 message Server {
@@ -39,8 +40,16 @@ message Data {
     string addr = 1;
     string password = 2;
   }
+  message DataBase {
+    string dsn = 1;
+    int32 data_alive = 2;
+    string log_level = 3;
+    string log_path = 4;
+    string log_file_name = 5;
+  }
   ES es = 1;
   Redis redis = 2;
+  DataBase database = 3;
 }
 message Etcd {
   string addr = 1;
@@ -49,4 +58,5 @@ message Etcd {
 }
 message Registry {
   Etcd etcd = 1;
+  string proxysvc = 2;
 }

@@ -3,7 +3,7 @@ package errs
 import (
 	"net/http"
 
-	"github.com/asynccnu/ccnubox-be/bff/pkg/errorx"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/apierr"
 )
 
 // TODO 细化错误码,根据错误类型区分不同的错误码
@@ -130,6 +130,10 @@ var (
 	SEARCH_CLASS_ERROR = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "搜索课程失败!", "Class", err)
 	}
+
+	GET_TO_BE_STUDIED_CLASS_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取待修读课程失败!", "Class", err)
+	}
 )
 
 var (
@@ -232,6 +236,10 @@ var (
 
 	GET_GRADE_SCORE_ERROR = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取成绩分数失败!", "grade", err)
+	}
+
+	GET_RANK_BY_TERM_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取学分绩排名失败!", "grade", err)
 	}
 
 	GET_GRADE_TYPE_ERROR=func(err error)error{
@@ -374,5 +382,15 @@ var (
 
 	DELETE_COMMENT_ERROR = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "删除评论失败!", "Library", err)
+	}
+)
+
+// swag
+var (
+	OPEN_SWAG_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "打开swagger失败", "swag", err)
+	}
+	MAKE_SWAG_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "生成swagger失败", "swag", err)
 	}
 )

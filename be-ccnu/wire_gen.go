@@ -9,7 +9,7 @@ package main
 import (
 	"github.com/asynccnu/ccnubox-be/be-ccnu/grpc"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/ioc"
-	"github.com/asynccnu/ccnubox-be/be-ccnu/pkg/grpcx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/service"
 )
 
@@ -17,9 +17,10 @@ import (
 
 func InitGRPCServer() grpcx.Server {
 	logger := ioc.InitLogger()
-	ccnuService := service.NewCCNUService(logger)
-	ccnuServiceServer := grpc.NewCCNUServiceServer(ccnuService)
 	client := ioc.InitEtcdClient()
+	proxyClient := ioc.InitProxyClient(client)
+	ccnuService := service.NewCCNUService(logger, proxyClient)
+	ccnuServiceServer := grpc.NewCCNUServiceServer(ccnuService)
 	server := ioc.InitGRPCxKratosServer(ccnuServiceServer, client, logger)
 	return server
 }

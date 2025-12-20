@@ -869,6 +869,128 @@
                 }
             }
         },
+        "/class/toBeStudied": {
+            "get": {
+                "description": "获取需要上的课程, 返回全部课程",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "获取人培课程(全部)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功获取待修课程",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/class.GetToBeStudiedClassResp"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "common_educate": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                                                            }
+                                                        },
+                                                        "identity_develop": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                                                            }
+                                                        },
+                                                        "specific_skill": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "根据用户选择返回各种状态的课程",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "获取人培课程(部分)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "获取待修课请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/class.GetToBeStudiedClassReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功获取待修课程",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/class.GetToBeStudiedClassResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/class/update": {
             "put": {
                 "description": "根据课表ID更新课表信息",
@@ -2413,6 +2535,78 @@
                 }
             }
         },
+        "/grade/getRankByTerm": {
+            "get": {
+                "description": "根据学年号和学期号获取用户的学分绩排名以及分数和统计的科目，全为0则查总排名",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "grade"
+                ],
+                "summary": "查询学分绩排名",
+                "parameters": [
+                    {
+                        "description": "获取学年和学期的学分绩排名请求参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/grade.GetRankByTermReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回学年和学期的排名信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/grade.GetRankByTermResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，获取失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/grade/loadRank": {
+            "get": {
+                "description": "当用户点开app时前端发现从未预加载过，调用该接口预加载总排名，每个用户只需调用一次即可",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "grade"
+                ],
+                "summary": "预加载总排名",
+                "responses": {
+                    "200": {
+                        "description": "返回信息",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/library/cancel_reserve": {
             "post": {
                 "description": "取消预约",
@@ -3031,7 +3225,7 @@
             }
         },
         "/library/search_user": {
-            "post": {
+            "get": {
                 "description": "传入学生学号获取对应的学生ID",
                 "consumes": [
                     "application/json"
@@ -3081,6 +3275,31 @@
                         "description": "系统异常，获取失败",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "暴露标准的 Prometheus 监控数据，供 Prometheus 定时拉取，使用BasicAuth进行验证",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "metrics"
+                ],
+                "summary": "导出 Prometheus 监控指标",
+                "responses": {
+                    "200": {
+                        "description": "Prometheus Exporter Text Data",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -3235,6 +3454,31 @@
                 }
             }
         },
+        "/swag": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "接口直接返回 docs/openapi3.yaml yaml格式的原始内容，使用BasicAuth进行验证",
+                "produces": [
+                    "application/x-yaml"
+                ],
+                "tags": [
+                    "swag"
+                ],
+                "summary": "获取 OpenAPI3 接口文档 (YAML)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/tube/access_token": {
             "get": {
                 "consumes": [
@@ -3247,6 +3491,41 @@
                     "tube"
                 ],
                 "summary": "获取图床访问令牌",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/tube.GetTubeTokenData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/tube/upload/official": {
+            "get": {
+                "description": "获取用于前端 CD 部署时上传官网资源到七牛云的令牌",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tube"
+                ],
+                "summary": "获取官网上传令牌",
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -3343,7 +3622,7 @@
             }
         },
         "/users/logout": {
-            "post": {
+            "get": {
                 "description": "通过短token登出",
                 "consumes": [
                     "application/json"
@@ -3800,6 +4079,43 @@
                 }
             }
         },
+        "class.ClassToBeStudiedInfo": {
+            "type": "object",
+            "required": [
+                "credit",
+                "id",
+                "name",
+                "property",
+                "status",
+                "studiable"
+            ],
+            "properties": {
+                "credit": {
+                    "description": "学分",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "课程ID",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "课程名称",
+                    "type": "string"
+                },
+                "property": {
+                    "description": "课程性质，",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "课程状态，未修读/修读中/已修读",
+                    "type": "string"
+                },
+                "studiable": {
+                    "description": "开设学年期",
+                    "type": "string"
+                }
+            }
+        },
         "class.DeleteClassNoteReq": {
             "type": "object",
             "required": [
@@ -3889,6 +4205,49 @@
                 },
                 "school_time": {
                     "type": "integer"
+                }
+            }
+        },
+        "class.GetToBeStudiedClassReq": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "description": "课程状态，未修读/修读中/已修读",
+                    "type": "string"
+                }
+            }
+        },
+        "class.GetToBeStudiedClassResp": {
+            "type": "object",
+            "required": [
+                "common_educate",
+                "identity_develop",
+                "specific_skill"
+            ],
+            "properties": {
+                "common_educate": {
+                    "description": "通识教育课",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                    }
+                },
+                "identity_develop": {
+                    "description": "个性发展课",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                    }
+                },
+                "specific_skill": {
+                    "description": "专业主干课",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                    }
                 }
             }
         },
@@ -4582,12 +4941,10 @@
                 },
                 "clickTimes": {
                     "description": "Utime      time.Time\nCtime      time.Time",
-                    "type": "integer",
-                    "format": "int64"
+                    "type": "integer"
                 },
                 "id": {
-                    "type": "integer",
-                    "format": "int64"
+                    "type": "integer"
                 },
                 "question": {
                     "type": "string"
@@ -4680,6 +5037,44 @@
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "grade.GetRankByTermReq": {
+            "type": "object",
+            "properties": {
+                "refresh": {
+                    "type": "boolean"
+                },
+                "xnm_begin": {
+                    "description": "学年学期四个字段为空则获取总成绩",
+                    "type": "integer"
+                },
+                "xnm_end": {
+                    "type": "integer"
+                },
+                "xqm_begin": {
+                    "type": "integer"
+                },
+                "xqm_end": {
+                    "type": "integer"
+                }
+            }
+        },
+        "grade.GetRankByTermResp": {
+            "type": "object",
+            "properties": {
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "rank": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "string"
                 }
             }
         },
@@ -5182,10 +5577,7 @@
                     "type": "string"
                 },
                 "room_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                    "type": "string"
                 },
                 "start": {
                     "type": "string"

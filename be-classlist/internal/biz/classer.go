@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
@@ -100,6 +99,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 	waitCrawTime := cluc.waitCrawTime
 	forceNoRefresh := false //强制不刷新
 	getLocal := false       //是否从本地获取到数据
+	count := -1             // 统计获取的成绩是否为空
 
 Local: //从本地获取数据
 
@@ -190,12 +190,13 @@ Local: //从本地获取数据
 
 			defer done()
 
-			crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(noExpireCtx, stuID, year, semester)
+			crawClassInfos_, crawScs, sum, crawErr := cluc.getCourseFromCrawler(noExpireCtx, stuID, year, semester)
 			if crawErr != nil {
 				_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(noExpireCtx, logID, do.Failed)
 				_ = cluc.sendRetryMsg(stuID, year, semester)
 				return
 			}
+			count = sum
 
 			// 标记爬虫返回的课程为官方课程
 			for _, ci := range crawClassInfos_ {
@@ -276,7 +277,7 @@ Local: //从本地获取数据
 		crawLock.Lock()
 
 		// 如果从爬虫中得到了数据，优先用爬虫结果
-		if len(crawClassInfos) > 0 {
+		if len(crawClassInfos) > 0 || count == 0 {
 			classInfos = append(crawClassInfos, addedClassInfos...)
 		}
 
@@ -286,7 +287,7 @@ Local: //从本地获取数据
 
 wrapRes: //包装结果
 
-	if len(classInfos) == 0 {
+	if len(classInfos) == 0 && count < 0 {
 		return nil, nil, errcode.ErrClassNotFound
 	}
 
@@ -424,7 +425,7 @@ func (cluc *ClassUsecase) addClass(ctx context.Context, stuID string, info *Clas
 	return nil
 }
 
-func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string, year string, semester string) ([]*ClassInfo, []*StudentCourse, error) {
+func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string, year string, semester string) ([]*ClassInfo, []*StudentCourse, int, error) {
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	crawSuccess := true
 	defer func(currentTime time.Time) {
@@ -437,10 +438,7 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 			logh.Infof("Get cookie (stu_id:%v,success:%v) from other service,cost %v", stuID, cookieSuccess, time.Since(currentTime))
 		}(time.Now())
 
-		timeoutCtx, cancel := context.WithTimeout(ctx, cluc.waitUserSvcTime) //防止影响
-		defer cancel()                                                       // 确保在函数返回前取消上下文，防止资源泄漏
-
-		cookie, err := cluc.ccnu.GetCookie(timeoutCtx, stuID)
+		cookie, err := cluc.ccnu.GetCookie(ctx, stuID)
 		if err != nil {
 			cookieSuccess = false // 设置cookie获取状态
 			logh.Errorf("Error getting cookie(stu_id:%v) from other service: %v", stuID, err)
@@ -450,7 +448,13 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 
 	if err != nil {
 		crawSuccess = false
-		return nil, nil, err
+		return nil, nil, -1, err
+	}
+
+	if len(cookie) == 0 {
+		crawSuccess = false
+		logh.Errorf("the cookie from other service is empty for stu_id:%v", stuID)
+		return nil, nil, -1, fmt.Errorf("the cookie from other service is empty for stu_id:%v", stuID)
 	}
 
 	var stu Student
@@ -461,18 +465,23 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 		stu = &GraduateStudent{}
 	}
 
-	return func() ([]*ClassInfo, []*StudentCourse, error) {
+	ci, sc, sum, err := func() ([]*ClassInfo, []*StudentCourse, int, error) {
 		defer func(currentTime time.Time) {
 			logh.Infof("Craw class [%v,%v,%v] cost %v", stuID, year, semester, time.Since(currentTime))
 		}(time.Now())
 
-		classinfos, scs, err := stu.GetClass(ctx, stuID, year, semester, cookie, cluc.crawler)
+		classinfos, scs, sum, err := stu.GetClass(ctx, stuID, year, semester, cookie, cluc.crawler)
 		if err != nil {
 			logh.Errorf("craw classlist(stu_id:%v year:%v semester:%v cookie:%v) failed: %v", stuID, year, semester, cookie, err)
-			return nil, nil, err
+			return nil, nil, -1, err
 		}
-		return classinfos, scs, nil
+		return classinfos, scs, sum, nil
 	}()
+	if err != nil {
+		crawSuccess = false
+		return nil, nil, -1, err
+	}
+	return ci, sc, sum, nil
 }
 
 func (cluc *ClassUsecase) IsClassOfficial(ctx context.Context, stuID, year, semester, classID string) bool {
@@ -549,7 +558,7 @@ func (cluc *ClassUsecase) handleRetryMsg(key, val []byte) {
 	ctx := classLog.WithLogger(context.Background(), valLogger)
 
 	//爬取课程信息
-	crawClassInfos_, crawScs, crawErr := cluc.getCourseFromCrawler(ctx, stuID, year, semester)
+	crawClassInfos_, crawScs, _, crawErr := cluc.getCourseFromCrawler(ctx, stuID, year, semester)
 	if crawErr != nil {
 		classLog.GlobalLogHelper.Errorf("Error retry getting class info from crawler: %v", crawErr)
 		return
@@ -605,24 +614,24 @@ func (cluc *ClassUsecase) UpdateClassNote(ctx context.Context, stuID, year, seme
 
 // Student 学生接口
 type Student interface {
-	GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfo, []*StudentCourse, error)
+	GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfo, []*StudentCourse, int, error)
 }
 type Undergraduate struct{}
 
-func (u *Undergraduate) GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfo, []*StudentCourse, error) {
-	infos, scs, err := craw.GetClassInfosForUndergraduate(ctx, stuID, year, semester, cookie)
+func (u *Undergraduate) GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfo, []*StudentCourse, int, error) {
+	infos, scs, sum, err := craw.GetClassInfosForUndergraduate(ctx, stuID, year, semester, cookie)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
-	return infos, scs, nil
+	return infos, scs, sum, nil
 }
 
 type GraduateStudent struct{}
 
-func (g *GraduateStudent) GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfo, []*StudentCourse, error) {
-	infos, scs, err := craw.GetClassInfoForGraduateStudent(ctx, stuID, year, semester, cookie)
+func (g *GraduateStudent) GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfo, []*StudentCourse, int, error) {
+	infos, scs, sum, err := craw.GetClassInfoForGraduateStudent(ctx, stuID, year, semester, cookie)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
-	return infos, scs, nil
+	return infos, scs, sum, nil
 }

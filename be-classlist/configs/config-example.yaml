@@ -1,5 +1,5 @@
 server:
-  name: "be-classlist"  # 新增字段：服务名称
+  name: "classlist"  # 新增字段：服务名称
   grpc:
     network: "tcp"          #网络类型，通常为 tcp
     addr: "0.0.0.0:19084"
@@ -32,6 +32,7 @@ registry:
     username: "root"
     password: "12345678"
   usersvc: "discovery:///user"               # 用户服务地址
+  proxysvc: "discovery:///proxy"
 
 zaplog:
   ##日志级别

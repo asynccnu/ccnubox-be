@@ -2,11 +2,12 @@ package cron
 
 import (
 	"context"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
-	"github.com/asynccnu/ccnubox-be/be-calendar/pkg/logger"
+	"time"
+
+	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-calendar/pkg/lunar"
 	"github.com/spf13/viper"
-	"time"
 )
 
 type HolidayController struct {

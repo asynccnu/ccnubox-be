@@ -2,7 +2,9 @@ package ioc
 
 import (
 	"context"
-	elecpricev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/elecprice/v1"
+	"time"
+
+	elecpricev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/elecprice/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
@@ -26,6 +28,7 @@ func InitElecpriceClient(ecli *clientv3.Client) elecpricev1.ElecpriceServiceClie
 	cc, err := grpc.DialInsecure(context.Background(),
 		grpc.WithEndpoint(cfg.Endpoint),
 		grpc.WithDiscovery(r),
+		grpc.WithTimeout(120*time.Second),
 	)
 	if err != nil {
 		panic(err)

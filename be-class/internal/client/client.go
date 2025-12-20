@@ -2,11 +2,14 @@ package client
 
 import (
 	"context"
-	classlist "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
-	user "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
+	"fmt"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-class/internal/errcode"
 	clog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/model"
+	classlist "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1"
+	user "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
@@ -16,7 +19,7 @@ import (
 
 const CLASSLISTSERVICE = "discovery:///be-classlist"
 
-var ProviderSet = wire.NewSet(NewClassListService, NewCookieSvc)
+var ProviderSet = wire.NewSet(NewClassListService, NewCookieSvc, InitProxyClient)
 
 type ClassListService struct {
 	cs classlist.ClasserClient
@@ -80,6 +83,14 @@ func (c *ClassListService) AddClassInfoToClassListService(ctx context.Context, r
 
 }
 
+func (c *ClassListService) GetSchoolDay(ctx context.Context) (string, error) {
+	resp, err := c.cs.GetSchoolDay(ctx, &classlist.GetSchoolDayReq{})
+	if err != nil {
+		return "", err
+	}
+	return resp.SchoolTime, nil
+}
+
 type CookieSvc struct {
 	usc user.UserServiceClient
 }
@@ -97,6 +108,7 @@ func NewCookieSvc(r *etcd.Registry) (*CookieSvc, error) {
 			tracing.Client(),
 			recovery.Recovery(),
 		),
+		grpc.WithTimeout(120*time.Second),
 	)
 	if err != nil {
 		clog.LogPrinter.Errorw("kind", "grpc-client", "reason", "GRPC_CLIENT_INIT_ERROR", "err", err)
@@ -106,14 +118,21 @@ func NewCookieSvc(r *etcd.Registry) (*CookieSvc, error) {
 	return &CookieSvc{usc: usc}, nil
 }
 
-func (c *CookieSvc) GetCookie(ctx context.Context, stuID string) (string, error) {
+func (c *CookieSvc) GetCookie(ctx context.Context, stuID string, tpe ...string) (string, error) {
 
-	resp, err := c.usc.GetCookie(ctx, &user.GetCookieRequest{
+	req := &user.GetCookieRequest{
 		StudentId: stuID,
-	})
+	}
+	if len(tpe) != 0 {
+		req.Type = tpe[0]
+	}
+	resp, err := c.usc.GetCookie(ctx, req)
 	if err != nil {
-		return "", errcode.ErrCCNULogin
+		return "", fmt.Errorf("%s:%v", errcode.ErrCCNULogin, err)
 	}
 	cookie := resp.Cookie
+	if len(cookie) == 0 {
+		return "", fmt.Errorf("cookie is empty")
+	}
 	return cookie, nil
 }

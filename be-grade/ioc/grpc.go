@@ -3,17 +3,18 @@ package ioc
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-grade/grpc"
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/grpcx"
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/logger"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport"
 	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"time"
 )
 
 func InitGRPCxKratosServer(gradeServer *grpc.GradeServiceServer, ecli *clientv3.Client, l logger.Logger) grpcx.Server {
@@ -35,7 +36,8 @@ func InitGRPCxKratosServer(gradeServer *grpc.GradeServiceServer, ecli *clientv3.
 			recovery.Recovery(),
 			LoggingMiddleware(l),
 		),
-		kgrpc.Timeout(30*time.Second),
+		// 查询学分绩太慢了，将原来的三十秒拉长到三分钟
+		kgrpc.Timeout(3*time.Minute),
 	)
 
 	gradeServer.Register(server)

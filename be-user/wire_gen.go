@@ -9,7 +9,7 @@ package main
 import (
 	"github.com/asynccnu/ccnubox-be/be-user/grpc"
 	"github.com/asynccnu/ccnubox-be/be-user/ioc"
-	"github.com/asynccnu/ccnubox-be/be-user/pkg/grpcx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-user/service"
@@ -26,7 +26,8 @@ func InitGRPCServer() grpcx.Server {
 	crypto := ioc.NewCrypto()
 	client := ioc.InitEtcdClient()
 	ccnuServiceClient := ioc.InitCCNUClient(client)
-	userService := service.NewUserService(userDAO, userCache, crypto, ccnuServiceClient, logger)
+	proxyClient := ioc.InitProxyClient(client)
+	userService := service.NewUserService(userDAO, userCache, crypto, ccnuServiceClient, logger, proxyClient)
 	userServiceServer := grpc.NewUserServiceServer(userService)
 	server := ioc.InitGRPCxKratosServer(userServiceServer, client, logger)
 	return server

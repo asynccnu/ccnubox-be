@@ -1,6 +1,8 @@
 package lock
 
 import (
+	"time"
+
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/redis/go-redis/v9"
@@ -34,5 +36,12 @@ func NewRedisLockBuilder(client *redis.Client) Builder {
 func (rlb *RedisLockBuilder) Build(name string) Locker {
 	return &RedisLocker{
 		mu: rlb.rs.NewMutex(name, redsync.WithTries(1)),
+	}
+}
+
+// 目前是加载缓存空教室用，全程加载时间比较长
+func (rlb *RedisLockBuilder) BuildWithExpire(name string, expire time.Duration) Locker {
+	return &RedisLocker{
+		mu: rlb.rs.NewMutex(name, redsync.WithTries(1), redsync.WithExpiry(expire)),
 	}
 }

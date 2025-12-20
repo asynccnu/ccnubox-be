@@ -2,9 +2,10 @@ package ginx
 
 import (
 	"errors"
+	"net/http"
+
 	api_errors "github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 const RESP_CTX = "ginx_resp"

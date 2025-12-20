@@ -16,6 +16,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/metrics"
 	"github.com/asynccnu/ccnubox-be/bff/web/middleware"
 	"github.com/asynccnu/ccnubox-be/bff/web/static"
+	"github.com/asynccnu/ccnubox-be/bff/web/swag"
 	"github.com/asynccnu/ccnubox-be/bff/web/tube"
 	"github.com/asynccnu/ccnubox-be/bff/web/user"
 	"github.com/asynccnu/ccnubox-be/bff/web/website"
@@ -28,6 +29,7 @@ func InitGinServer(
 	corsMiddleware *middleware.CorsMiddleware,
 	basicAuthMiddleware *middleware.BasicAuthMiddleware,
 	prometheusMiddleware *middleware.PrometheusMiddleware,
+	otelMiddleware *middleware.OtelMiddleware,
 	classroom *classroom.ClassRoomHandler,
 	tube *tube.TubeHandler,
 	user *user.UserHandler,
@@ -45,6 +47,7 @@ func InitGinServer(
 	card *card.CardHandler,
 	metrics *metrics.MetricsHandler,
 	library *library.LibraryHandler,
+	swag *swag.SwagHandler,
 ) *gin.Engine {
 	//初始化一个gin引擎
 	engine := gin.Default()
@@ -55,6 +58,8 @@ func InitGinServer(
 	api.Use(
 		// 跨域中间件
 		corsMiddleware.MiddlewareFunc(),
+		// 追踪中间件
+		otelMiddleware.Middleware(),
 		// 打点中间件
 		prometheusMiddleware.MiddlewareFunc(),
 		// 日志中间件
@@ -78,10 +83,12 @@ func InitGinServer(
 	infoSum.RegisterRoutes(api, authMiddleware)
 	grade.RegisterRoutes(api, authMiddleware)
 	card.RegisterRoute(api, authMiddleware)
-	tube.RegisterRoutes(api, authMiddleware)
+	tube.RegisterRoutes(api, authMiddleware, basicAuthMiddleware.MiddlewareFunc())
 	metrics.RegisterRoutes(api, basicAuthMiddleware.MiddlewareFunc(), authMiddleware)
 	classroom.RegisterRoutes(api, authMiddleware)
 	library.RegisterRoutes(api, authMiddleware)
+	swag.RegisterRoutes(api, basicAuthMiddleware.MiddlewareFunc())
+
 	//返回路由
 	return engine
 }

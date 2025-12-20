@@ -3,11 +3,12 @@ package ioc
 import (
 	"context"
 	"fmt"
+
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )
 
-func InitRedis() redis.Cmdable {
+func InitRedis() *redis.Client {
 	type Config struct {
 		Addr     string `yaml:"addr"`
 		Password string `yaml:"password"`

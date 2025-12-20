@@ -17,10 +17,11 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-class/internal/timedTask"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
+	"io"
 )
 
 // wireApp init kratos application.
-func wireApp(*conf.Server, *conf.Data, *conf.Registry, log.Logger) (*APP, func(), error) {
+func wireApp(*conf.Server, *conf.Data, *conf.Registry, log.Logger, io.Writer) (*APP, func(), error) {
 	panic(wire.Build(server.ProviderSet,
 		data.ProviderSet,
 		biz.ProviderSet,
@@ -35,9 +36,7 @@ func wireApp(*conf.Server, *conf.Data, *conf.Registry, log.Logger) (*APP, func()
 		wire.Bind(new(biz.ClassData), new(*data.ClassData)),
 		wire.Bind(new(biz.CookieClient), new(*client.CookieSvc)),
 		wire.Bind(new(biz.Cache), new(*data.Cache)),
-		wire.Bind(new(timedTask.ClassroomTask), new(*biz.FreeClassroomBiz)),
-		wire.Bind(new(timedTask.OptClassInfoToEs), new(*biz.ClassSerivceUserCase)),
-		wire.Bind(new(service.ClassInfoProxy), new(*biz.ClassSerivceUserCase)),
+		wire.Bind(new(service.ClassInfoProxy), new(*biz.ClassServiceUserCase)),
 		wire.Bind(new(service.FreeClassRoomSaver), new(*biz.FreeClassroomBiz)),
 		wire.Bind(new(service.FreeClassroomSearcher), new(*biz.FreeClassroomBiz)),
 		NewApp,

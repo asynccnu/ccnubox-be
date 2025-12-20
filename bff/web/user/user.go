@@ -3,13 +3,16 @@ package user
 import (
 	"errors"
 	"fmt"
-	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // user板块的控制路由
@@ -29,7 +32,7 @@ func NewUserHandler(hdl ijwt.Handler, userSvc userv1.UserServiceClient) *UserHan
 func (h *UserHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	ug := s.Group("/users")
 	ug.POST("/login_ccnu", ginx.WrapReq(h.LoginByCCNU))
-	ug.POST("/logout", authMiddleware, ginx.Wrap(h.Logout))
+	ug.GET("/logout", authMiddleware, ginx.Wrap(h.Logout))
 	ug.GET("/refresh_token", ginx.Wrap(h.RefreshToken))
 	ug.POST("/deactivate", authMiddleware, ginx.WrapClaimsAndReq(h.DeleteAccount))
 }
@@ -44,9 +47,15 @@ func (h *UserHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 // @Success 200 {object} web.Response "Success"
 // @Router /users/login_ccnu [post]
 func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Response, error) {
+	// otelgin 中间件将 Span 注入的是这个标准 go context
+	c := ctx.Request.Context()
+
+	// 记录学号存入 span
+	span := trace.SpanFromContext(c)
+	span.SetAttributes(attribute.String("student_id", req.StudentId))
 
 	// 检测是否学生证账号密码正确,如果通行证失败的话会去查本地,如果本地也失败就会丢出系统异常错误,否则是账号密码不正确
-	resp, err := h.userSvc.CheckUser(ctx, &userv1.CheckUserReq{
+	resp, err := h.userSvc.CheckUser(c, &userv1.CheckUserReq{
 		StudentId: req.StudentId,
 		Password:  req.Password,
 	})
@@ -65,7 +74,7 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 	}
 
 	// FindOrCreate
-	_, err = h.userSvc.SaveUser(ctx, &userv1.SaveUserReq{StudentId: req.StudentId, Password: req.Password})
+	_, err = h.userSvc.SaveUser(c, &userv1.SaveUserReq{StudentId: req.StudentId, Password: req.Password})
 	if err != nil {
 		return web.Response{}, errs.LOGIN_BY_CCNU_ERROR(err)
 	}
@@ -87,7 +96,7 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 // @Accept json
 // @Produce json
 // @Success 200 {object} web.Response "Success"
-// @Router /users/logout [post]
+// @Router /users/logout [get]
 func (h *UserHandler) Logout(ctx *gin.Context) (web.Response, error) {
 	err := h.ClearToken(ctx)
 	if err != nil {
@@ -124,7 +133,7 @@ func (h *UserHandler) RefreshToken(ctx *gin.Context) (web.Response, error) {
 	if err != nil || ok {
 		return web.Response{}, errs.JWT_SYSTEM_ERROR(err)
 	}
-	//这里设置到相应头里了(非常神秘的模式),这里的jwt参数居然直接被耦合到服务里面去了
+	// 这里设置到相应头里了(非常神秘的模式),这里的jwt参数居然直接被耦合到服务里面去了
 	err = h.SetJWTToken(ctx, ijwt.ClaimParams{
 		StudentId: rc.StudentId,
 		Password:  rc.Password,

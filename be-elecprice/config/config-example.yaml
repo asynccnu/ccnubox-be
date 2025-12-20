@@ -29,3 +29,12 @@ log:
   maxAge: 30             # 日志文件保留天数
   compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
 
+kuai:
+  username: "username"
+  password: "password"
+  proxy: "proxy_addr"
+
+shenlong:
+  api: "api_addr"
+  interval: 114 # 单位: s
+  retry: 514

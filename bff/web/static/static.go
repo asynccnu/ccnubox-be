@@ -3,12 +3,13 @@ package static
 import (
 	"errors"
 	"fmt"
-	staticv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/static/v1"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/htmlx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	staticv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/static/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
@@ -48,7 +49,6 @@ func (h *StaticHandler) GetStaticByName(ctx *gin.Context, req GetStaticByNameReq
 		return web.Response{}, errs.INVALID_PARAM_VALUE_ERROR(errors.New("静态名称不合法"))
 	}
 	res, err := h.staticClient.GetStaticByName(ctx, &staticv1.GetStaticByNameRequest{Name: req.StaticName})
-
 	if err != nil {
 		return web.Response{
 			Code: errs.INTERNAL_SERVER_ERROR_CODE,

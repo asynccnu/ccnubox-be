@@ -13,6 +13,8 @@ type Handler interface {
 	CheckSession(ctx *gin.Context, ssid string) (bool, error)
 	JWTKey() []byte
 	RCJWTKey() []byte
+	EncKey() []byte
+	DecryptPasswordFromClaims(uc *UserClaims) (string, error)
 }
 
 type ClaimParams struct {

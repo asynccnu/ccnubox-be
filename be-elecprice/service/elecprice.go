@@ -5,16 +5,19 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	elecpricev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/elecprice/v1"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/domain"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/pkg/logger"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/dao"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/model"
 	"net/url"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-elecprice/domain"
+	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/dao"
+	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/model"
+	elecpricev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/elecprice/v1"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/go-kratos/kratos/v2/log"
 )
 
 var (
@@ -43,10 +46,11 @@ type ElecpriceService interface {
 type elecpriceService struct {
 	elecpriceDAO dao.ElecpriceDAO
 	l            logger.Logger
+	p            proxyv1.ProxyClient
 }
 
-func NewElecpriceService(elecpriceDAO dao.ElecpriceDAO, l logger.Logger) ElecpriceService {
-	return &elecpriceService{elecpriceDAO: elecpriceDAO, l: l}
+func NewElecpriceService(elecpriceDAO dao.ElecpriceDAO, l logger.Logger, p proxyv1.ProxyClient) ElecpriceService {
+	return &elecpriceService{elecpriceDAO: elecpriceDAO, l: l, p: p}
 }
 
 func (s *elecpriceService) SetStandard(ctx context.Context, r *domain.SetStandardRequest) error {
@@ -181,6 +185,12 @@ func (s *elecpriceService) GetTobePushMSG(ctx context.Context) ([]*domain.Electr
 func (s *elecpriceService) GetArchitecture(ctx context.Context, area string) (domain.ResultArchitectureInfo, error) {
 	for name_, code := range ConstantMap {
 		if area == name_ {
+			proxyAddr, err := s.getProxyAddr(ctx)
+			if err != nil {
+				log.Warn("get proxy addr in GetArchitecture err: %v", err)
+			}
+			ctx = addProxyAddrToCtx(ctx, proxyAddr)
+
 			body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", code))
 			if err != nil {
 				return domain.ResultArchitectureInfo{}, INTERNET_ERROR(err)
@@ -191,6 +201,9 @@ func (s *elecpriceService) GetArchitecture(ctx context.Context, area string) (do
 			if err != nil {
 				return domain.ResultArchitectureInfo{}, INTERNET_ERROR(err)
 			}
+
+			handleDirtyArch(ctx, &result, area)
+
 			return result, nil
 
 		}
@@ -199,6 +212,12 @@ func (s *elecpriceService) GetArchitecture(ctx context.Context, area string) (do
 }
 
 func (s *elecpriceService) GetRoomInfo(ctx context.Context, archiID string, floor string) (map[string]string, error) {
+	proxyAddr, err := s.getProxyAddr(ctx)
+	if err != nil {
+		log.Warn("get proxy addr in GetRoomInfo err: %v", err)
+	}
+	ctx = addProxyAddrToCtx(ctx, proxyAddr)
+
 	body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getRoomInfo?Architecture_ID=%s&Floor=%s", archiID, floor))
 	if err != nil {
 		return nil, INTERNET_ERROR(err)
@@ -209,7 +228,7 @@ func (s *elecpriceService) GetRoomInfo(ctx context.Context, archiID string, floo
 	if err != nil {
 		return nil, INTERNET_ERROR(err)
 	}
-
+	res = filter(res)
 	return res, nil
 }
 
@@ -228,6 +247,12 @@ func (s *elecpriceService) GetPrice(ctx context.Context, roomid string) (*domain
 }
 
 func (s *elecpriceService) GetMeterID(ctx context.Context, RoomID string) (string, error) {
+	proxyAddr, err := s.getProxyAddr(ctx)
+	if err != nil {
+		log.Warn("get proxy addr in GetMeterID err: %v", err)
+	}
+	ctx = addProxyAddrToCtx(ctx, proxyAddr)
+
 	body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getRoomMeterInfo?Room_ID=%s", RoomID))
 	if err != nil {
 		return "", INTERNET_ERROR(err)
@@ -243,6 +268,12 @@ func (s *elecpriceService) GetMeterID(ctx context.Context, RoomID string) (strin
 }
 
 func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*domain.Prices, error) {
+	proxyAddr, err := s.getProxyAddr(ctx)
+	if err != nil {
+		log.Warn("get proxy addr in GetFinalInfo err: %v", err)
+	}
+	ctx = addProxyAddrToCtx(ctx, proxyAddr)
+
 	//取余额
 	body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getReserveHKAM?AmMeter_ID=%s", meterID))
 	if err != nil {
@@ -276,4 +307,20 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 		YesterdayUseValue: dayValue,
 	}
 	return finalInfo, nil
+}
+
+func (s *elecpriceService) getProxyAddr(ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	res, err := s.p.GetProxyAddr(ctx, &proxyv1.GetProxyAddrRequest{})
+	if err != nil {
+		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
+		return "", err
+	}
+
+	return res.Addr, nil
+}
+
+func addProxyAddrToCtx(ctx context.Context, proxyAddr string) context.Context {
+	return context.WithValue(ctx, ProxyAddr, proxyAddr)
 }

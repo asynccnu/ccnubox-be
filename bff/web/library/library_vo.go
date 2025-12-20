@@ -143,7 +143,7 @@ type CancelReserveRequest struct {
 }
 
 type ReserveSeatRandomlyRequest struct {
-	RoomIDs []string `json:"room_ids"`
+	RoomID string `json:"room_ids"`
 	DevID   string   `json:"dev_id"`
 	Start   string   `json:"start"`
 	End     string   `json:"end"`

@@ -3,15 +3,21 @@ package crawler
 import (
 	"context"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
-	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
+	"github.com/valyala/fastjson"
 )
 
 // Notice: 爬虫相关
@@ -23,9 +29,11 @@ var semesterMap = map[string]string{
 
 type Crawler struct {
 	client *http.Client
+	pc     proxyv1.ProxyClient
 }
 
-func NewClassCrawler() *Crawler {
+func NewClassCrawler(pc proxyv1.ProxyClient) *Crawler {
+	j, _ := cookiejar.New(nil)
 	client := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        100,              // 最大空闲连接
@@ -33,14 +41,46 @@ func NewClassCrawler() *Crawler {
 			TLSHandshakeTimeout: 10 * time.Second, // TLS握手超时
 			DisableKeepAlives:   false,            // 确保不会意外关闭 Keep-Alive
 		},
+		Jar: j,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return nil
+		},
 	}
-	return &Crawler{
+
+	c := &Crawler{
 		client: client,
+		pc:     pc,
 	}
+	c.pullProxy()
+
+	beginCronTask(c)
+
+	return c
+}
+
+func (c *Crawler) pullProxy() {
+	res, err := c.pc.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
+	if err != nil {
+		log.Error("GetProxyAddr in pull proxy err:", err)
+		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
+	}
+	proxy, err := url.Parse(res.Addr)
+	if err != nil {
+		log.Error("parse proxy in pull proxy addr err:", err)
+	}
+
+	c.client.Transport.(*http.Transport).Proxy = http.ProxyURL(proxy)
+	log.Debug("pull proxy addr success, now: ", time.Now())
+}
+
+func beginCronTask(c *Crawler) {
+	cr := cron.New()
+	_, _ = cr.AddFunc("@every 160s", c.pullProxy)
+	cr.Start()
 }
 
 // GetClassInfoForGraduateStudent 获取研究生课程信息
-func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
+func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	xnm, xqm := year, semester
 
@@ -50,17 +90,29 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
 	req.Header = http.Header{
-		"Cookie":       []string{cookie},
-		"Content-Type": []string{"application/x-www-form-urlencoded;charset=UTF-8"},
-		"User-Agent":   []string{"Mozilla/5.0"}, // 精简UA
+		"Accept":             []string{"*/*"},
+		"Accept-Language":    []string{"zh-CN,zh;q=0.9,en;q=0.8"},
+		"Connection":         []string{"keep-alive"},
+		"Content-Type":       []string{"application/x-www-form-urlencoded;charset=UTF-8"},
+		"Origin":             []string{"https://xk.ccnu.edu.cn"},
+		"Referer":            []string{"https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXskbcxIndex.html?gnmkdm=N2151&layout=default"},
+		"Sec-Ch-Ua":          []string{`"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`},
+		"Sec-Ch-Ua-Mobile":   []string{"?0"},
+		"Sec-Ch-Ua-Platform": []string{`"Windows"`},
+		"Sec-Fetch-Dest":     []string{"empty"},
+		"Sec-Fetch-Mode":     []string{"cors"},
+		"Sec-Fetch-Site":     []string{"same-origin"},
+		"Cookie":             []string{cookie},
+		"User-Agent":         []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"},
+		"X-Requested-With":   []string{"XMLHttpRequest"},
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
 	defer resp.Body.Close()
 
@@ -68,18 +120,18 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logh.Errorf("failed to read response body: %v", err)
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
-	infos, Scs, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
+	infos, Scs, sum, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
 	if err != nil {
 		logh.Errorf("extractUndergraduateData err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
-	return infos, Scs, nil
+	return infos, Scs, sum, nil
 }
 
 // GetClassInfosForUndergraduate  获取本科生课程信息
-func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
+func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	xnm, xqm := year, semester
 
@@ -90,17 +142,29 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
 	req.Header = http.Header{
-		"Cookie":       []string{cookie},
-		"Content-Type": []string{"application/x-www-form-urlencoded;charset=UTF-8"},
-		"User-Agent":   []string{"Mozilla/5.0"}, // 精简UA
+		"Accept":             []string{"*/*"},
+		"Accept-Language":    []string{"zh-CN,zh;q=0.9,en;q=0.8"},
+		"Connection":         []string{"keep-alive"},
+		"Content-Type":       []string{"application/x-www-form-urlencoded;charset=UTF-8"},
+		"Origin":             []string{"https://xk.ccnu.edu.cn"},
+		"Referer":            []string{"https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXskbcxIndex.html?gnmkdm=N2151&layout=default"},
+		"Sec-Ch-Ua":          []string{`"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`},
+		"Sec-Ch-Ua-Mobile":   []string{"?0"},
+		"Sec-Ch-Ua-Platform": []string{`"Windows"`},
+		"Sec-Fetch-Dest":     []string{"empty"},
+		"Sec-Fetch-Mode":     []string{"cors"},
+		"Sec-Fetch-Site":     []string{"same-origin"},
+		"Cookie":             []string{cookie},
+		"User-Agent":         []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"},
+		"X-Requested-With":   []string{"XMLHttpRequest"},
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
 	defer resp.Body.Close()
 
@@ -108,30 +172,32 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logh.Errorf("failed to read response body: %v", err)
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
-	infos, Scs, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
+	infos, Scs, sum, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
 	if err != nil {
 		logh.Errorf("extractUndergraduateData err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
-	return infos, Scs, nil
+
+	return infos, Scs, sum, nil
 }
 
-func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
+func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
 	var p fastjson.Parser
 	v, err := p.ParseBytes(rawJson)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
 	kbList := v.Get("kbList")
 	if kbList == nil || kbList.Type() != fastjson.TypeArray {
-		return nil, nil, fmt.Errorf("kbList not found or not an array")
+		return nil, nil, -1, fmt.Errorf("kbList not found or not an array")
 	}
 	length := len(kbList.GetArray())
 
 	infos := make([]*biz.ClassInfo, 0, length)
 	Scs := make([]*biz.StudentCourse, 0, length)
+	sum := v.GetInt("xsxx", "KCMS")
 
 	for _, kb := range kbList.GetArray() {
 		// 过滤掉没确定被选上的课程
@@ -170,5 +236,5 @@ func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.Cl
 		infos = append(infos, info) //添加课程
 		Scs = append(Scs, Sc)       //添加"学生与课程的映射关系"
 	}
-	return infos, Scs, nil
+	return infos, Scs, sum, nil
 }

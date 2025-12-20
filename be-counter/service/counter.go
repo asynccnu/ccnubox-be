@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/asynccnu/ccnubox-be/be-counter/domain"
-	"github.com/asynccnu/ccnubox-be/be-counter/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-counter/repository/cache"
 	"github.com/spf13/viper"
 )

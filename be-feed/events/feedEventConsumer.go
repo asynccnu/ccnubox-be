@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/consumer"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/topic"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-feed/pkg/saramax"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 // FeedEventConsumerHandler 是处理 Feed 事件消费的结构体

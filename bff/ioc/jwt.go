@@ -15,6 +15,7 @@ func InitJwtHandler(cmd redis.Cmdable) ijwt.Handler {
 	type Config struct {
 		JwtKey     string `yaml:"jwtKey"`
 		RefreshKey string `yaml:"refreshKey"`
+		encKey     string `yaml:"encKey"`
 	}
 
 	var cfg Config
@@ -28,5 +29,5 @@ func InitJwtHandler(cmd redis.Cmdable) ijwt.Handler {
 
 	// 返回一个新的 RedisJWTHandler 实例
 	// 传递 Redis 命令接口和配置中的 JwtKey 和 RefreshKey
-	return ijwt.NewRedisJWTHandler(cmd, cfg.JwtKey, cfg.RefreshKey)
+	return ijwt.NewRedisJWTHandler(cmd, cfg.JwtKey, cfg.RefreshKey, cfg.encKey)
 }

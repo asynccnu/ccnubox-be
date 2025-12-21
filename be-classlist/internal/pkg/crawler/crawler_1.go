@@ -58,7 +58,7 @@ func NewClassCrawler(pg *ProxyGetter) *Crawler {
 }
 
 // GetClassInfoForGraduateStudent 获取研究生课程信息
-func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
+func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse,int, error) {
 	client := c.clientPool.Get().(*http.Client)
 	defer func() {
 		client.Transport.(*http.Transport).Proxy = nil
@@ -76,7 +76,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
 	req.Header = http.Header{
 		"Accept":             []string{"*/*"},
@@ -98,7 +98,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	resp, err := client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
 	defer resp.Body.Close()
 
@@ -106,18 +106,18 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logh.Errorf("failed to read response body: %v", err)
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
-	infos, Scs, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
+	infos, Scs, sum, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
 	if err != nil {
 		logh.Errorf("extractUndergraduateData err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
-	return infos, Scs, nil
+	return infos, Scs, sum, nil
 }
 
 // GetClassInfosForUndergraduate  获取本科生课程信息
-func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
+func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse,int, error) {
 	client := c.clientPool.Get().(*http.Client)
 	defer func() {
 		client.Transport.(*http.Transport).Proxy = nil
@@ -136,7 +136,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
 	req.Header = http.Header{
 		"Accept":             []string{"*/*"},
@@ -158,7 +158,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	resp, err := client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
 	defer resp.Body.Close()
 
@@ -166,30 +166,32 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logh.Errorf("failed to read response body: %v", err)
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
-	infos, Scs, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
+	infos, Scs, sum, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
 	if err != nil {
 		logh.Errorf("extractUndergraduateData err=%v", err)
-		return nil, nil, errcode.ErrCrawler
+		return nil, nil, -1, errcode.ErrCrawler
 	}
-	return infos, Scs, nil
+
+	return infos, Scs, sum, nil
 }
 
-func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
+func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
 	var p fastjson.Parser
 	v, err := p.ParseBytes(rawJson)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
 	kbList := v.Get("kbList")
 	if kbList == nil || kbList.Type() != fastjson.TypeArray {
-		return nil, nil, fmt.Errorf("kbList not found or not an array")
+		return nil, nil, -1, fmt.Errorf("kbList not found or not an array")
 	}
 	length := len(kbList.GetArray())
 
 	infos := make([]*biz.ClassInfo, 0, length)
 	Scs := make([]*biz.StudentCourse, 0, length)
+	sum := v.GetInt("xsxx", "KCMS")
 
 	for _, kb := range kbList.GetArray() {
 		// 过滤掉没确定被选上的课程
@@ -228,5 +230,5 @@ func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.Cl
 		infos = append(infos, info) //添加课程
 		Scs = append(Scs, Sc)       //添加"学生与课程的映射关系"
 	}
-	return infos, Scs, nil
+	return infos, Scs, sum, nil
 }

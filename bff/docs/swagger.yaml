@@ -3411,7 +3411,7 @@ paths:
       tags:
       - library
   /library/search_user:
-    post:
+    get:
       consumes:
       - application/json
       description: 传入学生学号获取对应的学生ID

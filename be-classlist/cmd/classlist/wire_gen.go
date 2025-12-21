@@ -47,7 +47,8 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 		cleanup()
 		return nil, nil, err
 	}
-	crawler2 := crawler.NewClassCrawler2(proxyClient)
+	proxyGetter := crawler.NewProxyGetter(proxyClient)
+	crawler2 := crawler.NewClassCrawler2(proxyGetter)
 	jxbDBRepo := data.NewJxbDBRepo(dataData, logger)
 	userServiceClient, err := client.NewClient(etcdRegistry, confRegistry, logger)
 	if err != nil {

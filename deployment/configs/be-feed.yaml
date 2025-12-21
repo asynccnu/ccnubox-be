@@ -1,9 +1,11 @@
 mysql:
-  dsn: "root:root@tcp(localhost:3306)/ccnubox"
+  dsn: "root:12345678@tcp(ccnubox-mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
 
 etcd:
   endpoints:
-    - "localhost:12379"
+    - "ccnubox-etcd:2379"
+  username: root
+  password: "12345678"
 
 grpc:
   server:
@@ -15,7 +17,7 @@ grpc:
     feedUserCount:
       endpoint: "discovery:///feedUserCount"
     classlist:
-      endpoint: "discovery:///MuXi_ClassList"
+      endpoint: "discovery:///classlist"
     grade:
       endpoint: "discovery:///grade"
     user:
@@ -23,10 +25,10 @@ grpc:
 
 kafka:
   addrs:
-    - "localhost:9094"
+    - "ccnubox-kafka:9092"
 
 redis:
-  addr: "localhost:6379"
+  addr: "ccnubox-redis:6379"
   password: "12345678"
 
 muxiController:

@@ -64,15 +64,6 @@ func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, r *etcd.Registr
 
 func main() {
 	flag.Parse()
-	logger := log.With(log.NewStdLogger(os.Stdout),
-		"ts", log.DefaultTimestamp,
-		"caller", log.DefaultCaller,
-		"service.id", id,
-		"service.name", Name,
-		"service.version", Version,
-		"trace.id", tracing.TraceID(),
-		"span.id", tracing.SpanID(),
-	)
 
 	c := config.New(
 		config.WithSource(
@@ -89,6 +80,20 @@ func main() {
 	if err := c.Scan(&bc); err != nil {
 		panic(err)
 	}
+
+	if len(bc.Server.Name) > 0 {
+		Name = bc.Server.Name
+	}
+
+	logger := log.With(log.NewStdLogger(os.Stdout),
+		"ts", log.DefaultTimestamp,
+		"caller", log.DefaultCaller,
+		"service.id", id,
+		"service.name", Name,
+		"service.version", Version,
+		"trace.id", tracing.TraceID(),
+		"span.id", tracing.SpanID(),
+	)
 
 	logfile := classLog.NewLumberjackLogger(bc.Data.Database.LogPath,
 		bc.Data.Database.LogFileName, 6, 5, 30, false)

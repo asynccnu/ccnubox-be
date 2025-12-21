@@ -7,80 +7,71 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
+	"github.com/valyala/fastjson"
 )
 
 type Crawler2 struct {
-	client *http.Client
-	pc     proxyv1.ProxyClient
+	pg *ProxyGetter
+
+	clientPool sync.Pool
 }
 
-func NewClassCrawler2(pc proxyv1.ProxyClient) *Crawler2 {
-	j, _ := cookiejar.New(nil)
-	client := &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:        100,              // 最大空闲连接
-			IdleConnTimeout:     90 * time.Second, // 空闲连接超时
-			TLSHandshakeTimeout: 10 * time.Second, // TLS握手超时
-			DisableKeepAlives:   false,            // 确保不会意外关闭 Keep-Alive
-		},
-		Jar: j,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return nil
-		},
+func NewClassCrawler2(pg *ProxyGetter) *Crawler2 {
+	newClient := func() interface{} {
+		j, _ := cookiejar.New(nil)
+		return &http.Client{
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				IdleConnTimeout:     90 * time.Second,
+				TLSHandshakeTimeout: 10 * time.Second,
+				DisableKeepAlives:   false,
+			},
+			Jar: j,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return nil
+			},
+		}
 	}
-	c2 := &Crawler2{
-		client: client,
-		pc:     pc,
-	}
-	c2.pullProxy()
 
-	beginCronTask2(c2)
+	c2 := &Crawler2{
+		clientPool: sync.Pool{
+			New: newClient,
+		},
+		pg: pg,
+	}
 
 	return c2
 }
 
-func (c *Crawler2) pullProxy() {
-	res, err := c.pc.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
-	if err != nil {
-		log.Error("GetProxyAddr in pull proxy err:", err)
-		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
-	}
-	proxy, err := url.Parse(res.Addr)
-	if err != nil {
-		log.Error("parse proxy in pull proxy addr err:", err)
-	}
-	c.client.Transport.(*http.Transport).Proxy = http.ProxyURL(proxy)
-}
+func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+	client := c.clientPool.Get().(*http.Client)
+	defer func() {
+		client.Transport.(*http.Transport).Proxy = nil
+		c.clientPool.Put(client)
+	}()
 
-func beginCronTask2(c *Crawler2) {
-	cr := cron.New()
-	_, _ = cr.AddFunc("@every 160s", c.pullProxy)
-	cr.Start()
-}
+	client.Transport.(*http.Transport).Proxy = http.ProxyURL(c.pg.GetProxy(ctx))
 
-func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
 	logh := classLog.GetLogHelperFromCtx(ctx)
-	url := fmt.Sprintf(
+	classURL := fmt.Sprintf(
 		"https://bkzhjw.ccnu.edu.cn/jsxsd/framework/mainV_index_loadkb.htmlx?zc=&kbjcmsid=16FD8C2BE55E15F9E0630100007FF6B5&xnxq01id=%s&xswk=false",
 		c.getys(year, semester))
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", classURL, nil)
 	if err != nil {
 		logh.Errorf("http.NewRequest err=%v", err)
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
 	req.Header = http.Header{
 		"Accept":             []string{"*/*"},
@@ -99,10 +90,10 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 		"User-Agent":         []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"},
 		"X-Requested-With":   []string{"XMLHttpRequest"},
 	}
-	resp, err := c.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
 	defer resp.Body.Close()
 
@@ -110,13 +101,13 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logh.Errorf("failed to read response body: %v", err)
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
 
 	infos, err := c.extractCourses(ctx, year, semester, string(bodyBytes))
 	if err != nil {
 		logh.Errorf("failed to extract infos: %v", err)
-		return nil, nil, fmt.Errorf("failed to extract infos: %v", err)
+		return nil, nil, -1, fmt.Errorf("failed to extract infos: %v", err)
 	}
 
 	scs := make([]*biz.StudentCourse, 0, len(infos))
@@ -132,11 +123,55 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 			UpdatedAt:       time.Now(),
 		})
 	}
-	return infos, scs, nil
+	sum := len(infos)
+
+	return infos, scs, sum, nil
 }
 
-func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
-	return c.GetClassInfosForUndergraduate(ctx, stuID, year, semester, cookie)
+func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+	client := c.clientPool.Get().(*http.Client)
+	defer func() {
+		client.Transport.(*http.Transport).Proxy = nil
+		c.clientPool.Put(client)
+	}()
+
+	client.Transport.(*http.Transport).Proxy = http.ProxyURL(c.pg.GetProxy(ctx))
+
+	logh := classLog.GetLogHelperFromCtx(ctx)
+	xnm, xqm := year, semester
+
+	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])
+	var data = strings.NewReader(param)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
+	if err != nil {
+		logh.Errorf("http.NewRequestWithContext err=%v", err)
+		return nil, nil, -1, errcode.ErrCrawler
+	}
+	req.Header = http.Header{
+		"Cookie":       []string{cookie},
+		"Content-Type": []string{"application/x-www-form-urlencoded;charset=UTF-8"},
+		"User-Agent":   []string{"Mozilla/5.0"}, // 精简UA
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		logh.Errorf("client.Do err=%v", err)
+		return nil, nil, -1, errcode.ErrCrawler
+	}
+	defer resp.Body.Close()
+
+	// 读取 Body 到字节数组
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logh.Errorf("failed to read response body: %v", err)
+		return nil, nil, -1, err
+	}
+	infos, Scs, sum, err := extractGraduateData(bodyBytes, stuID, xnm, xqm)
+	if err != nil {
+		logh.Errorf("extractUndergraduateData err=%v", err)
+		return nil, nil, -1, errcode.ErrCrawler
+	}
+	return infos, Scs, sum, nil
 }
 
 func (c *Crawler2) getys(year, semester string) string {
@@ -306,4 +341,60 @@ func (c *Crawler2) parseClassRoom(s string) string {
 		return s
 	}
 	return match
+}
+
+func extractGraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+	var p fastjson.Parser
+	v, err := p.ParseBytes(rawJson)
+	if err != nil {
+		return nil, nil, -1, err
+	}
+	kbList := v.Get("kbList")
+	if kbList == nil || kbList.Type() != fastjson.TypeArray {
+		return nil, nil, -1, fmt.Errorf("kbList not found or not an array")
+	}
+	length := len(kbList.GetArray())
+
+	infos := make([]*biz.ClassInfo, 0, length)
+	Scs := make([]*biz.StudentCourse, 0, length)
+	sum := v.GetInt("xsxx", "KCMS")
+
+	for _, kb := range kbList.GetArray() {
+		// 过滤掉没确定被选上的课程
+		if string(kb.GetStringBytes("sxbj")) != "1" {
+			continue
+		}
+		//课程信息
+		var info = &biz.ClassInfo{}
+		info.Day, _ = strconv.ParseInt(string(kb.GetStringBytes("xqj")), 10, 64) //星期几
+		info.Teacher = string(kb.GetStringBytes("xm"))
+		info.Where = string(kb.GetStringBytes("cdmc"))                           //上课地点
+		info.ClassWhen = string(kb.GetStringBytes("jcs"))                        //上课是第几节
+		info.WeekDuration = string(kb.GetStringBytes("zcd"))                     //上课的周数
+		info.Classname = string(kb.GetStringBytes("kcmc"))                       //课程名称
+		info.Credit, _ = strconv.ParseFloat(string(kb.GetStringBytes("xf")), 64) //学分
+		info.Semester = xqm                                                      //学期
+		info.Year = xnm                                                          //学年
+		//添加周数
+		info.Weeks, _ = strconv.ParseInt(string(kb.GetStringBytes("oldzc")), 10, 64)
+		info.JxbId = string(kb.GetStringBytes("jxb_id")) //教学班ID
+		info.UpdateID()                                  //课程ID
+
+		//为防止其时间过于紧凑
+		//选择在这里直接给时间赋值
+		info.CreatedAt, info.UpdatedAt = time.Now(), time.Now()
+
+		//-----------------------------------------------------
+		//学生与课程的映射关系
+		Sc := &biz.StudentCourse{
+			StuID:           stuID,
+			ClaID:           info.ID,
+			Year:            xnm,
+			Semester:        xqm,
+			IsManuallyAdded: false,
+		}
+		infos = append(infos, info) //添加课程
+		Scs = append(Scs, Sc)       //添加"学生与课程的映射关系"
+	}
+	return infos, Scs, sum, nil
 }

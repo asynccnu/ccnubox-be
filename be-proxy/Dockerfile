@@ -4,9 +4,12 @@ FROM golang:1.24 AS builder
 COPY . /src
 
 WORKDIR /src/be-proxy
+
+RUN go env -w GOPROXY=https://goproxy.cn,direct
+
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-proxy  .
+RUN go build -o ./bin/be-proxy  .
 
 FROM debian:stable-slim
 

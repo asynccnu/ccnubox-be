@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/apierr"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
@@ -27,7 +27,6 @@ func NewLoggerMiddleware(
 
 func (lm *LoggerMiddleware) MiddlewareFunc() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-
 		ctx.Next() // 执行后续逻辑
 
 		// 处理返回值或错误
@@ -84,7 +83,7 @@ func (lm *LoggerMiddleware) handleResponse(ctx *gin.Context) (web.Response, int)
 	var res web.Response
 	httpCode := ctx.Writer.Status()
 
-	//有错误则进行错误处理
+	// 有错误则进行错误处理
 	if len(ctx.Errors) > 0 {
 		err := ctx.Errors.Last().Err
 		customError := errorx.ToCustomError(err)
@@ -96,12 +95,12 @@ func (lm *LoggerMiddleware) handleResponse(ctx *gin.Context) (web.Response, int)
 		return web.Response{Code: customError.Code, Msg: customError.Msg, Data: nil}, customError.HttpCode
 	} else {
 
-		//无错误则记录常规日志
+		// 无错误则记录常规日志
 		lm.commonInfo(ctx)
 		res = ginx.GetResp[web.Response](ctx)
 	}
 
-	//用来保证gin中间件实现404的时候也能有消息提示
+	// 用来保证gin中间件实现404的时候也能有消息提示
 	if httpCode == http.StatusNotFound {
 		res.Msg = "不存在的路由或请求方法!"
 	}

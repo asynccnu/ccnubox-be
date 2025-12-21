@@ -1,0 +1,200 @@
+version: "3.9"
+
+services:
+  be-banner:
+    container_name: be-banner
+    image: be-banner:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19080:19080" # 请在此填写端口映射，例如 "8081:8081"
+    volumes:
+      - ../logs/be-banner/:/logs/
+      - ../configs/be-banner.yaml:/data/conf/config.yaml
+
+  be-calendar:
+    container_name: be-calendar
+    image: be-calendar:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19081:19081"
+    volumes:
+      - ../logs/be-calendar/:/logs/
+      - ../configs/be-calendar.yaml:/data/conf/config.yaml
+
+  be-ccnu:
+    container_name: be-ccnu
+    image: be-ccnu:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19082:19082"
+    volumes:
+      - ../logs/be-ccnu/:/logs/
+      - ../configs/be-ccnu.yaml:/data/conf/config.yaml
+
+  be-class:
+    container_name: be-class
+    image: be-class:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19083:19083"
+      - "18000:18000"
+    volumes:
+      - ../configs/be-class.yaml:/data/conf/config.yaml
+      - ../configs/classrooms.json:/data/conf/classrooms.json
+
+  be-classlist:
+    container_name: be-classlist
+    image: be-classlist:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19084:19084"
+    volumes:
+      - ../logs/be-classlist/:/logs/
+      - ../configs/be-classlist.yaml:/data/conf/config.yaml
+
+  be-counter:
+    container_name: be-counter
+    image: be-counter:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19085:19085"
+    volumes:
+      - ../logs/be-counter/:/logs/
+      - ../configs/be-counter.yaml:/data/conf/config.yaml
+
+  be-department:
+    container_name: be-department
+    image: be-department:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19086:19086"
+    volumes:
+      - ../logs/be-department/:/logs/
+      - ../configs/be-department.yaml:/data/conf/config.yaml
+
+  be-elecprice:
+    container_name: be-elecprice
+    image: be-elecprice:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19087:19087"
+    volumes:
+      - ../logs/be-elecprice/:/logs/
+      - ../configs/be-elecprice.yaml:/data/conf/config.yaml
+
+  be-feed:
+    container_name: be-feed
+    image: be-feed:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19088:19088"
+    volumes:
+      - ../logs/be-feed/:/logs/
+      - ../configs/be-feed.yaml:/data/conf/config.yaml
+
+  be-grade:
+    container_name: be-grade
+    image: be-grade:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19089:19089"
+    volumes:
+      - ../logs/be-grade/:/logs/
+      - ../configs/be-grade.yaml:/data/conf/config.yaml
+
+  be-library:
+    container_name: be-library
+    image: be-library:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19093:19093"
+    volumes:
+      - ../logs/be-library/:/logs/
+      - ../configs/be-library.yaml:/data/conf/config.yaml
+
+  be-infosum:
+    container_name: be-infosum
+    image: be-infosum:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19090:19090"
+    volumes:
+      - ../logs/be-infosum/:/logs/
+      - ../configs/be-infosum.yaml:/data/conf/config.yaml
+
+  be-user:
+    container_name: be-user
+    image: be-user:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19091:19091"
+    volumes:
+      - ../logs/be-user/:/logs/
+      - ../configs/be-user.yaml:/data/conf/config.yaml
+
+  be-website:
+    container_name: be-website
+    image: be-website:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19092:19092"
+    volumes:
+      - ../logs/be-website/:/logs/
+      - ../configs/be-website.yaml:/data/conf/config.yaml
+
+  be-proxy:
+    container_name: be-proxy
+    image: be-proxy:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "19094:19094"
+    volumes:
+      - ../logs/be-proxy/:/logs/
+      - ../configs/be-proxy.yaml:/data/conf/config.yaml
+
+  bff:
+    container_name: bff
+    image: bff:v1
+    restart: "always"
+    networks:
+      - ccnubox-network
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../logs/bff/:/logs/
+      - ../configs/bff.yaml:/data/conf/config.yaml
+
+# --- 引用基础设施中创建的网络 ---
+networks:
+  ccnubox-network:
+    external: true

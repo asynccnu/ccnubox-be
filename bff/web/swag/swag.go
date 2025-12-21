@@ -5,13 +5,12 @@ import (
 	"os/exec"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/gin-gonic/gin"
 )
 
-type SwagHandler struct {
-}
+type SwagHandler struct{}
 
 func NewSwagHandler() *SwagHandler {
 	return &SwagHandler{}

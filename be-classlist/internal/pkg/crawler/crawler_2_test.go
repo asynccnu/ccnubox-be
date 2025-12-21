@@ -32,7 +32,7 @@ func Test_extractCourseInfo(t *testing.T) {
 func Test_Crawler2(t *testing.T) {
 	c := NewClassCrawler2(&MockProxy{})
 	test_cookie := "bzb_jsxsd=CD6739EC4A67BB85312FF0388BD82311"
-	a, b, err := c.GetClassInfosForUndergraduate(context.Background(), "2023214414", "2025", "1", test_cookie)
+	a, b, _, err := c.GetClassInfosForUndergraduate(context.Background(), "2023214414", "2025", "1", test_cookie)
 	if err != nil {
 		t.Fatalf("failed to crawl: %v", err)
 	}

@@ -13,22 +13,22 @@ server:
 
 data:
   database:
-    source: "root:12345678@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+    source: "root:12345678@tcp(ccnubox-mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
     logPath: "/logs"
     logFileName: "sql.log"
     logLevel: "info"
   redis:
-    addr: "localhost:6379"
+    addr: "ccnubox-redis:6379"
     password: "12345678"
     read_timeout: 200       # 注意：单位为毫秒
     write_timeout: 200      # 注意：单位为毫秒
   kafka:
     brokers:
-      - "localhost:9092"
+      - "ccnubox-kafka:9092"
 
 registry:
   etcd:
-    addr: "127.0.0.1:2379"
+    addr: "ccnubox-etcd:2379"
     username: "root"
     password: "12345678"
   usersvc: "discovery:///user"               # 用户服务地址

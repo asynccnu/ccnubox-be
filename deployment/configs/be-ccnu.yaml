@@ -1,6 +1,6 @@
 etcd:
   endpoints:
-    - "localhost:2379"
+    - "ccnubox-etcd:2379"
   username: root
   password: "12345678"
 
@@ -24,4 +24,4 @@ log:
 otel:
   serviceName: "be-ccnu"
   serviceVersion: "1.0.0"
-  endpoint: "localhost:4318"
+  endpoint: "ccnubox-otel"

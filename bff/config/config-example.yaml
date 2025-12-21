@@ -2,13 +2,13 @@ http:
   addr: ":8080"
 
 redis:
-  addr: "localhost:6379"
+  addr: "ccnubox-redis:6379"
   password: "12345678"
 
 
 etcd:
   endpoints:
-    - "localhost:2379"
+    - "ccnubox-etcd:2379"
   username: root
   password: "12345678"
 
@@ -39,7 +39,7 @@ grpc:
     classlist:
       endpoint: "discovery:///classlist"
     classService:
-      endpoint: "discovery:///classService"
+      endpoint: "discovery:///be-class"
     feedbackHelp:
       endpoint: "discovery:///feedback_help"
     grade:
@@ -101,4 +101,4 @@ basicAuth:
 otel:
   serviceName: "bff"
   serviceVersion: "1.0.0"
-  endpoint: "localhost:4318"
+  endpoint: "ccnubox-otel"

@@ -7,7 +7,7 @@ COMPOSE_FILE="deployment/docker/infra.yaml"
 # etcd 配置
 ETCD_CONTAINER="ccnubox-etcd"
 ETCD_ENDPOINT="http://127.0.0.1:2379"
-ETCD_BIN="/usr/local/bin/etcdctl"
+ETCD_BIN="etcdctl"
 ROOT_USER="root"
 ROOT_PASS="12345678"
 
@@ -19,18 +19,23 @@ DB_NAME="ccnubox"
 echo "🚀 启动基础设施服务..."
 docker compose -f ${COMPOSE_FILE} up -d
 
-# --- 1. 等待 etcd 可访问（无论是否开启 auth） ---
+# --- 1. 修改等待逻辑 ---
 echo "⏳ 等待 etcd 响应..."
 
-until docker exec ${ETCD_CONTAINER} ${ETCD_BIN} \
+# 增加 API 版本声明，确保使用 v3
+until docker exec -e ETCDCTL_API=3 ${ETCD_CONTAINER} ${ETCD_BIN} \
     --endpoints=${ETCD_ENDPOINT} endpoint status >/dev/null 2>&1 || \
-      docker exec ${ETCD_CONTAINER} ${ETCD_BIN} \
+      docker exec -e ETCDCTL_API=3 ${ETCD_CONTAINER} ${ETCD_BIN} \
     --endpoints=${ETCD_ENDPOINT} --user=${ROOT_USER}:${ROOT_PASS} endpoint status >/dev/null 2>&1; do
+
+  # 调试：查看 etcd 容器日志，确认它是否真的启动成功了
+  if [ $((SECONDS % 10)) -eq 0 ]; then
+    echo "提示：已等待 ${SECONDS}s，请检查 docker logs ${ETCD_CONTAINER}"
+  fi
+
   echo "etcd 尚未就绪，等待中..."
   sleep 2
 done
-
-echo "✅ etcd 已响应"
 
 # --- 2. 判断是否已开启 auth ---
 AUTH_STATUS=$(

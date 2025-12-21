@@ -7,7 +7,7 @@ server:
     timeout: 10s
 data:
   es:
-    url: "http://127.0.0.1:9200"
+    url: "http://ccnubox-elasticsearch:9200"
     setsniff: false
     username: "elastic"
     password: "12345678"
@@ -15,17 +15,17 @@ data:
     keepDataAfterRestart: true
     classroom: "/data/conf/classrooms.json"
   redis:
-    addr: "localhost:6379"
+    addr: "ccnubox-redis:6379"
     password: "12345678"
   database:
-    dsn: "root:12345678@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+    dsn: "root:12345678@tcp(ccnubox-mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
     data_alive: 1
     log_level: "warn"
     log_file_name: "sql.log"
     log_path: "/logs"
 registry:
   etcd:
-    addr: "127.0.0.1:2379"
+    addr: "ccnubox-etcd:2379"
     username: root
     password: "12345678"
   proxysvc: "discovery:///proxy"

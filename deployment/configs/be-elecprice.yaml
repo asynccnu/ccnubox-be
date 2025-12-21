@@ -1,10 +1,10 @@
 mysql:
-  dsn: "root:12345678@tcp(localhost:13306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "root:12345678@tcp(ccnubox-mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
 
 
 etcd:
   endpoints:
-    - "localhost:2379"
+    - "ccnubox-etcd:2379"
   username: root
   password: "12345678"
 

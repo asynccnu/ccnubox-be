@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	cs "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classService/v1"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
@@ -73,7 +73,7 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 		return web.Response{}, errs.GET_CLASS_LIST_ERROR(err)
 	}
 
-	var respClasses = make([]*ClassInfo, 0, len(getResp.Classes))
+	respClasses := make([]*ClassInfo, 0, len(getResp.Classes))
 
 	for _, class := range getResp.Classes {
 		respClasses = append(respClasses, &ClassInfo{
@@ -115,10 +115,9 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 // @Success 200 {object} web.Response "成功添加课表"
 // @Router /class/add [post]
 func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.UserClaims) (web.Response, error) {
-
 	weeks := convertWeekFromArrayToInt(req.Weeks)
 
-	var preq = &cs.AddClassRequest{
+	preq := &cs.AddClassRequest{
 		StuId:    uc.StudentId,
 		Name:     req.Name,
 		DurClass: req.DurClass,
@@ -182,7 +181,7 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 		weeks = &tmpWeeks
 	}
 
-	var preq = &classlistv1.UpdateClassRequest{
+	preq := &classlistv1.UpdateClassRequest{
 		ClassId:  req.ClassId,
 		StuId:    uc.StudentId,
 		Name:     req.Name,
@@ -280,7 +279,6 @@ func (c *ClassHandler) SearchClass(ctx *gin.Context, req SearchRequest) (web.Res
 		Page:           int32(req.Page),
 		PageSize:       int32(req.PageSize),
 	})
-
 	if err != nil {
 		return web.Response{}, errs.SEARCH_CLASS_ERROR(err)
 	}
@@ -321,7 +319,6 @@ func (c *ClassHandler) SearchClass(ctx *gin.Context, req SearchRequest) (web.Res
 // @Success 200 {object} web.Response{data=GetSchoolDayResp} "成功获取到当前周"
 // @Router /class/day/get [get]
 func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
-
 	res, err := c.ClassListClient.GetSchoolDay(ctx, &classlistv1.GetSchoolDayReq{})
 	if err != nil {
 		return web.Response{
@@ -329,7 +326,7 @@ func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
 			Msg:  "系统异常",
 		}, errs.TYPE_CHANGE_ERROR(err)
 	}
-	//加载 "Asia/Shanghai" 时区
+	// 加载 "Asia/Shanghai" 时区
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	holiday, err := time.ParseInLocation("2006-01-02", res.GetHolidayTime(), loc)
 	if err != nil {
@@ -344,7 +341,6 @@ func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
 	return web.Response{
 		Msg: "Success",
 		Data: GetSchoolDayResp{
-
 			HolidayTime: holiday.Unix(),
 			SchoolTime:  school.Unix(),
 		},
@@ -460,7 +456,6 @@ func (c *ClassHandler) GetToBeStudiedClassByStatus(ctx *gin.Context, req GetToBe
 		Msg:  "Success",
 		Data: resp,
 	}, nil
-
 }
 
 func sortClassesResp(r *GetToBeStudiedClassResp) {

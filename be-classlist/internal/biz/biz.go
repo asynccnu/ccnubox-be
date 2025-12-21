@@ -13,9 +13,9 @@ var ProviderSet = wire.NewSet(NewClassUsecase)
 
 type ClassCrawler interface {
 	//获取本科生的课表
-	GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*ClassInfo, []*StudentCourse, error)
+	GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*ClassInfo, []*StudentCourse, int, error)
 	//获取研究生的课表(未实现)
-	GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*ClassInfo, []*StudentCourse, error)
+	GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*ClassInfo, []*StudentCourse, int, error)
 }
 
 type ClassRepo interface {

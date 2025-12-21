@@ -25,6 +25,7 @@ message Server {
   }
   HTTP http = 1;
   GRPC grpc = 2;
+  string name = 3;
 }
 
 message Data {
@@ -59,4 +60,6 @@ message Etcd {
 message Registry {
   Etcd etcd = 1;
   string proxysvc = 2;
+  string classlistsvc = 3;
+  string usersvc = 4;
 }

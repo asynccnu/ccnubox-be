@@ -3,9 +3,9 @@ package metrics
 import (
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/prometheusx"
 	"github.com/gin-gonic/gin"
@@ -32,9 +32,8 @@ func NewMetricsHandler(
 }
 
 func (h *MetricsHandler) RegisterRoutes(s *gin.RouterGroup, basicAuthMiddleware gin.HandlerFunc, authMiddleware gin.HandlerFunc) {
-
 	s.GET("/metrics", basicAuthMiddleware, h.MetricsExporter)
-	//用于给前端自动打点的路由,暂时不做额外参数处理
+	// 用于给前端自动打点的路由,暂时不做额外参数处理
 	s.POST("/metrics/:type/:name", authMiddleware, ginx.WrapClaimsAndReq(h.Metrics))
 }
 

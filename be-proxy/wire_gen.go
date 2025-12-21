@@ -9,8 +9,8 @@ package main
 import (
 	"github.com/asynccnu/ccnubox-be/be-proxy/grpc"
 	"github.com/asynccnu/ccnubox-be/be-proxy/ioc"
-	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-proxy/service"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 )
 
 // Injectors from wire.go:

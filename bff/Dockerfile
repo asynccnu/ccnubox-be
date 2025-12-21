@@ -6,6 +6,7 @@ ENV GOPROXY=https://goproxy.cn,direct \
 COPY . /src
 
 WORKDIR /src/bff
+RUN go env -w GOPROXY=https://goproxy.cn,direct
 RUN go mod tidy
 RUN go install github.com/swaggo/swag/cmd/swag@latest 
 RUN go build -o ./bin/bff  .

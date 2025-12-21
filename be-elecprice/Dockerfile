@@ -3,9 +3,12 @@ FROM golang:1.24 AS builder
 COPY . /src
 
 WORKDIR /src/be-elecprice
+
+RUN go env -w GOPROXY=https://goproxy.cn,direct
+
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-elecprice  .
+RUN go build -o ./bin/be-elecprice  .
 
 FROM debian:stable-slim
 

@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	calendarv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/calendar/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/ginx"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
@@ -18,7 +18,8 @@ type CalendarHandler struct {
 }
 
 func NewCalendarHandler(calendarClient calendarv1.CalendarServiceClient,
-	administrators map[string]struct{}) *CalendarHandler {
+	administrators map[string]struct{},
+) *CalendarHandler {
 	return &CalendarHandler{calendarClient: calendarClient, Administrators: administrators}
 }
 
@@ -43,7 +44,7 @@ func (h *CalendarHandler) GetCalendars(ctx *gin.Context) (web.Response, error) {
 		return web.Response{}, errs.GET_CALENDAR_ERROR(err)
 	}
 
-	//类型转换
+	// 类型转换
 	var resp GetCalendarsResponse
 	err = copier.Copy(&resp, &calendar)
 	if err != nil {
@@ -73,7 +74,6 @@ func (h *CalendarHandler) SaveCalendar(ctx *gin.Context, req SaveCalendarRequest
 		Link: req.Link,
 		Year: req.Year,
 	}})
-
 	if err != nil {
 		return web.Response{}, errs.Save_CALENDAR_ERROR(err)
 	}

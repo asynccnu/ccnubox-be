@@ -5,11 +5,11 @@ COPY . /src
 WORKDIR /src/be-library
 
 
-ENV GOPROXY=https://goproxy.cn,direct
+RUN go env -w GOPROXY=https://goproxy.cn,direct
 
 RUN go mod tidy
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-library ./cmd/be-library
+RUN go build -o ./bin/be-library ./cmd/be-library
 
 FROM debian:stable-slim
 

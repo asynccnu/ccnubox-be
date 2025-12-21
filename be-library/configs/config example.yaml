@@ -7,7 +7,7 @@ server:
 
 data:
   database:
-    source: "root:12345678@tcp(ccnubox-etcd:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+    source: "root:12345678@tcp(ccnubox-mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
   redis:
     network: "tcp"
     addr: "ccnubox-redis:6379"

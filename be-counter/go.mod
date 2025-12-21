@@ -10,7 +10,7 @@ require (
 	github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-00010101000000-000000000000
 	github.com/asynccnu/ccnubox-be/common/pkg v0.0.0-00010101000000-000000000000
 	github.com/go-kratos/kratos/v2 v2.9.2
-	github.com/google/wire v0.6.0
+	github.com/google/wire v0.7.0
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
@@ -29,7 +29,8 @@ require (
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20251205160234-b9fab9a5a5ab // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-playground/form/v4 v4.2.0 // indirect
+	github.com/go-playground/assert/v2 v2.2.0 // indirect
+	github.com/go-playground/form/v4 v4.2.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect

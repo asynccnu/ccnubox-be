@@ -29,7 +29,8 @@ require (
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20251205160234-b9fab9a5a5ab // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-playground/form/v4 v4.2.0 // indirect
+	github.com/go-playground/assert/v2 v2.2.0 // indirect
+	github.com/go-playground/form/v4 v4.2.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect

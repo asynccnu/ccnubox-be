@@ -1,10 +1,6 @@
 go 1.24.0
 
 use (
-	common/pkg
-	common/be-api
-	be-library
-	be-proxy
 	be-banner
 	be-calendar
 	be-ccnu
@@ -16,7 +12,11 @@ use (
 	be-feed
 	be-grade
 	be-infosum
+	be-library
+	be-proxy
 	be-user
 	be-website
 	bff
+	common/be-api
+	common/pkg
 )

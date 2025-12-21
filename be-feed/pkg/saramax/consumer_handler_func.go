@@ -2,18 +2,13 @@ package saramax
 
 import (
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/spf13/viper"
 )
-
-type MSG struct {
-	Topic     string
-	Partition int32
-	Offset    int64
-}
 
 type Handler[T any] struct {
 	l   logger.Logger
@@ -50,57 +45,86 @@ func (h *Handler[T]) Cleanup(session sarama.ConsumerGroupSession) error {
 // ConsumeClaim 可以考虑在这个封装里面提供统一的重试机制
 func (h *Handler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	var events []T
-	var msgRecords []MSG
-	var lastConsumeTime time.Time // 记录上次消费的时间
+	var msgRecords []*sarama.ConsumerMessage //记录kafka中还未消费的消息
 
-	msgs := claim.Messages()
+	//超时机制：每次接收到消息就重新开启一个计时，超过五分钟没有接收消息就直接发布
+	timeout := time.NewTimer(time.Minute * time.Duration(h.cfg.ConsumeTime))
+	timeout.Stop()
 
-	for msg := range msgs {
-		// 从msg中提取获得附带的值
-		var t T
-		err := json.Unmarshal(msg.Value, &t)
-		if err != nil {
-			h.l.Error("反序列化消息体失败",
-				logger.String("topic", msg.Topic),
-				logger.Int32("partition", msg.Partition),
-				logger.Int64("offset", msg.Offset),
-				logger.Error(err))
-			session.MarkMessage(msg, "")
-			continue
-		}
-
-		// 添加新的值到events中
-		events = append(events, t)
-		msgRecords = append(msgRecords, MSG{Topic: msg.Topic, Partition: msg.Partition, Offset: msg.Offset})
-		// 如果数量达到额定值就批量插入消费
-		if len(events) >= h.cfg.ConsumeNum {
-			e := events[:h.cfg.ConsumeNum]
-			err = h.fn(e)
+	for {
+		select {
+		//如果接收到了消息，判断是否达到了发送的数量。
+		//如果没有达到，就重置定时器，开始计时
+		//如果达到了，就停止定时器，发送数据
+		case msg := <-claim.Messages():
+			// 从msg中提取获得附带的值
+			var t T
+			err := json.Unmarshal(msg.Value, &t)
 			if err != nil {
-				h.l.Error("批量推送消息发生失败", logger.Error(err))
+				h.l.Error("反序列化消息体失败",
+					logger.String("topic", msg.Topic),
+					logger.Int32("partition", msg.Partition),
+					logger.Int64("offset", msg.Offset),
+					logger.Error(err))
+				session.MarkMessage(msg, "")
 			}
+			log.Printf("接收到消息：%v", t)
 
-			// 更新上次消费时间
-			lastConsumeTime = time.Now()
-			// 清除插入的数据
-			events = events[h.cfg.ConsumeNum:]
-			msgRecords = msgRecords[h.cfg.ConsumeNum:]
-		} else if !lastConsumeTime.IsZero() && time.Since(lastConsumeTime) > time.Duration(h.cfg.ConsumeTime)*time.Minute {
-			// 如果距离上次消费已经超过5分钟且有未处理的消息
-			if len(events) > 0 {
-				e := events[:]
+			// 添加新的值到events中
+			events = append(events, t)
+			msgRecords = append(msgRecords, msg)
+			// 如果数量达到额定值就批量插入消费
+			if len(events) >= h.cfg.ConsumeNum {
+				log.Printf("进入分支一：数量达到限额")
+				e := events[:h.cfg.ConsumeNum]
 				err = h.fn(e)
 				if err != nil {
 					h.l.Error("批量推送消息发生失败", logger.Error(err))
 				}
-				// 更新上次消费时间
-				lastConsumeTime = time.Now()
-				// 清空events和msgRecords
+
+				// 清除插入的数据
 				events = []T{}
-				msgRecords = []MSG{}
+
+				//调用fn成功后就标记这些消息消费成功
+				for _, m := range msgRecords {
+					session.MarkMessage(m, "")
+				}
+				msgRecords = nil
+				//此时队列中的消息消费完，停止计时器
+				if !timeout.Stop() {
+					select {
+					case <-timeout.C:
+					default:
+					}
+				}
+			} else {
+				log.Printf("进入分支二：数量未达到，开启定时器")
+				if !timeout.Stop() {
+					select {
+					case <-timeout.C:
+					default:
+					}
+				}
+				timeout.Reset(time.Minute * time.Duration(h.cfg.ConsumeTime))
 			}
+		//如果超时，就把未推送的消息推送，定时器停止
+		case <-timeout.C:
+			log.Printf("超时：消息推送")
+			e := events
+			err := h.fn(e)
+			if err != nil {
+				h.l.Error("批量推送消息发生失败", logger.Error(err))
+			}
+
+			// 清除插入的数据
+			events = []T{}
+
+			//调用fn成功后就标记这些消息消费成功
+			for _, m := range msgRecords {
+				session.MarkMessage(m, "")
+			}
+			msgRecords = nil
+			timeout.Stop()
 		}
-		session.MarkMessage(msg, "")
 	}
-	return nil
 }

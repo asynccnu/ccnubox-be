@@ -132,10 +132,10 @@ func (h *FeedHandler) ChangeFeedAllowList(ctx *gin.Context, req ChangeFeedAllowL
 	_, err := h.feedClient.ChangeFeedAllowList(ctx, &feedv1.ChangeFeedAllowListReq{
 		AllowList: &feedv1.AllowList{
 			StudentId: uc.StudentId,
-			Grade:     req.Grade,
-			Muxi:      req.Muxi,
-			Holiday:   req.Holiday,
-			Energy:    req.Energy,
+			Grade:     *req.Grade,
+			Muxi:      *req.Muxi,
+			Holiday:   *req.Holiday,
+			Energy:    *req.Energy,
 		},
 	})
 

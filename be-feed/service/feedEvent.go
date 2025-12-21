@@ -174,7 +174,7 @@ func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, even
 			for i := range studentIds {
 				//更改id并推送
 				event.StudentId = studentIds[i]
-				err := s.feedProducer.SendMessage(topic.FeedEvent, event)
+				err = s.feedProducer.SendMessage(topic.FeedEvent, event)
 				if err != nil {
 					s.l.Error("发送消息发生失败", logger.Error(err), logger.String("当前学号:", studentIds[i]))
 				}

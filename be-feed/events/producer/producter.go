@@ -2,9 +2,10 @@ package producer
 
 import (
 	"encoding/json"
+	"log"
+
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
-	"log"
 )
 
 // Producer 接口定义了 Kafka Producer 的行为

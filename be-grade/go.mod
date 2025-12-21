@@ -13,7 +13,7 @@ require (
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20251205160234-b9fab9a5a5ab
 	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/go-redsync/redsync/v4 v4.14.1
-	github.com/google/wire v0.6.0
+	github.com/google/wire v0.7.0
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/pflag v1.0.10
@@ -23,11 +23,12 @@ require (
 	golang.org/x/sync v0.19.0
 	google.golang.org/grpc v1.77.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	gorm.io/driver/mysql v1.5.7
-	gorm.io/gorm v1.25.12
+	gorm.io/driver/mysql v1.6.0
+	gorm.io/gorm v1.31.1
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
@@ -36,8 +37,9 @@ require (
 	github.com/go-kratos/aegis v0.2.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-playground/form/v4 v4.2.0 // indirect
-	github.com/go-sql-driver/mysql v1.7.0 // indirect
+	github.com/go-playground/assert/v2 v2.2.0 // indirect
+	github.com/go-playground/form/v4 v4.2.1 // indirect
+	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect

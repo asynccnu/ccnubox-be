@@ -9,13 +9,13 @@ replace github.com/asynccnu/ccnubox-be/common/be-api => ./../common/be-api
 replace github.com/asynccnu/ccnubox-be/common/pkg => ./../common/pkg
 
 require (
-	github.com/PuerkitoBio/goquery v1.10.2
+	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-20251028152349-764b4868c185
 	github.com/asynccnu/ccnubox-be/common/pkg v0.0.0-00010101000000-000000000000
 	github.com/dubbogo/net v0.0.4
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20251205160234-b9fab9a5a5ab
 	github.com/go-kratos/kratos/v2 v2.9.2
-	github.com/google/wire v0.6.0
+	github.com/google/wire v0.7.0
 	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/qiniu/go-sdk/v7 v7.25.3
 	github.com/redis/go-redis/v9 v9.17.2
@@ -25,12 +25,13 @@ require (
 	go.uber.org/zap v1.27.1
 	google.golang.org/grpc v1.77.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	gorm.io/driver/mysql v1.5.7
-	gorm.io/gorm v1.25.12
+	gorm.io/driver/mysql v1.6.0
+	gorm.io/gorm v1.31.1
 )
 
 require (
-	github.com/BurntSushi/toml v1.3.2 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/alex-ant/gomath v0.0.0-20160516115720-89013a210a82 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -42,8 +43,9 @@ require (
 	github.com/go-kratos/aegis v0.2.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-playground/form/v4 v4.2.0 // indirect
-	github.com/go-sql-driver/mysql v1.7.0 // indirect
+	github.com/go-playground/assert/v2 v2.2.0 // indirect
+	github.com/go-playground/form/v4 v4.2.1 // indirect
+	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

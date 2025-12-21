@@ -16,10 +16,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/robfig/cron/v3"
+	"github.com/valyala/fastjson"
 )
 
 type Crawler2 struct {
@@ -71,7 +73,7 @@ func beginCronTask2(c *Crawler2) {
 	cr.Start()
 }
 
-func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
+func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	url := fmt.Sprintf(
 		"https://bkzhjw.ccnu.edu.cn/jsxsd/framework/mainV_index_loadkb.htmlx?zc=&kbjcmsid=16FD8C2BE55E15F9E0630100007FF6B5&xnxq01id=%s&xswk=false",
@@ -80,7 +82,7 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		logh.Errorf("http.NewRequest err=%v", err)
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
 	req.Header = http.Header{
 		"Accept":             []string{"*/*"},
@@ -102,7 +104,7 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	resp, err := c.client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
 	defer resp.Body.Close()
 
@@ -110,13 +112,13 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logh.Errorf("failed to read response body: %v", err)
-		return nil, nil, err
+		return nil, nil, -1, err
 	}
 
 	infos, err := c.extractCourses(ctx, year, semester, string(bodyBytes))
 	if err != nil {
 		logh.Errorf("failed to extract infos: %v", err)
-		return nil, nil, fmt.Errorf("failed to extract infos: %v", err)
+		return nil, nil, -1, fmt.Errorf("failed to extract infos: %v", err)
 	}
 
 	scs := make([]*biz.StudentCourse, 0, len(infos))
@@ -132,11 +134,47 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 			UpdatedAt:       time.Now(),
 		})
 	}
-	return infos, scs, nil
+	sum := len(infos)
+
+	return infos, scs, sum, nil
 }
 
-func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, error) {
-	return c.GetClassInfosForUndergraduate(ctx, stuID, year, semester, cookie)
+func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+	logh := classLog.GetLogHelperFromCtx(ctx)
+	xnm, xqm := year, semester
+
+	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])
+	var data = strings.NewReader(param)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
+	if err != nil {
+		logh.Errorf("http.NewRequestWithContext err=%v", err)
+		return nil, nil, -1, errcode.ErrCrawler
+	}
+	req.Header = http.Header{
+		"Cookie":       []string{cookie},
+		"Content-Type": []string{"application/x-www-form-urlencoded;charset=UTF-8"},
+		"User-Agent":   []string{"Mozilla/5.0"}, // 精简UA
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		logh.Errorf("client.Do err=%v", err)
+		return nil, nil, -1, errcode.ErrCrawler
+	}
+	defer resp.Body.Close()
+
+	// 读取 Body 到字节数组
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logh.Errorf("failed to read response body: %v", err)
+		return nil, nil, -1, err
+	}
+	infos, Scs, sum, err := extractGraduateData(bodyBytes, stuID, xnm, xqm)
+	if err != nil {
+		logh.Errorf("extractUndergraduateData err=%v", err)
+		return nil, nil, -1, errcode.ErrCrawler
+	}
+	return infos, Scs, sum, nil
 }
 
 func (c *Crawler2) getys(year, semester string) string {
@@ -306,4 +344,60 @@ func (c *Crawler2) parseClassRoom(s string) string {
 		return s
 	}
 	return match
+}
+
+func extractGraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+	var p fastjson.Parser
+	v, err := p.ParseBytes(rawJson)
+	if err != nil {
+		return nil, nil, -1, err
+	}
+	kbList := v.Get("kbList")
+	if kbList == nil || kbList.Type() != fastjson.TypeArray {
+		return nil, nil, -1, fmt.Errorf("kbList not found or not an array")
+	}
+	length := len(kbList.GetArray())
+
+	infos := make([]*biz.ClassInfo, 0, length)
+	Scs := make([]*biz.StudentCourse, 0, length)
+	sum := v.GetInt("xsxx", "KCMS")
+
+	for _, kb := range kbList.GetArray() {
+		// 过滤掉没确定被选上的课程
+		if string(kb.GetStringBytes("sxbj")) != "1" {
+			continue
+		}
+		//课程信息
+		var info = &biz.ClassInfo{}
+		info.Day, _ = strconv.ParseInt(string(kb.GetStringBytes("xqj")), 10, 64) //星期几
+		info.Teacher = string(kb.GetStringBytes("xm"))
+		info.Where = string(kb.GetStringBytes("cdmc"))                           //上课地点
+		info.ClassWhen = string(kb.GetStringBytes("jcs"))                        //上课是第几节
+		info.WeekDuration = string(kb.GetStringBytes("zcd"))                     //上课的周数
+		info.Classname = string(kb.GetStringBytes("kcmc"))                       //课程名称
+		info.Credit, _ = strconv.ParseFloat(string(kb.GetStringBytes("xf")), 64) //学分
+		info.Semester = xqm                                                      //学期
+		info.Year = xnm                                                          //学年
+		//添加周数
+		info.Weeks, _ = strconv.ParseInt(string(kb.GetStringBytes("oldzc")), 10, 64)
+		info.JxbId = string(kb.GetStringBytes("jxb_id")) //教学班ID
+		info.UpdateID()                                  //课程ID
+
+		//为防止其时间过于紧凑
+		//选择在这里直接给时间赋值
+		info.CreatedAt, info.UpdatedAt = time.Now(), time.Now()
+
+		//-----------------------------------------------------
+		//学生与课程的映射关系
+		Sc := &biz.StudentCourse{
+			StuID:           stuID,
+			ClaID:           info.ID,
+			Year:            xnm,
+			Semester:        xqm,
+			IsManuallyAdded: false,
+		}
+		infos = append(infos, info) //添加课程
+		Scs = append(Scs, Sc)       //添加"学生与课程的映射关系"
+	}
+	return infos, Scs, sum, nil
 }

@@ -2,9 +2,10 @@ package model
 
 // Grade 定义与数据库映射的结构体
 type Grade struct {
-	Studentid           string  `gorm:"column:student_id;type:varchar(100);not null;primaryKey"` // 学生号
-	JxbId               string  `gorm:"column:jxb_id;type:varchar(100);not null;primaryKey"`     // 教学班ID
-	Kcmc                string  `gorm:"column:kcmc;type:varchar(255)"`                           // 课程名
+	StudentId           string  `gorm:"column:student_id;type:varchar(100);not null;primaryKey"` // 学生号
+	KcId                string  //课程的id,主要用于确定是不是一门课
+	JxbId               string  `gorm:"column:jxb_id;type:varchar(100);not null;primaryKey"` // 教学班ID
+	Kcmc                string  `gorm:"column:kcmc;type:varchar(255)"`                       // 课程名
 	Xnm                 int64   // 学年
 	Xqm                 int64   // 学期名
 	Xf                  float32 `gorm:"column:xf"`                                     // 学分

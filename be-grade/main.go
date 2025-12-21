@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/be-grade/cron"
+	"github.com/asynccnu/ccnubox-be/be-grade/pkg/saramax"
 	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -27,15 +28,19 @@ func initViper() {
 }
 
 type App struct {
-	server grpcx.Server
-	crons  []cron.Cron
+	server    grpcx.Server
+	consumers []saramax.Consumer
+	crons     []cron.Cron
 }
 
 func NewApp(server grpcx.Server,
-	crons []cron.Cron) App {
+	crons []cron.Cron,
+	consumers []saramax.Consumer,
+) App {
 	return App{
-		server: server,
-		crons:  crons,
+		server:    server,
+		crons:     crons,
+		consumers: consumers,
 	}
 }
 
@@ -45,9 +50,17 @@ func (a *App) Start() {
 		c.StartCronTask()
 	}
 
+	//启动所有的消费者,但是这里实际上只注入了一个消费者
+	for _, c := range a.consumers {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	err := a.server.Serve()
 	if err != nil {
-		return
+		panic(err)
 	}
 
 }

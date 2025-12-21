@@ -88,6 +88,7 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		LastTime: lastTimeStamp,
 	}, nil
 }
+
 func (s *ClassListService) AddClass(ctx context.Context, req *pb.AddClassRequest) (*pb.AddClassResponse, error) {
 	valLogger := log.With(s.logger,
 		"stu_id", req.GetStuId(), "year", req.GetYear(), "semester", req.GetSemester())

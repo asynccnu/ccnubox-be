@@ -134,7 +134,7 @@ func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password st
 	ug.Client = client
 
 	_, err = tool.Retry(func() (string, error) {
-		err := ug.LoginUnderGradSystem(ctx, tpe...)
+		err := ug.LoginUnderGradSystem(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -144,7 +144,7 @@ func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password st
 		return "", err
 	}
 
-	cookie, err := ug.GetCookieFromUnderGradSystem(tpe...)
+	cookie, err := ug.GetCookieFromUnderGradSystem()
 	if err != nil {
 		return "", err
 	}

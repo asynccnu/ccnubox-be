@@ -27,7 +27,7 @@ ds=(
 
 imageRepo=$1
 
-CRYPTO_KEY=${2:"12345678"}
+CRYPTO_KEY=${2:-"0123456789abcdef"}
 
 for d in "${ds[@]}"; do
   echo -e "🔧🔧🔧 Building and pushing image for $d 🔧🔧🔧\n"

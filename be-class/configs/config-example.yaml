@@ -1,4 +1,5 @@
 server:
+  name: "class"  # 新增字段：服务名称
   http:
     addr: 0.0.0.0:18000
     timeout: 10s
@@ -29,6 +30,8 @@ registry:
     username: root
     password: "12345678"
   proxysvc: "discovery:///proxy"
+  classlistsvc: "discovery:///classlist"
+  usersvc: "discovery:///user"
 
 ## 执行job时使用的学号
 proxyStuId: "xxxxxxxxxx"

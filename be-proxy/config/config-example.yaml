@@ -1,8 +1,8 @@
 etcd:
   endpoints:
-    - "localhost:2379"
-  username: username
-  password: "password"
+    - "ccnubox-etcd:2379"
+  username: "root"
+  password: "12345678"
 
 grpc:
   server:

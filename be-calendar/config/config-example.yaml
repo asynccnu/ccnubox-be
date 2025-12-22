@@ -10,16 +10,16 @@ grpc:
 
 etcd:
   endpoints:
-    - "localhost:2379"
+    - "ccnubox-etcd:2379"
   username: root
   password: "12345678"
 
 redis:
-  addr: "localhost:6379"
+  addr: "ccnubox-redis:6379"
   password: "12345678"
 
 mysql:
-  dsn: "root:12345678@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "root:12345678@tcp(ccnubox-mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
 
 qiniu:
   accessKey : "xxxxxxxxxxx"#秘钥

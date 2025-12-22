@@ -37,7 +37,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 		return nil, nil, err
 	}
 	etcdRegistry := registry.NewRegistrarServer(confRegistry)
-	classListService, err := client.NewClassListService(etcdRegistry)
+	classListService, err := client.NewClassListService(etcdRegistry, confRegistry)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
@@ -46,7 +46,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	builder := lock.NewRedisLockBuilder(redisClient)
 	cache := data.NewCache(redisClient)
 	classServiceUserCase := biz.NewClassServiceUserCase(classData, classListService, builder, cache)
-	cookieSvc, err := client.NewCookieSvc(etcdRegistry)
+	cookieSvc, err := client.NewCookieSvc(etcdRegistry, confRegistry)
 	if err != nil {
 		cleanup()
 		return nil, nil, err

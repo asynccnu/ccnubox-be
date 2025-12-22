@@ -6,17 +6,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
 	"github.com/valyala/fastjson"
 )
 
@@ -28,59 +25,48 @@ var semesterMap = map[string]string{
 }
 
 type Crawler struct {
-	client *http.Client
-	pc     proxyv1.ProxyClient
+	pg *ProxyGetter
+
+	clientPool sync.Pool
 }
 
-func NewClassCrawler(pc proxyv1.ProxyClient) *Crawler {
-	j, _ := cookiejar.New(nil)
-	client := &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:        100,              // 最大空闲连接
-			IdleConnTimeout:     90 * time.Second, // 空闲连接超时
-			TLSHandshakeTimeout: 10 * time.Second, // TLS握手超时
-			DisableKeepAlives:   false,            // 确保不会意外关闭 Keep-Alive
-		},
-		Jar: j,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return nil
-		},
+func NewClassCrawler(pg *ProxyGetter) *Crawler {
+	newClient := func() interface{} {
+		j, _ := cookiejar.New(nil)
+		return &http.Client{
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				IdleConnTimeout:     90 * time.Second,
+				TLSHandshakeTimeout: 10 * time.Second,
+				DisableKeepAlives:   false,
+			},
+			Jar: j,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return nil
+			},
+		}
 	}
 
 	c := &Crawler{
-		client: client,
-		pc:     pc,
+		clientPool: sync.Pool{
+			New: newClient,
+		},
+		pg: pg,
 	}
-	c.pullProxy()
-
-	beginCronTask(c)
 
 	return c
 }
 
-func (c *Crawler) pullProxy() {
-	res, err := c.pc.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
-	if err != nil {
-		log.Error("GetProxyAddr in pull proxy err:", err)
-		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
-	}
-	proxy, err := url.Parse(res.Addr)
-	if err != nil {
-		log.Error("parse proxy in pull proxy addr err:", err)
-	}
-
-	c.client.Transport.(*http.Transport).Proxy = http.ProxyURL(proxy)
-	log.Debug("pull proxy addr success, now: ", time.Now())
-}
-
-func beginCronTask(c *Crawler) {
-	cr := cron.New()
-	_, _ = cr.AddFunc("@every 160s", c.pullProxy)
-	cr.Start()
-}
-
 // GetClassInfoForGraduateStudent 获取研究生课程信息
-func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse,int, error) {
+	client := c.clientPool.Get().(*http.Client)
+	defer func() {
+		client.Transport.(*http.Transport).Proxy = nil
+		c.clientPool.Put(client)
+	}()
+
+	client.Transport.(*http.Transport).Proxy = http.ProxyURL(c.pg.GetProxy(ctx))
+
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	xnm, xqm := year, semester
 
@@ -109,7 +95,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 		"User-Agent":         []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"},
 		"X-Requested-With":   []string{"XMLHttpRequest"},
 	}
-	resp, err := c.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
 		return nil, nil, -1, errcode.ErrCrawler
@@ -131,7 +117,15 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 }
 
 // GetClassInfosForUndergraduate  获取本科生课程信息
-func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse,int, error) {
+	client := c.clientPool.Get().(*http.Client)
+	defer func() {
+		client.Transport.(*http.Transport).Proxy = nil
+		c.clientPool.Put(client)
+	}()
+
+	client.Transport.(*http.Transport).Proxy = http.ProxyURL(c.pg.GetProxy(ctx))
+
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	xnm, xqm := year, semester
 
@@ -161,7 +155,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 		"User-Agent":         []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"},
 		"X-Requested-With":   []string{"XMLHttpRequest"},
 	}
-	resp, err := c.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
 		return nil, nil, -1, errcode.ErrCrawler

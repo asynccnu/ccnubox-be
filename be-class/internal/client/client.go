@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/be-class/internal/conf"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-class/internal/errcode"
@@ -17,18 +18,17 @@ import (
 	"github.com/google/wire"
 )
 
-const CLASSLISTSERVICE = "discovery:///be-classlist"
-
 var ProviderSet = wire.NewSet(NewClassListService, NewCookieSvc, InitProxyClient)
 
 type ClassListService struct {
 	cs classlist.ClasserClient
 }
 
-func NewClassListService(r *etcd.Registry) (*ClassListService, error) {
+func NewClassListService(r *etcd.Registry, cf *conf.Registry) (*ClassListService, error) {
+	clog.LogPrinter.Infof("init classlist grpc client, target service address: %s", cf.Classlistsvc)
 	conn, err := grpc.DialInsecure(
 		context.Background(),
-		grpc.WithEndpoint(CLASSLISTSERVICE), // 需要发现的服务，如果是k8s部署可以直接用服务器本地地址:9001，9001端口是需要调用的服务的端口
+		grpc.WithEndpoint(cf.Classlistsvc), // 需要发现的服务，如果是k8s部署可以直接用服务器本地地址:9001，9001端口是需要调用的服务的端口
 		grpc.WithDiscovery(r),
 		grpc.WithMiddleware(
 			tracing.Client(),
@@ -40,6 +40,7 @@ func NewClassListService(r *etcd.Registry) (*ClassListService, error) {
 		return nil, err
 	}
 	cs := classlist.NewClasserClient(conn)
+	clog.LogPrinter.Infof("init classlist grpc client success, address: %s", cf.Classlistsvc)
 	return &ClassListService{cs: cs}, nil
 }
 
@@ -50,7 +51,7 @@ func (c *ClassListService) GetAllSchoolClassInfos(ctx context.Context, xnm, xqm,
 		Cursor:   cursor,
 	})
 	if err != nil {
-		clog.LogPrinter.Errorf("send request for service[%v] to get all classInfos[xnm:%v xqm:%v] failed: %v", CLASSLISTSERVICE, xnm, xqm, err)
+		clog.LogPrinter.Errorf("send request for service[%v] to get all classInfos[xnm:%v xqm:%v] failed: %v", "classlist service", xnm, xqm, err)
 		return nil, "", err
 	}
 	var classInfos = make([]model.ClassInfo, 0, len(resp.ClassInfos))
@@ -76,7 +77,7 @@ func (c *ClassListService) GetAllSchoolClassInfos(ctx context.Context, xnm, xqm,
 func (c *ClassListService) AddClassInfoToClassListService(ctx context.Context, req *classlist.AddClassRequest) (*classlist.AddClassResponse, error) {
 	resp, err := c.cs.AddClass(ctx, req)
 	if err != nil {
-		clog.LogPrinter.Errorf("send request for service[%v] to add  classInfos[%v] failed: %v", CLASSLISTSERVICE, req, err)
+		clog.LogPrinter.Errorf("send request for service[%v] to add  classInfos[%v] failed: %v", "classlist service", req, err)
 		return nil, err
 	}
 	return resp, nil
@@ -95,14 +96,11 @@ type CookieSvc struct {
 	usc user.UserServiceClient
 }
 
-const (
-	USERSERVICE = "discovery:///user"
-)
-
-func NewCookieSvc(r *etcd.Registry) (*CookieSvc, error) {
+func NewCookieSvc(r *etcd.Registry, cf *conf.Registry) (*CookieSvc, error) {
+	clog.LogPrinter.Infof("init user grpc client, target service address: %s", cf.Usersvc)
 	conn, err := grpc.DialInsecure(
 		context.Background(),
-		grpc.WithEndpoint(USERSERVICE),
+		grpc.WithEndpoint(cf.Usersvc),
 		grpc.WithDiscovery(r),
 		grpc.WithMiddleware(
 			tracing.Client(),
@@ -115,6 +113,7 @@ func NewCookieSvc(r *etcd.Registry) (*CookieSvc, error) {
 		return nil, err
 	}
 	usc := user.NewUserServiceClient(conn)
+	clog.LogPrinter.Infof("init user grpc client success, address: %s", cf.Classlistsvc)
 	return &CookieSvc{usc: usc}, nil
 }
 

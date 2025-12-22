@@ -68,7 +68,7 @@ func main() {
 	}
 
 	// 设置服务名称
-	if bc.Server.Name != "" {
+	if len(bc.Server.Name) > 0 {
 		Name = bc.Server.Name
 	}
 

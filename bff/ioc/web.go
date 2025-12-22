@@ -39,7 +39,7 @@ func InitGinServer(
 	website *website.WebsiteHandler,
 	calendar *calendar.CalendarHandler,
 	feed *feed.FeedHandler,
-	elecprice *elecprice.ElecPriceHandler, //添加你的服务handler
+	elecprice *elecprice.ElecPriceHandler, // 添加你的服务handler
 	grade *grade.GradeHandler,
 	class *class.ClassHandler,
 	feedback *feedback_help.FeedbackHelpHandler,
@@ -49,27 +49,34 @@ func InitGinServer(
 	library *library.LibraryHandler,
 	swag *swag.SwagHandler,
 ) *gin.Engine {
-	//初始化一个gin引擎
+	// 初始化一个gin引擎
 	engine := gin.Default()
-	//全局使用gin中间件
+
+	// 开启 ginContext 自动回退机制
+	// 当 gin.Context 找不到所指定的 key 时
+	// 它会自动去 c.Request.Context() 里面找
+	engine.ContextWithFallback = true
+
+	// 全局使用gin中间件
 	api := engine.Group("/api/v1")
 
-	//使用中间件
+	// 使用中间件
 	api.Use(
 		// 跨域中间件
 		corsMiddleware.MiddlewareFunc(),
 		// 追踪中间件
 		otelMiddleware.Middleware(),
+		otelMiddleware.AttributeMiddleware(),
 		// 打点中间件
 		prometheusMiddleware.MiddlewareFunc(),
 		// 日志中间件
 		loggerMiddleware.MiddlewareFunc(),
 	)
 
-	//创建用户认证中间件
+	// 创建用户认证中间件
 	authMiddleware := loginMiddleware.MiddlewareFunc()
 
-	//注册一堆路由
+	// 注册一堆路由
 	user.RegisterRoutes(api, authMiddleware)
 	static.RegisterRoutes(api, authMiddleware)
 	banner.RegisterRoutes(api, authMiddleware)
@@ -89,6 +96,6 @@ func InitGinServer(
 	library.RegisterRoutes(api, authMiddleware)
 	swag.RegisterRoutes(api, basicAuthMiddleware.MiddlewareFunc())
 
-	//返回路由
+	// 返回路由
 	return engine
 }

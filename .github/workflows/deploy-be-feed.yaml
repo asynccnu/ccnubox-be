@@ -67,7 +67,7 @@ jobs:
             ${{ secrets.ALIYUN_REGISTRY }}
           
             KEY="${SERVICE_NAME}-version"
-            VALUE="${{ needs.build-be-banner.outputs.id }}"
+            VALUE="${{ needs.build-be-feed.outputs.id }}"
           
             if grep -q "^${KEY}=" .env; then
               sed -i "s/^${KEY}=.*/${KEY}=${VALUE}/" .env

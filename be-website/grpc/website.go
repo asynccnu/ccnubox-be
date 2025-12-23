@@ -5,7 +5,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-website/domain"
 	"github.com/asynccnu/ccnubox-be/be-website/service"
-	websitev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/website/v1"
+	websitev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/website/v1"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/jinzhu/copier"
 	"gorm.io/gorm"
@@ -28,7 +28,6 @@ func (d *WebsiteServiceServer) GetWebsites(ctx context.Context, request *website
 	var resp []*websitev1.Website
 	err = copier.Copy(&resp, websites)
 	if err != nil {
-
 		return nil, err
 	}
 	return &websitev1.GetWebsitesResponse{Websites: resp}, nil

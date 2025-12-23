@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	"golang.org/x/sync/singleflight"
 )
 

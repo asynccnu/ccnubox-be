@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/asynccnu/ccnubox-be/be-user/service"
-	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
+	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"google.golang.org/grpc"
 )
 

@@ -10,7 +10,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
-	pb "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1" //此处改成了be-api中的,方便其他服务调用.
+	pb "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1" //此处改成了api中的,方便其他服务调用.
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/jinzhu/copier"
 )

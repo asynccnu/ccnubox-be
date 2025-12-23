@@ -6,7 +6,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
-	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 )

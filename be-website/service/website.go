@@ -10,7 +10,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-website/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-website/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-website/repository/model"
-	websitev1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/website/v1"
+	websitev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/website/v1"
 	"github.com/jinzhu/copier"
 )
 
@@ -46,20 +46,20 @@ func NewWebsiteService(dao dao.WebsiteDAO, cache cache.WebsiteCache, l logger.Lo
 }
 
 func (s *websiteService) GetWebsites(ctx context.Context) ([]*domain.Website, error) {
-	//尝试从缓存获取,如果获取直接返回结果
+	// 尝试从缓存获取,如果获取直接返回结果
 	res, err := s.cache.GetWebsites(ctx)
 	if err == nil {
 		return res, nil
 	}
 	s.l.Error("从缓存获取website失败", logger.Error(err))
 
-	//如果缓存中不存在则从数据库获取
+	// 如果缓存中不存在则从数据库获取
 	webs, err := s.dao.GetWebsites(ctx)
 	if err != nil {
 		return []*domain.Website{}, GET_WEBSITE_ERROR(err)
 	}
 
-	//类型转换
+	// 类型转换
 	err = copier.Copy(&res, webs)
 	if err != nil {
 		return []*domain.Website{}, GET_WEBSITE_ERROR(err)
@@ -86,13 +86,13 @@ func (s *websiteService) SaveWebsite(ctx context.Context, req *domain.Website) e
 		website = s.toEntity(req)
 	}
 
-	//保存到数据库
+	// 保存到数据库
 	err = s.dao.SaveWebsite(ctx, website)
 	if err != nil {
 		return SAVE_WEBSITE_ERROR(err)
 	}
 
-	//异步写入缓存,牺牲一定的一致性
+	// 异步写入缓存,牺牲一定的一致性
 	go func() {
 		ct, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -121,7 +121,7 @@ func (s *websiteService) DelWebsite(ctx context.Context, id uint) error {
 		return DEL_WEBSITE_ERROR(err)
 	}
 
-	//异步写入缓存,牺牲一定的一致性
+	// 异步写入缓存,牺牲一定的一致性
 	go func() {
 		ct, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()

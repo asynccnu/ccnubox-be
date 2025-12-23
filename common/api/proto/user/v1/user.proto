@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package user.v1;
+option go_package="github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1;userv1";
+
+service UserService {
+  rpc SaveUser (SaveUserReq) returns (SaveUserResp);
+  rpc CheckUser (CheckUserReq) returns (CheckUserResp);
+  rpc GetCookie (GetCookieRequest) returns (GetCookieResponse);
+  rpc GetLibraryCookie (GetLibraryCookieRequest) returns (GetLibraryCookieResponse);
+}
+
+message SaveUserReq {
+  string studentId = 1;
+  string password = 2;
+}
+
+message  SaveUserResp {}
+
+message  CheckUserReq {
+  string studentId = 1;
+  string password = 2;
+}
+
+message  CheckUserResp {
+  bool success = 1;
+}
+
+message GetCookieRequest {
+  string studentId = 1;
+  string type = 2;
+}
+
+message GetCookieResponse {
+  string cookie = 1;
+}
+
+message GetLibraryCookieRequest {
+  string studentId = 1;
+}
+
+message GetLibraryCookieResponse {
+  string cookie = 1;
+}

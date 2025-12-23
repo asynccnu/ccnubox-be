@@ -7,7 +7,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	feedback_helpv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feedback_help/v1"
+	feedback_helpv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feedback_help/v1"
 	"github.com/gin-gonic/gin"
 )
 

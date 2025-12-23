@@ -14,24 +14,36 @@ jobs:
   build-be-class:
     if: github.repository == 'asynccnu/ccnubox-be'
     runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.get-version-id.outputs.id }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Get tag or commit id
+        id: get-version-id
+        uses: iawia002/get-tag-or-commit-id@v1
+        with:
+          length: 7
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Aliyun Docker Registry
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.ALIYUN_USERNAME }}
           password: ${{ secrets.ALIYUN_PASSWORD }}
-          registry: crpi-vgud82zncz8nwfuc.cn-hangzhou.personal.cr.aliyuncs.com
+          registry: ${{ secrets.ALIYUN_REGISTRY }}
 
-      - name: Build and push image
-        run: |
-          chmod +x ./scripts/build-${SERVICE_NAME}.sh
-          ./scripts/build-${SERVICE_NAME}.sh ${{ secrets.IMAGE_REPO }}
+      - name: Build And Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./${SERVICE_NAME}/Dockerfile
+          push: true
+          tags: ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/ccnubox-${SERVICE_NAME}:${{ steps.get-version-id.outputs.id }}
+
   deploy-on-dev:
     if: github.repository == 'asynccnu/ccnubox-be'
     runs-on: ubuntu-latest
@@ -45,11 +57,25 @@ jobs:
           ssh-keyscan -H ${{ secrets.DEV_SERVER }} >> ~/.ssh/known_hosts
       - name: SSH into server and deploy
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER }} << EOF
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER }} << 'EOF'
+            set -e
             cd ~/ccnubox_v3
-            docker rm -f ${SERVICE_NAME}
-            docker rmi -f ${{ secrets.IMAGE_REPO }}/${SERVICE_NAME}:v1
-            docker compose up -d ${SERVICE_NAME}
+            touch .env
+            echo '${{ secrets.ALIYUN_PASSWORD }}' | docker login \
+            --username=${{ secrets.ALIYUN_USERNAME }} \
+            --password-stdin \
+            ${{ secrets.ALIYUN_REGISTRY }}
+          
+            KEY="${SERVICE_NAME}-version"
+            VALUE="${{ needs.build-be-banner.outputs.id }}"
+          
+            if grep -q "^${KEY}=" .env; then
+              sed -i "s/^${KEY}=.*/${KEY}=${VALUE}/" .env
+            else
+              echo "${KEY}=${VALUE}" >> .env
+            fi
+          
+            docker compose pull
+            docker compose up -d
+            docker image prune -a -f
           EOF
-
-

@@ -66,8 +66,8 @@ jobs:
             --password-stdin \
             ${{ secrets.ALIYUN_REGISTRY }}
           
-            KEY="${SERVICE_NAME}-version"
-            VALUE="${{ needs.build-be-banner.outputs.id }}"
+            KEY="${{ env.SERVICE_NAME }}-version"
+            VALUE="${{ needs.build-be-classlist.outputs.id }}"
           
             if grep -q "^${KEY}=" .env; then
               sed -i "s/^${KEY}=.*/${KEY}=${VALUE}/" .env

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	ccnuv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/ccnu/v1"
+	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"

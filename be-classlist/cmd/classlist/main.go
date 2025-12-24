@@ -77,9 +77,9 @@ func main() {
 		"service.name", Name)
 	classLog.InitGlobalLogger(logger)
 
-	//gorm的日志文件
-	//在main函数中声明,程序结束执行Close
-	//防止只有连接数据库的时候，才会将sql语句写入
+	// gorm的日志文件
+	// 在main函数中声明,程序结束执行Close
+	// 防止只有连接数据库的时候，才会将sql语句写入
 	logfile := classLog.NewLumberjackLogger(bc.Data.Database.LogPath,
 		bc.Data.Database.LogFileName, 6, 5, 30, false)
 	defer logfile.Close()

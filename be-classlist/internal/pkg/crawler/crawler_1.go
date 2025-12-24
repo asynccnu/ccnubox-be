@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/cookiejar"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,15 +32,20 @@ type Crawler struct {
 
 func NewClassCrawler(pg *ProxyGetter) *Crawler {
 	newClient := func() interface{} {
-		j, _ := cookiejar.New(nil)
 		return &http.Client{
 			Transport: &http.Transport{
-				MaxIdleConns:        100,
+				MaxIdleConns:        10, // 既然使用sync.Pool管理对象，这个不宜过大
 				IdleConnTimeout:     90 * time.Second,
 				TLSHandshakeTimeout: 10 * time.Second,
 				DisableKeepAlives:   false,
+				Proxy: func(req *http.Request) (*url.URL, error) {
+					// 从 request 的 context 中获取代理地址
+					if p, ok := req.Context().Value("proxy_url").(*url.URL); ok {
+						return p, nil
+					}
+					return nil, nil
+				},
 			},
-			Jar: j,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return nil
 			},
@@ -58,14 +63,19 @@ func NewClassCrawler(pg *ProxyGetter) *Crawler {
 }
 
 // GetClassInfoForGraduateStudent 获取研究生课程信息
-func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse,int, error) {
-	client := c.clientPool.Get().(*http.Client)
-	defer func() {
-		client.Transport.(*http.Transport).Proxy = nil
-		c.clientPool.Put(client)
-	}()
+func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+	// 获取代理并将其存入请求的上下文
+	proxyURL := c.pg.GetProxy(ctx)
 
-	client.Transport.(*http.Transport).Proxy = http.ProxyURL(c.pg.GetProxy(ctx))
+	var reqCtx context.Context
+	reqCtx = ctx
+	if proxyURL != nil {
+		reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
+	}
+
+	// 使用连接池获取 HTTP 客户端
+	client := c.clientPool.Get().(*http.Client)
+	defer c.clientPool.Put(client)
 
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	xnm, xqm := year, semester
@@ -73,7 +83,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])
 	var data = strings.NewReader(param)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
+	req, err := http.NewRequestWithContext(reqCtx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
 		return nil, nil, -1, errcode.ErrCrawler
@@ -117,14 +127,19 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 }
 
 // GetClassInfosForUndergraduate  获取本科生课程信息
-func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse,int, error) {
-	client := c.clientPool.Get().(*http.Client)
-	defer func() {
-		client.Transport.(*http.Transport).Proxy = nil
-		c.clientPool.Put(client)
-	}()
+func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+	// 获取代理并将其存入请求的上下文
+	proxyURL := c.pg.GetProxy(ctx)
 
-	client.Transport.(*http.Transport).Proxy = http.ProxyURL(c.pg.GetProxy(ctx))
+	var reqCtx context.Context
+	reqCtx = ctx
+	if proxyURL != nil {
+		reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
+	}
+
+	// 使用连接池获取 HTTP 客户端
+	client := c.clientPool.Get().(*http.Client)
+	defer c.clientPool.Put(client)
 
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	xnm, xqm := year, semester
@@ -133,7 +148,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 
 	var data = strings.NewReader(formdata)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151", data)
+	req, err := http.NewRequestWithContext(reqCtx, "POST", "https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
 		return nil, nil, -1, errcode.ErrCrawler

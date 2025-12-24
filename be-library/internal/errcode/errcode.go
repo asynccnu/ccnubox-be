@@ -1,7 +1,7 @@
 package errcode
 
 import (
-	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/library/v1"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
 	"github.com/go-kratos/kratos/v2/errors"
 )
 

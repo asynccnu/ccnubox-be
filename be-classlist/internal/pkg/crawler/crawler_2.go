@@ -1,12 +1,13 @@
 package crawler
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/cookiejar"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,6 +22,12 @@ import (
 	"github.com/valyala/fastjson"
 )
 
+var (
+	// 正则匹配：楼号只能是 3,7,8,9,10 或 n，后跟 3 位数字
+	parseClassRoomRegex = regexp.MustCompile(`((?:3|7|8|9|10|n)\d{3})$`)
+	parseNumberRegex    = regexp.MustCompile(`\d+`)
+)
+
 type Crawler2 struct {
 	pg *ProxyGetter
 
@@ -29,15 +36,20 @@ type Crawler2 struct {
 
 func NewClassCrawler2(pg *ProxyGetter) *Crawler2 {
 	newClient := func() interface{} {
-		j, _ := cookiejar.New(nil)
 		return &http.Client{
 			Transport: &http.Transport{
-				MaxIdleConns:        100,
+				MaxIdleConns:        10, // 既然使用sync.Pool管理对象，这个不宜过大
 				IdleConnTimeout:     90 * time.Second,
 				TLSHandshakeTimeout: 10 * time.Second,
 				DisableKeepAlives:   false,
+				Proxy: func(req *http.Request) (*url.URL, error) {
+					// 从 request 的 context 中获取代理地址
+					if p, ok := req.Context().Value("proxy_url").(*url.URL); ok {
+						return p, nil
+					}
+					return nil, nil
+				},
 			},
-			Jar: j,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return nil
 			},
@@ -54,21 +66,26 @@ func NewClassCrawler2(pg *ProxyGetter) *Crawler2 {
 	return c2
 }
 
-func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse,int, error) {
-	client := c.clientPool.Get().(*http.Client)
-	defer func() {
-		client.Transport.(*http.Transport).Proxy = nil
-		c.clientPool.Put(client)
-	}()
+func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+	// 获取代理并将其存入请求的上下文
+	proxyURL := c.pg.GetProxy(ctx)
 
-	client.Transport.(*http.Transport).Proxy = http.ProxyURL(c.pg.GetProxy(ctx))
+	var reqCtx context.Context
+	reqCtx = ctx
+	if proxyURL != nil {
+		reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
+	}
+
+	// 使用连接池获取 HTTP 客户端
+	client := c.clientPool.Get().(*http.Client)
+	defer c.clientPool.Put(client)
 
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	classURL := fmt.Sprintf(
 		"https://bkzhjw.ccnu.edu.cn/jsxsd/framework/mainV_index_loadkb.htmlx?zc=&kbjcmsid=16FD8C2BE55E15F9E0630100007FF6B5&xnxq01id=%s&xswk=false",
 		c.getys(year, semester))
 
-	req, err := http.NewRequest("GET", classURL, nil)
+	req, err := http.NewRequestWithContext(reqCtx, "GET", classURL, nil)
 	if err != nil {
 		logh.Errorf("http.NewRequest err=%v", err)
 		return nil, nil, -1, err
@@ -97,14 +114,13 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	}
 	defer resp.Body.Close()
 
-	// 读取 Body 到字节数组
-	bodyBytes, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logh.Errorf("failed to read response body: %v", err)
+		logh.Errorf("read body failed:%v", err)
 		return nil, nil, -1, err
 	}
 
-	infos, err := c.extractCourses(ctx, year, semester, string(bodyBytes))
+	infos, err := c.extractCourses(ctx, year, semester, body)
 	if err != nil {
 		logh.Errorf("failed to extract infos: %v", err)
 		return nil, nil, -1, fmt.Errorf("failed to extract infos: %v", err)
@@ -129,14 +145,18 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 }
 
 func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+	// 获取代理并将其存入请求的上下文
+	proxyURL := c.pg.GetProxy(ctx)
+
+	var reqCtx context.Context
+	reqCtx = ctx
+	if proxyURL != nil {
+		reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
+	}
+
+	// 使用连接池获取 HTTP 客户端
 	client := c.clientPool.Get().(*http.Client)
-	defer func() {
-		client.Transport.(*http.Transport).Proxy = nil
-		c.clientPool.Put(client)
-	}()
-
-	client.Transport.(*http.Transport).Proxy = http.ProxyURL(c.pg.GetProxy(ctx))
-
+	defer c.clientPool.Put(client)
 
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	xnm, xqm := year, semester
@@ -144,7 +164,7 @@ func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, ye
 	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])
 	var data = strings.NewReader(param)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
+	req, err := http.NewRequestWithContext(reqCtx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
 		return nil, nil, -1, errcode.ErrCrawler
@@ -183,9 +203,9 @@ func (c *Crawler2) getys(year, semester string) string {
 	return fmt.Sprintf("%d-%d-%s", y, y+1, semester)
 }
 
-func (c *Crawler2) extractCourses(ctx context.Context, year, semester, html string) ([]*biz.ClassInfo, error) {
+func (c *Crawler2) extractCourses(ctx context.Context, year, semester string, html []byte) ([]*biz.ClassInfo, error) {
 	logh := classLog.GetLogHelperFromCtx(ctx)
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
 	if err != nil {
 		return nil, fmt.Errorf("NewDocumentFromReader err: %v", err)
 	}
@@ -259,7 +279,7 @@ func (c *Crawler2) extractAfterColon(s string) string {
 }
 
 func (c *Crawler2) parseWeekDuration(ctx context.Context, s string) string {
-	// 方法1：使用字符串操作
+	// 使用字符串操作
 	logh := classLog.GetLogHelperFromCtx(ctx)
 	start := strings.Index(s, "[")
 	end := strings.Index(s, "周]")
@@ -291,8 +311,7 @@ func (c *Crawler2) parseWeeks(weekDuration string) int64 {
 
 // 提取字符串的全部数字
 func (c *Crawler2) parseNumber(s string) []int64 {
-	re := regexp.MustCompile(`\d+`)
-	matches := re.FindAllString(s, -1)
+	matches := parseNumberRegex.FindAllString(s, -1)
 	var numbers []int64
 	for _, match := range matches {
 		num, _ := strconv.Atoi(match)
@@ -336,8 +355,7 @@ func (c *Crawler2) parseCredit(s string) float64 {
 // 从字符串中提取合法的教室号
 func (c *Crawler2) parseClassRoom(s string) string {
 	// 正则匹配：楼号只能是 3,7,8,9,10 或 n，后跟 3 位数字
-	re := regexp.MustCompile(`((?:3|7|8|9|10|n)\d{3})$`)
-	match := re.FindString(s)
+	match := parseClassRoomRegex.FindString(s)
 	if match == "" {
 		return s
 	}

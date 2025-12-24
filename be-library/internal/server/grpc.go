@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/asynccnu/ccnubox-be/be-library/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/service"
-	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/library/v1"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
 
 	"github.com/asynccnu/ccnubox-be/be-library/pkg/metrics"
 	"github.com/go-kratos/kratos/v2/log"

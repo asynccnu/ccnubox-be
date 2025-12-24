@@ -5,7 +5,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-infosum/domain"
 	"github.com/asynccnu/ccnubox-be/be-infosum/service"
-	InfoSumv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/infoSum/v1"
+	InfoSumv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/infoSum/v1"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/jinzhu/copier"
 	"gorm.io/gorm"

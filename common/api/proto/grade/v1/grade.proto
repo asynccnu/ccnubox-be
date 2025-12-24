@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package grade.v1;
+option go_package = "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1;gradev1";
+//import "google/protobuf/any.proto";
+
+// 查询成绩的接口定义
+service GradeService {
+  rpc GetGradeByTerm (GetGradeByTermReq) returns (GetGradeByTermResp) ;
+  rpc GetGradeScore(GetGradeScoreReq)returns(GetGradeScoreResp);
+  rpc GetGraduateGrade(GetGraduateUpdateReq) returns (GetGraduateUpdateResp);
+
+  // 学业平均学分绩和排名
+  rpc GetRankByTerm (GetRankByTermReq) returns (GetRankByTermResp) ;
+  rpc LoadRank (LoadRankReq) returns (EmptyResp);
+}
+
+// 请求体
+message GetGradeByTermReq{
+  string studentId =1;//学号
+  repeated Terms terms =2; //学年和学期
+  repeated string Kcxzmcs =3; //课程性质名称
+  bool refresh =4; //是否强制刷新
+}
+
+message Terms {
+  int64 xnm = 1;//学年名:例如2024表示2024-2025学年
+  repeated int64 xqms =2;//学期名
+}
+
+// 响应体
+message GetGradeByTermResp{
+  repeated  Grade  grades = 1; // 课程详细信息
+}
+
+//成绩结构体
+message Grade{
+  string  Kcmc  =1 ;  //课程名
+  float  Xf =2 ;  //学分
+  float  Cj =3;   //总成绩
+  string  kcxzmc=4; //课程性质名称 比如专业主干课程/通识必修课
+  string  Kclbmc=5; //课程类别名称，比如专业课/公共课
+  string  kcbj=6; //课程标记，比如主修/辅修
+  float jd=7; // 绩点
+  string regularGradePercent=8; //平时成绩占比
+  float regularGrade=9;//平时成绩
+  string finalGradePercent=10;//期末成绩占比
+  float finalGrade=11;//期末成绩
+  int64 xqm =12;
+  int64 xnm =13;
+}
+
+message GetGradeScoreReq{
+  string studentId=1;
+}
+
+message GetGradeScoreResp{
+  repeated TypeOfGradeScore typeOfGradeScore =1;
+}
+
+message TypeOfGradeScore{
+  string kcxzmc = 1;
+  repeated GradeScore gradeScoreList=2;
+}
+
+message GradeScore{
+  string Kcmc   =1 ;  //课程名
+  float Xf  =2 ;  //学分
+}
+
+message GraduateGrade{
+  string  jxbId = 1;          // 教学班ID
+  string  status = 2;         // 成绩审核状态
+  string  year = 3;           // 学年(2024-2025)
+  int64   term = 4;           // 学期
+  string  name = 5;           // 姓名
+  string  studentCategory = 6;// 学生类别
+  string  college = 7;        // 学院
+  string  major = 8;         // 专业
+  int64   grade = 9;         // 年级
+  string  classCode = 10;     // 课程代码
+  string  className = 11;     // 课程名称
+  string  classNature = 12;   // 课程性质
+  float   credit = 13;        // 学分
+  float   point = 14;         // 成绩
+  float   gradePoints = 15;   // 绩点
+  string  isAvailable = 16;   // 成绩是否作废
+  string  isDegree = 17;      // 是否学位课程
+  string  setCollege = 18;    // 开课学院
+  string  classMark = 19;     // 课程标记
+  string  classCategory = 20; // 课程类别
+  string  classID = 21;       // 教学班
+  string  teacher = 22;       // 任课教师
+}
+
+message GetGraduateUpdateReq{
+  string studentId = 1; // 学号
+  int64 xnm = 2;        // 学年(可选，不填取全部)
+  int64 xqm = 3;        // 学期(1/2/3，可选)
+  int64 cjzt = 4;       // 成绩状态（0-全部, 待审核, 审核中, 审核通过...）
+}
+
+message GetGraduateUpdateResp{
+  repeated GraduateGrade grades = 1;
+}
+
+// rank 部分
+message GetRankByTermReq {
+  string studentId = 1; //学号
+  int64 xnm_begin = 2; //开始学年
+  int64 xqm_begin = 3; //开始学期
+  int64 xnm_end = 4; //结束学年
+  int64 xqm_end = 5; //结束学期
+  bool refresh =6; //是否强制刷新
+}
+
+message GetRankByTermResp {
+  string rank = 1; //排名
+  string score = 2; //平均学业学分绩
+  repeated string include = 3; //统计的科目(教务系统好像不提供筛选科目统计的功能)
+}
+
+message LoadRankReq {
+  string studentId = 1;
+}
+
+message EmptyResp {}

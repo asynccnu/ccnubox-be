@@ -121,7 +121,7 @@ Local: //从本地获取数据
 		}
 	}
 
-	//强制不刷新,返回结果
+	//强制不刷新,返回结果,这里是为了防止goto到Local后又走刷新逻辑，实际上不需要
 	if forceNoRefresh {
 		goto wrapRes
 	}
@@ -467,13 +467,16 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 
 	ci, sc, sum, err := func() ([]*ClassInfo, []*StudentCourse, int, error) {
 		defer func(currentTime time.Time) {
-			logh.Infof("Craw class [%v,%v,%v] cost %v", stuID, year, semester, time.Since(currentTime))
+			logh.Infof("craw class [%v,%v,%v] cost %v", stuID, year, semester, time.Since(currentTime))
 		}(time.Now())
 
 		classinfos, scs, sum, err := stu.GetClass(ctx, stuID, year, semester, cookie, cluc.crawler)
 		if err != nil {
 			logh.Errorf("craw classlist(stu_id:%v year:%v semester:%v cookie:%v) failed: %v", stuID, year, semester, cookie, err)
 			return nil, nil, -1, err
+		}
+		if len(classinfos) == 0 || len(scs) == 0 {
+			return nil, nil, -1, errors.New("no classinfos or scs found")
 		}
 		return classinfos, scs, sum, nil
 	}()

@@ -5,7 +5,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-department/domain"
 	"github.com/asynccnu/ccnubox-be/be-department/service"
-	departmentv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/department/v1"
+	departmentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/department/v1"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 )
 

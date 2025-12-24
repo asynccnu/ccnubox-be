@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/proxy/v1"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -95,13 +95,16 @@ func (p *ProxyGetter) doFetchProxy(ctx context.Context) (*url.URL, error) {
 
 	if err != nil || res == nil || len(res.Addr) == 0 {
 		logh.Errorf("pull proxy addr failed: %v", err)
-		// 失败时保持旧值不变（或者设为 nil，咱们这里默认保持旧值不变）
+		// 失败时设置为nil，防止后续一直使用失效代理
+		p.proxy = nil
 		return p.proxy, err
 	}
 
 	proxyURL, parseErr := url.Parse(res.Addr)
 	if parseErr != nil {
 		logh.Errorf("parse proxy addr %s failed: %v", res.Addr, parseErr)
+		// 失败时设置为nil，防止后续一直使用失效代理
+		p.proxy = nil
 		return p.proxy, parseErr
 	}
 

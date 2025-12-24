@@ -6,7 +6,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/metrics"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/service"
-	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classlist/v1"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/ratelimit"

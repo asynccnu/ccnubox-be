@@ -8,7 +8,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-banner/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-banner/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-banner/repository/model"
-	bannerv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/banner/v1"
+	bannerv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/banner/v1"
 	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/jinzhu/copier"
@@ -74,7 +74,7 @@ func (s *bannerService) GetBanners(ctx context.Context) ([]*domain.Banner, error
 }
 
 func (s *bannerService) SaveBanner(ctx context.Context, req *domain.Banner) error {
-	//查找数据库中是否存在,如果存在就
+	// 查找数据库中是否存在,如果存在就
 	banner, err := s.dao.FindBanner(ctx, int64(req.ID))
 	if banner != nil {
 		banner.WebLink = req.WebLink
@@ -92,12 +92,12 @@ func (s *bannerService) SaveBanner(ctx context.Context, req *domain.Banner) erro
 		return SAVE_BANNER_ERROR(err)
 	}
 
-	//异步写入缓存,牺牲一定的一致性
+	// 异步写入缓存,牺牲一定的一致性
 	go func() {
 		ct, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		res, err := s.dao.GetBanners(ct)
-		//类型转换
+		// 类型转换
 		var banners []*domain.Banner
 		err = copier.Copy(&banners, &res)
 		if err != nil {
@@ -118,13 +118,13 @@ func (s *bannerService) DelBanner(ctx context.Context, id int64) error {
 		return DEL_BANNER_ERROR(err)
 	}
 
-	//异步写入缓存,牺牲一定的一致性
+	// 异步写入缓存,牺牲一定的一致性
 	go func() {
 		ct, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		var banners []*domain.Banner
 		res, err := s.dao.GetBanners(ct)
-		//类型转换
+		// 类型转换
 		err = copier.Copy(&banners, &res)
 		if err != nil {
 			return
@@ -133,7 +133,6 @@ func (s *bannerService) DelBanner(ctx context.Context, id int64) error {
 		if err != nil {
 			s.l.Error("回写department资源失败", logger.Error(err))
 		}
-
 	}()
 
 	// 更新缓存，或者立刻设置缓存，感觉不应该做异步

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"log"
 	"sync"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
@@ -92,7 +91,6 @@ func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) e
 		return nil
 	}
 
-	log.Printf("PushMSG")
 	tokens, err := s.feedTokenDAO.GetTokens(ctx, pushData.StudentId)
 	if err != nil {
 		return err

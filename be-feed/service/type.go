@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strconv"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
@@ -10,7 +12,7 @@ func convFeedEventsFromModelToDomain(feedEvents []model.FeedEvent) []domain.Feed
 	result := make([]domain.FeedEvent, len(feedEvents)) // 直接预分配
 	for i := range feedEvents {
 		result[i] = domain.FeedEvent{ // 通过索引直接赋值
-			ID:           feedEvents[i].ID,
+			ID:           strconv.FormatInt(feedEvents[i].ID, 10),
 			StudentId:    feedEvents[i].StudentId,
 			Type:         feedEvents[i].Type,
 			Title:        feedEvents[i].Title,
@@ -66,7 +68,7 @@ func convFeedFailEventFromModelToDomain(feedEvents []model.FeedFailEvent) []doma
 	result := make([]domain.FeedEvent, len(feedEvents)) // 直接预分配
 	for i := range feedEvents {
 		result[i] = domain.FeedEvent{ // 通过索引直接赋值
-			ID:           feedEvents[i].ID,
+			ID:           strconv.FormatInt(feedEvents[i].ID, 10),
 			StudentId:    feedEvents[i].StudentId,
 			Type:         feedEvents[i].Type,
 			Title:        feedEvents[i].Title,
@@ -96,11 +98,11 @@ func convMuxiMessageFromCacheToDomain(feeds []cache.MuxiOfficialMSG) []domain.Mu
 	result := make([]domain.MuxiOfficialMSG, len(feeds))
 	for i := range feeds {
 		result[i] = domain.MuxiOfficialMSG{
-			Id:           feeds[i].MuixMSGId,
+			Id:           feeds[i].MuxiMSGId,
 			Title:        feeds[i].Title,
 			Content:      feeds[i].Content,
 			ExtendFields: domain.ExtendFields(feeds[i].ExtendFields),
-			PublicTime:   feeds[i].PublicTime,
+			//PublicTime:   feeds[i].PublicTime,
 		}
 	}
 	return result

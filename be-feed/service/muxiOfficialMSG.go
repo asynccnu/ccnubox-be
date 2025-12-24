@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
@@ -11,12 +10,10 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
 	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
-	"github.com/redis/go-redis/v9"
 )
 
 type MuxiOfficialMSGService interface {
 	GetToBePublicOfficialMSG(ctx context.Context) ([]domain.MuxiOfficialMSG, error)
-	GetMuxiOfficialMSGById(ctx context.Context, id string) (*domain.MuxiOfficialMSG, error)
 	PublicMuxiOfficialMSG(ctx context.Context, msg *domain.MuxiOfficialMSG) error
 	StopMuxiOfficialMSG(ctx context.Context, id string) error
 }
@@ -53,7 +50,7 @@ func NewMuxiOfficialMSGService(feedEventDAO dao.FeedEventDAO, feedEventCache cac
 }
 
 func (s *muxiOfficialMSGService) GetToBePublicOfficialMSG(ctx context.Context) ([]domain.MuxiOfficialMSG, error) {
-	feeds, err := s.feedEventCache.GetMuxiFeeds(ctx)
+	feeds, err := s.feedEventCache.GetMuxiToBePublicFeeds(ctx)
 	if err != nil {
 		return nil, GET_MUXI_FEED_ERROR(err)
 	}
@@ -61,51 +58,19 @@ func (s *muxiOfficialMSGService) GetToBePublicOfficialMSG(ctx context.Context) (
 	return convMuxiMessageFromCacheToDomain(feeds), nil
 }
 
-func (s *muxiOfficialMSGService) GetMuxiOfficialMSGById(ctx context.Context, id string) (*domain.MuxiOfficialMSG, error) {
-	feeds, err := s.feedEventCache.GetMuxiFeeds(ctx)
-	if err != nil {
-		return &domain.MuxiOfficialMSG{}, GET_MUXI_FEED_ERROR(err)
-	}
-
-	for _, feed := range feeds {
-		if feed.MuixMSGId == id {
-			//返回结果
-			return &domain.MuxiOfficialMSG{
-				Title:        feed.Title,
-				Content:      feed.Content,
-				ExtendFields: domain.ExtendFields(feed.ExtendFields),
-				PublicTime:   feed.PublicTime,
-				Id:           id,
-			}, nil
-		}
-	}
-	return &domain.MuxiOfficialMSG{}, GET_MUXI_FEED_ERROR(errors.New("无法找到指定muxi消息"))
-}
-
 func (s *muxiOfficialMSGService) PublicMuxiOfficialMSG(ctx context.Context, msg *domain.MuxiOfficialMSG) error {
 	s.muxiRedisLock.Lock()
 	defer s.muxiRedisLock.Unlock()
 
-	feeds, err := s.feedEventCache.GetMuxiFeeds(ctx)
-	switch err {
-	case redis.Nil:
-		//如果不存在这个键的话设置为空
-		feeds = []cache.MuxiOfficialMSG{}
-	case nil:
-		//正常
-	default:
-		return GET_MUXI_FEED_ERROR(err)
-	}
-
-	feeds = append(feeds, cache.MuxiOfficialMSG{
-		MuixMSGId:    s.feedEventCache.GetUniqueKey(), //设置唯一id
+	feed := cache.MuxiOfficialMSG{
+		MuxiMSGId:    s.feedEventCache.GetUniqueKey(),
 		Title:        msg.Title,
 		Content:      msg.Content,
 		ExtendFields: model.ExtendFields(msg.ExtendFields),
-		PublicTime:   msg.PublicTime, //获取将要发表的时间
-	})
+		//PublicTime:   msg.PublicTime, //获取将要发表的时间
+	}
 
-	err = s.feedEventCache.SetMuxiFeeds(ctx, feeds)
+	err := s.feedEventCache.SetMuxiFeeds(ctx, feed, msg.PublicTime)
 	if err != nil {
 		return INSERT_MUXI_FEED_ERROR(err)
 	}
@@ -117,22 +82,9 @@ func (s *muxiOfficialMSGService) StopMuxiOfficialMSG(ctx context.Context, MSGId 
 	s.muxiRedisLock.Lock()
 	defer s.muxiRedisLock.Unlock()
 
-	feeds, err := s.feedEventCache.GetMuxiFeeds(ctx)
+	err := s.feedEventCache.DelMuxiFeeds(ctx, MSGId)
 	if err != nil {
-		return GET_MUXI_FEED_ERROR(err)
-	}
-
-	var newFeeds []cache.MuxiOfficialMSG
-	for _, feed := range feeds {
-		//只保留id不同的部分
-		if feed.MuixMSGId != MSGId {
-			newFeeds = append(newFeeds, feed)
-		}
-	}
-
-	err = s.feedEventCache.SetMuxiFeeds(ctx, newFeeds)
-	if err != nil {
-		return REMOVE_MUXI_FEED_ERROR(err)
+		return err
 	}
 	return nil
 }

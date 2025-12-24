@@ -1,6 +1,8 @@
 package grpc
 
 import (
+	"strconv"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
 )
@@ -46,7 +48,7 @@ func convFeedEventsFromGRPCToDomain(feedEvents []*feedv1.FeedEvent) []domain.Fee
 	result := make([]domain.FeedEvent, 0, len(feedEvents))
 	for i := range feedEvents {
 		result[i] = domain.FeedEvent{
-			ID:           feedEvents[i].GetId(),
+			ID:           strconv.FormatInt(feedEvents[i].GetId(), 10),
 			Type:         feedEvents[i].GetType(),
 			Title:        feedEvents[i].GetTitle(),
 			Content:      feedEvents[i].GetContent(),

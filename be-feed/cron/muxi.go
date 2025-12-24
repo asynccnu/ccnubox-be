@@ -64,6 +64,7 @@ func (c *MuxiController) StartCronTask() {
 
 }
 
+// 用zset给对发布时间排序
 func (c *MuxiController) publicMuxiFeed() {
 	ctx := context.Background()
 	//获取feed列表
@@ -72,23 +73,23 @@ func (c *MuxiController) publicMuxiFeed() {
 		c.l.Warn("获取木犀消息失败!", logger.Error(err))
 		return
 	}
+	if len(msgs) == 0 {
+		return
+	}
+
 	for _, msg := range msgs {
-		if msg.PublicTime <= time.Now().Unix() {
-			err = c.muxi.StopMuxiOfficialMSG(ctx, msg.Id)
-			if err != nil {
-				return
-			}
-			//发布消息给全体成员
-			err := c.feed.PublicFeedEvent(ctx, true, domain.FeedEvent{
-				Type:         "muxi",
-				Title:        msg.Title,
-				Content:      msg.Content,
-				ExtendFields: msg.ExtendFields,
-			})
-			if err != nil {
-				c.l.Warn("消息推送失败!", logger.Error(err))
-				return
-			}
+		//发布消息给全体成员
+		err = c.feed.PublicFeedEvent(ctx, true, domain.FeedEvent{
+			ID:           msg.Id,
+			Type:         "muxi",
+			Title:        msg.Title,
+			Content:      msg.Content,
+			ExtendFields: msg.ExtendFields,
+		})
+
+		if err != nil {
+			c.l.Warn("消息推送失败!", logger.Error(err))
+			return
 		}
 	}
 

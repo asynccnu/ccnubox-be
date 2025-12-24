@@ -3,6 +3,8 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
@@ -112,6 +114,7 @@ func (g *FeedServiceServer) PublicMuxiOfficialMSG(ctx context.Context, req *feed
 
 	err := g.muxiOfficialMSGService.PublicMuxiOfficialMSG(ctx, convMuxiMSGFromGRPCTODomain(req.MuxiOfficialMSG))
 	if err != nil {
+		log.Printf("发布木犀消息错误：%v", err)
 		return nil, err
 	}
 
@@ -146,6 +149,7 @@ func (g *FeedServiceServer) PublicFeedEvent(ctx context.Context, req *feedv1.Pub
 		//此处进行异步,为什么异步呢,主要是内部调用也有上下文取消时间这在推送给所有人的时候将会非常致命
 		ctx = context.Background()
 		feedEvent := domain.FeedEvent{
+			ID:           strconv.FormatInt(req.GetEvent().Id, 10),
 			StudentId:    req.GetStudentId(),
 			Type:         req.GetEvent().GetType(),
 			Title:        req.GetEvent().GetTitle(),

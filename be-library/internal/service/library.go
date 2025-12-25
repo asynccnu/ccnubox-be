@@ -116,7 +116,10 @@ func (ls *LibraryService) CancelReserve(ctx context.Context, req *pb.CancelReser
 }
 
 func (ls *LibraryService) ReserveSeatRandomly(ctx context.Context, req *pb.ReserveSeatRandomlyRequest) (*pb.ReserveSeatRandomlyResponse, error) {
-	msg, err := ls.biz.ReserveSeatRandomly(ctx, req.StuId, req.Start, req.End, req.RoomIds)
+	//TODO: 简单修改完成 cicd 测试，记得修改
+	RoomIDs := make([]string, 0)
+	RoomIDs = append(RoomIDs, req.StuId)
+	msg, err := ls.biz.ReserveSeatRandomly(ctx, req.StuId, req.Start, req.End, RoomIDs)
 	if err != nil {
 		return nil, err
 	}

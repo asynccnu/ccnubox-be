@@ -4,7 +4,6 @@ COPY . /src
 
 WORKDIR /src/be-library
 
-
 RUN go env -w GOPROXY=https://goproxy.cn,direct
 
 RUN go mod tidy
@@ -20,7 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         netbase \
         && rm -rf /var/lib/apt/lists/ \
         && apt-get autoremove -y && apt-get autoclean -y
-
 
 COPY --from=builder /src/be-library/bin /app
 

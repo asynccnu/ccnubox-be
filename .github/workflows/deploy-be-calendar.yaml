@@ -42,7 +42,7 @@ jobs:
       - name: Build And Push
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ env.SERVICE_NAME }}
+          context: .
           file: ./${{ env.SERVICE_NAME }}/Dockerfile
           push: true
           tags: ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/ccnubox-${{ env.SERVICE_NAME }}:${{ steps.get-version-id.outputs.id }}

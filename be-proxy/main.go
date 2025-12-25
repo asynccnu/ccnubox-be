@@ -24,5 +24,4 @@ func initViper() {
 	if err != nil {
 		panic(err)
 	}
-
 }

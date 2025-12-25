@@ -63,7 +63,6 @@ func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, r *etcd.Registr
 }
 
 func main() {
-
 	flag.Parse()
 	c := config.New(
 		config.WithSource(

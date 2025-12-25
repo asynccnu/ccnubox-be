@@ -3,11 +3,12 @@ name: Build and Deploy - be-library
 on:
   push:
     branches:
-      - main
+      - cccccnu # 👈 这里设置一个不同于 main 的分支以避免触发，之后要使用的话改回 main 即可
     paths:
       - 'be-library/**'
 env:
   SERVICE_NAME: be-library  # 👈 这里设置的是全局环境变量
+  SERVICE_VERSION: BE_LIBRARY  # 👈 这里设置的是 Docker Compose 文件中使用的环境变量名称
 
 
 jobs:
@@ -69,15 +70,22 @@ jobs:
             --password-stdin \
             ${{ secrets.ALIYUN_REGISTRY }}
           
-            KEY="${{ env.SERVICE_NAME }}-version"
+            KEY="${{ env.SERVICE_VERSION }}"
             VALUE="${{ needs.build-be-library.outputs.id }}"
             SERVICE="${{ env.SERVICE_NAME }}"
           
+            LOCK_FILE=/tmp/ccnubox_env.lock
+          
+            (
+            flock -x 200
+          
             if grep -q "^${KEY}=" .env; then
-              sed -i "s/^${KEY}=.*/${KEY}=${VALUE}/" .env
+            sed -i "s/^${KEY}=.*/${KEY}=${VALUE}/" .env
             else
-              echo "${KEY}=${VALUE}" >> .env
+            echo "${KEY}=${VALUE}" >> .env
             fi
+          
+            ) 200>$LOCK_FILE
           
             docker compose pull ${SERVICE}
             docker compose up -d ${SERVICE}

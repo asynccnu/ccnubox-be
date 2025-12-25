@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	RegularGradePercentMSG = "平时成绩缺失"
-	FinalGradePercentMAG   = "期末成绩缺失"
+	RegularGradePercentMSG = "未知"
+	FinalGradePercentMAG   = "未知"
 )
 
 func modelConvDomain(grades []model.Grade) []domain.Grade {

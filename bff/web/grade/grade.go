@@ -79,17 +79,17 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 		resp.Grades = append(resp.Grades, Grade{
 			Xnm:                 grade.Xnm,
 			Xqm:                 grade.Xqm,
-			Kcmc:                grade.Kcmc,                // 课程名
-			Xf:                  grade.Xf,                  // 学分
-			Jd:                  grade.Jd,                  // 绩点
-			Cj:                  grade.Cj,                  // 总成绩
-			Kcxzmc:              grade.Kcxzmc,              // 课程性质名称 比如专业主干课程/通识必修课
-			Kclbmc:              grade.Kclbmc,              // 课程类别名称，比如专业课/公共课
-			Kcbj:                grade.Kcbj,                // 课程标记，比如主修/辅修
-			RegularGradePercent: grade.RegularGradePercent, // 平时分占比
-			RegularGrade:        grade.RegularGrade,        // 平时分分数
-			FinalGradePercent:   grade.FinalGradePercent,   // 期末占比
-			FinalGrade:          grade.FinalGrade,          // 期末分数
+			Kcmc:                grade.Kcmc,                             // 课程名
+			Xf:                  grade.Xf,                               // 学分
+			Jd:                  grade.Jd,                               // 绩点
+			Cj:                  grade.Cj,                               // 总成绩
+			Kcxzmc:              grade.Kcxzmc,                           // 课程性质名称 比如专业主干课程/通识必修课
+			Kclbmc:              grade.Kclbmc,                           // 课程类别名称，比如专业课/公共课
+			Kcbj:                grade.Kcbj,                             // 课程标记，比如主修/辅修
+			RegularGradePercent: "平时成绩" + grade.RegularGradePercent, // 平时分占比
+			RegularGrade:        grade.RegularGrade,                     // 平时分分数
+			FinalGradePercent:   "期末成绩" + grade.FinalGradePercent,   // 期末占比
+			FinalGrade:          grade.FinalGrade,                       // 期末分数
 		})
 	}
 

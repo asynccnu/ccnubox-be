@@ -3,7 +3,7 @@ package ioc
 import (
 	"context"
 
-	userv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/user/v1"
+	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/spf13/viper"

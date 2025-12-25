@@ -39,7 +39,7 @@ func (lm *LoggerMiddleware) MiddlewareFunc() gin.HandlerFunc {
 
 // 提取的日志逻辑：记录自定义错误日志
 func (lm *LoggerMiddleware) logCustomError(customError *errorx.CustomError, ctx *gin.Context) {
-	lm.log.WithContext(ctx.Request.Context()).Error("处理请求出错",
+	lm.log.WithContext(ctx).Error("处理请求出错",
 		logger.Error(customError),
 		logger.String("timestamp", time.Now().Format(time.RFC3339)),
 		logger.String("ip", ctx.ClientIP()),
@@ -58,7 +58,7 @@ func (lm *LoggerMiddleware) logCustomError(customError *errorx.CustomError, ctx 
 
 // 提取的日志逻辑：记录未知错误日志
 func (lm *LoggerMiddleware) logUnexpectedError(err error, ctx *gin.Context) {
-	lm.log.WithContext(ctx.Request.Context()).Error("意外错误类型",
+	lm.log.WithContext(ctx).Error("意外错误类型",
 		logger.Error(err),
 		logger.String("timestamp", time.Now().Format(time.RFC3339)),
 		logger.String("ip", ctx.ClientIP()),
@@ -69,7 +69,7 @@ func (lm *LoggerMiddleware) logUnexpectedError(err error, ctx *gin.Context) {
 }
 
 func (lm *LoggerMiddleware) commonInfo(ctx *gin.Context) {
-	lm.log.WithContext(ctx.Request.Context()).Info("请求正常",
+	lm.log.WithContext(ctx).Info("请求正常",
 		logger.String("timestamp", time.Now().Format(time.RFC3339)),
 		logger.String("ip", ctx.ClientIP()),
 		logger.String("path", ctx.Request.URL.Path),

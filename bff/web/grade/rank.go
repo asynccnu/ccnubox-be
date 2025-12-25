@@ -6,7 +6,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/grade/v1"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 	"github.com/gin-gonic/gin"
 )
 

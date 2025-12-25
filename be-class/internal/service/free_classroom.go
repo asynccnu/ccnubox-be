@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/asynccnu/ccnubox-be/be-class/internal/errcode"
-	pb "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/classService/v1"
+	pb "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classService/v1"
 )
 
 type FreeClassroomSearcher interface {

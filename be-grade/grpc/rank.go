@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
-	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/grade/v1"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 )
 
 func (s *GradeServiceServer) GetRankByTerm(ctx context.Context, req *v1.GetRankByTermReq) (*v1.GetRankByTermResp, error) {

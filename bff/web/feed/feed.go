@@ -8,7 +8,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	feedv1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/feed/v1"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )

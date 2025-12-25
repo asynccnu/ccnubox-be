@@ -4,7 +4,11 @@ COPY . /src
 
 WORKDIR /src/be-class
 
-RUN GOPROXY=https://goproxy.cn go build -o ./bin/be-class ./cmd/class
+RUN go env -w GOPROXY=https://goproxy.cn,direct
+
+RUN go mod tidy
+
+RUN go build -o ./bin/be-class ./cmd/class
 
 FROM debian:stable-slim
 

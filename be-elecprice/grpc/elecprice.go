@@ -5,7 +5,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-elecprice/domain"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/service"
-	v1 "github.com/asynccnu/ccnubox-be/common/be-api/gen/proto/elecprice/v1"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/elecprice/v1"
 	"google.golang.org/grpc"
 )
 

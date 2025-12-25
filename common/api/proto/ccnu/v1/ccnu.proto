@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package ccnu.v1;
+option go_package="github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1;ccnuv1";
+
+service CCNUService {
+  rpc GetXKCookie(GetXKCookieRequest)returns(GetXKCookieResponse);
+  rpc LoginCCNU(LoginCCNURequest)returns(LoginCCNUResponse);
+  rpc GetLibraryCookie(GetLibraryCookieRequest)returns(GetLibraryCookieResponse);
+  // 后来可能还会有别的cookie需要获取可以在这里添加,这里作为一个非常重要的对外组件负责了所有登录部分的逻辑
+}
+
+message GetXKCookieRequest{
+  string student_id = 1;
+  string password = 2;
+  string type = 3; // 新教务或者老教务
+}
+
+message GetXKCookieResponse{
+  string cookie = 1;
+}
+
+message LoginCCNURequest{
+  string student_id = 1;
+  string password = 2;
+}
+
+message LoginCCNUResponse{
+  bool success = 1;
+}
+
+message GetLibraryCookieRequest{
+  string student_id = 1;
+  string password = 2;
+}
+
+message GetLibraryCookieResponse{
+  string cookie = 1;
+}

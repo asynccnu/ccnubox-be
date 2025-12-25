@@ -2,7 +2,6 @@ package dao
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	"gorm.io/gorm"
@@ -122,7 +121,6 @@ func (d *gradeDAO) GetDistinctGradeType(ctx context.Context, stuID string) ([]st
 	if err := d.db.WithContext(ctx).Model(&model.Grade{}).Where("student_id = ?", stuID).Distinct("kcxzmc").Pluck("kcxzmc", &results).Error; err != nil {
 		return nil, err
 	}
-	fmt.Println(results)
 	return results, nil
 }
 

@@ -60,7 +60,7 @@ func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, uc ijwt.UserClaims) (web.Response, error) {
 	if len(req.Kcxzmcs) == 0 {
 		return web.Response{
-			Msg:  "获取成绩成功！",
+			Msg:  "获取成绩成功!",
 			Data: GetGradeByTermResp{},
 		}, nil
 	}

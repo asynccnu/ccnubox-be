@@ -41,7 +41,6 @@ func NewApp(server grpcx.Server,
 }
 
 func (a *App) Start() {
-
 	for _, c := range a.crons {
 		c.StartCronTask()
 	}

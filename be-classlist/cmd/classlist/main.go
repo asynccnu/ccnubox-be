@@ -51,6 +51,7 @@ func newApp(logger log.Logger, gs *grpc.Server, r *etcd.Registry) *kratos.App {
 
 func main() {
 	flag.Parse()
+
 	c := config.New(
 		config.WithSource(
 			file.NewSource(flagconf),

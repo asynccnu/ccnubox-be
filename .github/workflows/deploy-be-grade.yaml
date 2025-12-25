@@ -38,14 +38,14 @@ jobs:
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Build And Push
         uses: docker/build-push-action@v6
         with:
           context: ./${{ env.SERVICE_NAME }}
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/ccnubox-${SERVICE_NAME}:${{ steps.get-version-id.outputs.id }}
+          tags: ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/ccnubox-${{ env.SERVICE_NAME }}:${{ steps.get-version-id.outputs.id }}
 
   deploy-on-dev:
     if: github.repository == 'asynccnu/ccnubox-be'

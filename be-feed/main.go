@@ -24,7 +24,6 @@ func initViper() {
 	if err != nil {
 		panic(err)
 	}
-
 }
 
 type App struct {

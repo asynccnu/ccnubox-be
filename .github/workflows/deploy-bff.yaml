@@ -61,7 +61,7 @@ jobs:
           ssh-keyscan -H ${{ secrets.DEV_SERVER }} >> ~/.ssh/known_hosts
       - name: SSH into server and deploy
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER }} << EOF
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER }} << 'EOF'
             set -e
             cd ~/ccnubox_v3
 

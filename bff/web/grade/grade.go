@@ -42,7 +42,7 @@ func (h *GradeHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 	// 这里有三类路由,分别是ginx.WrapClaimsAndReq()有参数且要验证
 	sg.POST("/getGradeByTerm", authMiddleware, ginx.WrapClaimsAndReq(h.GetGradeByTerm))
 	sg.GET("/getGradeScore", authMiddleware, ginx.WrapClaims(h.GetGradeScore))
-	sg.GET("/getGradeType", ginx.Wrap(h.GetGradeType))
+	sg.GET("/getGradeType", authMiddleware, ginx.WrapClaims(h.GetGradeType))
 	sg.GET("/getRankByTerm", authMiddleware, ginx.WrapClaimsAndReq(h.GetRankByTerm))
 	sg.GET("/loadRank", authMiddleware, ginx.WrapClaims(h.LoadRank))
 }
@@ -196,8 +196,8 @@ func convTermsToProto(terms []string) []*gradev1.Terms {
 // @Success 200 {object} web.Response{data=GetGradeTypeResp} "成功返回课程列表"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /grade/getGradeType [get]
-func (h *GradeHandler) GetGradeType(ctx *gin.Context) (web.Response, error) {
-	list, err := h.GradeClient.GetGradeType(ctx, &gradev1.GetGradeTypeReq{})
+func (h *GradeHandler) GetGradeType(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
+	list, err := h.GradeClient.GetGradeType(ctx, &gradev1.GetGradeTypeReq{StudentId: uc.StudentId})
 	if err != nil {
 		return web.Response{}, errs.GET_GRADE_TYPE_ERROR(err)
 	}

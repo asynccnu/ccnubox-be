@@ -275,22 +275,3 @@ func parseFloat32(value string) float32 {
 	}
 	return 0
 }
-
-func modelGraduateConvDomain(grades []model.Grade) []domain.Grade {
-	res := make([]domain.Grade, 0, len(grades))
-	for _, g := range grades {
-		res = append(res, domain.Grade{
-			Xnm:    g.Xnm,
-			Xqm:    g.Xqm,
-			JxbId:  g.JxbId,
-			Kcmc:   g.Kcmc,
-			Xf:     g.Xf,
-			Cj:     g.Cj,
-			Kcxzmc: g.Kcxzmc,
-			Kclbmc: g.Kclbmc,
-			Kcbj:   g.Kcbj,
-			Jd:     g.Jd,
-		})
-	}
-	return res
-}

@@ -85,14 +85,14 @@ func (s *GradeServiceServer) GetGradeScore(ctx context.Context, req *v1.GetGrade
 	return &v1.GetGradeScoreResp{TypeOfGradeScore: typeOfGradeScores}, nil
 }
 
-func (s *GradeServiceServer)GetGradeType(ctx context.Context,req *v1.GetGradeTypeReq)(*v1.GetGradeTypeResp,error){
-	list,err:=s.ser.GetDistinctGradeType(ctx)
-	if err!=nil{
-		return nil,err
+func (s *GradeServiceServer) GetGradeType(ctx context.Context, req *v1.GetGradeTypeReq) (*v1.GetGradeTypeResp, error) {
+	list, err := s.ser.GetDistinctGradeType(ctx, req.GetStudentId())
+	if err != nil {
+		return nil, err
 	}
 	return &v1.GetGradeTypeResp{
 		GradeTypes: list,
-	},nil
+	}, nil
 }
 
 func convGetGradeByTermReqFromProtoToDomain(req *v1.GetGradeByTermReq) *domain.GetGradeByTermReq {

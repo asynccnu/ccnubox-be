@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	"gorm.io/gorm"
@@ -12,7 +13,7 @@ type GradeDAO interface {
 	FirstOrCreate(ctx context.Context, grade *model.Grade) error
 	FindGrades(ctx context.Context, studentId string, Xnm int64, Xqm int64) ([]model.Grade, error)
 	BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) (updateGrade []model.Grade, err error)
-	GetDistinctGradeType(ctx context.Context)([]string,error)
+	GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error)
 }
 
 type gradeDAO struct {
@@ -116,12 +117,13 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 	return affectedGrades, nil
 }
 
-func(d *gradeDAO)GetDistinctGradeType(ctx context.Context)([]string,error){
+func (d *gradeDAO) GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error) {
 	var results []string
-	if err:=d.db.WithContext(ctx).Model(&model.Grade{}).Distinct("kcxzmc").Pluck("kcxzmc",&results).Error;err!=nil{
-		return nil,err
+	if err := d.db.WithContext(ctx).Model(&model.Grade{}).Where("student_id = ?", stuID).Distinct("kcxzmc").Pluck("kcxzmc", &results).Error; err != nil {
+		return nil, err
 	}
-	return results,nil
+	fmt.Println(results)
+	return results, nil
 }
 
 func isGradeEqual(a, b model.Grade, ifDetail bool) bool {

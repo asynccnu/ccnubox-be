@@ -187,7 +187,7 @@ func (x *GetGradeByTermResp) GetGrades() []*Grade {
 	return nil
 }
 
-// 成绩结构体
+//成绩结构体
 type Grade struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	Kcmc                string                 `protobuf:"bytes,1,opt,name=Kcmc,proto3" json:"Kcmc,omitempty"`                               //课程名
@@ -846,6 +846,7 @@ func (x *GetGraduateUpdateResp) GetGrades() []*GraduateGrade {
 
 type GetGradeTypeReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	StudentId     string                 `protobuf:"bytes,1,opt,name=studentId,proto3" json:"studentId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -878,6 +879,13 @@ func (x *GetGradeTypeReq) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetGradeTypeReq.ProtoReflect.Descriptor instead.
 func (*GetGradeTypeReq) Descriptor() ([]byte, []int) {
 	return file_grade_v1_grade_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetGradeTypeReq) GetStudentId() string {
+	if x != nil {
+		return x.StudentId
+	}
+	return ""
 }
 
 type GetGradeTypeResp struct {
@@ -1224,8 +1232,9 @@ const file_grade_v1_grade_proto_rawDesc = "" +
 	"\x03xqm\x18\x03 \x01(\x03R\x03xqm\x12\x12\n" +
 	"\x04cjzt\x18\x04 \x01(\x03R\x04cjzt\"H\n" +
 	"\x15GetGraduateUpdateResp\x12/\n" +
-	"\x06grades\x18\x01 \x03(\v2\x17.grade.v1.GraduateGradeR\x06grades\"\x11\n" +
-	"\x0fGetGradeTypeReq\"2\n" +
+	"\x06grades\x18\x01 \x03(\v2\x17.grade.v1.GraduateGradeR\x06grades\"/\n" +
+	"\x0fGetGradeTypeReq\x12\x1c\n" +
+	"\tstudentId\x18\x01 \x01(\tR\tstudentId\"2\n" +
 	"\x10GetGradeTypeResp\x12\x1e\n" +
 	"\n" +
 	"gradeTypes\x18\x01 \x03(\tR\n" +

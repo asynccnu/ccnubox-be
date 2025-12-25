@@ -105,7 +105,9 @@ message GetGraduateUpdateResp{
   repeated GraduateGrade grades = 1;
 }
 
-message GetGradeTypeReq{}
+message GetGradeTypeReq{
+  string studentId = 1;
+}
 
 message GetGradeTypeResp{
   repeated string gradeTypes=1;

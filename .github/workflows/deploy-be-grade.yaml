@@ -39,8 +39,8 @@ jobs:
       - name: Build And Push
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./${SERVICE_NAME}/Dockerfile
+          context: ./${{ env.SERVICE_NAME }}
+          file: ./Dockerfile
           push: true
           tags: ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/ccnubox-${SERVICE_NAME}:${{ steps.get-version-id.outputs.id }}
 
@@ -77,5 +77,5 @@ jobs:
           
             docker compose pull
             docker compose up -d
-            docker image prune -a -f
+            
           EOF

@@ -15,6 +15,7 @@ func main() {
 }
 
 func initViper() {
+
 	cfile := pflag.String("config", "config/config.yaml", "配置文件路径")
 	pflag.Parse()
 

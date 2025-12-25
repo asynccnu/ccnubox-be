@@ -64,7 +64,6 @@ func (c *MuxiController) StartCronTask() {
 
 }
 
-// 用zset给对发布时间排序
 func (c *MuxiController) publicMuxiFeed() {
 	ctx := context.Background()
 	//获取feed列表
@@ -80,7 +79,6 @@ func (c *MuxiController) publicMuxiFeed() {
 	for _, msg := range msgs {
 		//发布消息给全体成员
 		err = c.feed.PublicFeedEvent(ctx, true, domain.FeedEvent{
-			ID:           msg.Id,
 			Type:         "muxi",
 			Title:        msg.Title,
 			Content:      msg.Content,

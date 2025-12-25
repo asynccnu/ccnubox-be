@@ -1,8 +1,6 @@
 package service
 
 import (
-	"strconv"
-
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
@@ -12,7 +10,7 @@ func convFeedEventsFromModelToDomain(feedEvents []model.FeedEvent) []domain.Feed
 	result := make([]domain.FeedEvent, len(feedEvents)) // 直接预分配
 	for i := range feedEvents {
 		result[i] = domain.FeedEvent{ // 通过索引直接赋值
-			ID:           strconv.FormatInt(feedEvents[i].ID, 10),
+			ID:           feedEvents[i].ID,
 			StudentId:    feedEvents[i].StudentId,
 			Type:         feedEvents[i].Type,
 			Title:        feedEvents[i].Title,
@@ -68,7 +66,7 @@ func convFeedFailEventFromModelToDomain(feedEvents []model.FeedFailEvent) []doma
 	result := make([]domain.FeedEvent, len(feedEvents)) // 直接预分配
 	for i := range feedEvents {
 		result[i] = domain.FeedEvent{ // 通过索引直接赋值
-			ID:           strconv.FormatInt(feedEvents[i].ID, 10),
+			ID:           feedEvents[i].ID,
 			StudentId:    feedEvents[i].StudentId,
 			Type:         feedEvents[i].Type,
 			Title:        feedEvents[i].Title,

@@ -8,9 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"github.com/redis/go-redis/v9"
-	"time"
 )
 
 //go:embed getPublicFeed.lua
@@ -26,7 +27,7 @@ type FeedEventCache interface {
 	SetMuxiFeeds(ctx context.Context, feedEvent MuxiOfficialMSG, publicTime int64) error
 	GetMuxiToBePublicFeeds(ctx context.Context) ([]MuxiOfficialMSG, error)
 	DelMuxiFeeds(ctx context.Context, id string) error
-	ClearCache(ctx context.Context, key string) error
+	ClearCache(ctx context.Context, feedType string, key string) error
 	GetUniqueKey() string
 }
 
@@ -41,7 +42,7 @@ func NewRedisFeedEventCache(cmd redis.Cmdable) FeedEventCache {
 
 func (cache *RedisFeedEventCache) GetFeedEvent(ctx context.Context, feedType string, key string) (*model.FeedEvent, error) {
 	//使用前缀加上唯一索引的方式存储到缓存
-	fullKey := cache.getKey(feedType + key)
+	fullKey := cache.getKey(feedType, key)
 
 	data, err := cache.cmd.Get(ctx, fullKey).Bytes()
 	if err != nil {
@@ -54,7 +55,7 @@ func (cache *RedisFeedEventCache) GetFeedEvent(ctx context.Context, feedType str
 
 func (cache *RedisFeedEventCache) SetFeedEvent(ctx context.Context, durationTime time.Duration, key string, feedType string, feedEvent *model.FeedEvent) error {
 	//使用前缀加上唯一索引的方式存储到缓存
-	fullKey := cache.getKey(feedType) + key
+	fullKey := cache.getKey(feedType, key)
 	data, err := json.Marshal(*feedEvent)
 	if err != nil {
 		return err
@@ -65,12 +66,13 @@ func (cache *RedisFeedEventCache) SetFeedEvent(ctx context.Context, durationTime
 // 直接在redis层筛选到期要发布的feed，应用层就直接发布不需要筛选
 func (cache *RedisFeedEventCache) GetMuxiToBePublicFeeds(ctx context.Context) ([]MuxiOfficialMSG, error) {
 	zsetKey := cache.getPublicScoreKey()
-	prefix := cache.getPrefix()
+	prefix := cache.getPrefix("muxi")
 	var msgs []MuxiOfficialMSG
 	results, err := cache.cmd.Eval(ctx, getPublicFeedLua, []string{zsetKey, prefix}, time.Now().Unix()).Result()
 	if err != nil {
 		return []MuxiOfficialMSG{}, err
 	}
+	//必须分两步类型转换，一步到位会报错
 	resultsArr, ok := results.([]interface{})
 	if !ok {
 		return msgs, errors.New("格式不符")
@@ -95,7 +97,7 @@ func (cache *RedisFeedEventCache) GetMuxiToBePublicFeeds(ctx context.Context) ([
 
 // 把publicTime从feedEvent中分离出来，作为score排序
 func (cache *RedisFeedEventCache) SetMuxiFeeds(ctx context.Context, feedEvent MuxiOfficialMSG, publicTime int64) error {
-	key := cache.getKey("muxi") + feedEvent.MuxiMSGId
+	key := cache.getKey("muxi", feedEvent.MuxiMSGId)
 	publicScoreKey := cache.getPublicScoreKey()
 
 	//把feedEvent存入redis
@@ -119,9 +121,9 @@ func (cache *RedisFeedEventCache) SetMuxiFeeds(ctx context.Context, feedEvent Mu
 }
 
 func (cache *RedisFeedEventCache) DelMuxiFeeds(ctx context.Context, id string) error {
-	prefix := cache.getPrefix()
+	key := cache.getKey("muxi", id)
 	publicScoreKey := cache.getPublicScoreKey()
-	_, err := cache.cmd.Eval(ctx, delFeedLua, []string{publicScoreKey, prefix}, id).Result()
+	_, err := cache.cmd.Eval(ctx, delFeedLua, []string{publicScoreKey, key}).Result()
 	if err != nil {
 		return err
 	}
@@ -129,9 +131,9 @@ func (cache *RedisFeedEventCache) DelMuxiFeeds(ctx context.Context, id string) e
 
 }
 
-func (cache *RedisFeedEventCache) ClearCache(ctx context.Context, key string) error {
+func (cache *RedisFeedEventCache) ClearCache(ctx context.Context, feedType string, key string) error {
 	// 生成带前缀的完整key
-	fullKey := cache.getKey(key)
+	fullKey := cache.getKey(feedType, key)
 	return cache.cmd.Del(ctx, fullKey).Err()
 }
 
@@ -139,12 +141,12 @@ func (cache *RedisFeedEventCache) getPublicScoreKey() string {
 	return "ccnubox:feed:toPublic"
 }
 
-func (cache *RedisFeedEventCache) getKey(value string) string {
-	return "ccnubox:feed:" + value + ":"
+func (cache *RedisFeedEventCache) getKey(types string, value string) string {
+	return cache.getPrefix(types) + value
 }
 
-func (cache *RedisFeedEventCache) getPrefix() string {
-	return "ccnubox:feed:muxi:"
+func (cache *RedisFeedEventCache) getPrefix(types string) string {
+	return "ccnubox:feed:" + types + ":"
 }
 
 func (cache *RedisFeedEventCache) GetUniqueKey() string {

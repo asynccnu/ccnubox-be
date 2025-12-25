@@ -2,7 +2,7 @@ package domain
 
 // FeedEvent的模型
 type FeedEvent struct {
-	ID           string            `json:"id"` // ID
+	ID           int64             `json:"id"` // ID
 	StudentId    string            `json:"student_id"`
 	Type         string            `json:"type"`          // 类型
 	Title        string            `json:"title"`         // 提示用的字段

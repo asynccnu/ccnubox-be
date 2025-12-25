@@ -58,8 +58,10 @@ func (f *FeedEventConsumerHandler) Start() error {
 // 接收 Kafka 消息和事件数组作为参数,并存储到到临时变量里面去
 func (f *FeedEventConsumerHandler) Consume(events []domain.FeedEvent) error {
 	var ctx = context.Background()
-
-	//如果有错误就插入feedFailEvent，没有错误才插入feedEvent
+	errs := f.feedService.InsertEventList(ctx, events)
+	if errs != nil {
+		return errors.Join(errs...)
+	}
 	errWithData := f.pushService.PushMSGS(ctx, events)
 	if len(errWithData) > 0 {
 		//类型转换
@@ -74,12 +76,6 @@ func (f *FeedEventConsumerHandler) Consume(events []domain.FeedEvent) error {
 		}
 
 		return errors.New(fmt.Sprintf("批量消费发生错误! 原数据量为%d,发生错误次数为:%d,首次发生错误为:%s", len(events), len(errWithData), errWithData[0].Err))
-	} else {
-		errs := f.feedService.InsertEventList(ctx, events)
-		if errs != nil {
-			return errors.Join(errs...)
-		}
 	}
-
 	return nil
 }

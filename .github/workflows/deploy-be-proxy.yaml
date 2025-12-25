@@ -71,6 +71,7 @@ jobs:
           
             KEY="${{ env.SERVICE_NAME }}-version"
             VALUE="${{ needs.build-be-proxy.outputs.id }}"
+            SERVICE="${{ env.SERVICE_NAME }}"
           
             if grep -q "^${KEY}=" .env; then
               sed -i "s/^${KEY}=.*/${KEY}=${VALUE}/" .env
@@ -78,7 +79,7 @@ jobs:
               echo "${KEY}=${VALUE}" >> .env
             fi
           
-            docker compose pull
-            docker compose up -d
-            
+            docker compose pull ${SERVICE}
+            docker compose up -d ${SERVICE}
+            docker image prune -a -f --filter "until=24h"
           EOF

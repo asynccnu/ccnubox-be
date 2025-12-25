@@ -19,7 +19,6 @@ func initViper() {
 	pflag.Parse()
 	viper.SetConfigType("yaml")
 	viper.SetConfigFile(*cfile)
-
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(err)

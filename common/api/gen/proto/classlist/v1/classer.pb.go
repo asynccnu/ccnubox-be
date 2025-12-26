@@ -23,16 +23,15 @@ const (
 
 type GetClassRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	//	//周几的课表
-	//	int64 week=1 ;
-	//
-	// 学号
+	//    //周几的课表
+	//    int64 week=1 ;
+	//学号
 	StuId string `protobuf:"bytes,1,opt,name=stu_id,json=stuId,proto3" json:"stu_id,omitempty"`
 	// 学期
 	Semester string `protobuf:"bytes,2,opt,name=semester,proto3" json:"semester,omitempty"`
-	// 学年
+	//学年
 	Year string `protobuf:"bytes,3,opt,name=year,proto3" json:"year,omitempty"`
-	// 是否直接从学校官网直接爬取
+	//是否直接从学校官网直接爬取
 	Refresh       bool `protobuf:"varint,4,opt,name=refresh,proto3" json:"refresh,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -98,7 +97,7 @@ func (x *GetClassRequest) GetRefresh() bool {
 
 type GetClassResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 课表
+	//课表
 	Classes []*Class `protobuf:"bytes,1,rep,name=classes,proto3" json:"classes,omitempty"`
 	// 上一次刷新成功的时间戳，上海时区
 	LastTime      int64 `protobuf:"varint,2,opt,name=last_time,json=lastTime,proto3" json:"last_time,omitempty"`
@@ -152,25 +151,25 @@ func (x *GetClassResponse) GetLastTime() int64 {
 
 type AddClassRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 学号
+	//学号
 	StuId string `protobuf:"bytes,1,opt,name=stu_id,json=stuId,proto3" json:"stu_id,omitempty"`
-	// 课程名称
+	//课程名称
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	// 第几节 '形如 "1-3","1-1"'
+	//第几节 '形如 "1-3","1-1"'
 	DurClass string `protobuf:"bytes,3,opt,name=dur_class,json=durClass,proto3" json:"dur_class,omitempty"`
-	// 地点
+	//地点
 	Where string `protobuf:"bytes,4,opt,name=where,proto3" json:"where,omitempty"`
-	// 教师
+	//教师
 	Teacher string `protobuf:"bytes,5,opt,name=teacher,proto3" json:"teacher,omitempty"`
-	// 哪些周
+	//哪些周
 	Weeks int64 `protobuf:"varint,6,opt,name=weeks,proto3" json:"weeks,omitempty"`
 	// 学期
 	Semester string `protobuf:"bytes,7,opt,name=semester,proto3" json:"semester,omitempty"`
-	// 学年
+	//学年
 	Year string `protobuf:"bytes,8,opt,name=year,proto3" json:"year,omitempty"`
-	// 星期几
+	//星期几
 	Day int64 `protobuf:"varint,9,opt,name=day,proto3" json:"day,omitempty"`
-	// 学分
+	//学分
 	Credit        *float64 `protobuf:"fixed64,10,opt,name=credit,proto3,oneof" json:"credit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -278,7 +277,7 @@ func (x *AddClassRequest) GetCredit() float64 {
 
 type AddClassResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 添加的课程ID
+	//添加的课程ID
 	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Msg           string `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -331,13 +330,13 @@ func (x *AddClassResponse) GetMsg() string {
 
 type DeleteClassRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 要被删的课程id
+	//要被删的课程id
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// 学号
+	//学号
 	StuId string `protobuf:"bytes,2,opt,name=stuId,proto3" json:"stuId,omitempty"`
-	// 学年  "2024" -> 代表"2024-2025学年"
+	//学年  "2024" -> 代表"2024-2025学年"
 	Year string `protobuf:"bytes,3,opt,name=year,proto3" json:"year,omitempty"`
-	// 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+	//学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
 	Semester      string `protobuf:"bytes,4,opt,name=semester,proto3" json:"semester,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -447,25 +446,25 @@ func (x *DeleteClassResponse) GetMsg() string {
 
 type UpdateClassRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 学号
+	//学号
 	StuId string `protobuf:"bytes,1,opt,name=stu_id,json=stuId,proto3" json:"stu_id,omitempty"`
-	// 课程名称
+	//课程名称
 	Name *string `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	// 第几节 '形如 "1-3","1-1"'
+	//第几节 '形如 "1-3","1-1"'
 	DurClass *string `protobuf:"bytes,3,opt,name=dur_class,json=durClass,proto3,oneof" json:"dur_class,omitempty"`
-	// 地点
+	//地点
 	Where *string `protobuf:"bytes,4,opt,name=where,proto3,oneof" json:"where,omitempty"`
-	// 教师
+	//教师
 	Teacher *string `protobuf:"bytes,5,opt,name=teacher,proto3,oneof" json:"teacher,omitempty"`
-	// 哪些周
+	//哪些周
 	Weeks *int64 `protobuf:"varint,6,opt,name=weeks,proto3,oneof" json:"weeks,omitempty"`
 	// 学期
 	Semester string `protobuf:"bytes,7,opt,name=semester,proto3" json:"semester,omitempty"`
-	// 学年
+	//学年
 	Year string `protobuf:"bytes,8,opt,name=year,proto3" json:"year,omitempty"`
-	// 星期几
+	//星期几
 	Day *int64 `protobuf:"varint,9,opt,name=day,proto3,oneof" json:"day,omitempty"`
-	// 学分
+	//学分
 	Credit *float64 `protobuf:"fixed64,10,opt,name=credit,proto3,oneof" json:"credit,omitempty"`
 	// 课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回
 	ClassId       string `protobuf:"bytes,11,opt,name=classId,proto3" json:"classId,omitempty"`
@@ -583,7 +582,7 @@ func (x *UpdateClassRequest) GetClassId() string {
 type UpdateClassResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Msg   string                 `protobuf:"bytes,1,opt,name=msg,proto3" json:"msg,omitempty"`
-	// 更新后的课程的ID（唯一标识）
+	//更新后的课程的ID（唯一标识）
 	ClassId       string `protobuf:"bytes,2,opt,name=classId,proto3" json:"classId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -635,12 +634,12 @@ func (x *UpdateClassResponse) GetClassId() string {
 
 type GetAllClassInfoRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 学年  "2024" 代表"2024-2025学年"
+	//学年  "2024" 代表"2024-2025学年"
 	Year string `protobuf:"bytes,1,opt,name=year,proto3" json:"year,omitempty"`
-	// 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+	//学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
 	Semester string `protobuf:"bytes,2,opt,name=semester,proto3" json:"semester,omitempty"`
-	// 避免一次性获取太多class[每次只获取100个]
-	// 最后一个课程的时间戳，时区为UTC
+	//避免一次性获取太多class[每次只获取100个]
+	//最后一个课程的时间戳，时区为UTC
 	// "2023-09-03T01:01:01.000000"
 	Cursor        string `protobuf:"bytes,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -701,7 +700,7 @@ func (x *GetAllClassInfoRequest) GetCursor() string {
 type GetAllClassInfoResponse struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	ClassInfos []*ClassInfo           `protobuf:"bytes,1,rep,name=class_infos,json=classInfos,proto3" json:"class_infos,omitempty"`
-	// 最后一个课程的时间戳，时区为UTC
+	//最后一个课程的时间戳，时区为UTC
 	// "2023-09-03T01:01:01.000000"
 	LastTime      string `protobuf:"bytes,2,opt,name=lastTime,proto3" json:"lastTime,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -754,11 +753,11 @@ func (x *GetAllClassInfoResponse) GetLastTime() string {
 
 type GetRecycleBinClassRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 学号
+	//学号
 	StuId string `protobuf:"bytes,1,opt,name=stuId,proto3" json:"stuId,omitempty"`
-	// 学年  "2024" 代表"2024-2025学年"
+	//学年  "2024" 代表"2024-2025学年"
 	Year string `protobuf:"bytes,2,opt,name=year,proto3" json:"year,omitempty"`
-	// 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+	//学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
 	Semester      string `protobuf:"bytes,3,opt,name=semester,proto3" json:"semester,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -817,7 +816,7 @@ func (x *GetRecycleBinClassRequest) GetSemester() string {
 
 type GetRecycleBinClassResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 回收站的课程
+	//回收站的课程
 	ClassInfos    []*ClassInfo `protobuf:"bytes,1,rep,name=class_infos,json=classInfos,proto3" json:"class_infos,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -862,11 +861,11 @@ func (x *GetRecycleBinClassResponse) GetClassInfos() []*ClassInfo {
 
 type RecoverClassRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 学号
+	//学号
 	StuId string `protobuf:"bytes,1,opt,name=stuId,proto3" json:"stuId,omitempty"`
-	// 学年  "2024" 代表"2024-2025学年"
+	//学年  "2024" 代表"2024-2025学年"
 	Year string `protobuf:"bytes,2,opt,name=year,proto3" json:"year,omitempty"`
-	// 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+	//学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
 	Semester string `protobuf:"bytes,3,opt,name=semester,proto3" json:"semester,omitempty"`
 	// 课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回
 	ClassId       string `protobuf:"bytes,11,opt,name=classId,proto3" json:"classId,omitempty"`
@@ -1066,28 +1065,28 @@ func (x *GetStuIdByJxbIdResponse) GetStuId() []string {
 
 type ClassInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 星期几
+	//星期几
 	Day int64 `protobuf:"varint,1,opt,name=day,proto3" json:"day,omitempty"`
-	// 任课教师
+	//任课教师
 	Teacher string `protobuf:"bytes,2,opt,name=teacher,proto3" json:"teacher,omitempty"`
-	// 上课地点
+	//上课地点
 	Where string `protobuf:"bytes,3,opt,name=where,proto3" json:"where,omitempty"`
-	// 上课是第几节（如1-2,3,4）
+	//上课是第几节（如1-2,3,4）
 	ClassWhen string `protobuf:"bytes,4,opt,name=class_when,json=classWhen,proto3" json:"class_when,omitempty"`
-	// 上课的周数(文字描述,如1-9周)
+	//上课的周数(文字描述,如1-9周)
 	WeekDuration string `protobuf:"bytes,5,opt,name=week_duration,json=weekDuration,proto3" json:"week_duration,omitempty"`
-	// 课程名称
+	//课程名称
 	Classname string `protobuf:"bytes,6,opt,name=classname,proto3" json:"classname,omitempty"`
-	// 学分
+	//学分
 	Credit float64 `protobuf:"fixed64,7,opt,name=credit,proto3" json:"credit,omitempty"`
-	// 哪些周 这个是一个64位的数字,如果有第一周,那么该数的二进制从右往左的第一位为1,以此类推
-	// 比如该数的二进制是000000101,就代表第一周和第三周有课.
+	//哪些周 这个是一个64位的数字,如果有第一周,那么该数的二进制从右往左的第一位为1,以此类推
+	//比如该数的二进制是000000101,就代表第一周和第三周有课.
 	Weeks int64 `protobuf:"varint,9,opt,name=weeks,proto3" json:"weeks,omitempty"`
-	// 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+	//学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
 	Semester string `protobuf:"bytes,10,opt,name=semester,proto3" json:"semester,omitempty"`
-	// 学年  "2024" 代表"2024-2025学年"
+	//学年  "2024" 代表"2024-2025学年"
 	Year string `protobuf:"bytes,11,opt,name=year,proto3" json:"year,omitempty"`
-	// 课程唯一标识id
+	//课程唯一标识id
 	Id string `protobuf:"bytes,12,opt,name=id,proto3" json:"id,omitempty"`
 	// 备注
 	Note string `protobuf:"bytes,13,opt,name=note,proto3" json:"note,omitempty"`
@@ -1220,7 +1219,7 @@ func (x *ClassInfo) GetIsOfficial() bool {
 
 type Class struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 课程信息
+	//课程信息
 	Info          *ClassInfo `protobuf:"bytes,1,opt,name=info,proto3" json:"info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1353,15 +1352,15 @@ func (x *GetSchoolDayResp) GetSchoolTime() string {
 
 type UpdateClassNoteReq struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 学号
+	//学号
 	StuId string `protobuf:"bytes,1,opt,name=stuId,proto3" json:"stuId,omitempty"`
-	// 学年  "2024" 代表"2024-2025学年"
+	//学年  "2024" 代表"2024-2025学年"
 	Year string `protobuf:"bytes,2,opt,name=year,proto3" json:"year,omitempty"`
-	// 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+	//学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
 	Semester string `protobuf:"bytes,3,opt,name=semester,proto3" json:"semester,omitempty"`
 	// 课程的ID（唯一标识）
 	ClassId string `protobuf:"bytes,4,opt,name=classId,proto3" json:"classId,omitempty"`
-	// 课程备注
+	//课程备注
 	Note          string `protobuf:"bytes,5,opt,name=note,proto3" json:"note,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1478,11 +1477,11 @@ func (x *UpdateClassNoteResp) GetMsg() string {
 
 type DeleteClassNoteReq struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 学号
+	//学号
 	StuId string `protobuf:"bytes,1,opt,name=stuId,proto3" json:"stuId,omitempty"`
-	// 学年  "2024" 代表"2024-2025学年"
+	//学年  "2024" 代表"2024-2025学年"
 	Year string `protobuf:"bytes,2,opt,name=year,proto3" json:"year,omitempty"`
-	// 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+	//学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
 	Semester string `protobuf:"bytes,3,opt,name=semester,proto3" json:"semester,omitempty"`
 	// 课程的ID（唯一标识）
 	ClassId       string `protobuf:"bytes,4,opt,name=classId,proto3" json:"classId,omitempty"`

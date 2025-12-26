@@ -94,8 +94,7 @@ func (c *UnderGrad) GetGrade(ctx context.Context, xnm, xqm int64, showCount int)
 	if err != nil {
 		return nil, fmt.Errorf("读取响应失败: %w", err)
 	}
-	if string(body) != "" {
-	}
+
 	var gradeResp GradeResponse
 	if err := json.Unmarshal(body, &gradeResp); err != nil {
 		if strings.Contains(string(body), Login_URL) {

@@ -22,6 +22,7 @@ const (
 	GradeService_GetGradeByTerm_FullMethodName   = "/grade.v1.GradeService/GetGradeByTerm"
 	GradeService_GetGradeScore_FullMethodName    = "/grade.v1.GradeService/GetGradeScore"
 	GradeService_GetGraduateGrade_FullMethodName = "/grade.v1.GradeService/GetGraduateGrade"
+	GradeService_GetGradeType_FullMethodName     = "/grade.v1.GradeService/GetGradeType"
 	GradeService_GetRankByTerm_FullMethodName    = "/grade.v1.GradeService/GetRankByTerm"
 	GradeService_LoadRank_FullMethodName         = "/grade.v1.GradeService/LoadRank"
 )
@@ -35,6 +36,7 @@ type GradeServiceClient interface {
 	GetGradeByTerm(ctx context.Context, in *GetGradeByTermReq, opts ...grpc.CallOption) (*GetGradeByTermResp, error)
 	GetGradeScore(ctx context.Context, in *GetGradeScoreReq, opts ...grpc.CallOption) (*GetGradeScoreResp, error)
 	GetGraduateGrade(ctx context.Context, in *GetGraduateUpdateReq, opts ...grpc.CallOption) (*GetGraduateUpdateResp, error)
+	GetGradeType(ctx context.Context, in *GetGradeTypeReq, opts ...grpc.CallOption) (*GetGradeTypeResp, error)
 	// 学业平均学分绩和排名
 	GetRankByTerm(ctx context.Context, in *GetRankByTermReq, opts ...grpc.CallOption) (*GetRankByTermResp, error)
 	LoadRank(ctx context.Context, in *LoadRankReq, opts ...grpc.CallOption) (*EmptyResp, error)
@@ -78,6 +80,16 @@ func (c *gradeServiceClient) GetGraduateGrade(ctx context.Context, in *GetGradua
 	return out, nil
 }
 
+func (c *gradeServiceClient) GetGradeType(ctx context.Context, in *GetGradeTypeReq, opts ...grpc.CallOption) (*GetGradeTypeResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGradeTypeResp)
+	err := c.cc.Invoke(ctx, GradeService_GetGradeType_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *gradeServiceClient) GetRankByTerm(ctx context.Context, in *GetRankByTermReq, opts ...grpc.CallOption) (*GetRankByTermResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetRankByTermResp)
@@ -107,6 +119,7 @@ type GradeServiceServer interface {
 	GetGradeByTerm(context.Context, *GetGradeByTermReq) (*GetGradeByTermResp, error)
 	GetGradeScore(context.Context, *GetGradeScoreReq) (*GetGradeScoreResp, error)
 	GetGraduateGrade(context.Context, *GetGraduateUpdateReq) (*GetGraduateUpdateResp, error)
+	GetGradeType(context.Context, *GetGradeTypeReq) (*GetGradeTypeResp, error)
 	// 学业平均学分绩和排名
 	GetRankByTerm(context.Context, *GetRankByTermReq) (*GetRankByTermResp, error)
 	LoadRank(context.Context, *LoadRankReq) (*EmptyResp, error)
@@ -128,6 +141,9 @@ func (UnimplementedGradeServiceServer) GetGradeScore(context.Context, *GetGradeS
 }
 func (UnimplementedGradeServiceServer) GetGraduateGrade(context.Context, *GetGraduateUpdateReq) (*GetGraduateUpdateResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGraduateGrade not implemented")
+}
+func (UnimplementedGradeServiceServer) GetGradeType(context.Context, *GetGradeTypeReq) (*GetGradeTypeResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGradeType not implemented")
 }
 func (UnimplementedGradeServiceServer) GetRankByTerm(context.Context, *GetRankByTermReq) (*GetRankByTermResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRankByTerm not implemented")
@@ -210,6 +226,24 @@ func _GradeService_GetGraduateGrade_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GradeService_GetGradeType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGradeTypeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GradeServiceServer).GetGradeType(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GradeService_GetGradeType_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GradeServiceServer).GetGradeType(ctx, req.(*GetGradeTypeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GradeService_GetRankByTerm_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetRankByTermReq)
 	if err := dec(in); err != nil {
@@ -264,6 +298,10 @@ var GradeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetGraduateGrade",
 			Handler:    _GradeService_GetGraduateGrade_Handler,
+		},
+		{
+			MethodName: "GetGradeType",
+			Handler:    _GradeService_GetGradeType_Handler,
 		},
 		{
 			MethodName: "GetRankByTerm",

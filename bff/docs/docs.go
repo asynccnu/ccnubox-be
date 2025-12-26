@@ -2505,6 +2505,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/grade/getGradeType": {
+            "get": {
+                "description": "获取课程类别",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "grade"
+                ],
+                "summary": "获取课程类别",
+                "responses": {
+                    "200": {
+                        "description": "成功返回课程列表",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/grade.GetGradeTypeResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，获取失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/grade/getRankByTerm": {
             "get": {
                 "description": "根据学年号和学期号获取用户的学分绩排名以及分数和统计的科目，全为0则查总排名",
@@ -3250,6 +3291,31 @@ const docTemplate = `{
                 }
             }
         },
+        "/metrics": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "暴露标准的 Prometheus 监控数据，供 Prometheus 定时拉取，使用BasicAuth进行验证",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "metrics"
+                ],
+                "summary": "导出 Prometheus 监控指标",
+                "responses": {
+                    "200": {
+                        "description": "Prometheus Exporter Text Data",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/metrics/:type/:name": {
             "post": {
                 "description": "用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/banner/xxx)表示跳转banner的xxx页面,使用这一路由必须携带Auth请求头",
@@ -3399,6 +3465,31 @@ const docTemplate = `{
                 }
             }
         },
+        "/swag": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "接口直接返回 docs/openapi3.yaml yaml格式的原始内容，使用BasicAuth进行验证",
+                "produces": [
+                    "application/x-yaml"
+                ],
+                "tags": [
+                    "swag"
+                ],
+                "summary": "获取 OpenAPI3 接口文档 (YAML)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/tube/access_token": {
             "get": {
                 "consumes": [
@@ -3435,6 +3526,7 @@ const docTemplate = `{
         },
         "/tube/upload/official": {
             "get": {
+                "description": "获取用于前端 CD 部署时上传官网资源到七牛云的令牌",
                 "consumes": [
                     "application/json"
                 ],
@@ -3444,7 +3536,7 @@ const docTemplate = `{
                 "tags": [
                     "tube"
                 ],
-                "summary": "获取上传应用的令牌",
+                "summary": "获取官网上传令牌",
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -4944,6 +5036,21 @@ const docTemplate = `{
                 }
             }
         },
+        "grade.GetGradeTypeResp": {
+            "type": "object",
+            "required": [
+                "kcxzmc"
+            ],
+            "properties": {
+                "kcxzmc": {
+                    "description": "课程类别",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "grade.GetRankByTermReq": {
             "type": "object",
             "properties": {
@@ -5481,10 +5588,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "room_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                    "type": "string"
                 },
                 "start": {
                     "type": "string"

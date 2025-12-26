@@ -16,6 +16,7 @@ func main() {
 func initViper() {
 	cfile := pflag.String("config", "config/config.yaml", "配置文件路径")
 	pflag.Parse()
+
 	viper.SetConfigType("yaml")
 	viper.SetConfigFile(*cfile)
 	err := viper.ReadInConfig()
@@ -38,7 +39,6 @@ func NewApp(server grpcx.Server,
 }
 
 func (a *App) Start() {
-
 	for _, c := range a.crons {
 		c.StartCronTask()
 	}
@@ -47,5 +47,4 @@ func (a *App) Start() {
 	if err != nil {
 		return
 	}
-
 }

@@ -47,6 +47,8 @@ jobs:
           file: ./${{ env.SERVICE_NAME }}/Dockerfile
           push: true
           tags: ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/ccnubox-${{ env.SERVICE_NAME }}:${{ steps.get-version-id.outputs.id }}
+          build-args: |
+            KEY=${{ secrets.CRYPTO_KEY }}
 
   deploy-on-dev:
     if: github.repository == 'asynccnu/ccnubox-be'

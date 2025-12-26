@@ -58,6 +58,9 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 	// 构造联合键：student_id + jxb_id
 	ids := make([]string, len(grades))
 	for i, grade := range grades {
+		if grade.JxbId == "" {
+			grade.JxbId = grade.Kcmc
+		}
 		ids[i] = grade.StudentId + grade.JxbId
 	}
 
@@ -80,6 +83,9 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 	var toUpdate []model.Grade
 
 	for _, grade := range grades {
+		if grade.JxbId == "" {
+			grade.JxbId = grade.Kcmc
+		}
 		key := grade.StudentId + grade.JxbId
 
 		if existing, exists := existingMap[key]; !exists {

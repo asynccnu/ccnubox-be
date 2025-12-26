@@ -32,7 +32,7 @@ const (
 type ClassServiceClient interface {
 	// 数据源是所有使用匣子的用户的课表，从其中搜索相应的课程
 	SearchClass(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchReply, error)
-	// 添加课程
+	//添加课程
 	AddClass(ctx context.Context, in *AddClassRequest, opts ...grpc.CallOption) (*AddClassReply, error)
 	// 获取未修读课程
 	GetClassToBeStudied(ctx context.Context, in *GetClassToBeStudiedRequest, opts ...grpc.CallOption) (*GetClassToBeStudiedReply, error)
@@ -84,7 +84,7 @@ func (c *classServiceClient) GetClassToBeStudied(ctx context.Context, in *GetCla
 type ClassServiceServer interface {
 	// 数据源是所有使用匣子的用户的课表，从其中搜索相应的课程
 	SearchClass(context.Context, *SearchRequest) (*SearchReply, error)
-	// 添加课程
+	//添加课程
 	AddClass(context.Context, *AddClassRequest) (*AddClassReply, error)
 	// 获取未修读课程
 	GetClassToBeStudied(context.Context, *GetClassToBeStudiedRequest) (*GetClassToBeStudiedReply, error)

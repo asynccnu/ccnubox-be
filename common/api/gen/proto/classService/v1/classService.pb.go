@@ -23,7 +23,7 @@ const (
 
 type SearchRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 搜索关键词,匹配的是课程名称和教师姓名
+	//搜索关键词,匹配的是课程名称和教师姓名
 	SearchKeyWords string `protobuf:"bytes,1,opt,name=searchKeyWords,proto3" json:"searchKeyWords,omitempty"`
 	Year           string `protobuf:"bytes,2,opt,name=year,proto3" json:"year,omitempty"`
 	Semester       string `protobuf:"bytes,3,opt,name=semester,proto3" json:"semester,omitempty"`
@@ -100,7 +100,7 @@ func (x *SearchRequest) GetPageSize() int32 {
 
 type SearchReply struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 课程信息
+	//课程信息
 	ClassInfos    []*ClassInfo `protobuf:"bytes,1,rep,name=class_infos,json=classInfos,proto3" json:"class_infos,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -145,25 +145,25 @@ func (x *SearchReply) GetClassInfos() []*ClassInfo {
 
 type AddClassRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 学号
+	//学号
 	StuId string `protobuf:"bytes,1,opt,name=stu_id,json=stuId,proto3" json:"stu_id,omitempty"`
-	// 课程名称
+	//课程名称
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	// 第几节 '形如 "1-3","1-1"'
+	//第几节 '形如 "1-3","1-1"'
 	DurClass string `protobuf:"bytes,3,opt,name=dur_class,json=durClass,proto3" json:"dur_class,omitempty"`
-	// 地点
+	//地点
 	Where string `protobuf:"bytes,4,opt,name=where,proto3" json:"where,omitempty"`
-	// 教师
+	//教师
 	Teacher string `protobuf:"bytes,5,opt,name=teacher,proto3" json:"teacher,omitempty"`
-	// 哪些周
+	//哪些周
 	Weeks int64 `protobuf:"varint,6,opt,name=weeks,proto3" json:"weeks,omitempty"`
 	// 学期
 	Semester string `protobuf:"bytes,7,opt,name=semester,proto3" json:"semester,omitempty"`
-	// 学年
+	//学年
 	Year string `protobuf:"bytes,8,opt,name=year,proto3" json:"year,omitempty"`
-	// 星期几
+	//星期几
 	Day int64 `protobuf:"varint,9,opt,name=day,proto3" json:"day,omitempty"`
-	// 学分
+	//学分
 	Credit        *float64 `protobuf:"fixed64,10,opt,name=credit,proto3,oneof" json:"credit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -271,7 +271,7 @@ func (x *AddClassRequest) GetCredit() float64 {
 
 type AddClassReply struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 添加的课程ID
+	//添加的课程ID
 	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Msg           string `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -324,28 +324,28 @@ func (x *AddClassReply) GetMsg() string {
 
 type ClassInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 星期几
+	//星期几
 	Day int64 `protobuf:"varint,1,opt,name=day,proto3" json:"day,omitempty"`
-	// 任课教师
+	//任课教师
 	Teacher string `protobuf:"bytes,2,opt,name=teacher,proto3" json:"teacher,omitempty"`
-	// 上课地点
+	//上课地点
 	Where string `protobuf:"bytes,3,opt,name=where,proto3" json:"where,omitempty"`
-	// 上课是第几节（如1-2,3,4）
+	//上课是第几节（如1-2,3,4）
 	ClassWhen string `protobuf:"bytes,4,opt,name=class_when,json=classWhen,proto3" json:"class_when,omitempty"`
-	// 上课的周数(文字描述,如1-9周)
+	//上课的周数(文字描述,如1-9周)
 	WeekDuration string `protobuf:"bytes,5,opt,name=week_duration,json=weekDuration,proto3" json:"week_duration,omitempty"`
-	// 课程名称
+	//课程名称
 	Classname string `protobuf:"bytes,6,opt,name=classname,proto3" json:"classname,omitempty"`
-	// 学分
+	//学分
 	Credit float64 `protobuf:"fixed64,7,opt,name=credit,proto3" json:"credit,omitempty"`
-	// 哪些周 这个是一个64位的数字,如果有第一周,那么该数的二进制从右往左的第一位为1,以此类推
-	// 比如该数的二进制是000000101,就代表第一周和第三周有课.
+	//哪些周 这个是一个64位的数字,如果有第一周,那么该数的二进制从右往左的第一位为1,以此类推
+	//比如该数的二进制是000000101,就代表第一周和第三周有课.
 	Weeks int64 `protobuf:"varint,8,opt,name=weeks,proto3" json:"weeks,omitempty"`
-	// 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+	//学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
 	Semester string `protobuf:"bytes,9,opt,name=semester,proto3" json:"semester,omitempty"`
-	// 学年  "2024" 代表"2024-2025学年"
+	//学年  "2024" 代表"2024-2025学年"
 	Year string `protobuf:"bytes,10,opt,name=year,proto3" json:"year,omitempty"`
-	// 课程唯一标识id
+	//课程唯一标识id
 	Id            string `protobuf:"bytes,11,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -460,7 +460,7 @@ func (x *ClassInfo) GetId() string {
 
 type GetClassToBeStudiedRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 学号
+	//学号
 	StuId string `protobuf:"bytes,1,opt,name=stu_id,json=stuId,proto3" json:"stu_id,omitempty"`
 	// 修读状态, 可选字段，默认为空字符串，表示获取所有状态的课程
 	Status        string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
@@ -514,7 +514,7 @@ func (x *GetClassToBeStudiedRequest) GetStatus() string {
 
 type GetClassToBeStudiedReply struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 课程信息
+	//课程信息
 	IdentityDevelop []*GetClassToBeStudiedReply_ClassToBeStudiedInfo `protobuf:"bytes,1,rep,name=identity_develop,json=identityDevelop,proto3" json:"identity_develop,omitempty"`
 	SpecificSkill   []*GetClassToBeStudiedReply_ClassToBeStudiedInfo `protobuf:"bytes,2,rep,name=specific_skill,json=specificSkill,proto3" json:"specific_skill,omitempty"`
 	CommonEducate   []*GetClassToBeStudiedReply_ClassToBeStudiedInfo `protobuf:"bytes,3,rep,name=common_educate,json=commonEducate,proto3" json:"common_educate,omitempty"`
@@ -575,17 +575,17 @@ func (x *GetClassToBeStudiedReply) GetCommonEducate() []*GetClassToBeStudiedRepl
 
 type GetClassToBeStudiedReply_ClassToBeStudiedInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 课程编号
+	//课程编号
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// 课程名称
+	//课程名称
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	// 修读状态
+	//修读状态
 	Status string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	// 学分
+	//学分
 	Credit string `protobuf:"bytes,4,opt,name=credit,proto3" json:"credit,omitempty"`
-	// 课程性质
+	//课程性质
 	Property string `protobuf:"bytes,5,opt,name=property,proto3" json:"property,omitempty"`
-	// 开设学年期
+	//开设学年期
 	Studiable     string `protobuf:"bytes,6,opt,name=studiable,proto3" json:"studiable,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

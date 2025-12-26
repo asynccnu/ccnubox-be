@@ -293,7 +293,7 @@ func (x *GetPriceResponse) GetPrice() *GetPriceResponse_Price {
 	return nil
 }
 
-// 有一个id对应两个状态和一个状态
+//有一个id对应两个状态和一个状态
 type Standard struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Limit         int64                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`

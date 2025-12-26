@@ -9,6 +9,7 @@ service GradeService {
   rpc GetGradeByTerm (GetGradeByTermReq) returns (GetGradeByTermResp) ;
   rpc GetGradeScore(GetGradeScoreReq)returns(GetGradeScoreResp);
   rpc GetGraduateGrade(GetGraduateUpdateReq) returns (GetGraduateUpdateResp);
+  rpc GetGradeType(GetGradeTypeReq)returns(GetGradeTypeResp);
 
   // 学业平均学分绩和排名
   rpc GetRankByTerm (GetRankByTermReq) returns (GetRankByTermResp) ;
@@ -102,6 +103,14 @@ message GetGraduateUpdateReq{
 
 message GetGraduateUpdateResp{
   repeated GraduateGrade grades = 1;
+}
+
+message GetGradeTypeReq{
+  string studentId = 1;
+}
+
+message GetGradeTypeResp{
+  repeated string gradeTypes=1;
 }
 
 // rank 部分

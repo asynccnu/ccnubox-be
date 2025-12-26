@@ -49,6 +49,7 @@ type GradeService interface {
 	GetGradeScore(ctx context.Context, studentId string) ([]domain.TypeOfGradeScore, error)
 	GetUpdateScore(ctx context.Context, studentId string) ([]domain.Grade, error)
 	UpdateDetailScore(ctx context.Context, need domain.NeedDetailGrade) error
+	GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error)
 }
 
 type gradeService struct {
@@ -325,6 +326,15 @@ func (s *gradeService) newUGWithCookie(ctx context.Context, studentId string) (*
 		return &crawler.UnderGrad{}, fmt.Errorf("创建ug爬虫实例失败:%w", err)
 	}
 	return grad, nil
+}
+
+func (s *gradeService) GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error) {
+	res, err := s.gradeDAO.GetDistinctGradeType(ctx, stuID)
+	if err != nil {
+		s.l.Warn("获取课程性质列表失败", logger.Error(err))
+		return nil, err
+	}
+	return res, nil
 }
 
 type Student interface {

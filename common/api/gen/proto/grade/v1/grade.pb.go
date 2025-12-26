@@ -187,7 +187,7 @@ func (x *GetGradeByTermResp) GetGrades() []*Grade {
 	return nil
 }
 
-// 成绩结构体
+//成绩结构体
 type Grade struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	Kcmc                string                 `protobuf:"bytes,1,opt,name=Kcmc,proto3" json:"Kcmc,omitempty"`                               //课程名
@@ -844,6 +844,94 @@ func (x *GetGraduateUpdateResp) GetGrades() []*GraduateGrade {
 	return nil
 }
 
+type GetGradeTypeReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StudentId     string                 `protobuf:"bytes,1,opt,name=studentId,proto3" json:"studentId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGradeTypeReq) Reset() {
+	*x = GetGradeTypeReq{}
+	mi := &file_grade_v1_grade_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGradeTypeReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGradeTypeReq) ProtoMessage() {}
+
+func (x *GetGradeTypeReq) ProtoReflect() protoreflect.Message {
+	mi := &file_grade_v1_grade_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGradeTypeReq.ProtoReflect.Descriptor instead.
+func (*GetGradeTypeReq) Descriptor() ([]byte, []int) {
+	return file_grade_v1_grade_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetGradeTypeReq) GetStudentId() string {
+	if x != nil {
+		return x.StudentId
+	}
+	return ""
+}
+
+type GetGradeTypeResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GradeTypes    []string               `protobuf:"bytes,1,rep,name=gradeTypes,proto3" json:"gradeTypes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGradeTypeResp) Reset() {
+	*x = GetGradeTypeResp{}
+	mi := &file_grade_v1_grade_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGradeTypeResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGradeTypeResp) ProtoMessage() {}
+
+func (x *GetGradeTypeResp) ProtoReflect() protoreflect.Message {
+	mi := &file_grade_v1_grade_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGradeTypeResp.ProtoReflect.Descriptor instead.
+func (*GetGradeTypeResp) Descriptor() ([]byte, []int) {
+	return file_grade_v1_grade_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetGradeTypeResp) GetGradeTypes() []string {
+	if x != nil {
+		return x.GradeTypes
+	}
+	return nil
+}
+
 // rank 部分
 type GetRankByTermReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -859,7 +947,7 @@ type GetRankByTermReq struct {
 
 func (x *GetRankByTermReq) Reset() {
 	*x = GetRankByTermReq{}
-	mi := &file_grade_v1_grade_proto_msgTypes[11]
+	mi := &file_grade_v1_grade_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -871,7 +959,7 @@ func (x *GetRankByTermReq) String() string {
 func (*GetRankByTermReq) ProtoMessage() {}
 
 func (x *GetRankByTermReq) ProtoReflect() protoreflect.Message {
-	mi := &file_grade_v1_grade_proto_msgTypes[11]
+	mi := &file_grade_v1_grade_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -884,7 +972,7 @@ func (x *GetRankByTermReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRankByTermReq.ProtoReflect.Descriptor instead.
 func (*GetRankByTermReq) Descriptor() ([]byte, []int) {
-	return file_grade_v1_grade_proto_rawDescGZIP(), []int{11}
+	return file_grade_v1_grade_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetRankByTermReq) GetStudentId() string {
@@ -940,7 +1028,7 @@ type GetRankByTermResp struct {
 
 func (x *GetRankByTermResp) Reset() {
 	*x = GetRankByTermResp{}
-	mi := &file_grade_v1_grade_proto_msgTypes[12]
+	mi := &file_grade_v1_grade_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -952,7 +1040,7 @@ func (x *GetRankByTermResp) String() string {
 func (*GetRankByTermResp) ProtoMessage() {}
 
 func (x *GetRankByTermResp) ProtoReflect() protoreflect.Message {
-	mi := &file_grade_v1_grade_proto_msgTypes[12]
+	mi := &file_grade_v1_grade_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -965,7 +1053,7 @@ func (x *GetRankByTermResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRankByTermResp.ProtoReflect.Descriptor instead.
 func (*GetRankByTermResp) Descriptor() ([]byte, []int) {
-	return file_grade_v1_grade_proto_rawDescGZIP(), []int{12}
+	return file_grade_v1_grade_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetRankByTermResp) GetRank() string {
@@ -998,7 +1086,7 @@ type LoadRankReq struct {
 
 func (x *LoadRankReq) Reset() {
 	*x = LoadRankReq{}
-	mi := &file_grade_v1_grade_proto_msgTypes[13]
+	mi := &file_grade_v1_grade_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1010,7 +1098,7 @@ func (x *LoadRankReq) String() string {
 func (*LoadRankReq) ProtoMessage() {}
 
 func (x *LoadRankReq) ProtoReflect() protoreflect.Message {
-	mi := &file_grade_v1_grade_proto_msgTypes[13]
+	mi := &file_grade_v1_grade_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1023,7 +1111,7 @@ func (x *LoadRankReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadRankReq.ProtoReflect.Descriptor instead.
 func (*LoadRankReq) Descriptor() ([]byte, []int) {
-	return file_grade_v1_grade_proto_rawDescGZIP(), []int{13}
+	return file_grade_v1_grade_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *LoadRankReq) GetStudentId() string {
@@ -1041,7 +1129,7 @@ type EmptyResp struct {
 
 func (x *EmptyResp) Reset() {
 	*x = EmptyResp{}
-	mi := &file_grade_v1_grade_proto_msgTypes[14]
+	mi := &file_grade_v1_grade_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1053,7 +1141,7 @@ func (x *EmptyResp) String() string {
 func (*EmptyResp) ProtoMessage() {}
 
 func (x *EmptyResp) ProtoReflect() protoreflect.Message {
-	mi := &file_grade_v1_grade_proto_msgTypes[14]
+	mi := &file_grade_v1_grade_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1066,7 +1154,7 @@ func (x *EmptyResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmptyResp.ProtoReflect.Descriptor instead.
 func (*EmptyResp) Descriptor() ([]byte, []int) {
-	return file_grade_v1_grade_proto_rawDescGZIP(), []int{14}
+	return file_grade_v1_grade_proto_rawDescGZIP(), []int{16}
 }
 
 var File_grade_v1_grade_proto protoreflect.FileDescriptor
@@ -1144,7 +1232,13 @@ const file_grade_v1_grade_proto_rawDesc = "" +
 	"\x03xqm\x18\x03 \x01(\x03R\x03xqm\x12\x12\n" +
 	"\x04cjzt\x18\x04 \x01(\x03R\x04cjzt\"H\n" +
 	"\x15GetGraduateUpdateResp\x12/\n" +
-	"\x06grades\x18\x01 \x03(\v2\x17.grade.v1.GraduateGradeR\x06grades\"\xb6\x01\n" +
+	"\x06grades\x18\x01 \x03(\v2\x17.grade.v1.GraduateGradeR\x06grades\"/\n" +
+	"\x0fGetGradeTypeReq\x12\x1c\n" +
+	"\tstudentId\x18\x01 \x01(\tR\tstudentId\"2\n" +
+	"\x10GetGradeTypeResp\x12\x1e\n" +
+	"\n" +
+	"gradeTypes\x18\x01 \x03(\tR\n" +
+	"gradeTypes\"\xb6\x01\n" +
 	"\x10GetRankByTermReq\x12\x1c\n" +
 	"\tstudentId\x18\x01 \x01(\tR\tstudentId\x12\x1b\n" +
 	"\txnm_begin\x18\x02 \x01(\x03R\bxnmBegin\x12\x1b\n" +
@@ -1158,11 +1252,12 @@ const file_grade_v1_grade_proto_rawDesc = "" +
 	"\ainclude\x18\x03 \x03(\tR\ainclude\"+\n" +
 	"\vLoadRankReq\x12\x1c\n" +
 	"\tstudentId\x18\x01 \x01(\tR\tstudentId\"\v\n" +
-	"\tEmptyResp2\xfc\x02\n" +
+	"\tEmptyResp2\xc3\x03\n" +
 	"\fGradeService\x12K\n" +
 	"\x0eGetGradeByTerm\x12\x1b.grade.v1.GetGradeByTermReq\x1a\x1c.grade.v1.GetGradeByTermResp\x12H\n" +
 	"\rGetGradeScore\x12\x1a.grade.v1.GetGradeScoreReq\x1a\x1b.grade.v1.GetGradeScoreResp\x12S\n" +
-	"\x10GetGraduateGrade\x12\x1e.grade.v1.GetGraduateUpdateReq\x1a\x1f.grade.v1.GetGraduateUpdateResp\x12H\n" +
+	"\x10GetGraduateGrade\x12\x1e.grade.v1.GetGraduateUpdateReq\x1a\x1f.grade.v1.GetGraduateUpdateResp\x12E\n" +
+	"\fGetGradeType\x12\x19.grade.v1.GetGradeTypeReq\x1a\x1a.grade.v1.GetGradeTypeResp\x12H\n" +
 	"\rGetRankByTerm\x12\x1a.grade.v1.GetRankByTermReq\x1a\x1b.grade.v1.GetRankByTermResp\x126\n" +
 	"\bLoadRank\x12\x15.grade.v1.LoadRankReq\x1a\x13.grade.v1.EmptyRespBFZDgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1;gradev1b\x06proto3"
 
@@ -1178,7 +1273,7 @@ func file_grade_v1_grade_proto_rawDescGZIP() []byte {
 	return file_grade_v1_grade_proto_rawDescData
 }
 
-var file_grade_v1_grade_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_grade_v1_grade_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_grade_v1_grade_proto_goTypes = []any{
 	(*GetGradeByTermReq)(nil),     // 0: grade.v1.GetGradeByTermReq
 	(*Terms)(nil),                 // 1: grade.v1.Terms
@@ -1191,10 +1286,12 @@ var file_grade_v1_grade_proto_goTypes = []any{
 	(*GraduateGrade)(nil),         // 8: grade.v1.GraduateGrade
 	(*GetGraduateUpdateReq)(nil),  // 9: grade.v1.GetGraduateUpdateReq
 	(*GetGraduateUpdateResp)(nil), // 10: grade.v1.GetGraduateUpdateResp
-	(*GetRankByTermReq)(nil),      // 11: grade.v1.GetRankByTermReq
-	(*GetRankByTermResp)(nil),     // 12: grade.v1.GetRankByTermResp
-	(*LoadRankReq)(nil),           // 13: grade.v1.LoadRankReq
-	(*EmptyResp)(nil),             // 14: grade.v1.EmptyResp
+	(*GetGradeTypeReq)(nil),       // 11: grade.v1.GetGradeTypeReq
+	(*GetGradeTypeResp)(nil),      // 12: grade.v1.GetGradeTypeResp
+	(*GetRankByTermReq)(nil),      // 13: grade.v1.GetRankByTermReq
+	(*GetRankByTermResp)(nil),     // 14: grade.v1.GetRankByTermResp
+	(*LoadRankReq)(nil),           // 15: grade.v1.LoadRankReq
+	(*EmptyResp)(nil),             // 16: grade.v1.EmptyResp
 }
 var file_grade_v1_grade_proto_depIdxs = []int32{
 	1,  // 0: grade.v1.GetGradeByTermReq.terms:type_name -> grade.v1.Terms
@@ -1205,15 +1302,17 @@ var file_grade_v1_grade_proto_depIdxs = []int32{
 	0,  // 5: grade.v1.GradeService.GetGradeByTerm:input_type -> grade.v1.GetGradeByTermReq
 	4,  // 6: grade.v1.GradeService.GetGradeScore:input_type -> grade.v1.GetGradeScoreReq
 	9,  // 7: grade.v1.GradeService.GetGraduateGrade:input_type -> grade.v1.GetGraduateUpdateReq
-	11, // 8: grade.v1.GradeService.GetRankByTerm:input_type -> grade.v1.GetRankByTermReq
-	13, // 9: grade.v1.GradeService.LoadRank:input_type -> grade.v1.LoadRankReq
-	2,  // 10: grade.v1.GradeService.GetGradeByTerm:output_type -> grade.v1.GetGradeByTermResp
-	5,  // 11: grade.v1.GradeService.GetGradeScore:output_type -> grade.v1.GetGradeScoreResp
-	10, // 12: grade.v1.GradeService.GetGraduateGrade:output_type -> grade.v1.GetGraduateUpdateResp
-	12, // 13: grade.v1.GradeService.GetRankByTerm:output_type -> grade.v1.GetRankByTermResp
-	14, // 14: grade.v1.GradeService.LoadRank:output_type -> grade.v1.EmptyResp
-	10, // [10:15] is the sub-list for method output_type
-	5,  // [5:10] is the sub-list for method input_type
+	11, // 8: grade.v1.GradeService.GetGradeType:input_type -> grade.v1.GetGradeTypeReq
+	13, // 9: grade.v1.GradeService.GetRankByTerm:input_type -> grade.v1.GetRankByTermReq
+	15, // 10: grade.v1.GradeService.LoadRank:input_type -> grade.v1.LoadRankReq
+	2,  // 11: grade.v1.GradeService.GetGradeByTerm:output_type -> grade.v1.GetGradeByTermResp
+	5,  // 12: grade.v1.GradeService.GetGradeScore:output_type -> grade.v1.GetGradeScoreResp
+	10, // 13: grade.v1.GradeService.GetGraduateGrade:output_type -> grade.v1.GetGraduateUpdateResp
+	12, // 14: grade.v1.GradeService.GetGradeType:output_type -> grade.v1.GetGradeTypeResp
+	14, // 15: grade.v1.GradeService.GetRankByTerm:output_type -> grade.v1.GetRankByTermResp
+	16, // 16: grade.v1.GradeService.LoadRank:output_type -> grade.v1.EmptyResp
+	11, // [11:17] is the sub-list for method output_type
+	5,  // [5:11] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
 	5,  // [5:5] is the sub-list for extension extendee
 	0,  // [0:5] is the sub-list for field type_name
@@ -1230,7 +1329,7 @@ func file_grade_v1_grade_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grade_v1_grade_proto_rawDesc), len(file_grade_v1_grade_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -13,7 +13,7 @@ import (
 )
 
 type MuxiOfficialMSGService interface {
-	GetToBePublicOfficialMSG(ctx context.Context) ([]domain.MuxiOfficialMSG, error)
+	GetToBePublicOfficialMSG(ctx context.Context, isToPublic int) ([]domain.MuxiOfficialMSG, error)
 	PublicMuxiOfficialMSG(ctx context.Context, msg *domain.MuxiOfficialMSG) error
 	StopMuxiOfficialMSG(ctx context.Context, id string) error
 }
@@ -49,8 +49,9 @@ func NewMuxiOfficialMSGService(feedEventDAO dao.FeedEventDAO, feedEventCache cac
 	}
 }
 
-func (s *muxiOfficialMSGService) GetToBePublicOfficialMSG(ctx context.Context) ([]domain.MuxiOfficialMSG, error) {
-	feeds, err := s.feedEventCache.GetMuxiToBePublicFeeds(ctx)
+// isToPublic==1:获取要发送的feedEvent；isToPublic==0:获取还未发送的消息
+func (s *muxiOfficialMSGService) GetToBePublicOfficialMSG(ctx context.Context, isToPublic int) ([]domain.MuxiOfficialMSG, error) {
+	feeds, err := s.feedEventCache.GetMuxiToBePublicFeeds(ctx, isToPublic)
 	if err != nil {
 		return nil, GET_MUXI_FEED_ERROR(err)
 	}

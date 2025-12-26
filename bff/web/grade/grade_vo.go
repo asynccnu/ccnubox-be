@@ -40,6 +40,6 @@ type GradeScore struct {
 	Xf   float32 `json:"xf" binding:"required"`   //学分
 }
 
-type GetGradeTypeResp struct{
-	Kcxzmc []string `json:"kcxzmc" binding:"required"` //课程类别
+type GetGradeTypeResp struct {
+	Kcxzmc []string `json:"kcxzmc"` //课程类别
 }

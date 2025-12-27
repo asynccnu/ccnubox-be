@@ -127,7 +127,7 @@ func (g *FeedServiceServer) StopMuxiOfficialMSG(ctx context.Context, req *feedv1
 }
 
 func (g *FeedServiceServer) GetToBePublicOfficialMSG(ctx context.Context, req *feedv1.GetToBePublicOfficialMSGReq) (*feedv1.GetToBePublicOfficialMSGResp, error) {
-	msgs, err := g.muxiOfficialMSGService.GetToBePublicOfficialMSG(ctx, 0)
+	msgs, err := g.muxiOfficialMSGService.GetToBePublicOfficialMSG(ctx, false)
 	if err != nil {
 		return nil, err
 	}

@@ -25,7 +25,7 @@ type FeedEventCache interface {
 	SetFeedEvent(ctx context.Context, durationTime time.Duration, key string, feedType string, feedEvent *model.FeedEvent) error
 	//muxiEvents使用hashmap存，zset只存id
 	SetMuxiFeeds(ctx context.Context, feedEvent MuxiOfficialMSG, publicTime int64) error
-	GetMuxiToBePublicFeeds(ctx context.Context, isToPublic int) ([]MuxiOfficialMSG, error)
+	GetMuxiToBePublicFeeds(ctx context.Context, isToPublic bool) ([]MuxiOfficialMSG, error)
 	DelMuxiFeeds(ctx context.Context, id string) error
 	ClearCache(ctx context.Context, feedType string, key string) error
 	GetUniqueKey() string
@@ -64,7 +64,7 @@ func (cache *RedisFeedEventCache) SetFeedEvent(ctx context.Context, durationTime
 }
 
 // 直接在redis层筛选到期要发布的feed，应用层就直接发布不需要筛选
-func (cache *RedisFeedEventCache) GetMuxiToBePublicFeeds(ctx context.Context, isToPublic int) ([]MuxiOfficialMSG, error) {
+func (cache *RedisFeedEventCache) GetMuxiToBePublicFeeds(ctx context.Context, isToPublic bool) ([]MuxiOfficialMSG, error) {
 	zsetKey := cache.getPublicScoreKey()
 	prefix := cache.getPrefix("muxi")
 	var msgs []MuxiOfficialMSG
@@ -103,16 +103,19 @@ func (cache *RedisFeedEventCache) SetMuxiFeeds(ctx context.Context, feedEvent Mu
 	//把feedEvent存入redis
 	data, err := json.Marshal(feedEvent)
 	if err != nil {
+		fmt.Println("解析出错:%v", err)
 		return err
 	}
 
 	err = cache.cmd.Set(ctx, key, data, -1).Err()
 	if err != nil {
+		fmt.Printf("redis执行出错：%v", err)
 		return err
 	}
 	//存入zset中
 	err = cache.cmd.ZAdd(ctx, publicScoreKey, redis.Z{Member: []byte(feedEvent.MuxiMSGId), Score: float64(publicTime)}).Err()
 	if err != nil {
+		fmt.Printf("redis执行出错：%v", err)
 		//回滚刚才的操作
 		cache.cmd.Del(ctx, key)
 		return err

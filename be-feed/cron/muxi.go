@@ -67,7 +67,7 @@ func (c *MuxiController) StartCronTask() {
 func (c *MuxiController) publicMuxiFeed() {
 	ctx := context.Background()
 	//获取feed列表
-	msgs, err := c.muxi.GetToBePublicOfficialMSG(ctx, 1)
+	msgs, err := c.muxi.GetToBePublicOfficialMSG(ctx, true)
 	if err != nil {
 		c.l.Warn("获取木犀消息失败!", logger.Error(err))
 		return

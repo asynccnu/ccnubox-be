@@ -8,7 +8,6 @@ option go_package = "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v
 service GradeService {
   rpc GetGradeByTerm (GetGradeByTermReq) returns (GetGradeByTermResp) ;
   rpc GetGradeScore(GetGradeScoreReq)returns(GetGradeScoreResp);
-  rpc GetGraduateGrade(GetGraduateUpdateReq) returns (GetGraduateUpdateResp);
   rpc GetGradeType(GetGradeTypeReq)returns(GetGradeTypeResp);
 
   // 学业平均学分绩和排名

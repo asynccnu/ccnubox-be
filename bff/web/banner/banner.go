@@ -46,7 +46,7 @@ func (h *BannerHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Ha
 func (h *BannerHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 	go func() {
 		// 此处做一个cookie预热
-		// 为什么在这里做呢?
+		// 为什么在这里做呢? 好问题
 		// 因为用户打开匣子必然会发送这个请求,如果短时间(5分钟)内要获取课表或者是成绩会体验感好很多
 		_, _ = h.userClient.GetCookie(context.Background(), &userv1.GetCookieRequest{StudentId: uc.StudentId})
 	}()

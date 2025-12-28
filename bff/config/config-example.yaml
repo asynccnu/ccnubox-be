@@ -7,6 +7,7 @@ redis:
 
 classlist:
   currentSemester: "1" # 当前学期："1" 表示第一学期，"2" 表示第二学期；每学期变更时需手动更新该值
+  currentYear: "2025"  # 当前学年，格式为 "YYYY"，如 "2025" 表示 2025-2026 学年；每学年变更时需手动更新该值 # todo 手动转自动
 
 etcd:
   endpoints:

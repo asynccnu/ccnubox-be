@@ -6,7 +6,7 @@ redis:
   password: "12345678"
 
 classlist:
-  currentSemester: "1" # 手动调
+  currentSemester: "1" # 当前学期："1" 表示第一学期，"2" 表示第二学期；每学期变更时需手动更新该值
 
 etcd:
   endpoints:

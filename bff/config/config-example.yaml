@@ -5,6 +5,8 @@ redis:
   addr: "ccnubox-redis:6379"
   password: "12345678"
 
+classlist:
+  currentSemester: "1" # 手动调
 
 etcd:
   endpoints:

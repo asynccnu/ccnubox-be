@@ -2,6 +2,7 @@
 local zsetKey=KEYS[1]
 local feedKey=KEYS[2]
 
-redis.call("ZREM",zsetKey,id)
+redis.call("ZREM",zsetKey,feedKey)
 redis.call("DEL",feedKey)
 
+return 1

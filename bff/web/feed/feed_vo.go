@@ -38,11 +38,12 @@ type ReadFeedEventReq struct {
 	FeedId int64 `json:"feed_id" binding:"required"`
 }
 
+// 要传bool指针，否则只要布尔值为false，binding就会报错（因为required检验的是零值）
 type ChangeFeedAllowListReq struct {
-	Grade   bool `json:"grade" binding:"required"`
-	Muxi    bool `json:"muxi" binding:"required"`
-	Holiday bool `json:"holiday" binding:"required"`
-	Energy  bool `json:"energy" binding:"required"`
+	Grade   *bool `json:"grade" binding:"required"`
+	Muxi    *bool `json:"muxi" binding:"required"`
+	Holiday *bool `json:"holiday" binding:"required"`
+	Energy  *bool `json:"energy" binding:"required"`
 }
 
 type GetFeedAllowListResp struct {

@@ -67,6 +67,7 @@ func (s *pushService) PushMSGS(ctx context.Context, pushDatas []domain.FeedEvent
 			}
 		}(&pushData)
 	}
+	wg.Wait()
 
 	return errs
 
@@ -80,6 +81,16 @@ func (s *pushService) InsertFailFeedEvents(ctx context.Context, failEvents []dom
 
 // 推送单条消息
 func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) error {
+
+	//权限检测
+	allowed, err := s.checkIfAllow(ctx, pushData.Type, pushData.StudentId)
+	if err != nil {
+		return err
+	}
+	if !allowed {
+		return nil
+	}
+
 	tokens, err := s.feedTokenDAO.GetTokens(ctx, pushData.StudentId)
 	if err != nil {
 		return err

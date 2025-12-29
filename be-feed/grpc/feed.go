@@ -127,7 +127,7 @@ func (g *FeedServiceServer) StopMuxiOfficialMSG(ctx context.Context, req *feedv1
 }
 
 func (g *FeedServiceServer) GetToBePublicOfficialMSG(ctx context.Context, req *feedv1.GetToBePublicOfficialMSGReq) (*feedv1.GetToBePublicOfficialMSGResp, error) {
-	msgs, err := g.muxiOfficialMSGService.GetToBePublicOfficialMSG(ctx)
+	msgs, err := g.muxiOfficialMSGService.GetToBePublicOfficialMSG(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +146,7 @@ func (g *FeedServiceServer) PublicFeedEvent(ctx context.Context, req *feedv1.Pub
 		//此处进行异步,为什么异步呢,主要是内部调用也有上下文取消时间这在推送给所有人的时候将会非常致命
 		ctx = context.Background()
 		feedEvent := domain.FeedEvent{
+			ID:           req.GetEvent().Id,
 			StudentId:    req.GetStudentId(),
 			Type:         req.GetEvent().GetType(),
 			Title:        req.GetEvent().GetTitle(),

@@ -1,6 +1,5 @@
 -- 取出待发布的消息
 local zsetKey=KEYS[1]
-local prefix=KEYS[2]
 local now=ARGV[1]
 local isToPublic=ARGV[2]
 
@@ -26,7 +25,7 @@ else
 end
 
 for _,id in ipairs(ids) do
-    local key=prefix .. id
+    local key=id
     local data=redis.call("GET",key)
     if data then
         table.insert(res,data)

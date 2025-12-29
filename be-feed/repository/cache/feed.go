@@ -25,7 +25,7 @@ type FeedEventCache interface {
 	SetFeedEvent(ctx context.Context, durationTime time.Duration, key string, feedType string, feedEvent *model.FeedEvent) error
 	//muxiEvents使用hashmap存，zset只存id
 	SetMuxiFeeds(ctx context.Context, feedEvent MuxiOfficialMSG, publicTime int64) error
-	GetMuxiToBePublicFeeds(ctx context.Context, isToPublic int) ([]MuxiOfficialMSG, error)
+	GetMuxiToBePublicFeeds(ctx context.Context, isToPublic bool) ([]MuxiOfficialMSG, error)
 	DelMuxiFeeds(ctx context.Context, id string) error
 	ClearCache(ctx context.Context, feedType string, key string) error
 	GetUniqueKey() string
@@ -64,11 +64,11 @@ func (cache *RedisFeedEventCache) SetFeedEvent(ctx context.Context, durationTime
 }
 
 // 直接在redis层筛选到期要发布的feed，应用层就直接发布不需要筛选
-func (cache *RedisFeedEventCache) GetMuxiToBePublicFeeds(ctx context.Context, isToPublic int) ([]MuxiOfficialMSG, error) {
+func (cache *RedisFeedEventCache) GetMuxiToBePublicFeeds(ctx context.Context, isToPublic bool) ([]MuxiOfficialMSG, error) {
 	zsetKey := cache.getPublicScoreKey()
-	prefix := cache.getPrefix("muxi")
+
 	var msgs []MuxiOfficialMSG
-	results, err := cache.cmd.Eval(ctx, getPublicFeedLua, []string{zsetKey, prefix}, time.Now().Unix(), isToPublic).Result()
+	results, err := cache.cmd.Eval(ctx, getPublicFeedLua, []string{zsetKey}, time.Now().Unix(), isToPublic).Result()
 	if err != nil {
 		return []MuxiOfficialMSG{}, err
 	}
@@ -97,7 +97,7 @@ func (cache *RedisFeedEventCache) GetMuxiToBePublicFeeds(ctx context.Context, is
 
 // 把publicTime从feedEvent中分离出来，作为score排序
 func (cache *RedisFeedEventCache) SetMuxiFeeds(ctx context.Context, feedEvent MuxiOfficialMSG, publicTime int64) error {
-	key := cache.getKey("muxi", feedEvent.MuxiMSGId)
+	key := feedEvent.MuxiMSGId
 	publicScoreKey := cache.getPublicScoreKey()
 
 	//把feedEvent存入redis
@@ -121,7 +121,7 @@ func (cache *RedisFeedEventCache) SetMuxiFeeds(ctx context.Context, feedEvent Mu
 }
 
 func (cache *RedisFeedEventCache) DelMuxiFeeds(ctx context.Context, id string) error {
-	key := cache.getKey("muxi", id)
+	key := id
 	publicScoreKey := cache.getPublicScoreKey()
 	_, err := cache.cmd.Eval(ctx, delFeedLua, []string{publicScoreKey, key}).Result()
 	if err != nil {

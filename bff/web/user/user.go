@@ -1,8 +1,11 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
+	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
@@ -18,13 +21,20 @@ import (
 // user板块的控制路由
 type UserHandler struct {
 	ijwt.Handler
-	userSvc userv1.UserServiceClient
+	userSvc         userv1.UserServiceClient
+	gradeGetter     GradeGetter
+	classListGetter ClassListGetter
 }
 
-func NewUserHandler(hdl ijwt.Handler, userSvc userv1.UserServiceClient) *UserHandler {
+func NewUserHandler(hdl ijwt.Handler, userSvc userv1.UserServiceClient, gradeClient gradev1.GradeServiceClient,
+	classerClient classlistv1.ClasserClient) *UserHandler {
+	gg := NewGradeGetter(gradeClient)
+	clg := NewClassListGetter(classerClient)
 	return &UserHandler{
-		Handler: hdl,
-		userSvc: userSvc,
+		Handler:         hdl,
+		userSvc:         userSvc,
+		gradeGetter:     gg,
+		classListGetter: clg,
 	}
 }
 
@@ -80,6 +90,9 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 	if err != nil {
 		return web.Response{}, errs.JWT_SYSTEM_ERROR(err)
 	}
+
+	h.classListGetter.PreGetClassList(context.Background(), req.StudentId)
+	h.gradeGetter.PreGetStudentGrade(context.Background(), req.StudentId)
 
 	return web.Response{
 		Msg: "Success",

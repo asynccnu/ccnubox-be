@@ -204,13 +204,14 @@ func InitCardHandler(client cardv1.CardClient) *card.CardHandler {
 		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
 
-func InitUserHandler(hdl ijwt.Handler, userClient userv1.UserServiceClient) *user.UserHandler {
+func InitUserHandler(hdl ijwt.Handler, userClient userv1.UserServiceClient, gradeClient gradev1.GradeServiceClient,
+	classListClient classlistv1.ClasserClient) *user.UserHandler {
 	var administrators []string
 	err := viper.UnmarshalKey("administrators", &administrators)
 	if err != nil {
 		panic(err)
 	}
-	return user.NewUserHandler(hdl, userClient)
+	return user.NewUserHandler(hdl, userClient, gradeClient, classListClient)
 }
 
 func InitLibraryHandler(client libraryv1.LibraryClient) *library.LibraryHandler {

@@ -56,7 +56,7 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		return &pb.GetClassResponse{}, errcode.ErrParam
 	}
 	pclasses := make([]*pb.Class, 0)
-	classInfos, lastTime, err := s.clu.GetClasses(ctx, req.GetStuId(), req.GetYear(), req.GetSemester(), req.GetRefresh())
+	classInfos, lastTime, err := s.clu.GetClasses(ctx, req.GetStuId(), "2025", "1", req.GetRefresh())
 	if err != nil {
 		return &pb.GetClassResponse{}, err
 	}

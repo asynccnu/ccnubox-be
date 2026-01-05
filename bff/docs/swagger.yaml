@@ -601,6 +601,8 @@ definitions:
     properties:
       energy:
         type: boolean
+      feed_back:
+        type: boolean
       grade:
         type: boolean
       holiday:
@@ -609,6 +611,7 @@ definitions:
         type: boolean
     required:
     - energy
+    - feed_back
     - grade
     - holiday
     - muxi
@@ -657,6 +660,8 @@ definitions:
     properties:
       energy:
         type: boolean
+      feed_back:
+        type: boolean
       grade:
         type: boolean
       holiday:
@@ -665,6 +670,7 @@ definitions:
         type: boolean
     required:
     - energy
+    - feed_back
     - grade
     - holiday
     - muxi
@@ -707,6 +713,22 @@ definitions:
     - id
     - public_time
     - title
+    type: object
+  feed.PublicFeedEventReq:
+    properties:
+      content:
+        type: string
+      student_id:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    required:
+    - content
+    - student_id
+    - title
+    - type
     type: object
   feed.PublicMuxiOfficialMSGReq:
     properties:
@@ -812,8 +834,10 @@ definitions:
         description: |-
           Utime      time.Time
           Ctime      time.Time
+        format: int64
         type: integer
       id:
+        format: int64
         type: integer
       question:
         type: string
@@ -874,8 +898,6 @@ definitions:
         items:
           type: string
         type: array
-    required:
-    - kcxzmc
     type: object
   grade.GetRankByTermReq:
     properties:
@@ -2604,6 +2626,41 @@ paths:
           schema:
             $ref: '#/definitions/web.Response'
       summary: 获取待发布的官方消息
+      tags:
+      - feed
+  /feed/publicFeedEvent:
+    post:
+      consumes:
+      - application/json
+      description: 发布消息
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 消息
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feed.PublicFeedEventReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "403":
+          description: 没有访问权限
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 发布消息
       tags:
       - feed
   /feed/publicMuxiOfficialMSG:

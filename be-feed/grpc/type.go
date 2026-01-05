@@ -13,6 +13,7 @@ func convAllowListFromGRPCToDomain(list *feedv1.AllowList) domain.AllowList {
 		Muxi:      list.Muxi,
 		Holiday:   list.Holiday,
 		Energy:    list.Energy,
+		FeedBack:  list.FeedBack,
 	}
 }
 
@@ -23,6 +24,7 @@ func convAllowListFromDomainToGRPC(list *domain.AllowList) *feedv1.AllowList {
 		Muxi:      list.Muxi,
 		Holiday:   list.Holiday,
 		Energy:    list.Energy,
+		FeedBack:  list.FeedBack,
 	}
 }
 

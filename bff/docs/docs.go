@@ -1902,6 +1902,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/feed/publicFeedEvent": {
+            "post": {
+                "description": "发布消息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed"
+                ],
+                "summary": "发布消息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "消息",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feed.PublicFeedEventReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "没有访问权限",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/feed/publicMuxiOfficialMSG": {
             "post": {
                 "description": "发布木犀官方消息，仅限管理员操作",
@@ -4644,12 +4697,16 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "energy",
+                "feed_back",
                 "grade",
                 "holiday",
                 "muxi"
             ],
             "properties": {
                 "energy": {
+                    "type": "boolean"
+                },
+                "feed_back": {
                     "type": "boolean"
                 },
                 "grade": {
@@ -4723,12 +4780,16 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "energy",
+                "feed_back",
                 "grade",
                 "holiday",
                 "muxi"
             ],
             "properties": {
                 "energy": {
+                    "type": "boolean"
+                },
+                "feed_back": {
                     "type": "boolean"
                 },
                 "grade": {
@@ -4795,6 +4856,29 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "feed.PublicFeedEventReq": {
+            "type": "object",
+            "required": [
+                "content",
+                "student_id",
+                "title",
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "student_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -4952,10 +5036,12 @@ const docTemplate = `{
                 },
                 "clickTimes": {
                     "description": "Utime      time.Time\nCtime      time.Time",
-                    "type": "integer"
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "question": {
                     "type": "string"
@@ -5038,9 +5124,6 @@ const docTemplate = `{
         },
         "grade.GetGradeTypeResp": {
             "type": "object",
-            "required": [
-                "kcxzmc"
-            ],
             "properties": {
                 "kcxzmc": {
                     "description": "课程类别",

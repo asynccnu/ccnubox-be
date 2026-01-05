@@ -36,6 +36,7 @@ func (h *FeedHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 	sg.POST("/publicMuxiOfficialMSG", authMiddleware, ginx.WrapClaimsAndReq(h.PublicMuxiOfficialMSG))
 	sg.POST("/stopMuxiOfficialMSG", authMiddleware, ginx.WrapClaimsAndReq(h.StopMuxiOfficialMSG))
 	sg.GET("/getToBePublicOfficialMSG", authMiddleware, ginx.WrapClaims(h.GetToBePublicOfficialMSG))
+	sg.POST("/publicFeedEvent", authMiddleware, ginx.WrapClaimsAndReq(h.PublicFeedEvent))
 }
 
 // GetFeedEvents
@@ -135,6 +136,7 @@ func (h *FeedHandler) ChangeFeedAllowList(ctx *gin.Context, req ChangeFeedAllowL
 			Muxi:      *req.Muxi,
 			Holiday:   *req.Holiday,
 			Energy:    *req.Energy,
+			FeedBack:  *req.FeedBack,
 		},
 	})
 	if err != nil {
@@ -163,10 +165,11 @@ func (h *FeedHandler) GetFeedAllowList(ctx *gin.Context, uc ijwt.UserClaims) (we
 	return web.Response{
 		Msg: "Success",
 		Data: GetFeedAllowListResp{
-			Grade:   allowlist.AllowList.Grade,
-			Muxi:    allowlist.AllowList.Muxi,
-			Holiday: allowlist.AllowList.Holiday,
-			Energy:  allowlist.AllowList.Energy,
+			Grade:    allowlist.AllowList.Grade,
+			Muxi:     allowlist.AllowList.Muxi,
+			Holiday:  allowlist.AllowList.Holiday,
+			Energy:   allowlist.AllowList.Energy,
+			FeedBack: allowlist.AllowList.FeedBack,
 		},
 	}, nil
 }
@@ -310,6 +313,38 @@ func (h *FeedHandler) GetToBePublicOfficialMSG(ctx *gin.Context, uc ijwt.UserCla
 	return web.Response{
 		Msg:  "Success",
 		Data: response,
+	}, nil
+}
+
+// PublicFeedEvent
+// @Summary 发布消息
+// @Description 发布消息
+// @Tags feed
+// @Accept  json
+// @Produce  json
+// @Param Authorization header string true "Bearer Token"
+// @Param data body PublicFeedEventReq true "消息"
+// @Success 200 {object} web.Response "成功"
+// @Failure 403 {object} web.Response "没有访问权限"
+// @Failure 500 {object} web.Response "系统异常"
+// @Router /feed/publicFeedEvent [post]
+func (h *FeedHandler) PublicFeedEvent(ctx *gin.Context, req PublicFeedEventReq, uc ijwt.UserClaims) (web.Response, error) {
+	if !h.isAdmin(uc.StudentId) {
+		return web.Response{}, errs.ROLE_ERROR(fmt.Errorf("没有访问权限: %s", uc.StudentId))
+	}
+	_, err := h.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
+		StudentId: req.StudentId,
+		Event: &feedv1.FeedEvent{
+			Type:    req.Type,
+			Title:   req.Title,
+			Content: req.Content,
+		},
+	})
+	if err != nil {
+		return web.Response{}, errs.PUBLIC_FEED_EVENT_ERROR(fmt.Errorf("发布消息失败：%v", err))
+	}
+	return web.Response{
+		Msg: "Success",
 	}, nil
 }
 

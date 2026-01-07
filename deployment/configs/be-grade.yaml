@@ -11,6 +11,10 @@ etcd:
   username: root
   password: "12345678"
 
+kafka:
+  addrs:
+    - "localhost:9094"
+
 grpc:
   server:
     name: "grade"

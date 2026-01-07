@@ -1,6 +1,7 @@
 package ioc
 
 import (
+	"fmt"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/spf13/viper"
@@ -18,9 +19,9 @@ func InitDB(l logger.Logger) *gorm.DB {
 		panic(err)
 	}
 	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{
-		Logger: glogger.New(gormLoggerFunc(l.Debug), glogger.Config{
+		Logger: glogger.New(gormLoggerFunc(l.Info), glogger.Config{
 			SlowThreshold: 0,
-			LogLevel:      glogger.Info, // 以Debug模式打印所有Info级别能产生的gorm日志
+			LogLevel:      glogger.Info,
 		}),
 	})
 	if err != nil {
@@ -36,5 +37,5 @@ func InitDB(l logger.Logger) *gorm.DB {
 type gormLoggerFunc func(msg string, fields ...logger.Field)
 
 func (g gormLoggerFunc) Printf(s string, i ...interface{}) {
-	g(s, logger.Field{Key: "args", Val: i})
+	g(s, logger.Field{Key: "args", Val: fmt.Sprint(i)})
 }

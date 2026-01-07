@@ -2,6 +2,7 @@ package service
 
 import (
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -164,6 +165,10 @@ func aggregateGradeScore(grades []model.Grade) []domain.TypeOfGradeScore {
 			GradeScoreList: value,
 		})
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Kcxzmc < result[j].Kcxzmc
+	})
 
 	return result
 }

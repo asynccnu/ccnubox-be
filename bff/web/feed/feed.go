@@ -24,7 +24,7 @@ func NewFeedHandler(feedClient feedv1.FeedServiceClient,
 	return &FeedHandler{feedClient: feedClient, Administrators: administrators}
 }
 
-func (h *FeedHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
+func (h *FeedHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.HandlerFunc, basicMiddleware gin.HandlerFunc) {
 	sg := s.Group("/feed")
 	sg.GET("/getFeedEvents", authMiddleware, ginx.WrapClaims(h.GetFeedEvents))
 	sg.POST("/clearFeedEvent", authMiddleware, ginx.WrapClaimsAndReq(h.ClearFeedEvent))
@@ -36,7 +36,7 @@ func (h *FeedHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 	sg.POST("/publicMuxiOfficialMSG", authMiddleware, ginx.WrapClaimsAndReq(h.PublicMuxiOfficialMSG))
 	sg.POST("/stopMuxiOfficialMSG", authMiddleware, ginx.WrapClaimsAndReq(h.StopMuxiOfficialMSG))
 	sg.GET("/getToBePublicOfficialMSG", authMiddleware, ginx.WrapClaims(h.GetToBePublicOfficialMSG))
-	sg.POST("/publicFeedEvent", authMiddleware, ginx.WrapClaimsAndReq(h.PublicFeedEvent))
+	sg.POST("/publicFeedEvent", basicMiddleware, ginx.WrapReq(h.PublicFeedEvent))
 }
 
 // GetFeedEvents
@@ -322,16 +322,13 @@ func (h *FeedHandler) GetToBePublicOfficialMSG(ctx *gin.Context, uc ijwt.UserCla
 // @Tags feed
 // @Accept  json
 // @Produce  json
-// @Param Authorization header string true "Bearer Token"
+// @Security BasicAuth
 // @Param data body PublicFeedEventReq true "消息"
 // @Success 200 {object} web.Response "成功"
 // @Failure 403 {object} web.Response "没有访问权限"
 // @Failure 500 {object} web.Response "系统异常"
 // @Router /feed/publicFeedEvent [post]
-func (h *FeedHandler) PublicFeedEvent(ctx *gin.Context, req PublicFeedEventReq, uc ijwt.UserClaims) (web.Response, error) {
-	if !h.isAdmin(uc.StudentId) {
-		return web.Response{}, errs.ROLE_ERROR(fmt.Errorf("没有访问权限: %s", uc.StudentId))
-	}
+func (h *FeedHandler) PublicFeedEvent(ctx *gin.Context, req PublicFeedEventReq) (web.Response, error) {
 	_, err := h.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 		StudentId: req.StudentId,
 		Event: &feedv1.FeedEvent{

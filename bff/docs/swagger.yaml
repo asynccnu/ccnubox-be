@@ -2634,11 +2634,6 @@ paths:
       - application/json
       description: 发布消息
       parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: 消息
         in: body
         name: data
@@ -2660,6 +2655,8 @@ paths:
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
+      security:
+      - BasicAuth: []
       summary: 发布消息
       tags:
       - feed

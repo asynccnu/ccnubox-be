@@ -12,6 +12,10 @@ import (
 
 var passwordReg = regexp.MustCompile(`(password:")([^"]*)(")`)
 
+var passwordSQLReg = regexp.MustCompile(
+	"(`password`\\s*=\\s*')([^']*)(')",
+)
+
 func InitLogger() logger.Logger {
 	// 直接使用 zap 本身的配置结构体来处理
 	// 配置Lumberjack以支持日志文件的滚动
@@ -57,6 +61,17 @@ func InitLogger() logger.Logger {
 		}
 
 		masked := passwordReg.ReplaceAllString(val, `$1***$3`)
+		return masked, true
+	}), logger.FilterFunc(func(level logger.Level, key, val string) (string, bool) {
+		if key != "args" {
+			return val, false
+		}
+
+		if !strings.Contains(val, "password") {
+			return val, false
+		}
+
+		masked := passwordSQLReg.ReplaceAllString(val, `$1***$3`)
 		return masked, true
 	}))
 }

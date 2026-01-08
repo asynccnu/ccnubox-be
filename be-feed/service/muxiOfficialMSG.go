@@ -29,7 +29,7 @@ var (
 	}
 
 	REMOVE_MUXI_FEED_ERROR = func(err error) error {
-		return errorx.New(feedv1.ErrorRemoveMuxiFeedError("删除木犀消息"), "cache", err)
+		return errorx.New(feedv1.ErrorRemoveMuxiFeedError("删除木犀消息失败"), "cache", err)
 	}
 )
 
@@ -68,7 +68,6 @@ func (s *muxiOfficialMSGService) PublicMuxiOfficialMSG(ctx context.Context, msg 
 		Title:        msg.Title,
 		Content:      msg.Content,
 		ExtendFields: model.ExtendFields(msg.ExtendFields),
-		//PublicTime:   msg.PublicTime, //获取将要发表的时间
 	}
 
 	err := s.feedEventCache.SetMuxiFeeds(ctx, feed, msg.PublicTime)
@@ -85,7 +84,7 @@ func (s *muxiOfficialMSGService) StopMuxiOfficialMSG(ctx context.Context, MSGId 
 
 	err := s.feedEventCache.DelMuxiFeeds(ctx, MSGId)
 	if err != nil {
-		return err
+		return REMOVE_MUXI_FEED_ERROR(err)
 	}
 	return nil
 }

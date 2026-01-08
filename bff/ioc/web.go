@@ -83,7 +83,7 @@ func InitGinServer(
 	department.RegisterRoutes(api, authMiddleware)
 	website.RegisterRoutes(api, authMiddleware)
 	calendar.RegisterRoutes(api, authMiddleware)
-	feed.RegisterRoutes(api, authMiddleware)
+	feed.RegisterRoutes(api, authMiddleware, basicAuthMiddleware.MiddlewareFunc())
 	elecprice.RegisterRoutes(api, authMiddleware)
 	class.RegisterRoutes(api, authMiddleware)
 	feedback.RegisterRoutes(api, authMiddleware)

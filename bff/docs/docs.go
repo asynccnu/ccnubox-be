@@ -1904,6 +1904,11 @@ const docTemplate = `{
         },
         "/feed/publicFeedEvent": {
             "post": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "发布消息",
                 "consumes": [
                     "application/json"
@@ -1916,13 +1921,6 @@ const docTemplate = `{
                 ],
                 "summary": "发布消息",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "description": "消息",
                         "name": "data",

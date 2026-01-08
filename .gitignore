@@ -47,3 +47,6 @@ deployment/docker/logs
 
 test.sh
 test.yaml
+
+config-local.yaml
+

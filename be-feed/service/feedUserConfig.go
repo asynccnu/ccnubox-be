@@ -23,10 +23,11 @@ type FeedUserConfigService interface {
 
 // 使用封装好的 map 获取对应位的位置信息
 var configMap = map[string]int{
-	"muxi":    model.MuxiPos,
-	"grade":   model.GradePos,
-	"energy":  model.EnergyPos,
-	"holiday": model.HolidayPos,
+	"muxi":      model.MuxiPos,
+	"grade":     model.GradePos,
+	"energy":    model.EnergyPos,
+	"holiday":   model.HolidayPos,
+	"feed_back": model.FeedBackPos,
 }
 
 type feedUserConfigService struct {
@@ -74,10 +75,11 @@ func (s *feedUserConfigService) ChangeAllowList(ctx context.Context, req domain.
 
 	// 定义映射关系：字段名 -> 对应的 bit 位
 	bitMap := map[string]int{
-		"Grade":   model.GradePos,
-		"Muxi":    model.MuxiPos,
-		"Holiday": model.HolidayPos,
-		"Energy":  model.EnergyPos,
+		"Grade":    model.GradePos,
+		"Muxi":     model.MuxiPos,
+		"Holiday":  model.HolidayPos,
+		"Energy":   model.EnergyPos,
+		"FeedBack": model.FeedBackPos,
 	}
 
 	// 反射获取字段值，并修改 pushConfig
@@ -114,6 +116,7 @@ func (s *feedUserConfigService) GetFeedAllowList(ctx context.Context, studentId 
 		Muxi:      s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.MuxiPos),
 		Holiday:   s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.HolidayPos),
 		Energy:    s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.EnergyPos),
+		FeedBack:  s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.FeedBackPos),
 	}, nil
 }
 

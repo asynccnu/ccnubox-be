@@ -38,18 +38,25 @@ type ReadFeedEventReq struct {
 	FeedId int64 `json:"feed_id" binding:"required"`
 }
 
+// 要传bool指针，否则只要布尔值为false，binding就会报错（因为required检验的是零值）
 type ChangeFeedAllowListReq struct {
-	Grade   bool `json:"grade" binding:"required"`
-	Muxi    bool `json:"muxi" binding:"required"`
-	Holiday bool `json:"holiday" binding:"required"`
-	Energy  bool `json:"energy" binding:"required"`
+	Grade    *bool `json:"grade" binding:"required"`
+	Muxi     *bool `json:"muxi" binding:"required"`
+	Holiday  *bool `json:"holiday" binding:"required"`
+	Energy   *bool `json:"energy" binding:"required"`
+	FeedBack *bool `json:"feed_back" binding:"required"`
 }
 
 type GetFeedAllowListResp struct {
-	Grade   bool `json:"grade" `
-	Muxi    bool `json:"muxi" `
-	Holiday bool `json:"holiday" `
-	Energy  bool `json:"energy" `
+	Grade    bool `json:"grade"`
+	Muxi     bool `json:"muxi"`
+	Holiday  bool `json:"holiday"`
+	Energy   bool `json:"energy"`
+	FeedBack bool `json:"feed_back"`
+}
+
+type ChangeElectricityStandardReq struct {
+	ElectricityStandard bool `json:"electricity_standard" binding:"required"`
 }
 
 type SaveFeedTokenReq struct {
@@ -81,4 +88,11 @@ type StopMuxiOfficialMSGReq struct {
 
 type GetToBePublicMuxiOfficialMSGResp struct {
 	MSGList []MuxiOfficialMSG `json:"msg_list"`
+}
+
+type PublicFeedEventReq struct {
+	StudentId string `json:"student_id" binding:"required"`
+	Type      string `json:"type" binding:"required"`
+	Title     string `json:"title" binding:"required"`
+	Content   string `json:"content" binding:"required"`
 }

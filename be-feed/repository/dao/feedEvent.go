@@ -2,9 +2,10 @@ package dao
 
 import (
 	"context"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"gorm.io/gorm"
-	"time"
 )
 
 // feedEvent由于使用了表名进行查询,gorm的自动处理时间的作用将失效
@@ -66,11 +67,11 @@ func (dao *feedEventDAO) RemoveFeedEvent(ctx context.Context, studentId string, 
 	}
 
 	if status == "read" {
-		query = query.Where("read = ?", true)
+		query = query.Where("`read` = ?", true)
 	} else if status == "all" {
 		//省略操作
 	} else {
-		query = query.Where("read = ?", false)
+		query = query.Where("`read` = ?", false)
 	}
 
 	return query.Update("deleted_at", time.Now()).Error

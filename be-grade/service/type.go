@@ -2,6 +2,7 @@ package service
 
 import (
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -11,8 +12,8 @@ import (
 )
 
 const (
-	RegularGradePercentMSG = "平时成绩缺失"
-	FinalGradePercentMAG   = "期末成绩缺失"
+	RegularGradePercentMSG = "未知"
+	FinalGradePercentMAG   = "未知"
 )
 
 func modelConvDomain(grades []model.Grade) []domain.Grade {
@@ -165,6 +166,10 @@ func aggregateGradeScore(grades []model.Grade) []domain.TypeOfGradeScore {
 		})
 	}
 
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Kcxzmc < result[j].Kcxzmc
+	})
+
 	return result
 }
 
@@ -250,8 +255,8 @@ func ConvertGraduateGrade(graduateGrade []crawler.GraduatePoints) []model.Grade 
 			Xnm:       parseInt64(p.Xnm),
 			Xqm:       xqm,
 			Xf:        parseFloat32(p.Xf),
-			Kcxzmc:    p.Kcxzmc,
-			Kclbmc:    p.Kclbmc,
+			Kcxzmc:    p.Kclbmc,
+			Kclbmc:    p.Kcxzmc,
 			Kcbj:      p.Kcbj,
 			Jd:        parseFloat32(p.Jd),
 			Cj:        parseFloat32(p.Cj),
@@ -274,23 +279,4 @@ func parseFloat32(value string) float32 {
 		return float32(i)
 	}
 	return 0
-}
-
-func modelGraduateConvDomain(grades []model.Grade) []domain.Grade {
-	res := make([]domain.Grade, 0, len(grades))
-	for _, g := range grades {
-		res = append(res, domain.Grade{
-			Xnm:    g.Xnm,
-			Xqm:    g.Xqm,
-			JxbId:  g.JxbId,
-			Kcmc:   g.Kcmc,
-			Xf:     g.Xf,
-			Cj:     g.Cj,
-			Kcxzmc: g.Kcxzmc,
-			Kclbmc: g.Kclbmc,
-			Kcbj:   g.Kcbj,
-			Jd:     g.Jd,
-		})
-	}
-	return res
 }

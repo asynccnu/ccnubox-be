@@ -4684,7 +4684,7 @@
             "type": "object",
             "required": [
                 "energy",
-                "feed_back",
+                "feedback",
                 "grade",
                 "holiday",
                 "muxi"
@@ -4693,7 +4693,7 @@
                 "energy": {
                     "type": "boolean"
                 },
-                "feed_back": {
+                "feedback": {
                     "type": "boolean"
                 },
                 "grade": {
@@ -4709,10 +4709,6 @@
         },
         "feed.ClearFeedEventReq": {
             "type": "object",
-            "required": [
-                "feed_id",
-                "status"
-            ],
             "properties": {
                 "feed_id": {
                     "description": "如果feedid和status都被填写了,那么就会清除当前的feedid代表的feed消息且状态为设置的status的",
@@ -4726,15 +4722,6 @@
         },
         "feed.FeedEventVO": {
             "type": "object",
-            "required": [
-                "content",
-                "created_at",
-                "extend_fields",
-                "id",
-                "read",
-                "title",
-                "type"
-            ],
             "properties": {
                 "content": {
                     "type": "string"
@@ -4765,13 +4752,6 @@
         },
         "feed.GetFeedAllowListResp": {
             "type": "object",
-            "required": [
-                "energy",
-                "feed_back",
-                "grade",
-                "holiday",
-                "muxi"
-            ],
             "properties": {
                 "energy": {
                     "type": "boolean"
@@ -4803,9 +4783,6 @@
         },
         "feed.GetToBePublicMuxiOfficialMSGResp": {
             "type": "object",
-            "required": [
-                "msg_list"
-            ],
             "properties": {
                 "msg_list": {
                     "type": "array",
@@ -4817,13 +4794,6 @@
         },
         "feed.MuxiOfficialMSG": {
             "type": "object",
-            "required": [
-                "content",
-                "extend_fields",
-                "id",
-                "public_time",
-                "title"
-            ],
             "properties": {
                 "content": {
                     "type": "string"
@@ -4872,12 +4842,6 @@
         },
         "feed.PublicMuxiOfficialMSGReq": {
             "type": "object",
-            "required": [
-                "content",
-                "extend_fields",
-                "later_time",
-                "title"
-            ],
             "properties": {
                 "content": {
                     "type": "string"
@@ -4899,13 +4863,6 @@
         },
         "feed.PublicMuxiOfficialMSGResp": {
             "type": "object",
-            "required": [
-                "content",
-                "extend_fields",
-                "id",
-                "public_time",
-                "title"
-            ],
             "properties": {
                 "content": {
                     "type": "string"

@@ -601,7 +601,7 @@ definitions:
     properties:
       energy:
         type: boolean
-      feed_back:
+      feedback:
         type: boolean
       grade:
         type: boolean
@@ -611,7 +611,7 @@ definitions:
         type: boolean
     required:
     - energy
-    - feed_back
+    - feedback
     - grade
     - holiday
     - muxi
@@ -624,9 +624,6 @@ definitions:
       status:
         description: 有三个可选字段all表示清除所有消息,read表示清除所有已读消息,unread表示清除所有未读消息
         type: string
-    required:
-    - feed_id
-    - status
     type: object
   feed.FeedEventVO:
     properties:
@@ -647,14 +644,6 @@ definitions:
         type: string
       type:
         type: string
-    required:
-    - content
-    - created_at
-    - extend_fields
-    - id
-    - read
-    - title
-    - type
     type: object
   feed.GetFeedAllowListResp:
     properties:
@@ -668,12 +657,6 @@ definitions:
         type: boolean
       muxi:
         type: boolean
-    required:
-    - energy
-    - feed_back
-    - grade
-    - holiday
-    - muxi
     type: object
   feed.GetFeedEventsResp:
     properties:
@@ -688,8 +671,6 @@ definitions:
         items:
           $ref: '#/definitions/feed.MuxiOfficialMSG'
         type: array
-    required:
-    - msg_list
     type: object
   feed.MuxiOfficialMSG:
     properties:
@@ -707,12 +688,6 @@ definitions:
         type: integer
       title:
         type: string
-    required:
-    - content
-    - extend_fields
-    - id
-    - public_time
-    - title
     type: object
   feed.PublicFeedEventReq:
     properties:
@@ -743,11 +718,6 @@ definitions:
         type: integer
       title:
         type: string
-    required:
-    - content
-    - extend_fields
-    - later_time
-    - title
     type: object
   feed.PublicMuxiOfficialMSGResp:
     properties:
@@ -763,12 +733,6 @@ definitions:
         type: string
       title:
         type: string
-    required:
-    - content
-    - extend_fields
-    - id
-    - public_time
-    - title
     type: object
   feed.ReadFeedEventReq:
     properties:

@@ -44,7 +44,7 @@ type ChangeFeedAllowListReq struct {
 	Muxi     *bool `json:"muxi" binding:"required"`
 	Holiday  *bool `json:"holiday" binding:"required"`
 	Energy   *bool `json:"energy" binding:"required"`
-	FeedBack *bool `json:"feed_back" binding:"required"`
+	FeedBack *bool `json:"feedback" binding:"required"`
 }
 
 type GetFeedAllowListResp struct {

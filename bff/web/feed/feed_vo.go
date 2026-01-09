@@ -30,8 +30,8 @@ type MuxiOfficialMSG struct {
 }
 
 type ClearFeedEventReq struct {
-	FeedId int64  `json:"feed_id" binding:"required"` //如果feedid和status都被填写了,那么就会清除当前的feedid代表的feed消息且状态为设置的status的
-	Status string `json:"status" binding:"required"`  //有三个可选字段all表示清除所有消息,read表示清除所有已读消息,unread表示清除所有未读消息
+	FeedId int64  `json:"feed_id"` //如果feedid和status都被填写了,那么就会清除当前的feedid代表的feed消息且状态为设置的status的
+	Status string `json:"status"`  //有三个可选字段all表示清除所有消息,read表示清除所有已读消息,unread表示清除所有未读消息
 }
 
 type ReadFeedEventReq struct {

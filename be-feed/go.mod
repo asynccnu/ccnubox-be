@@ -8,7 +8,6 @@ require (
 	github.com/IBM/sarama v1.46.3
 	github.com/Scorpio69t/jpush-api-golang-client v1.1.0
 	github.com/asynccnu/ccnubox-be/common v0.0.0-00010101000000-000000000000
-	github.com/asynccnu/ccnubox-be/common/be-api v0.0.0-20251211145404-d4de3a16d96c
 	github.com/ecodeclub/ekit v0.0.10
 	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/google/wire v0.7.0
@@ -19,7 +18,6 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.7
 	go.uber.org/zap v1.27.1
 	golang.org/x/exp v0.0.0-20251209150349-8475f28825e9
-	google.golang.org/grpc v1.77.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.31.1
@@ -81,6 +79,7 @@ require (
 	golang.org/x/text v0.32.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
+	google.golang.org/grpc v1.77.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -201,14 +201,6 @@ services:
     volumes:
       - ./logs/be-user/:/logs/
       - ./configs/be-user.yaml:/data/conf/config.yaml
-  be-website:
-    container_name: be-website
-    image: be-website:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/be-website/:/logs/
-      - ./configs/be-website.yaml:/data/conf/config.yaml
   be-proxy:
     container_name: be-proxy
     image: be-proxy:v1

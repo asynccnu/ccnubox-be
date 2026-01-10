@@ -1,25 +1,18 @@
 package ioc
 
 import (
-	"github.com/asynccnu/ccnubox-be/bff/web/banner"
-	"github.com/asynccnu/ccnubox-be/bff/web/calendar"
-	"github.com/asynccnu/ccnubox-be/bff/web/card"
 	"github.com/asynccnu/ccnubox-be/bff/web/class"
 	"github.com/asynccnu/ccnubox-be/bff/web/classroom"
-	"github.com/asynccnu/ccnubox-be/bff/web/department"
+	"github.com/asynccnu/ccnubox-be/bff/web/content"
 	"github.com/asynccnu/ccnubox-be/bff/web/elecprice"
 	"github.com/asynccnu/ccnubox-be/bff/web/feed"
-	"github.com/asynccnu/ccnubox-be/bff/web/feedback_help"
 	"github.com/asynccnu/ccnubox-be/bff/web/grade"
-	"github.com/asynccnu/ccnubox-be/bff/web/infoSum"
 	"github.com/asynccnu/ccnubox-be/bff/web/library"
 	"github.com/asynccnu/ccnubox-be/bff/web/metrics"
 	"github.com/asynccnu/ccnubox-be/bff/web/middleware"
-	"github.com/asynccnu/ccnubox-be/bff/web/static"
 	"github.com/asynccnu/ccnubox-be/bff/web/swag"
 	"github.com/asynccnu/ccnubox-be/bff/web/tube"
 	"github.com/asynccnu/ccnubox-be/bff/web/user"
-	"github.com/asynccnu/ccnubox-be/bff/web/website"
 	"github.com/gin-gonic/gin"
 )
 
@@ -33,18 +26,11 @@ func InitGinServer(
 	classroom *classroom.ClassRoomHandler,
 	tube *tube.TubeHandler,
 	user *user.UserHandler,
-	static *static.StaticHandler,
-	banner *banner.BannerHandler,
-	department *department.DepartmentHandler,
-	website *website.WebsiteHandler,
-	calendar *calendar.CalendarHandler,
 	feed *feed.FeedHandler,
-	elecprice *elecprice.ElecPriceHandler, // 添加你的服务handler
+	elecprice *elecprice.ElecPriceHandler,
 	grade *grade.GradeHandler,
 	class *class.ClassHandler,
-	feedback *feedback_help.FeedbackHelpHandler,
-	infoSum *infoSum.InfoSumHandler,
-	card *card.CardHandler,
+	content *content.ContentHandler,
 	metrics *metrics.MetricsHandler,
 	library *library.LibraryHandler,
 	swag *swag.SwagHandler,
@@ -78,18 +64,11 @@ func InitGinServer(
 
 	// 注册一堆路由
 	user.RegisterRoutes(api, authMiddleware)
-	static.RegisterRoutes(api, authMiddleware)
-	banner.RegisterRoutes(api, authMiddleware)
-	department.RegisterRoutes(api, authMiddleware)
-	website.RegisterRoutes(api, authMiddleware)
-	calendar.RegisterRoutes(api, authMiddleware)
+	content.RegisterRoutes(api, authMiddleware)
 	feed.RegisterRoutes(api, authMiddleware, basicAuthMiddleware.MiddlewareFunc())
 	elecprice.RegisterRoutes(api, authMiddleware)
 	class.RegisterRoutes(api, authMiddleware)
-	feedback.RegisterRoutes(api, authMiddleware)
-	infoSum.RegisterRoutes(api, authMiddleware)
 	grade.RegisterRoutes(api, authMiddleware)
-	card.RegisterRoute(api, authMiddleware)
 	tube.RegisterRoutes(api, authMiddleware, basicAuthMiddleware.MiddlewareFunc())
 	metrics.RegisterRoutes(api, basicAuthMiddleware.MiddlewareFunc(), authMiddleware)
 	classroom.RegisterRoutes(api, authMiddleware)

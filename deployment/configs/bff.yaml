@@ -25,36 +25,23 @@ grpc:
       retryCnt: 3    # 具备重试装饰时的重试次数
     user:
       endpoint: "discovery:///user"
-    static:
-      endpoint: "discovery:///static"
     feed:
       endpoint: "discovery:///feed"
-    banner:
-      endpoint: "discovery:///banner"
-    calendar:
-      endpoint: "discovery:///calendar"
-    department:
-      endpoint: "discovery:///department"
-    website:
-      endpoint: "discovery:///website"
+    content:
+      endpoint: "discovery:///content"
     elecprice:
       endpoint: "discovery:///elecprice"
     classlist:
       endpoint: "discovery:///classlist"
     classService:
       endpoint: "discovery:///class"
-    feedbackHelp:
-      endpoint: "discovery:///feedback_help"
     grade:
       endpoint: "discovery:///grade"
     library:
       endpoint: "discovery:///library"
-    infoSum:
-      endpoint: "discovery:///info_sum"
     counter:
       endpoint: "discovery:///counter"
-    card:
-      endpoint: "discovery:///card"
+
 
 jwt:
   jwtKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"

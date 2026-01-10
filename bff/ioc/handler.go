@@ -1,42 +1,27 @@
 package ioc
 
 import (
-	"github.com/asynccnu/ccnubox-be/bff/pkg/htmlx"
-	"github.com/asynccnu/ccnubox-be/bff/web/banner"
-	"github.com/asynccnu/ccnubox-be/bff/web/calendar"
-	"github.com/asynccnu/ccnubox-be/bff/web/card"
 	"github.com/asynccnu/ccnubox-be/bff/web/class"
 	"github.com/asynccnu/ccnubox-be/bff/web/classroom"
-	"github.com/asynccnu/ccnubox-be/bff/web/department"
+	"github.com/asynccnu/ccnubox-be/bff/web/content"
 	"github.com/asynccnu/ccnubox-be/bff/web/elecprice"
 	"github.com/asynccnu/ccnubox-be/bff/web/feed"
-	"github.com/asynccnu/ccnubox-be/bff/web/feedback_help"
 	"github.com/asynccnu/ccnubox-be/bff/web/grade"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	"github.com/asynccnu/ccnubox-be/bff/web/infoSum"
 	"github.com/asynccnu/ccnubox-be/bff/web/library"
 	"github.com/asynccnu/ccnubox-be/bff/web/metrics"
-	"github.com/asynccnu/ccnubox-be/bff/web/static"
 	"github.com/asynccnu/ccnubox-be/bff/web/swag"
 	"github.com/asynccnu/ccnubox-be/bff/web/tube"
 	"github.com/asynccnu/ccnubox-be/bff/web/user"
-	"github.com/asynccnu/ccnubox-be/bff/web/website"
-	bannerv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/banner/v1"
-	calendarv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/calendar/v1"
-	cardv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/card/v1"
 	cs "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classService/v1"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
+	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
 	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
-	departmentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/department/v1"
 	elecpricev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/elecprice/v1"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
-	feedbackv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feedback_help/v1"
 	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
-	infoSumv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/infoSum/v1"
 	libraryv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
-	staticv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/static/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
-	websitev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/website/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/prometheusx"
 	"github.com/ecodeclub/ekit/slice"
@@ -45,85 +30,19 @@ import (
 	"github.com/spf13/viper"
 )
 
-func InitStaticHandler(
-	staticClient staticv1.StaticServiceClient) *static.StaticHandler {
+// InitContentHandler 初始化 ContentHandler
+func InitContentHandler(
+	contentClient contentv1.ContentServiceClient,
+	userClient userv1.UserServiceClient,
+) *content.ContentHandler {
 	var administrators []string
 	err := viper.UnmarshalKey("administrators", &administrators)
 	if err != nil {
 		panic(err)
 	}
-	return static.NewStaticHandler(staticClient,
-		map[string]htmlx.FileToHTMLConverter{},
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
-			return element, struct{}{}
-		}))
-}
-
-// InitCalendarHandler 初始化 CalendarHandler
-func InitCalendarHandler(
-	calendarClient calendarv1.CalendarServiceClient) *calendar.CalendarHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
-	return calendar.NewCalendarHandler(calendarClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
-			return element, struct{}{}
-		}))
-}
-
-// InitBannerHandler 初始化 BannerHandler
-func InitBannerHandler(
-	bannerClient bannerv1.BannerServiceClient, userClient userv1.UserServiceClient) *banner.BannerHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
-	return banner.NewBannerHandler(bannerClient, userClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
-			return element, struct{}{}
-		}))
-}
-
-// InitWebsiteHandler 初始化 WebsiteHandler
-func InitWebsiteHandler(
-	websiteClient websitev1.WebsiteServiceClient) *website.WebsiteHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
-	return website.NewWebsiteHandler(websiteClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
-			return element, struct{}{}
-		}))
-}
-
-// InitInfoSumHandler 初始化 InfoSumHandler
-func InitInfoSumHandler(
-	infoSumClient infoSumv1.InfoSumServiceClient) *infoSum.InfoSumHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
-	return infoSum.NewInfoSumHandler(infoSumClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
-			return element, struct{}{}
-		}))
-}
-
-// InitDepartmentHandler 初始化 DepartmentHandler
-func InitDepartmentHandler(
-	departmentClient departmentv1.DepartmentServiceClient) *department.DepartmentHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
-	return department.NewDepartmentHandler(departmentClient,
+	return content.NewContentHandler(
+		contentClient,
+		userClient,
 		slice.ToMapV(administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
@@ -182,26 +101,6 @@ func InitGradeHandler(l logger.Logger, gradeClient gradev1.GradeServiceClient, c
 		l,
 		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }),
 	)
-}
-
-func InitFeedbackHelpHandler(client feedbackv1.FeedbackHelpClient) *feedback_help.FeedbackHelpHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
-	return feedback_help.NewFeedbackHelpHandler(client,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
-}
-
-func InitCardHandler(client cardv1.CardClient) *card.CardHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
-	return card.NewCardHandler(client,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
 
 func InitUserHandler(hdl ijwt.Handler, userClient userv1.UserServiceClient, gradeClient gradev1.GradeServiceClient,

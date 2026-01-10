@@ -33,7 +33,7 @@ func InitPrometheus() *prometheusx.PrometheusCounter {
 	}
 
 	var conf PrometheusConfig
-	// 解析配置文件获取 banner 的位置
+	// 解析配置文件获取 content 的位置
 	err := viper.UnmarshalKey("prometheus", &conf)
 	if err != nil {
 		panic(err)

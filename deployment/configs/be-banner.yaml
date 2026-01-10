@@ -1,6 +1,6 @@
 grpc:
   server:
-    name: "banner"
+    name: "content"
     weight: 100
     addr: ":19080"
     etcdTTL: 60

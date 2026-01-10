@@ -10,18 +10,14 @@ trap 'echo "Script interrupted."; exit 1' SIGINT
 # shellcheck disable=SC2034
 ds=(
   "be-banner"
-  "be-calendar"
   "be-ccnu"
   "be-class"
   "be-classlist"
   "be-counter"
-  "be-department"
   "be-elecprice"
   "be-feed"
   "be-grade"
   "be-library"
-  "be-infosum"
-  "be-website"
   "bff"
 )
 

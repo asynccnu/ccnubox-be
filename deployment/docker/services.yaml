@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   be-banner:
-    container_name: be-banner
+    container_name: be-content
     image: be-banner:v1
     restart: "always"
     networks:
@@ -10,8 +10,8 @@ services:
     ports:
       - "19080:19080" # 请在此填写端口映射，例如 "8081:8081"
     volumes:
-      - ../logs/be-banner/:/logs/
-      - ../configs/be-banner.yaml:/data/conf/config.yaml
+      - ../logs/be-content/:/logs/
+      - ../configs/be-content.yaml:/data/conf/config.yaml
 
   be-calendar:
     container_name: be-calendar

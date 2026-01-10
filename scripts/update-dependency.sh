@@ -4,19 +4,15 @@
 
 ds=(
   "common"
-  "be-banner"
   "be-calendar"
   "be-ccnu"
   "be-class"
   "be-classlist"
   "be-counter"
-  "be-department"
   "be-elecprice"
   "be-feed"
   "be-grade"
   "be-library"
-  "be-infosum"
-  "be-website"
   "be-user"
   "bff"
 )

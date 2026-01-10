@@ -16,8 +16,7 @@ import (
 
 // FeedEventService
 type FeedEventService interface {
-	GetFeedEvents(ctx context.Context, studentId string) (
-		feedEvents []domain.FeedEventVO, fail []domain.FeedEvent, err error)
+	GetFeedEvents(ctx context.Context, studentId string) (feedEvents []domain.FeedEventVO, fail []domain.FeedEvent, err error)
 	ReadFeedEvent(ctx context.Context, id int64) error
 	ClearFeedEvent(ctx context.Context, studentId string, feedId int64, status string) error
 	InsertEventList(ctx context.Context, feedEvents []domain.FeedEvent) []error

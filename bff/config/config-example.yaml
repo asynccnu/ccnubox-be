@@ -30,7 +30,7 @@ grpc:
     feed:
       endpoint: "discovery:///feed"
     banner:
-      endpoint: "discovery:///banner"
+      endpoint: "discovery:///content"
     calendar:
       endpoint: "discovery:///calendar"
     department:

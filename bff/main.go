@@ -13,7 +13,6 @@ import (
 
 func main() {
 	initViper() // 初始化 viper 以读取配置文件
-
 	// 初始化 OTel 并注册优雅关闭
 	shutdown := ioc.InitOTel()
 	defer func() {

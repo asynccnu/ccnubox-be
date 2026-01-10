@@ -1,0 +1,77 @@
+services:
+  mysql8:
+    image: mysql:8.0
+    restart: always
+    command:
+      #      - 加入参数，设置 binlog 和主节点
+      - --default_authentication_plugin=mysql_native_password
+      - --binlog-format=ROW
+      - --server-id=1
+      - --max_connections=500  # 增加最大连接数
+    environment:
+      MYSQL_ROOT_PASSWORD: muxistudio304
+      TZ: Asia/Shanghai
+    volumes:
+      #      设置初始化脚本
+      - ./volume/mysql/conf:/etc/mysql/conf.d
+      - ./volume/mysql/data:/var/lib/mysql
+      - ./volume/mysql/logs:/var/log/mysql
+      - ./script/mysql/:/docker-entrypoint-initdb.d/
+    ports:
+      - "13306:3306"
+
+  etcd:
+    image: "bitnamilegacy/etcd:3.5.18"
+    restart: always
+    environment:
+      - ALLOW_NON_AUTHENTICATION=yes
+      - ETCD_ROOT_PASSWORD=muxistudio304
+      - TZ=Asia/Shanghai
+    ports:
+      - "2379:2379"
+
+  kafka:
+    image: 'bitnamilegacy/kafka:3.6.0'
+    restart: always
+    ports:
+      - '9092:9092'
+      - '9094:9094'
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CREATE_TOPICS=webook_binlog:3:1
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093,EXTERNAL://0.0.0.0:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://81.69.160.157:9094   #这里写的是公网ip:端口,因为kafka要求必须程序能够访达这个ip,但是镜像内网不确定
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - TZ=Asia/Shanghai
+
+  redis:
+    image: 'bitnamilegacy/redis:7.2'
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+      - ALLOW_EMPTY_PASSWORD=no    # 禁止空密码
+      - REDIS_PASSWORD=muxistudio304  # 设置密码为 muxistudio304
+    ports:
+      - '6379:6379'
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    ports:
+      - "9090:9090"
+    restart: always
+#    volumes:
+#      - ./deploy/config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro  # 配置文件挂载
+#      - ./deploy/db/PrometheusData:/prometheus  # 将当前目录下的 PrometheusData 文件夹挂载到容器中的 /prometheus 文件夹
+#      - ./deploy/config/prometheus/rules:/etc/prometheus/rules:ro #执行定期聚合用户活跃的自动脚本
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"  # 指定配置文件路径
+      - "--storage.tsdb.path=/prometheus"  # 指定数据存储路径
+      - "--web.enable-lifecycle"  # 可选：启用动态重载配置的 API
+      - "--log.level=debug"
+    user: root  # 强制容器内进程以 root 用户身份运行
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 允许 Prometheus 访问宿主机上的服务（仅 Linux 需要手动映射）

@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // ExtendFields 是自定义类型，表示可以包含任意键值对的扩展字段,通过序列化和反序列化进行操作,实际使用量较小所以json也OK
@@ -61,6 +62,7 @@ const (
 	GradePos
 	HolidayPos
 	MuxiPos
+	FeedBackPos
 )
 
 // UserFeedConfig 表示用户的 Feed 配置

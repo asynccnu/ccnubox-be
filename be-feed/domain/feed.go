@@ -18,6 +18,7 @@ type AllowList struct {
 	Muxi      bool   `json:"muxi"`
 	Holiday   bool   `json:"holiday"`
 	Energy    bool   `json:"energy"`
+	FeedBack  bool   `json:"feed_back"`
 }
 
 type MuxiOfficialMSG struct {

@@ -6,6 +6,14 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+	"regexp"
+	"strings"
+)
+
+var passwordReg = regexp.MustCompile(`(password:")([^"]*)(")`)
+
+var passwordSQLReg = regexp.MustCompile(
+	"(`password`\\s*=\\s*')([^']*)(')",
 )
 
 func InitLogger(cfg *conf.InfraConf) logger.Logger {
@@ -28,8 +36,30 @@ func InitLogger(cfg *conf.InfraConf) logger.Logger {
 		zapcore.DebugLevel, // 设置日志级别
 	)
 
-	l := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(1))
+	l := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(3))
 	res := logger.NewZapLogger(l)
 
-	return res
+	return logger.NewFilterLogger(res, logger.FilterKey("password"), logger.FilterFunc(func(level logger.Level, key, val string) (string, bool) {
+		if level < logger.INFO || key != "request" {
+			return val, false
+		}
+
+		if !strings.Contains(val, "password:") {
+			return val, false
+		}
+
+		masked := passwordReg.ReplaceAllString(val, `$1***$3`)
+		return masked, true
+	}), logger.FilterFunc(func(level logger.Level, key, val string) (string, bool) {
+		if key != "args" {
+			return val, false
+		}
+
+		if !strings.Contains(val, "password") {
+			return val, false
+		}
+
+		masked := passwordSQLReg.ReplaceAllString(val, `$1***$3`)
+		return masked, true
+	}))
 }

@@ -71,7 +71,7 @@ func (h *MetricsHandler) MetricsExporter(c *gin.Context) {
 
 // Metrics 用于打点的路由
 // @Summary 用于打点的路由
-// @Description 用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/banner/xxx)表示跳转banner的xxx页面,使用这一路由必须携带Auth请求头
+// @Description 用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/content/xxx)表示跳转banner的xxx页面,使用这一路由必须携带Auth请求头
 // @Tags metrics
 // @Param data body MetricsReq true "打点附带的信息,将会计入日志"
 // @Success 200 {object} web.Response{} "成功"

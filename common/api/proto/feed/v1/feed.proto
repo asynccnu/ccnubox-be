@@ -88,6 +88,7 @@ message AllowList{
   bool muxi = 3;
   bool holiday = 4;
   bool energy = 5;
+  bool feedBack=6;
 }
 
 

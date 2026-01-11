@@ -103,7 +103,7 @@
     },
     "/banner/delBanner": {
       "post": {
-        "description": "删除 banner 内容",
+        "description": "删除 content 内容",
         "consumes": [
           "application/json"
         ],
@@ -111,12 +111,12 @@
           "application/json"
         ],
         "tags": [
-          "banner"
+          "content"
         ],
-        "summary": "删除 banner 内容",
+        "summary": "删除 content 内容",
         "parameters": [
           {
-            "description": "删除 banner 内容请求参数",
+            "description": "删除 content 内容请求参数",
             "name": "request",
             "in": "body",
             "required": true,
@@ -137,11 +137,11 @@
     },
     "/banner/getBanners": {
       "get": {
-        "description": "获取 banner 列表",
+        "description": "获取 content 列表",
         "tags": [
-          "banner"
+          "content"
         ],
-        "summary": "获取 banner 列表",
+        "summary": "获取 content 列表",
         "responses": {
           "200": {
             "description": "成功",
@@ -166,7 +166,7 @@
     },
     "/banner/saveBanner": {
       "post": {
-        "description": "保存 banner 内容,如果不添加id字段表示添加一个新的banner",
+        "description": "保存 content 内容,如果不添加id字段表示添加一个新的banner",
         "consumes": [
           "application/json"
         ],
@@ -174,12 +174,12 @@
           "application/json"
         ],
         "tags": [
-          "banner"
+          "content"
         ],
-        "summary": "保存 banner 内容",
+        "summary": "保存 content 内容",
         "parameters": [
           {
-            "description": "保存 banner 内容请求参数",
+            "description": "保存 content 内容请求参数",
             "name": "request",
             "in": "body",
             "required": true,
@@ -3047,7 +3047,7 @@
     },
     "/metrics/:type/:name": {
       "post": {
-        "description": "用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/banner/xxx)表示跳转banner的xxx页面,使用这一路由必须携带Auth请求头",
+        "description": "用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/content/xxx)表示跳转banner的xxx页面,使用这一路由必须携带Auth请求头",
         "tags": [
           "metrics"
         ],

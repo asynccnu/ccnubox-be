@@ -1,0 +1,167 @@
+syntax = "proto3";
+
+package content.v1;
+option go_package = "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1;contentv1";
+
+
+service ContentService {
+  // 校历
+  rpc GetCalendars(GetCalendarsRequest)returns(GetCalendarsResponse);
+  rpc SaveCalendar(SaveCalendarRequest)returns(SaveCalendarResponse);
+  rpc DelCalendar(DelCalendarRequest)returns(DelCalendarResponse);
+
+  // banner
+  rpc GetBanners(GetBannersRequest)returns(GetBannersResponse);
+  rpc SaveBanner(SaveBannerRequest)returns(SaveBannerResponse);
+  rpc DelBanner(DelBannerRequest)returns(DelBannerResponse);
+
+  // 信息整合
+  rpc GetInfoSums(GetInfoSumsRequest)returns(GetInfoSumsResponse);
+  rpc SaveInfoSum(SaveInfoSumRequest)returns(SaveInfoSumResponse);
+  rpc DelInfoSum(DelInfoSumRequest)returns(DelInfoSumResponse);
+
+  // 部门信息
+  rpc GetDepartments(GetDepartmentsRequest)returns(GetDepartmentsResponse);
+  rpc SaveDepartment(SaveDepartmentRequest)returns(SaveDepartmentResponse);
+  rpc DelDepartment(DelDepartmentRequest)returns(DelDepartmentResponse);
+
+  // 常用网站
+  rpc GetWebsites(GetWebsitesRequest)returns(GetWebsitesResponse);
+  rpc SaveWebsite(SaveWebsiteRequest)returns(SaveWebsiteResponse);
+  rpc DelWebsite(DelWebsiteRequest)returns(DelWebsiteResponse);
+}
+
+// =====日历=====
+message Calendar {
+  string link =1;
+  int64 year =2;
+}
+
+message GetCalendarsRequest {}
+
+message GetCalendarsResponse {
+  repeated Calendar calendars=1;
+}
+
+message SaveCalendarRequest {
+  Calendar calendar = 1;
+}
+
+message SaveCalendarResponse {}
+
+message DelCalendarRequest {
+  int64 year =1;
+}
+
+message DelCalendarResponse {}
+
+// =====banner=====
+message Banner {
+  int64 id =1;
+  string webLink =2;
+  string pictureLink =3;
+}
+
+message GetBannersRequest {}
+
+message GetBannersResponse {
+  repeated Banner banners = 1;
+}
+
+message SaveBannerRequest {
+  int64 id =1;
+  string webLink =2;
+  string pictureLink =3;
+}
+
+message SaveBannerResponse {}
+
+message DelBannerRequest {
+  int64 id = 1;
+}
+
+message DelBannerResponse {}
+
+
+// =====info=====
+
+message InfoSum {
+  int64 id =1;
+  string link =2;
+  string name =3;
+  string image = 4;
+  string description =5;
+}
+
+message GetInfoSumsRequest {}
+
+message GetInfoSumsResponse {
+  repeated InfoSum InfoSums = 1;
+}
+
+message SaveInfoSumRequest {
+  InfoSum InfoSum = 1;
+}
+
+message SaveInfoSumResponse {}
+
+message DelInfoSumRequest {
+  int64 id=1;
+}
+
+message DelInfoSumResponse {}
+
+// =====department=====
+message Department {
+  int64 id = 1;
+  string name = 2;
+  string phone = 3;
+  string place = 4;
+  string  time =5;
+}
+
+message GetDepartmentsRequest {}
+
+message GetDepartmentsResponse {
+  repeated Department departments = 1;//列表使用的是repeated好奇妙诶
+}
+
+message SaveDepartmentRequest {
+  Department department = 1;
+}
+
+message SaveDepartmentResponse {}
+
+message DelDepartmentRequest {
+  int64 id = 1;
+}
+
+message DelDepartmentResponse {}
+
+
+//web
+message Website {
+  int64 id =1;
+  string link =2;
+  string name =3;
+  string image = 4;
+  string description =5;
+}
+
+message GetWebsitesRequest {}
+
+message GetWebsitesResponse {
+  repeated Website websites = 1;
+}
+
+message SaveWebsiteRequest {
+  Website website = 1;
+}
+
+message SaveWebsiteResponse {}
+
+message DelWebsiteRequest {
+  int64 id=1;
+}
+
+message DelWebsiteResponse {}

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package calendar.v1;
+import "errors/errors.proto";
+
+option go_package = "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1;contentv1";
+
+enum CalendarErrorReason {
+  // 设置缺省错误码
+  option (errors.default_code) = 500;
+
+  // 每10组保证一定的可拓展性
+  GET_CALENDAR_ERROR = 0 [(errors.code) = 501];
+  DEL_CALENDAR_ERROR = 1 [(errors.code) = 502];
+  SAVE_CALENDAR_ERROR = 2 [(errors.code) = 503];
+
+
+  GET_BANNER_ERROR = 10 [(errors.code) = 511];
+  DEL_BANNER_ERROR = 11 [(errors.code) = 512];
+  SAVE_BANNER_ERROR = 12 [(errors.code) = 513];
+
+  GET_DEPARTMENT_ERROR = 20 [(errors.code) = 521];
+  DEL_DEPARTMENT_ERROR = 21 [(errors.code) = 522];
+  SAVE_DEPARTMENT_ERROR = 22 [(errors.code) = 523];
+
+  GET_INFOSUM_ERROR = 30 [(errors.code) = 531];
+  DEL_INFOSUM_ERROR = 31 [(errors.code) = 532];
+  SAVE_INFOSUM_ERROR = 32 [(errors.code) = 533];
+
+  GET_WEBSITE_ERROR = 41 [(errors.code) = 541];
+  DEL_WEBSITE_ERROR = 42 [(errors.code) = 542];
+  SAVE_WEBSITE_ERROR = 43 [(errors.code) = 543];
+}

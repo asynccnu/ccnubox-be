@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infoSum.DelInfoSumRequest"
+                            "$ref": "#/definitions/content.DelInfoSumRequest"
                         }
                     }
                 ],
@@ -43,7 +43,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功",
                         "schema": {
-                            "$ref": "#/definitions/web.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/content.GetInfoSumsResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -68,7 +80,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/infoSum.GetInfoSumsResponse"
+                                            "$ref": "#/definitions/content.GetInfoSumsResponse"
                                         }
                                     }
                                 }
@@ -98,7 +110,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/infoSum.SaveInfoSumRequest"
+                            "$ref": "#/definitions/content.SaveInfoSumRequest"
                         }
                     }
                 ],
@@ -106,7 +118,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功",
                         "schema": {
-                            "$ref": "#/definitions/web.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/content.GetInfoSumsResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -132,7 +156,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/banner.DelBannerRequest"
+                            "$ref": "#/definitions/content.DelBannerRequest"
                         }
                     }
                 ],
@@ -165,7 +189,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/banner.GetBannersResponse"
+                                            "$ref": "#/definitions/content.GetBannersResponse"
                                         }
                                     }
                                 }
@@ -195,7 +219,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/banner.SaveBannerRequest"
+                            "$ref": "#/definitions/content.SaveBannerRequest"
                         }
                     }
                 ],
@@ -229,7 +253,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/calendar.DelCalendarRequest"
+                            "$ref": "#/definitions/content.DelCalendarRequest"
                         }
                     }
                 ],
@@ -246,12 +270,6 @@ const docTemplate = `{
         "/calendar/getCalendars": {
             "get": {
                 "description": "获取日历列表",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "calendar"
                 ],
@@ -268,7 +286,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/calendar.GetCalendarsResponse"
+                                            "$ref": "#/definitions/content.GetCalendarsResponse"
                                         }
                                     }
                                 }
@@ -298,145 +316,13 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/calendar.SaveCalendarRequest"
+                            "$ref": "#/definitions/content.SaveCalendarRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "成功",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/card/getRecords": {
-            "post": {
-                "description": "【弃用】获取用户消费记录，student_id, start_time, type 必须存在，type 分为 \"card\"（实体卡）与 \"virtual\"（虚拟卡）",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "card[Deprecation]"
-                ],
-                "summary": "获取消费记录",
-                "parameters": [
-                    {
-                        "description": "获取消费记录",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/card.GetRecordOfConsumptionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/card.GetRecordOfConsumptionResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "500": {
-                        "description": "创建失败",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/card/noteUserKey": {
-            "post": {
-                "description": "【弃用】记录用户的key",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "card[Deprecation]"
-                ],
-                "summary": "记录用户的key",
-                "parameters": [
-                    {
-                        "description": "记录用户的key",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/card.NoteUserKeyRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "创建失败",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/card/updateUserKey": {
-            "post": {
-                "description": "【弃用】更新用户的key",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "card[Deprecation]"
-                ],
-                "summary": "更新用户的key",
-                "parameters": [
-                    {
-                        "description": "更新用户的key",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/card.UpdateUserKeyRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "创建失败",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -1148,19 +1034,12 @@ const docTemplate = `{
                 "summary": "删除部门信息",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
                         "description": "删除部门信息请求参数",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/department.DelDepartmentRequest"
+                            "$ref": "#/definitions/content.DelDepartmentRequest"
                         }
                     }
                 ],
@@ -1181,15 +1060,6 @@ const docTemplate = `{
                     "department"
                 ],
                 "summary": "获取部门列表",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -1202,7 +1072,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/department.GetDepartmentsResponse"
+                                            "$ref": "#/definitions/content.GetDepartmentsResponse"
                                         }
                                     }
                                 }
@@ -1227,19 +1097,12 @@ const docTemplate = `{
                 "summary": "保存部门信息",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
                         "description": "保存部门信息请求参数",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/department.SaveDepartmentRequest"
+                            "$ref": "#/definitions/content.SaveDepartmentRequest"
                         }
                     }
                 ],
@@ -1902,6 +1765,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/feed/publicFeedEvent": {
+            "post": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "发布消息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "feed"
+                ],
+                "summary": "发布消息",
+                "parameters": [
+                    {
+                        "description": "消息",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feed.PublicFeedEventReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "没有访问权限",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/feed/publicMuxiOfficialMSG": {
             "post": {
                 "description": "发布木犀官方消息，仅限管理员操作",
@@ -2148,257 +2062,6 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "没有访问权限",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "系统异常",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/feedback_help/changeQuestion": {
-            "post": {
-                "description": "修改一个常见问题的内容与答复",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "feedback_help[Deprecation]"
-                ],
-                "summary": "修改一个问题与答复",
-                "parameters": [
-                    {
-                        "description": "修改常见问题",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/feedback_help.ChangeQuestionReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "系统异常",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/feedback_help/createQuestion": {
-            "post": {
-                "description": "创建一个常见问题的内容与答复",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "feedback_help[Deprecation]"
-                ],
-                "summary": "创建一个问题与答复",
-                "parameters": [
-                    {
-                        "description": "创建一个常见问题",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/feedback_help.CreateQuestionReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "系统异常",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/feedback_help/deleteQuestion": {
-            "post": {
-                "description": "删除一个常见问题的内容与答复",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "feedback_help[Deprecation]"
-                ],
-                "summary": "删除一个问题与答复",
-                "parameters": [
-                    {
-                        "description": "删除常见问题",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/feedback_help.DeleteQuestionReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "系统异常",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/feedback_help/findQuestionsByName": {
-            "get": {
-                "description": "对常见问题进行模糊搜索",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "feedback_help[Deprecation]"
-                ],
-                "summary": "搜取问题",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "问题名称",
-                        "name": "question",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "date": {
-                                            "$ref": "#/definitions/feedback_help.FindQuestionsByNameResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "500": {
-                        "description": "系统异常",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/feedback_help/getQuestion": {
-            "get": {
-                "description": "获取点击数量最多的10个常见问题",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "feedback_help[Deprecation]"
-                ],
-                "summary": "获取常见问题",
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/feedback_help.GetQuestionsResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "500": {
-                        "description": "系统异常",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/feedback_help/noteQuestion": {
-            "post": {
-                "description": "标记问题解决状态",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "feedback_help[Deprecation]"
-                ],
-                "summary": "标记问题解决状态",
-                "parameters": [
-                    {
-                        "description": "标记问题解决状态",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/feedback_help.NoteQuestionReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -3318,7 +2981,7 @@ const docTemplate = `{
         },
         "/metrics/:type/:name": {
             "post": {
-                "description": "用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/banner/xxx)表示跳转banner的xxx页面,使用这一路由必须携带Auth请求头",
+                "description": "用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/content/xxx)表示跳转banner的xxx页面,使用这一路由必须携带Auth请求头",
                 "tags": [
                     "metrics"
                 ],
@@ -3331,127 +2994,6 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/metrics.MetricsReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/statics": {
-            "get": {
-                "description": "【弃用】根据静态资源名称获取静态资源的内容。",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "statics[Deprecation]"
-                ],
-                "summary": "获取静态资源[精确名称]",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "静态资源名称",
-                        "name": "static_name",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/static.StaticVo"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/statics/match/labels": {
-            "get": {
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "statics[Deprecation]"
-                ],
-                "summary": "获取静态资源[标签匹配]",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "标签：标明匹配哪一类的资源",
-                        "name": "labels[type]",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/static.GetStaticByLabelsResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/statics/save": {
-            "post": {
-                "description": "【弃用】保存静态内容",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "statics[Deprecation]"
-                ],
-                "summary": "保存静态内容",
-                "parameters": [
-                    {
-                        "description": "保存静态内容请求参数",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/static.SaveStaticReq"
                         }
                     }
                 ],
@@ -3703,7 +3245,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/website.DelWebsiteRequest"
+                            "$ref": "#/definitions/content.DelWebsiteRequest"
                         }
                     }
                 ],
@@ -3711,7 +3253,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功",
                         "schema": {
-                            "$ref": "#/definitions/web.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/content.GetWebsitesResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -3736,7 +3290,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/website.GetWebsitesResponse"
+                                            "$ref": "#/definitions/content.GetWebsitesResponse"
                                         }
                                     }
                                 }
@@ -3766,7 +3320,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/website.SaveWebsiteRequest"
+                            "$ref": "#/definitions/content.SaveWebsiteRequest"
                         }
                     }
                 ],
@@ -3774,7 +3328,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功",
                         "schema": {
-                            "$ref": "#/definitions/web.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/content.GetWebsitesResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -3782,185 +3348,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "banner.Banner": {
-            "type": "object",
-            "required": [
-                "id",
-                "picture_link",
-                "web_link"
-            ],
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "picture_link": {
-                    "type": "string"
-                },
-                "web_link": {
-                    "type": "string"
-                }
-            }
-        },
-        "banner.DelBannerRequest": {
-            "type": "object",
-            "required": [
-                "id"
-            ],
-            "properties": {
-                "id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "banner.GetBannersResponse": {
-            "type": "object",
-            "required": [
-                "banners"
-            ],
-            "properties": {
-                "banners": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/banner.Banner"
-                    }
-                }
-            }
-        },
-        "banner.SaveBannerRequest": {
-            "type": "object",
-            "required": [
-                "picture_link",
-                "web_link"
-            ],
-            "properties": {
-                "id": {
-                    "description": "可选,如果新增记录不用填写",
-                    "type": "integer"
-                },
-                "picture_link": {
-                    "type": "string"
-                },
-                "web_link": {
-                    "type": "string"
-                }
-            }
-        },
-        "calendar.Calendar": {
-            "type": "object",
-            "required": [
-                "link",
-                "year"
-            ],
-            "properties": {
-                "link": {
-                    "type": "string"
-                },
-                "year": {
-                    "type": "integer"
-                }
-            }
-        },
-        "calendar.DelCalendarRequest": {
-            "type": "object",
-            "required": [
-                "year"
-            ],
-            "properties": {
-                "year": {
-                    "type": "integer"
-                }
-            }
-        },
-        "calendar.GetCalendarsResponse": {
-            "type": "object",
-            "properties": {
-                "calendars": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/calendar.Calendar"
-                    }
-                }
-            }
-        },
-        "calendar.SaveCalendarRequest": {
-            "type": "object",
-            "required": [
-                "link",
-                "year"
-            ],
-            "properties": {
-                "link": {
-                    "type": "string"
-                },
-                "year": {
-                    "type": "integer"
-                }
-            }
-        },
-        "card.GetRecordOfConsumptionRequest": {
-            "type": "object",
-            "properties": {
-                "key": {
-                    "type": "string"
-                },
-                "start_time": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "card.GetRecordOfConsumptionResponse": {
-            "type": "object",
-            "properties": {
-                "records": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/card.Records"
-                    }
-                }
-            }
-        },
-        "card.NoteUserKeyRequest": {
-            "type": "object",
-            "properties": {
-                "key": {
-                    "type": "string"
-                }
-            }
-        },
-        "card.Records": {
-            "type": "object",
-            "properties": {
-                "SMT_DEALDATETIME": {
-                    "type": "string"
-                },
-                "SMT_DEALNAME": {
-                    "type": "string"
-                },
-                "SMT_ORG_NAME": {
-                    "type": "string"
-                },
-                "SMT_TIMES": {
-                    "type": "integer"
-                },
-                "after_money": {
-                    "type": "number"
-                },
-                "money": {
-                    "type": "number"
-                }
-            }
-        },
-        "card.UpdateUserKeyRequest": {
-            "type": "object",
-            "properties": {
-                "key": {
-                    "type": "string"
-                }
-            }
-        },
         "class.AddClassRequest": {
             "type": "object",
             "required": [
@@ -4406,7 +3793,32 @@ const docTemplate = `{
                 }
             }
         },
-        "department.DelDepartmentRequest": {
+        "content.Banner": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "picture_link": {
+                    "type": "string"
+                },
+                "web_link": {
+                    "type": "string"
+                }
+            }
+        },
+        "content.Calendar": {
+            "type": "object",
+            "properties": {
+                "link": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "content.DelBannerRequest": {
             "type": "object",
             "required": [
                 "id"
@@ -4417,15 +3829,52 @@ const docTemplate = `{
                 }
             }
         },
-        "department.Department": {
+        "content.DelCalendarRequest": {
             "type": "object",
             "required": [
-                "id",
-                "name",
-                "phone",
-                "place",
-                "time"
+                "year"
             ],
+            "properties": {
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "content.DelDepartmentRequest": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "content.DelInfoSumRequest": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "content.DelWebsiteRequest": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "content.Department": {
+            "type": "object",
             "properties": {
                 "id": {
                     "type": "integer"
@@ -4444,28 +3893,117 @@ const docTemplate = `{
                 }
             }
         },
-        "department.GetDepartmentsResponse": {
+        "content.GetBannersResponse": {
             "type": "object",
-            "required": [
-                "departments"
-            ],
             "properties": {
-                "departments": {
+                "banners": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/department.Department"
+                        "$ref": "#/definitions/content.Banner"
                     }
                 }
             }
         },
-        "department.SaveDepartmentRequest": {
+        "content.GetCalendarsResponse": {
+            "type": "object",
+            "properties": {
+                "calendars": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/content.Calendar"
+                    }
+                }
+            }
+        },
+        "content.GetDepartmentsResponse": {
+            "type": "object",
+            "properties": {
+                "departments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/content.Department"
+                    }
+                }
+            }
+        },
+        "content.GetInfoSumsResponse": {
+            "type": "object",
+            "properties": {
+                "info_sums": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/content.InfoSum"
+                    }
+                }
+            }
+        },
+        "content.GetWebsitesResponse": {
+            "type": "object",
+            "properties": {
+                "websites": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/content.Website"
+                    }
+                }
+            }
+        },
+        "content.InfoSum": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "content.SaveBannerRequest": {
             "type": "object",
             "required": [
-                "name",
-                "phone",
-                "place",
-                "time"
+                "picture_link",
+                "web_link"
             ],
+            "properties": {
+                "id": {
+                    "description": "可选,如果新增记录不用填写",
+                    "type": "integer"
+                },
+                "picture_link": {
+                    "type": "string"
+                },
+                "web_link": {
+                    "type": "string"
+                }
+            }
+        },
+        "content.SaveCalendarRequest": {
+            "type": "object",
+            "required": [
+                "link",
+                "year"
+            ],
+            "properties": {
+                "link": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "content.SaveDepartmentRequest": {
+            "type": "object",
             "properties": {
                 "id": {
                     "description": "可选,如果新增记录不用填写",
@@ -4481,6 +4019,80 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "content.SaveInfoSumRequest": {
+            "type": "object",
+            "required": [
+                "description",
+                "image",
+                "link",
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "可选,如果新增记录不用填写",
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "content.SaveWebsiteRequest": {
+            "type": "object",
+            "required": [
+                "description",
+                "image",
+                "link",
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "可选,如果新增记录不用填写",
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "content.Website": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
@@ -4644,12 +4256,16 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "energy",
+                "feedback",
                 "grade",
                 "holiday",
                 "muxi"
             ],
             "properties": {
                 "energy": {
+                    "type": "boolean"
+                },
+                "feedback": {
                     "type": "boolean"
                 },
                 "grade": {
@@ -4665,10 +4281,6 @@ const docTemplate = `{
         },
         "feed.ClearFeedEventReq": {
             "type": "object",
-            "required": [
-                "feed_id",
-                "status"
-            ],
             "properties": {
                 "feed_id": {
                     "description": "如果feedid和status都被填写了,那么就会清除当前的feedid代表的feed消息且状态为设置的status的",
@@ -4682,15 +4294,6 @@ const docTemplate = `{
         },
         "feed.FeedEventVO": {
             "type": "object",
-            "required": [
-                "content",
-                "created_at",
-                "extend_fields",
-                "id",
-                "read",
-                "title",
-                "type"
-            ],
             "properties": {
                 "content": {
                     "type": "string"
@@ -4721,14 +4324,11 @@ const docTemplate = `{
         },
         "feed.GetFeedAllowListResp": {
             "type": "object",
-            "required": [
-                "energy",
-                "grade",
-                "holiday",
-                "muxi"
-            ],
             "properties": {
                 "energy": {
+                    "type": "boolean"
+                },
+                "feed_back": {
                     "type": "boolean"
                 },
                 "grade": {
@@ -4755,9 +4355,6 @@ const docTemplate = `{
         },
         "feed.GetToBePublicMuxiOfficialMSGResp": {
             "type": "object",
-            "required": [
-                "msg_list"
-            ],
             "properties": {
                 "msg_list": {
                     "type": "array",
@@ -4769,13 +4366,6 @@ const docTemplate = `{
         },
         "feed.MuxiOfficialMSG": {
             "type": "object",
-            "required": [
-                "content",
-                "extend_fields",
-                "id",
-                "public_time",
-                "title"
-            ],
             "properties": {
                 "content": {
                     "type": "string"
@@ -4799,14 +4389,31 @@ const docTemplate = `{
                 }
             }
         },
-        "feed.PublicMuxiOfficialMSGReq": {
+        "feed.PublicFeedEventReq": {
             "type": "object",
             "required": [
                 "content",
-                "extend_fields",
-                "later_time",
-                "title"
+                "student_id",
+                "title",
+                "type"
             ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "student_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "feed.PublicMuxiOfficialMSGReq": {
+            "type": "object",
             "properties": {
                 "content": {
                     "type": "string"
@@ -4828,13 +4435,6 @@ const docTemplate = `{
         },
         "feed.PublicMuxiOfficialMSGResp": {
             "type": "object",
-            "required": [
-                "content",
-                "extend_fields",
-                "id",
-                "public_time",
-                "title"
-            ],
             "properties": {
                 "content": {
                     "type": "string"
@@ -4900,90 +4500,6 @@ const docTemplate = `{
                 }
             }
         },
-        "feedback_help.ChangeQuestionReq": {
-            "type": "object",
-            "properties": {
-                "answer": {
-                    "type": "string"
-                },
-                "question": {
-                    "type": "string"
-                },
-                "question_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "feedback_help.CreateQuestionReq": {
-            "type": "object",
-            "properties": {
-                "answer": {
-                    "type": "string"
-                },
-                "question": {
-                    "type": "string"
-                }
-            }
-        },
-        "feedback_help.DeleteQuestionReq": {
-            "type": "object",
-            "properties": {
-                "question_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "feedback_help.FindQuestionsByNameResp": {
-            "type": "object",
-            "properties": {
-                "questions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/feedback_help.FrequentlyAskedQuestion"
-                    }
-                }
-            }
-        },
-        "feedback_help.FrequentlyAskedQuestion": {
-            "type": "object",
-            "properties": {
-                "answer": {
-                    "type": "string"
-                },
-                "clickTimes": {
-                    "description": "Utime      time.Time\nCtime      time.Time",
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "question": {
-                    "type": "string"
-                }
-            }
-        },
-        "feedback_help.GetQuestionsResp": {
-            "type": "object",
-            "properties": {
-                "questions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/feedback_help.FrequentlyAskedQuestion"
-                    }
-                }
-            }
-        },
-        "feedback_help.NoteQuestionReq": {
-            "type": "object",
-            "properties": {
-                "if_over": {
-                    "type": "boolean"
-                },
-                "question_id": {
-                    "type": "integer"
-                }
-            }
-        },
         "grade.GetGradeByTermReq": {
             "type": "object",
             "properties": {
@@ -5038,9 +4554,6 @@ const docTemplate = `{
         },
         "grade.GetGradeTypeResp": {
             "type": "object",
-            "required": [
-                "kcxzmc"
-            ],
             "properties": {
                 "kcxzmc": {
                     "description": "课程类别",
@@ -5193,85 +4706,6 @@ const docTemplate = `{
                 },
                 "kcxzmc": {
                     "description": "课程性质名称",
-                    "type": "string"
-                }
-            }
-        },
-        "infoSum.DelInfoSumRequest": {
-            "type": "object",
-            "required": [
-                "id"
-            ],
-            "properties": {
-                "id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "infoSum.GetInfoSumsResponse": {
-            "type": "object",
-            "required": [
-                "info_sums"
-            ],
-            "properties": {
-                "info_sums": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/infoSum.InfoSum"
-                    }
-                }
-            }
-        },
-        "infoSum.InfoSum": {
-            "type": "object",
-            "required": [
-                "description",
-                "id",
-                "image",
-                "link",
-                "name"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "image": {
-                    "type": "string"
-                },
-                "link": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "infoSum.SaveInfoSumRequest": {
-            "type": "object",
-            "required": [
-                "description",
-                "image",
-                "link",
-                "name"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "description": "可选,如果新增记录不用填写",
-                    "type": "integer"
-                },
-                "image": {
-                    "type": "string"
-                },
-                "link": {
-                    "type": "string"
-                },
-                "name": {
                     "type": "string"
                 }
             }
@@ -5712,51 +5146,6 @@ const docTemplate = `{
                 }
             }
         },
-        "static.GetStaticByLabelsResp": {
-            "type": "object",
-            "properties": {
-                "statics": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/static.StaticVo"
-                    }
-                }
-            }
-        },
-        "static.SaveStaticReq": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "labels": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "static.StaticVo": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "labels": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
         "tube.GetTubeTokenData": {
             "type": "object",
             "properties": {
@@ -5803,85 +5192,6 @@ const docTemplate = `{
                 },
                 "data": {},
                 "msg": {
-                    "type": "string"
-                }
-            }
-        },
-        "website.DelWebsiteRequest": {
-            "type": "object",
-            "required": [
-                "id"
-            ],
-            "properties": {
-                "id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "website.GetWebsitesResponse": {
-            "type": "object",
-            "required": [
-                "websites"
-            ],
-            "properties": {
-                "websites": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/website.Website"
-                    }
-                }
-            }
-        },
-        "website.SaveWebsiteRequest": {
-            "type": "object",
-            "required": [
-                "description",
-                "image",
-                "link",
-                "name"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "description": "可选,如果新增记录不用填写",
-                    "type": "integer"
-                },
-                "image": {
-                    "type": "string"
-                },
-                "link": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "website.Website": {
-            "type": "object",
-            "required": [
-                "description",
-                "id",
-                "image",
-                "link",
-                "name"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "image": {
-                    "type": "string"
-                },
-                "link": {
-                    "type": "string"
-                },
-                "name": {
                     "type": "string"
                 }
             }

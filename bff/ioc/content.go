@@ -2,16 +2,16 @@ package ioc
 
 import (
 	"context"
+
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
 
 	"github.com/asynccnu/ccnubox-be/bff/conf"
-	websitev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/website/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func InitContentClient(ecli *clientv3.Client) contentv1.ContentServiceClient {
+func InitContentClient(ecli *clientv3.Client, cfg *conf.TransConf) contentv1.ContentServiceClient {
 	const w = "content"
 	r := etcd.New(ecli)
 	// grpc 通信

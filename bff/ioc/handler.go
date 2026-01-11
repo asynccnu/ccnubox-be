@@ -2,10 +2,6 @@ package ioc
 
 import (
 	"github.com/asynccnu/ccnubox-be/bff/conf"
-	"github.com/asynccnu/ccnubox-be/bff/pkg/htmlx"
-	"github.com/asynccnu/ccnubox-be/bff/web/banner"
-	"github.com/asynccnu/ccnubox-be/bff/web/calendar"
-	"github.com/asynccnu/ccnubox-be/bff/web/card"
 	"github.com/asynccnu/ccnubox-be/bff/web/class"
 	"github.com/asynccnu/ccnubox-be/bff/web/classroom"
 	"github.com/asynccnu/ccnubox-be/bff/web/content"
@@ -88,8 +84,9 @@ func InitGradeHandler(cfg *conf.TransConf, l logger.Logger, gradeClient gradev1.
 	)
 }
 
-func InitUserHandler(cfg *conf.TransConf, hdl ijwt.Handler, userClient userv1.UserServiceClient) *user.UserHandler {
-	return user.NewUserHandler(hdl, userClient)
+func InitUserHandler(cfg *conf.TransConf, hdl ijwt.Handler, userClient userv1.UserServiceClient, gradeClient gradev1.GradeServiceClient,
+	classerClient classlistv1.ClasserClient) *user.UserHandler {
+	return user.NewUserHandler(hdl, userClient, gradeClient, classerClient)
 }
 
 func InitLibraryHandler(cfg *conf.TransConf, client libraryv1.LibraryClient) *library.LibraryHandler {

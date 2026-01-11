@@ -6,6 +6,7 @@ replace github.com/asynccnu/ccnubox-be/common => ./../common
 
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
+	github.com/alicebob/miniredis/v2 v2.35.0
 	github.com/asynccnu/ccnubox-be/common v0.0.0-00010101000000-000000000000
 	github.com/dubbogo/net v0.0.4
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20251217105121-fb8e43efb207
@@ -55,6 +56,7 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.7 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.7 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect

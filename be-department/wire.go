@@ -4,6 +4,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-department/conf"
 	"github.com/asynccnu/ccnubox-be/be-department/grpc"
 	"github.com/asynccnu/ccnubox-be/be-department/ioc"
 	"github.com/asynccnu/ccnubox-be/be-department/repository/cache"
@@ -15,6 +16,8 @@ import (
 
 func InitGRPCServer() grpcx.Server {
 	wire.Build(
+		conf.InitInfraConfig,
+		conf.InitTransConfig,
 		ioc.InitGRPCxKratosServer,
 		grpc.NewDepartmentServiceServer,
 		service.NewDepartmentService,

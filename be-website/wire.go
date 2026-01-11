@@ -3,6 +3,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-website/conf"
 	"github.com/asynccnu/ccnubox-be/be-website/grpc"
 	"github.com/asynccnu/ccnubox-be/be-website/ioc"
 	"github.com/asynccnu/ccnubox-be/be-website/pkg/grpcx"
@@ -14,6 +15,8 @@ import (
 
 func InitGRPCServer() grpcx.Server {
 	wire.Build(
+		conf.InitInfraConfig,
+		conf.InitTransConfig,
 		ioc.InitGRPCxKratosServer,
 		grpc.NewWebsiteServiceServer,
 		service.NewWebsiteService,

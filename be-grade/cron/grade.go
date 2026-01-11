@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
@@ -12,7 +13,6 @@ import (
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-redsync/redsync/v4"
-	"github.com/spf13/viper"
 )
 
 type GradeController struct {
@@ -23,15 +23,9 @@ type GradeController struct {
 	gradeService service.GradeService
 	rankService  service.RankService
 	stopChan     chan struct{}
-	cfg          gradeControllerConfig
+	cfg          *conf.TransConf
 	l            logger.Logger
 	muRedis      *redsync.Redsync
-}
-
-type gradeControllerConfig struct {
-	Low    int64 `yaml:"low"`
-	Middle int64 `yaml:"middle"`
-	High   int64 `yaml:"high"`
 }
 
 func NewGradeController(
@@ -43,12 +37,8 @@ func NewGradeController(
 	gradeService service.GradeService,
 	rankService service.RankService,
 	muRedis *redsync.Redsync,
+	cfg *conf.TransConf,
 ) *GradeController {
-	var cfg gradeControllerConfig
-	if err := viper.UnmarshalKey("gradeController", &cfg); err != nil {
-		panic(err)
-	}
-
 	return &GradeController{
 		counter:      counter,
 		gradeService: gradeService,
@@ -68,9 +58,9 @@ func (c *GradeController) StartCronTask() {
 	c.StartRankCronTask()
 
 	go func() {
-		lowTicker := time.NewTicker(time.Duration(c.cfg.Low) * time.Minute)
-		middleTicker := time.NewTicker(time.Duration(c.cfg.Middle) * time.Minute)
-		highTicker := time.NewTicker(time.Duration(c.cfg.High) * time.Minute)
+		lowTicker := time.NewTicker(time.Duration(c.cfg.Grade.Low) * time.Minute)
+		middleTicker := time.NewTicker(time.Duration(c.cfg.Grade.Middle) * time.Minute)
+		highTicker := time.NewTicker(time.Duration(c.cfg.Grade.High) * time.Minute)
 		for {
 			select {
 			case <-lowTicker.C:

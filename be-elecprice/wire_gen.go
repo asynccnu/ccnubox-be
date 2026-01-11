@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-elecprice/conf"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/cron"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/grpc"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/ioc"
@@ -17,16 +18,18 @@ import (
 // Injectors from wire.go:
 
 func InitApp() App {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
+	infraConf := conf.InitInfraConfig()
+	logger := ioc.InitLogger(infraConf)
+	db := ioc.InitDB(logger, infraConf)
 	elecpriceDAO := dao.NewElecpriceDAO(db)
-	client := ioc.InitEtcdClient()
-	proxyClient := ioc.InitProxyClient(client)
+	client := ioc.InitEtcdClient(infraConf)
+	transConf := conf.InitTransConfig()
+	proxyClient := ioc.InitProxyClient(client, transConf)
 	elecpriceService := service.NewElecpriceService(elecpriceDAO, logger, proxyClient)
 	elecpriceServiceServer := grpc.NewElecpriceGrpcService(elecpriceService)
-	server := ioc.InitGRPCxKratosServer(elecpriceServiceServer, client, logger)
-	feedServiceClient := ioc.InitFeedClient(client)
-	elecpriceController := cron.NewElecpriceController(feedServiceClient, elecpriceService, logger)
+	server := ioc.InitGRPCxKratosServer(elecpriceServiceServer, client, logger, transConf)
+	feedServiceClient := ioc.InitFeedClient(client, transConf)
+	elecpriceController := cron.NewElecpriceController(feedServiceClient, elecpriceService, logger, transConf)
 	v := cron.NewCron(elecpriceController)
 	app := NewApp(server, v)
 	return app

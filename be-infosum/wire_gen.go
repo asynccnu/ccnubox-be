@@ -7,25 +7,28 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-infosum/conf"
 	"github.com/asynccnu/ccnubox-be/be-infosum/grpc"
 	"github.com/asynccnu/ccnubox-be/be-infosum/ioc"
-	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-infosum/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-infosum/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-infosum/service"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 )
 
 // Injectors from wire.go:
 
 func InitGRPCServer() grpcx.Server {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
+	infraConf := conf.InitInfraConfig()
+	logger := ioc.InitLogger(infraConf)
+	db := ioc.InitDB(logger, infraConf)
 	infoSumDAO := dao.NewMysqlInfoSumDAO(db)
-	cmdable := ioc.InitRedis()
+	cmdable := ioc.InitRedis(infraConf)
 	infoSumCache := cache.NewRedisInfoSumCache(cmdable)
 	infoSumService := service.NewInfoSumService(infoSumDAO, infoSumCache, logger)
 	infoSumServiceServer := grpc.NewInfoSumServiceServer(infoSumService)
-	client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxKratosServer(infoSumServiceServer, client, logger)
+	client := ioc.InitEtcdClient(infraConf)
+	transConf := conf.InitTransConfig()
+	server := ioc.InitGRPCxKratosServer(infoSumServiceServer, client, logger, transConf)
 	return server
 }

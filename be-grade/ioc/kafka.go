@@ -2,24 +2,17 @@ package ioc
 
 import (
 	"github.com/IBM/sarama"
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
 	"github.com/asynccnu/ccnubox-be/be-grade/events"
+
 	"github.com/asynccnu/ccnubox-be/be-grade/pkg/saramax"
-	"github.com/spf13/viper"
 )
 
-func InitKafka() sarama.Client {
-	type Config struct {
-		Addrs []string `yaml:"addrs"`
-	}
+func InitKafka(cfg *conf.InfraConf) sarama.Client {
 	saramaCfg := sarama.NewConfig()
 	saramaCfg.Producer.Return.Successes = true
 	saramaCfg.Producer.Partitioner = sarama.NewConsistentCRCHashPartitioner
-	var cfg Config
-	err := viper.UnmarshalKey("kafka", &cfg)
-	if err != nil {
-		panic(err)
-	}
-	client, err := sarama.NewClient(cfg.Addrs, saramaCfg)
+	client, err := sarama.NewClient(cfg.Kafka.Addrs, saramaCfg)
 	if err != nil {
 		panic(err)
 	}

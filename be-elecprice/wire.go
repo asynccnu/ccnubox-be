@@ -4,6 +4,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-elecprice/conf"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/cron"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/grpc"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/ioc"
@@ -14,6 +15,8 @@ import (
 
 func InitApp() App {
 	wire.Build(
+		conf.InitInfraConfig,
+		conf.InitTransConfig,
 		grpc.NewElecpriceGrpcService,
 		service.NewElecpriceService,
 		dao.NewElecpriceDAO,

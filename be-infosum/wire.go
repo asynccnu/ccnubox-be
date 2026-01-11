@@ -3,6 +3,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-infosum/conf"
 	"github.com/asynccnu/ccnubox-be/be-infosum/grpc"
 	"github.com/asynccnu/ccnubox-be/be-infosum/ioc"
 	"github.com/asynccnu/ccnubox-be/be-infosum/repository/cache"
@@ -14,6 +15,8 @@ import (
 
 func InitGRPCServer() grpcx.Server {
 	wire.Build(
+		conf.InitInfraConfig,
+		conf.InitTransConfig,
 		ioc.InitGRPCxKratosServer,
 		grpc.NewInfoSumServiceServer,
 		service.NewInfoSumService,

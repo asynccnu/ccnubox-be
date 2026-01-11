@@ -7,28 +7,31 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-user/conf"
 	"github.com/asynccnu/ccnubox-be/be-user/grpc"
 	"github.com/asynccnu/ccnubox-be/be-user/ioc"
-	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-user/service"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 )
 
 // Injectors from wire.go:
 
 func InitGRPCServer() grpcx.Server {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
+	infraConf := conf.InitInfraConfig()
+	logger := ioc.InitLogger(infraConf)
+	db := ioc.InitDB(logger, infraConf)
 	userDAO := dao.NewGORMUserDAO(db)
-	cmdable := ioc.InitRedis()
+	cmdable := ioc.InitRedis(infraConf)
 	userCache := cache.NewRedisUserCache(cmdable)
 	crypto := ioc.NewCrypto()
-	client := ioc.InitEtcdClient()
-	ccnuServiceClient := ioc.InitCCNUClient(client)
-	proxyClient := ioc.InitProxyClient(client)
+	client := ioc.InitEtcdClient(infraConf)
+	transConf := conf.InitTransConfig()
+	ccnuServiceClient := ioc.InitCCNUClient(client, transConf)
+	proxyClient := ioc.InitProxyClient(client, transConf)
 	userService := service.NewUserService(userDAO, userCache, crypto, ccnuServiceClient, logger, proxyClient)
 	userServiceServer := grpc.NewUserServiceServer(userService)
-	server := ioc.InitGRPCxKratosServer(userServiceServer, client, logger)
+	server := ioc.InitGRPCxKratosServer(userServiceServer, client, logger, transConf)
 	return server
 }

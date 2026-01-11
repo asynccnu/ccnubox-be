@@ -7,25 +7,28 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-department/conf"
 	"github.com/asynccnu/ccnubox-be/be-department/grpc"
 	"github.com/asynccnu/ccnubox-be/be-department/ioc"
-	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-department/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-department/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-department/service"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 )
 
 // Injectors from wire.go:
 
 func InitGRPCServer() grpcx.Server {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
+	infraConf := conf.InitInfraConfig()
+	logger := ioc.InitLogger(infraConf)
+	db := ioc.InitDB(logger, infraConf)
 	departmentDAO := dao.NewMysqlDepartmentDAO(db)
-	cmdable := ioc.InitRedis()
+	cmdable := ioc.InitRedis(infraConf)
 	departmentCache := cache.NewRedisDepartmentCache(cmdable)
 	departmentService := service.NewDepartmentService(departmentDAO, departmentCache, logger)
 	departmentServiceServer := grpc.NewDepartmentServiceServer(departmentService)
-	client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxKratosServer(departmentServiceServer, client, logger)
+	client := ioc.InitEtcdClient(infraConf)
+	transConf := conf.InitTransConfig()
+	server := ioc.InitGRPCxKratosServer(departmentServiceServer, client, logger, transConf)
 	return server
 }

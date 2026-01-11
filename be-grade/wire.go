@@ -4,6 +4,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
 	"github.com/asynccnu/ccnubox-be/be-grade/cron"
 	"github.com/asynccnu/ccnubox-be/be-grade/events"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
@@ -16,6 +17,8 @@ import (
 
 func InitApp() App {
 	wire.Build(
+		conf.InitInfraConfig,
+		conf.InitTransConfig,
 		events.NewGradeDetailEventConsumerHandler,
 		producer.NewSaramaProducer,
 		grpc.NewGradeGrpcService,

@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-user/conf"
 	"github.com/asynccnu/ccnubox-be/be-user/ioc"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 func main() {
-	initViper()
-
+	transCfg := conf.InitTransConfig()
+	if transCfg == nil {
+		panic("transCfg is nil")
+	}
 	// 初始化 OTel 并注册优雅关闭
-	shutdown := ioc.InitOTel()
+	shutdown := ioc.InitOTel(transCfg)
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -25,17 +26,6 @@ func main() {
 
 	server := InitGRPCServer()
 	err := server.Serve()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func initViper() {
-	cfile := pflag.String("config", "config/config.yaml", "配置文件路径")
-	pflag.Parse()
-	viper.SetConfigType("yaml")
-	viper.SetConfigFile(*cfile)
-	err := viper.ReadInConfig()
 	if err != nil {
 		panic(err)
 	}

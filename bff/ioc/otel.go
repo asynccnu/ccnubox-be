@@ -4,35 +4,21 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/asynccnu/ccnubox-be/bff/conf"
 	"github.com/asynccnu/ccnubox-be/common/pkg/otelx"
-	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 )
 
-type OtelConfig struct {
-	ServiceName    string `yaml:"serviceName"`
-	ServiceVersion string `yaml:"serviceVersion"`
-	Endpoint       string `yaml:"endpoint"`
-}
-
 // InitOTel 初始化
-func InitOTel() func(ctx context.Context) error {
-	var cfg OtelConfig
-
-	// 读取配置
-	err := viper.UnmarshalKey("otel", &cfg)
-	if err != nil {
-		panic(fmt.Sprintf("otel 读取配置失败：%v", err))
-	}
-
+func InitOTel(cfg *conf.TransConf) func(ctx context.Context) error {
 	// 构造 Resource
 	res, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName(cfg.ServiceName),
-			semconv.ServiceVersion(cfg.ServiceVersion),
+			semconv.ServiceName(cfg.Otel.ServiceName),
+			semconv.ServiceVersion(cfg.Otel.ServiceVersion),
 		),
 	)
 	if err != nil {
@@ -43,7 +29,7 @@ func InitOTel() func(ctx context.Context) error {
 	shutdown, err := otelx.SetupOTel(
 		context.Background(),
 		otelx.WithResource(res),
-		otelx.WithEndpoint(cfg.Endpoint),
+		otelx.WithEndpoint(cfg.Otel.Endpoint),
 	)
 	if err != nil {
 		panic(fmt.Sprintf("otel 初始化失败: %v", err))

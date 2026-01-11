@@ -7,25 +7,28 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-banner/conf"
 	"github.com/asynccnu/ccnubox-be/be-banner/grpc"
 	"github.com/asynccnu/ccnubox-be/be-banner/ioc"
-	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-banner/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-banner/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-banner/service"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 )
 
 // Injectors from wire.go:
 
 func InitGRPCServer() grpcx.Server {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
+	infraConf := conf.InitInfraConfig()
+	logger := ioc.InitLogger(infraConf)
+	db := ioc.InitDB(logger, infraConf)
 	bannerDAO := dao.NewMysqlBannerDAO(db)
-	cmdable := ioc.InitRedis()
+	cmdable := ioc.InitRedis(infraConf)
 	bannerCache := cache.NewRedisBannerCache(cmdable)
 	bannerService := service.NewBannerService(bannerDAO, bannerCache, logger)
 	bannerServiceServer := grpc.NewBannerServiceServer(bannerService)
-	client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxKratosServer(bannerServiceServer, client, logger)
+	transConf := conf.InitTransConfig()
+	client := ioc.InitEtcdClient(transConf)
+	server := ioc.InitGRPCxKratosServer(bannerServiceServer, client, logger, transConf)
 	return server
 }

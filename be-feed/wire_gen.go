@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-feed/conf"
 	"github.com/asynccnu/ccnubox-be/be-feed/cron"
 	"github.com/asynccnu/ccnubox-be/be-feed/events"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/producer"
@@ -20,25 +21,27 @@ import (
 // Injectors from wire.go:
 
 func InitApp() App {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
+	infraConf := conf.InitInfraConfig()
+	logger := ioc.InitLogger(infraConf)
+	db := ioc.InitDB(logger, infraConf)
 	feedEventDAO := dao.NewFeedEventDAO(db)
-	cmdable := ioc.InitRedis()
+	cmdable := ioc.InitRedis(infraConf)
 	feedEventCache := cache.NewRedisFeedEventCache(cmdable)
 	userFeedConfigDAO := dao.NewUserFeedConfigDAO(db)
 	feedFailEventDAO := dao.NewFeedFailEventDAO(db)
-	client := ioc.InitKafka()
+	client := ioc.InitKafka(infraConf)
 	producerProducer := producer.NewSaramaProducer(client)
 	feedEventService := service.NewFeedEventService(feedEventDAO, feedEventCache, userFeedConfigDAO, feedFailEventDAO, producerProducer, logger)
 	userFeedTokenDAO := dao.NewUserFeedTokenDAO(db)
 	feedUserConfigService := service.NewFeedUserConfigService(feedEventDAO, feedEventCache, userFeedConfigDAO, userFeedTokenDAO)
 	muxiOfficialMSGService := service.NewMuxiOfficialMSGService(feedEventDAO, feedEventCache, userFeedConfigDAO)
-	pushClient := ioc.InitJPushClient()
+	transConf := conf.InitTransConfig()
+	pushClient := ioc.InitJPushClient(transConf)
 	pushService := service.NewPushService(pushClient, userFeedConfigDAO, userFeedTokenDAO, feedFailEventDAO, logger)
 	feedServiceServer := grpc.NewFeedServiceServer(feedEventService, feedUserConfigService, muxiOfficialMSGService, pushService, logger)
-	clientv3Client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxKratosServer(feedServiceServer, clientv3Client, logger)
-	muxiController := cron.NewMuxiController(muxiOfficialMSGService, feedEventService, pushService, logger)
+	clientv3Client := ioc.InitEtcdClient(infraConf)
+	server := ioc.InitGRPCxKratosServer(feedServiceServer, clientv3Client, logger, transConf)
+	muxiController := cron.NewMuxiController(muxiOfficialMSGService, feedEventService, pushService, logger, transConf)
 	v := cron.NewCron(muxiController)
 	feedEventConsumerHandler := events.NewFeedEventConsumerHandler(client, logger, feedEventService, pushService)
 	v2 := ioc.InitConsumers(feedEventConsumerHandler)

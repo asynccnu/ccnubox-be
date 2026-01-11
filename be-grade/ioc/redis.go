@@ -4,21 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
+
 	"github.com/redis/go-redis/v9"
-	"github.com/spf13/viper"
 )
 
-func InitRedis() *redis.Client {
-	type Config struct {
-		Addr     string `yaml:"addr"`
-		Password string `yaml:"password"`
-	}
-	var cfg Config
-	err := viper.UnmarshalKey("redis", &cfg)
-	if err != nil {
-		panic(err)
-	}
-	cmd := redis.NewClient(&redis.Options{Addr: cfg.Addr, Password: cfg.Password})
+func InitRedis(cfg *conf.InfraConf) *redis.Client {
+	cmd := redis.NewClient(&redis.Options{Addr: cfg.Redis.Addr, Password: cfg.Redis.Password})
 
 	ctx := context.Background()
 	if err := cmd.Ping(ctx).Err(); err != nil {

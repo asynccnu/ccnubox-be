@@ -5,6 +5,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-calendar/conf"
 	"github.com/asynccnu/ccnubox-be/be-calendar/cron"
 	"github.com/asynccnu/ccnubox-be/be-calendar/grpc"
 	"github.com/asynccnu/ccnubox-be/be-calendar/ioc"
@@ -17,6 +18,8 @@ import (
 func InitApp() App {
 	wire.Build(
 		// 第三方
+		conf.InitInfraConfig,
+		conf.InitTransConfig,
 		ioc.InitDB,
 		ioc.InitRedis,
 		ioc.InitLogger,

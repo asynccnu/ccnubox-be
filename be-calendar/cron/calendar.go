@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-calendar/conf"
 	"github.com/asynccnu/ccnubox-be/be-calendar/domain"
-	"github.com/asynccnu/ccnubox-be/be-calendar/service"
-	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-calendar/pkg/pdf"
 	"github.com/asynccnu/ccnubox-be/be-calendar/pkg/qiniu"
 	"github.com/asynccnu/ccnubox-be/be-calendar/pkg/reptile"
-	"github.com/spf13/viper"
+	"github.com/asynccnu/ccnubox-be/be-calendar/service"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type CalendarController struct {
@@ -19,25 +19,16 @@ type CalendarController struct {
 	qiniu           qiniu.QiniuClient
 	reptile         reptile.Reptile
 	stopChan        chan struct{}
-	cfg             CalendarControllerConfig
+	cfg             *conf.TransConf
 	l               logger.Logger
-}
-
-// 配置定时任务周期
-type CalendarControllerConfig struct {
-	DurationTime int64 `yaml:"durationTime"`
 }
 
 func NewCalendarController(
 	repo service.CalendarService,
 	qiniu qiniu.QiniuClient,
 	l logger.Logger,
+	cfg *conf.TransConf,
 ) *CalendarController {
-	var cfg CalendarControllerConfig
-	if err := viper.UnmarshalKey("calendarController", &cfg); err != nil {
-		panic(err)
-	}
-
 	return &CalendarController{
 		calendarService: repo,
 		qiniu:           qiniu,
@@ -50,7 +41,7 @@ func NewCalendarController(
 
 func (r *CalendarController) StartCronTask() {
 	go func() {
-		ticker := time.NewTicker(time.Duration(r.cfg.DurationTime) * time.Hour)
+		ticker := time.NewTicker(time.Duration(r.cfg.Calendar.DurationTime) * time.Hour)
 		for {
 			select {
 			case <-ticker.C:

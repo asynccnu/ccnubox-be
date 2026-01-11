@@ -4,6 +4,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/bff/conf"
 	"github.com/asynccnu/ccnubox-be/bff/ioc"
 	"github.com/asynccnu/ccnubox-be/bff/web/middleware"
 	"github.com/google/wire"
@@ -11,6 +12,8 @@ import (
 
 func InitApp() *App {
 	wire.Build(
+		conf.InitInfraConfig,
+		conf.InitTransConfig,
 		// 组件
 		ioc.InitPrometheus,
 		ioc.InitEtcdClient,

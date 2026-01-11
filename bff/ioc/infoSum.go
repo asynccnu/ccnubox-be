@@ -3,28 +3,19 @@ package ioc
 import (
 	"context"
 
+	"github.com/asynccnu/ccnubox-be/bff/conf"
 	infoSumv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/infoSum/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func InitInfoSumClient(ecli *clientv3.Client) infoSumv1.InfoSumServiceClient {
-	// 配置 etcd 的路由
-	type Config struct {
-		Endpoint string `yaml:"endpoint"`
-	}
-	var cfg Config
-	// 解析配置文件获取 InfoSum 的位置
-	err := viper.UnmarshalKey("grpc.client.infoSum", &cfg)
-	if err != nil {
-		panic(err)
-	}
+func InitInfoSumClient(ecli *clientv3.Client, cfg *conf.TransConf) infoSumv1.InfoSumServiceClient {
+	const i = "infoSum"
 	r := etcd.New(ecli)
 	// grpc 通信
 	cc, err := grpc.DialInsecure(context.Background(),
-		grpc.WithEndpoint(cfg.Endpoint),
+		grpc.WithEndpoint(cfg.Grpc.Client[i].Endpoint),
 		grpc.WithDiscovery(r),
 	)
 	if err != nil {

@@ -4,32 +4,24 @@ import (
 	"context"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-calendar/conf"
 	"github.com/asynccnu/ccnubox-be/be-calendar/pkg/lunar"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/spf13/viper"
 )
 
 type HolidayController struct {
 	feedClient feedv1.FeedServiceClient
 	stopChan   chan struct{}
-	cfg        HolidayControllerConfig
+	cfg        *conf.TransConf
 	l          logger.Logger
-}
-
-type HolidayControllerConfig struct {
-	DurationTime int64 `yaml:"durationTime"`
-	AdvanceDay   int64 `yaml:"advanceDay"`
 }
 
 func NewHolidayController(
 	feedClient feedv1.FeedServiceClient,
 	l logger.Logger,
+	cfg *conf.TransConf,
 ) *HolidayController {
-	var cfg HolidayControllerConfig
-	if err := viper.UnmarshalKey("holidayController", &cfg); err != nil {
-		panic(err)
-	}
 	return &HolidayController{
 		feedClient: feedClient,
 		stopChan:   make(chan struct{}),
@@ -40,7 +32,7 @@ func NewHolidayController(
 
 func (r *HolidayController) StartCronTask() {
 	go func() {
-		ticker := time.NewTicker(time.Duration(r.cfg.DurationTime) * time.Hour)
+		ticker := time.NewTicker(time.Duration(r.cfg.Holoday.DurationTime) * time.Hour)
 		for {
 			select {
 			case <-ticker.C:
@@ -60,7 +52,7 @@ func (r *HolidayController) StartCronTask() {
 
 func (r *HolidayController) publishMSG() error {
 	//由于没有使用注册为路由这里手动写的上下文,每次提前四天进行提醒
-	holiday := lunar.IsHoliday(time.Now().Add(time.Duration(r.cfg.AdvanceDay) * 24 * time.Hour))
+	holiday := lunar.IsHoliday(time.Now().Add(time.Duration(r.cfg.Holoday.AdvanceDay) * 24 * time.Hour))
 	if holiday == "" {
 		return nil
 	}

@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
 	"github.com/asynccnu/ccnubox-be/be-grade/cron"
 	"github.com/asynccnu/ccnubox-be/be-grade/events"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
@@ -19,25 +20,27 @@ import (
 // Injectors from wire.go:
 
 func InitApp() App {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
+	infraConf := conf.InitInfraConfig()
+	logger := ioc.InitLogger(infraConf)
+	db := ioc.InitDB(logger, infraConf)
 	gradeDAO := dao.NewGradeDAO(db)
-	client := ioc.InitEtcdClient()
-	userServiceClient := ioc.InitUserClient(client)
-	proxyClient := ioc.InitProxyClient(client)
-	saramaClient := ioc.InitKafka()
+	client := ioc.InitEtcdClient(infraConf)
+	transConf := conf.InitTransConfig()
+	userServiceClient := ioc.InitUserClient(client, transConf)
+	proxyClient := ioc.InitProxyClient(client, transConf)
+	saramaClient := ioc.InitKafka(infraConf)
 	producerProducer := producer.NewSaramaProducer(saramaClient)
 	gradeService := service.NewGradeService(gradeDAO, logger, userServiceClient, proxyClient, producerProducer)
 	rankDAO := dao.NewRankDAO(db)
 	rankService := service.NewRankService(rankDAO, logger, userServiceClient)
 	gradeServiceServer := grpc.NewGradeGrpcService(gradeService, rankService)
-	server := ioc.InitGRPCxKratosServer(gradeServiceServer, client, logger)
-	counterServiceClient := ioc.InitCounterClient(client)
-	feedServiceClient := ioc.InitFeedClient(client)
-	classerClient := ioc.InitClasslistClient(client)
-	redisClient := ioc.InitRedis()
+	server := ioc.InitGRPCxKratosServer(gradeServiceServer, client, logger, transConf)
+	counterServiceClient := ioc.InitCounterClient(client, transConf)
+	feedServiceClient := ioc.InitFeedClient(client, transConf)
+	classerClient := ioc.InitClasslistClient(client, transConf)
+	redisClient := ioc.InitRedis(infraConf)
 	redsync := ioc.InitRedisLock(redisClient)
-	gradeController := cron.NewGradeController(logger, counterServiceClient, userServiceClient, feedServiceClient, classerClient, gradeService, rankService, redsync)
+	gradeController := cron.NewGradeController(logger, counterServiceClient, userServiceClient, feedServiceClient, classerClient, gradeService, rankService, redsync, transConf)
 	v := cron.NewCron(gradeController)
 	gradeDetailEventConsumerHandler := events.NewGradeDetailEventConsumerHandler(saramaClient, logger, gradeService)
 	v2 := ioc.InitConsumers(gradeDetailEventConsumerHandler)

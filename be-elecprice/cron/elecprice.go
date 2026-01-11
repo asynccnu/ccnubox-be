@@ -5,33 +5,26 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-elecprice/conf"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/service"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/spf13/viper"
 )
 
 type ElecpriceController struct {
 	feedClient      feedv1.FeedServiceClient
 	elecpriceSerice service.ElecpriceService
 	stopChan        chan struct{}
-	cfg             ElecpriceControllerConfig
+	cfg             *conf.TransConf
 	l               logger.Logger
-}
-
-type ElecpriceControllerConfig struct {
-	DurationTime int64 `yaml:"durationTime"`
 }
 
 func NewElecpriceController(
 	feedClient feedv1.FeedServiceClient,
 	elecpriceSerice service.ElecpriceService,
 	l logger.Logger,
+	cfg *conf.TransConf,
 ) *ElecpriceController {
-	var cfg ElecpriceControllerConfig
-	if err := viper.UnmarshalKey("elecpriceController", &cfg); err != nil {
-		panic(err)
-	}
 	return &ElecpriceController{
 		feedClient:      feedClient,
 		elecpriceSerice: elecpriceSerice,
@@ -43,7 +36,7 @@ func NewElecpriceController(
 
 func (r *ElecpriceController) StartCronTask() {
 	go func() {
-		ticker := time.NewTicker(time.Duration(r.cfg.DurationTime) * time.Hour)
+		ticker := time.NewTicker(time.Duration(r.cfg.Elec.DurationTime) * time.Hour)
 		for {
 			select {
 			case <-ticker.C:

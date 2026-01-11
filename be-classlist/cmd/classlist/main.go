@@ -51,20 +51,26 @@ func newApp(logger log.Logger, gs *grpc.Server, r *etcd.Registry) *kratos.App {
 
 func main() {
 	flag.Parse()
-	c := config.New(
-		config.WithSource(
-			file.NewSource(flagconf),
-		),
-	)
-	defer c.Close()
-
-	if err := c.Load(); err != nil {
-		panic(err)
-	}
-
 	var bc conf.Bootstrap
-	if err := c.Scan(&bc); err != nil {
-		panic(err)
+	if os.Getenv(conf.ClassList) != "" {
+		bootstrap := conf.InitBootstrapFromNacos()
+		if bootstrap == nil {
+			panic("nacos 配置初始化失败")
+		}
+		bc = *bootstrap
+	} else {
+		c := config.New(
+			config.WithSource(
+				file.NewSource(flagconf),
+			),
+		)
+		defer c.Close()
+		if err := c.Load(); err != nil {
+			panic(err)
+		}
+		if err := c.Scan(&bc); err != nil {
+			panic(err)
+		}
 	}
 
 	// 设置服务名称

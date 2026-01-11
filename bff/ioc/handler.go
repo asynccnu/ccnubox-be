@@ -1,6 +1,7 @@
 package ioc
 
 import (
+	"github.com/asynccnu/ccnubox-be/bff/conf"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/htmlx"
 	"github.com/asynccnu/ccnubox-be/bff/web/banner"
 	"github.com/asynccnu/ccnubox-be/bff/web/calendar"
@@ -42,127 +43,87 @@ import (
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/redis/go-redis/v9"
-	"github.com/spf13/viper"
 )
 
 func InitStaticHandler(
+	cfg *conf.TransConf,
 	staticClient staticv1.StaticServiceClient) *static.StaticHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
 	return static.NewStaticHandler(staticClient,
 		map[string]htmlx.FileToHTMLConverter{},
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
 // InitCalendarHandler 初始化 CalendarHandler
 func InitCalendarHandler(
+	cfg *conf.TransConf,
 	calendarClient calendarv1.CalendarServiceClient) *calendar.CalendarHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
 	return calendar.NewCalendarHandler(calendarClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
 // InitBannerHandler 初始化 BannerHandler
 func InitBannerHandler(
+	cfg *conf.TransConf,
 	bannerClient bannerv1.BannerServiceClient, userClient userv1.UserServiceClient) *banner.BannerHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
 	return banner.NewBannerHandler(bannerClient, userClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
 // InitWebsiteHandler 初始化 WebsiteHandler
 func InitWebsiteHandler(
+	cfg *conf.TransConf,
 	websiteClient websitev1.WebsiteServiceClient) *website.WebsiteHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
 	return website.NewWebsiteHandler(websiteClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
 // InitInfoSumHandler 初始化 InfoSumHandler
 func InitInfoSumHandler(
+	cfg *conf.TransConf,
 	infoSumClient infoSumv1.InfoSumServiceClient) *infoSum.InfoSumHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
 	return infoSum.NewInfoSumHandler(infoSumClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
 // InitDepartmentHandler 初始化 DepartmentHandler
 func InitDepartmentHandler(
+	cfg *conf.TransConf,
 	departmentClient departmentv1.DepartmentServiceClient) *department.DepartmentHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
 	return department.NewDepartmentHandler(departmentClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
 func InitFeedHandler(
+	cfg *conf.TransConf,
 	feedServiceClient feedv1.FeedServiceClient) *feed.FeedHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
 	return feed.NewFeedHandler(feedServiceClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
-func InitElecpriceHandler(client elecpricev1.ElecpriceServiceClient) *elecprice.ElecPriceHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
-
+func InitElecpriceHandler(cfg *conf.TransConf, client elecpricev1.ElecpriceServiceClient) *elecprice.ElecPriceHandler {
 	return elecprice.NewElecPriceHandler(client,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
-func InitClassHandler(client1 classlistv1.ClasserClient, client2 cs.ClassServiceClient) *class.ClassHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
+func InitClassHandler(cfg *conf.TransConf, client1 classlistv1.ClasserClient, client2 cs.ClassServiceClient) *class.ClassHandler {
 	return class.NewClassListHandler(client1, client2,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
@@ -170,61 +131,36 @@ func InitClassHandler(client1 classlistv1.ClasserClient, client2 cs.ClassService
 func InitClassRoomHandler(client cs.FreeClassroomSvcClient) *classroom.ClassRoomHandler {
 	return classroom.NewClassRoomHandler(client)
 }
-func InitGradeHandler(l logger.Logger, gradeClient gradev1.GradeServiceClient, counterServiceClient counterv1.CounterServiceClient) *grade.GradeHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
+func InitGradeHandler(cfg *conf.TransConf, l logger.Logger, gradeClient gradev1.GradeServiceClient, counterServiceClient counterv1.CounterServiceClient) *grade.GradeHandler {
 	return grade.NewGradeHandler(
 		gradeClient,
 		counterServiceClient,
 		l,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }),
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) { return element, struct{}{} }),
 	)
 }
 
-func InitFeedbackHelpHandler(client feedbackv1.FeedbackHelpClient) *feedback_help.FeedbackHelpHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
+func InitFeedbackHelpHandler(cfg *conf.TransConf, client feedbackv1.FeedbackHelpClient) *feedback_help.FeedbackHelpHandler {
 	return feedback_help.NewFeedbackHelpHandler(client,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
 
-func InitCardHandler(client cardv1.CardClient) *card.CardHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
+func InitCardHandler(cfg *conf.TransConf, client cardv1.CardClient) *card.CardHandler {
 	return card.NewCardHandler(client,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
 
-func InitUserHandler(hdl ijwt.Handler, userClient userv1.UserServiceClient) *user.UserHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
+func InitUserHandler(cfg *conf.TransConf, hdl ijwt.Handler, userClient userv1.UserServiceClient) *user.UserHandler {
 	return user.NewUserHandler(hdl, userClient)
 }
 
-func InitLibraryHandler(client libraryv1.LibraryClient) *library.LibraryHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
+func InitLibraryHandler(cfg *conf.TransConf, client libraryv1.LibraryClient) *library.LibraryHandler {
 	return library.NewLibraryHandler(client,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
 
-func InitTubeHandler(tb *TubePolicies, mac *qbox.Mac) *tube.TubeHandler {
-	return tube.NewTubeHandler(tb.defaultPolicy, tb.officialSite, mac, viper.GetString("oss.domainName"))
+func InitTubeHandler(cfg *conf.TransConf, tb *TubePolicies, mac *qbox.Mac) *tube.TubeHandler {
+	return tube.NewTubeHandler(tb.defaultPolicy, tb.officialSite, mac, cfg.Oss.DomainName)
 }
 
 func InitMetricsHandel(l logger.Logger, redisClient redis.Cmdable, prometheus *prometheusx.PrometheusCounter) *metrics.MetricsHandler {

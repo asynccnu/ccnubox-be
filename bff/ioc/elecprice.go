@@ -4,29 +4,20 @@ import (
 	"context"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/bff/conf"
+
 	elecpricev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/elecprice/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func InitElecpriceClient(ecli *clientv3.Client) elecpricev1.ElecpriceServiceClient {
-	//配置etcd的路由
-	type Config struct {
-		Endpoint string `yaml:"endpoint"`
-	}
-	var cfg Config
-
-	//解析配置配置文件获取department的位置
-	err := viper.UnmarshalKey("grpc.client.elecprice", &cfg)
-	if err != nil {
-		panic(err)
-	}
+func InitElecpriceClient(ecli *clientv3.Client, cfg *conf.TransConf) elecpricev1.ElecpriceServiceClient {
+	const e = "elecprice"
 	r := etcd.New(ecli)
 	//grpc通信
 	cc, err := grpc.DialInsecure(context.Background(),
-		grpc.WithEndpoint(cfg.Endpoint),
+		grpc.WithEndpoint(cfg.Grpc.Client[e].Endpoint),
 		grpc.WithDiscovery(r),
 		grpc.WithTimeout(120*time.Second),
 	)

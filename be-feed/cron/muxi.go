@@ -4,23 +4,19 @@ import (
 	"context"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-feed/conf"
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/spf13/viper"
 )
 
 type MuxiController struct {
 	muxi     service.MuxiOfficialMSGService
 	push     service.PushService
 	feed     service.FeedEventService
-	cfg      muxiControllerConfig
+	cfg      *conf.TransConf
 	stopChan chan struct{}
 	l        logger.Logger
-}
-
-type muxiControllerConfig struct {
-	DurationTime int64 `yaml:"durationTime"`
 }
 
 func NewMuxiController(
@@ -28,14 +24,8 @@ func NewMuxiController(
 	feed service.FeedEventService,
 	push service.PushService,
 	l logger.Logger,
+	cfg *conf.TransConf,
 ) *MuxiController {
-
-	var cfg muxiControllerConfig
-
-	if err := viper.UnmarshalKey("muxiController", &cfg); err != nil {
-		panic(err)
-	}
-
 	return &MuxiController{
 		muxi:     muxi,
 		push:     push,
@@ -48,7 +38,7 @@ func NewMuxiController(
 
 func (c *MuxiController) StartCronTask() {
 	go func() {
-		ticker := time.NewTicker(time.Duration(c.cfg.DurationTime) * time.Second)
+		ticker := time.NewTicker(time.Duration(c.cfg.MuxiController.DurationTime) * time.Second)
 
 		for {
 			select {

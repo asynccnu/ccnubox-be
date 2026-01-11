@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-feed/conf"
 	"github.com/asynccnu/ccnubox-be/be-feed/grpc"
 	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
@@ -13,24 +14,12 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport"
 	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func InitGRPCxKratosServer(pointServer *grpc.FeedServiceServer, ecli *clientv3.Client, l logger.Logger) grpcx.Server {
-	type Config struct {
-		Name    string `yaml:"name"`
-		Weight  int    `yaml:"weight"`
-		Addr    string `yaml:"addr"`
-		EtcdTTL int64  `yaml:"etcdTTL"`
-	}
-	var cfg Config
-	err := viper.UnmarshalKey("grpc.server", &cfg)
-	if err != nil {
-		panic(err)
-	}
+func InitGRPCxKratosServer(pointServer *grpc.FeedServiceServer, ecli *clientv3.Client, l logger.Logger, cfg *conf.TransConf) grpcx.Server {
 	server := kgrpc.NewServer(
-		kgrpc.Address(cfg.Addr),
+		kgrpc.Address(cfg.Grpc.Server.Addr),
 		kgrpc.Middleware(
 			recovery.Recovery(),
 			LoggingMiddleware(l),
@@ -40,9 +29,9 @@ func InitGRPCxKratosServer(pointServer *grpc.FeedServiceServer, ecli *clientv3.C
 	pointServer.Register(server)
 	return &grpcx.KratosServer{
 		Server:     server,
-		Name:       cfg.Name,
-		Weight:     cfg.Weight,
-		EtcdTTL:    time.Second * time.Duration(cfg.EtcdTTL),
+		Name:       cfg.Grpc.Server.Name,
+		Weight:     cfg.Grpc.Server.Weight,
+		EtcdTTL:    time.Second * time.Duration(cfg.Grpc.Server.EtcdTTL),
 		EtcdClient: ecli,
 		L:          l,
 	}

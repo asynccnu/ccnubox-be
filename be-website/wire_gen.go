@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-website/conf"
 	"github.com/asynccnu/ccnubox-be/be-website/grpc"
 	"github.com/asynccnu/ccnubox-be/be-website/ioc"
 	"github.com/asynccnu/ccnubox-be/be-website/pkg/grpcx"
@@ -18,14 +19,16 @@ import (
 // Injectors from wire.go:
 
 func InitGRPCServer() grpcx.Server {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
+	infraConf := conf.InitInfraConfig()
+	logger := ioc.InitLogger(infraConf)
+	db := ioc.InitDB(logger, infraConf)
 	websiteDAO := dao.NewMysqlWebsiteDAO(db)
-	cmdable := ioc.InitRedis()
+	cmdable := ioc.InitRedis(infraConf)
 	websiteCache := cache.NewRedisWebsiteCache(cmdable)
 	websiteService := service.NewWebsiteService(websiteDAO, websiteCache, logger)
 	websiteServiceServer := grpc.NewWebsiteServiceServer(websiteService)
-	client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxKratosServer(websiteServiceServer, client, logger)
+	client := ioc.InitEtcdClient(infraConf)
+	transConf := conf.InitTransConfig()
+	server := ioc.InitGRPCxKratosServer(websiteServiceServer, client, logger, transConf)
 	return server
 }

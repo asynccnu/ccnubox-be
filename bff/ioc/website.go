@@ -3,28 +3,19 @@ package ioc
 import (
 	"context"
 
+	"github.com/asynccnu/ccnubox-be/bff/conf"
 	websitev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/website/v1"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func InitWebsiteClient(ecli *clientv3.Client) websitev1.WebsiteServiceClient {
-	// 配置 etcd 的路由
-	type Config struct {
-		Endpoint string `yaml:"endpoint"`
-	}
-	var cfg Config
-	// 解析配置文件获取 website 的位置
-	err := viper.UnmarshalKey("grpc.client.website", &cfg)
-	if err != nil {
-		panic(err)
-	}
+func InitWebsiteClient(ecli *clientv3.Client, cfg *conf.TransConf) websitev1.WebsiteServiceClient {
+	const w = "website"
 	r := etcd.New(ecli)
 	// grpc 通信
 	cc, err := grpc.DialInsecure(context.Background(),
-		grpc.WithEndpoint(cfg.Endpoint),
+		grpc.WithEndpoint(cfg.Grpc.Client[w].Endpoint),
 		grpc.WithDiscovery(r),
 	)
 	if err != nil {

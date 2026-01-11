@@ -64,20 +64,26 @@ func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, r *etcd.Registr
 
 func main() {
 	flag.Parse()
-	c := config.New(
-		config.WithSource(
-			file.NewSource(flagconf),
-		),
-	)
-	defer c.Close()
-
-	if err := c.Load(); err != nil {
-		panic(err)
-	}
-
 	var bc conf.Bootstrap
-	if err := c.Scan(&bc); err != nil {
-		panic(err)
+	if os.Getenv(conf.Class) != "" {
+		bootstrap := conf.InitBootstrapFromNacos()
+		if bootstrap == nil {
+			panic("nacos 配置初始化失败")
+		}
+		bc = *bootstrap
+	} else {
+		c := config.New(
+			config.WithSource(
+				file.NewSource(flagconf),
+			),
+		)
+		defer c.Close()
+		if err := c.Load(); err != nil {
+			panic(err)
+		}
+		if err := c.Scan(&bc); err != nil {
+			panic(err)
+		}
 	}
 
 	if len(bc.Server.Name) > 0 {

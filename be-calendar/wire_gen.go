@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-calendar/conf"
 	"github.com/asynccnu/ccnubox-be/be-calendar/cron"
 	"github.com/asynccnu/ccnubox-be/be-calendar/grpc"
 	"github.com/asynccnu/ccnubox-be/be-calendar/ioc"
@@ -18,19 +19,21 @@ import (
 // Injectors from wire.go:
 
 func InitApp() App {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
+	infraConf := conf.InitInfraConfig()
+	logger := ioc.InitLogger(infraConf)
+	db := ioc.InitDB(logger, infraConf)
 	calendarDAO := dao.NewMysqlCalendarDAO(db)
-	cmdable := ioc.InitRedis()
+	cmdable := ioc.InitRedis(infraConf)
 	calendarCache := cache.NewRedisCalendarCache(cmdable)
 	calendarService := service.NewCachedCalendarService(calendarDAO, calendarCache, logger)
 	calendarServiceServer := grpc.NewCalendarServiceServer(calendarService)
-	client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxKratosServer(calendarServiceServer, client, logger)
-	qiniuClient := ioc.InitQiniu()
-	calendarController := cron.NewCalendarController(calendarService, qiniuClient, logger)
-	feedServiceClient := ioc.InitFeedClient(client)
-	holidayController := cron.NewHolidayController(feedServiceClient, logger)
+	transConf := conf.InitTransConfig()
+	client := ioc.InitEtcdClient(transConf)
+	server := ioc.InitGRPCxKratosServer(calendarServiceServer, client, logger, transConf)
+	qiniuClient := ioc.InitQiniu(transConf)
+	calendarController := cron.NewCalendarController(calendarService, qiniuClient, logger, transConf)
+	feedServiceClient := ioc.InitFeedClient(client, transConf)
+	holidayController := cron.NewHolidayController(feedServiceClient, logger, transConf)
 	v := cron.NewCron(calendarController, holidayController)
 	app := NewApp(server, v)
 	return app

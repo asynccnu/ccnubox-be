@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-content/repository/model"
+
 	"github.com/asynccnu/ccnubox-be/be-content/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/be-content/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-content/repository/dao"
@@ -16,21 +18,20 @@ var (
 )
 
 // ContentRepo 泛型接口
-type ContentRepo[T any] interface {
+type ContentRepo[T model.Content] interface {
 	Get(ctx context.Context, field string, val any) (*T, error)
 	Save(ctx context.Context, item *T) error
 	Del(ctx context.Context, field string, val any) error
 	GetList(ctx context.Context) ([]T, error)
 }
 
-type Repository[T any] struct {
-	dao       dao.DAO[T]       // 修改为指针
-	cache     cache.Cache[[]T] // 列表缓存
-	itemCache cache.Cache[T]   // 单体缓存
-	l         logger.Logger
+type Repository[T model.Content] struct {
+	dao   dao.DAO[T]     // 修改为指针
+	cache cache.Cache[T] // 列表缓存
+	l     logger.Logger
 }
 
-func NewContentRepo[T any](dao dao.DAO[T], cache cache.Cache[[]T], l logger.Logger) ContentRepo[T] {
+func NewContentRepo[T model.Content](dao dao.DAO[T], cache cache.Cache[T], l logger.Logger) ContentRepo[T] {
 	return &Repository[T]{
 		dao:   dao,
 		cache: cache,

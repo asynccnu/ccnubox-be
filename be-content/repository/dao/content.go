@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/asynccnu/ccnubox-be/be-content/pkg/errorx"
+	"github.com/asynccnu/ccnubox-be/be-content/repository/model"
 	"gorm.io/gorm"
 )
 
@@ -11,7 +12,7 @@ var (
 	ErrRecordNotFound = errorx.New("record not found")
 )
 
-type DAO[T any] interface {
+type DAO[T model.Content] interface {
 	// 上部分是用于对 index 进行处理,下部分是对具体的 feedEvent 进行处理
 	FindAll(ctx context.Context) ([]T, error)
 	FindOneByField(ctx context.Context, field string, value any) (*T, error)
@@ -20,12 +21,12 @@ type DAO[T any] interface {
 }
 
 // dao 是一个通用的泛型 dao 实现
-type dao[T any] struct {
+type dao[T model.Content] struct {
 	db *gorm.DB
 }
 
 // NewGormDAO 创建泛型 dao 实例
-func NewGormDAO[T any](db *gorm.DB) DAO[T] {
+func NewGormDAO[T model.Content](db *gorm.DB) DAO[T] {
 	return &dao[T]{db: db}
 }
 

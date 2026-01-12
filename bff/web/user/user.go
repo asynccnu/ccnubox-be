@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -85,7 +86,7 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 	}
 
 	// 预加载基础配置和数据
-	h.preLoader.PreLoad(ctx, req.StudentId)
+	h.preLoader.PreLoad(context.Background(), req.StudentId)
 
 	err = h.SetLoginToken(ctx, req.StudentId, req.Password)
 	if err != nil {

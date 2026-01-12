@@ -11,7 +11,7 @@ func InitTables(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&model.FeedEvent{},
 		&model.UserFeedConfig{},
-		&model.Token{},
+		&model.UserToken{},
 		&model.FeedFailEvent{},
 	)
 	if err != nil {

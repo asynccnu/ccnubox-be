@@ -9,8 +9,8 @@ import (
 // 用来对用户的feed数据进行处理
 
 type UserFeedConfigDAO interface {
-	FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.UserFeedConfig, error)
-	SaveUserFeedConfig(ctx context.Context, req *model.UserFeedConfig) error
+	FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.FeedUserConfig, error)
+	SaveUserFeedConfig(ctx context.Context, req *model.FeedUserConfig) error
 	SetConfigBit(config *uint16, position int)
 	ClearConfigBit(config *uint16, position int)
 	GetConfigBit(config uint16, position int) bool
@@ -26,18 +26,18 @@ func NewUserFeedConfigDAO(db *gorm.DB) UserFeedConfigDAO {
 	return &userFeedConfigDAO{gorm: db}
 }
 
-// FindOrCreateFeedAllowList 查找或创建 UserFeedConfig
-func (dao *userFeedConfigDAO) FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.UserFeedConfig, error) {
-	allowList := model.UserFeedConfig{StudentId: studentId}
-	err := dao.gorm.WithContext(ctx).Model(model.UserFeedConfig{}).Where("student_id = ?", studentId).FirstOrCreate(&allowList).Error
+// FindOrCreateFeedAllowList 查找或创建 FeedUserConfig
+func (dao *userFeedConfigDAO) FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.FeedUserConfig, error) {
+	allowList := model.FeedUserConfig{StudentId: studentId}
+	err := dao.gorm.WithContext(ctx).Model(model.FeedUserConfig{}).Where("student_id = ?", studentId).FirstOrCreate(&allowList).Error
 	if err != nil {
 		return nil, err
 	}
 	return &allowList, nil
 }
 
-// SaveFeedAllowList 保存 UserFeedConfig
-func (dao *userFeedConfigDAO) SaveUserFeedConfig(ctx context.Context, req *model.UserFeedConfig) error {
+// SaveFeedAllowList 保存 FeedUserConfig
+func (dao *userFeedConfigDAO) SaveUserFeedConfig(ctx context.Context, req *model.FeedUserConfig) error {
 	return dao.gorm.WithContext(ctx).Save(req).Error
 }
 
@@ -64,7 +64,7 @@ func (dao *userFeedConfigDAO) GetStudentIdsByCursor(ctx context.Context, lastID 
 	}
 
 	// 查询数据库，假设有一个学生表，按 ID 排序
-	query := dao.gorm.WithContext(ctx).Model(model.UserFeedConfig{}).Where("id > ?", lastID).Order("id ASC").Limit(limit)
+	query := dao.gorm.WithContext(ctx).Model(model.FeedUserConfig{}).Where("id > ?", lastID).Order("id ASC").Limit(limit)
 
 	// 执行查询
 	if err := query.Find(&students).Error; err != nil {

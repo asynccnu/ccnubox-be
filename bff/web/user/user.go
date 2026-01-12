@@ -1,11 +1,8 @@
 package user
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
-	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
@@ -21,20 +18,21 @@ import (
 // user板块的控制路由
 type UserHandler struct {
 	ijwt.Handler
-	userSvc         userv1.UserServiceClient
-	gradeGetter     GradeGetter
-	classListGetter ClassListGetter
+	userClient userv1.UserServiceClient
+	preLoader  PreLoader
 }
 
-func NewUserHandler(hdl ijwt.Handler, userSvc userv1.UserServiceClient, gradeClient gradev1.GradeServiceClient,
-	classerClient classlistv1.ClasserClient) *UserHandler {
-	gg := NewGradeGetter(gradeClient)
-	clg := NewClassListGetter(classerClient)
+func NewUserHandler(
+	hdl ijwt.Handler,
+	userSvc userv1.UserServiceClient,
+	preLoader PreLoader,
+
+) *UserHandler {
+
 	return &UserHandler{
-		Handler:         hdl,
-		userSvc:         userSvc,
-		gradeGetter:     gg,
-		classListGetter: clg,
+		Handler:    hdl,
+		userClient: userSvc,
+		preLoader:  preLoader,
 	}
 }
 
@@ -62,7 +60,7 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 	span.SetAttributes(attribute.String("student_id", req.StudentId))
 
 	// 检测是否学生证账号密码正确,如果通行证失败的话会去查本地,如果本地也失败就会丢出系统异常错误,否则是账号密码不正确
-	resp, err := h.userSvc.CheckUser(ctx, &userv1.CheckUserReq{
+	resp, err := h.userClient.CheckUser(ctx, &userv1.CheckUserReq{
 		StudentId: req.StudentId,
 		Password:  req.Password,
 	})
@@ -80,20 +78,19 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 		return web.Response{}, errs.USER_SID_Or_PASSPORD_ERROR(err)
 	}
 
-	// FindOrCreate
-	_, err = h.userSvc.SaveUser(ctx, &userv1.SaveUserReq{StudentId: req.StudentId, Password: req.Password})
+	// 更新用户账号密码
+	_, err = h.userClient.SaveUser(ctx, &userv1.SaveUserReq{StudentId: req.StudentId, Password: req.Password})
 	if err != nil {
 		return web.Response{}, errs.LOGIN_BY_CCNU_ERROR(err)
 	}
+
+	// 预加载基础配置和数据
+	h.preLoader.PreLoad(ctx, req.StudentId)
 
 	err = h.SetLoginToken(ctx, req.StudentId, req.Password)
 	if err != nil {
 		return web.Response{}, errs.JWT_SYSTEM_ERROR(err)
 	}
-
-	h.classListGetter.PreGetClassList(context.Background(), req.StudentId)
-	h.gradeGetter.PreGetStudentGrade(context.Background(), req.StudentId)
-
 	return web.Response{
 		Msg: "Success",
 	}, nil

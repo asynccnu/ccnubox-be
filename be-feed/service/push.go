@@ -81,6 +81,13 @@ func (s *pushService) InsertFailFeedEvents(ctx context.Context, failEvents []dom
 
 // 推送单条消息
 func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) error {
+	tokens, err := s.feedTokenDAO.GetTokens(ctx, pushData.StudentId)
+	if err != nil {
+		return err
+	}
+	if len(tokens) == 0 {
+		return nil
+	}
 
 	//权限检测
 	allowed, err := s.checkIfAllow(ctx, pushData.Type, pushData.StudentId)
@@ -90,12 +97,6 @@ func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) e
 	if !allowed {
 		return nil
 	}
-
-	tokens, err := s.feedTokenDAO.GetTokens(ctx, pushData.StudentId)
-	if err != nil {
-		return err
-	}
-	s.l.Info("token列表", logger.Field{Val: tokens})
 
 	err = s.pushClient.Push(tokens, jpush.PushData{
 		ContentType: pushData.Type,

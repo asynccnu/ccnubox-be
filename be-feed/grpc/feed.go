@@ -68,12 +68,12 @@ func (g *FeedServiceServer) ChangeFeedAllowList(ctx context.Context, req *feedv1
 	return &feedv1.ChangeFeedAllowListResp{}, nil
 }
 
-func (g *FeedServiceServer) GetFeedAllowList(ctx context.Context, req *feedv1.GetFeedAllowListReq) (*feedv1.GetFeedAllowListResp, error) {
-	list, err := g.feedUserConfigService.GetFeedAllowList(ctx, req.GetStudentId())
+func (g *FeedServiceServer) FindOrCreateAllowList(ctx context.Context, req *feedv1.FindOrCreateAllowListReq) (*feedv1.FindOrCreateAllowListResp, error) {
+	list, err := g.feedUserConfigService.FindOrCreateAllowList(ctx, req.GetStudentId())
 	if err != nil {
 		return nil, err
 	}
-	return &feedv1.GetFeedAllowListResp{AllowList: convAllowListFromDomainToGRPC(&list)}, nil
+	return &feedv1.FindOrCreateAllowListResp{AllowList: convAllowListFromDomainToGRPC(&list)}, nil
 }
 
 func (g *FeedServiceServer) ClearFeedEvent(ctx context.Context, req *feedv1.ClearFeedEventReq) (*feedv1.ClearFeedEventResp, error) {

@@ -44,7 +44,7 @@ bin/
 test.*
 
 deployment/docker/logs
-
+/volume/
 test.sh
 test.yaml
 

@@ -103,14 +103,21 @@ func InitGradeHandler(l logger.Logger, gradeClient gradev1.GradeServiceClient, c
 	)
 }
 
-func InitUserHandler(hdl ijwt.Handler, userClient userv1.UserServiceClient, gradeClient gradev1.GradeServiceClient,
-	classListClient classlistv1.ClasserClient) *user.UserHandler {
+func InitUserHandler(
+	hdl ijwt.Handler,
+	userClient userv1.UserServiceClient,
+	gradeClient gradev1.GradeServiceClient,
+	classListClient classlistv1.ClasserClient,
+	feedClient feedv1.FeedServiceClient,
+	l logger.Logger,
+) *user.UserHandler {
 	var administrators []string
 	err := viper.UnmarshalKey("administrators", &administrators)
 	if err != nil {
 		panic(err)
 	}
-	return user.NewUserHandler(hdl, userClient, gradeClient, classListClient)
+	preLoader := user.NewPreLoader(gradeClient, classListClient, feedClient, l)
+	return user.NewUserHandler(hdl, userClient, preLoader)
 }
 
 func InitLibraryHandler(client libraryv1.LibraryClient) *library.LibraryHandler {

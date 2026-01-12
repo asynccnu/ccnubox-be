@@ -8,7 +8,7 @@ service FeedService {
   rpc ReadFeedEvent(ReadFeedEventReq)returns(ReadFeedEventResp);//用来更新信息的已读取状态
   rpc ClearFeedEvent (ClearFeedEventReq) returns (ClearFeedEventResp);//清除当前的消息,如果包括已读和未读两部分
   rpc ChangeFeedAllowList (ChangeFeedAllowListReq)returns(ChangeFeedAllowListResp);//更改当前的推送的消息数量
-  rpc GetFeedAllowList (GetFeedAllowListReq)returns(GetFeedAllowListResp);//获取feed推送许可配置
+  rpc FindOrCreateAllowList (FindOrCreateAllowListReq)returns(FindOrCreateAllowListResp);//获取feed推送许可配置
   rpc SaveFeedToken (SaveFeedTokenReq)returns(SaveFeedTokenResp);//存储用户的token
   rpc RemoveFeedToken(RemoveFeedTokenReq)returns(RemoveFeedTokenResp);//清除当前账号的token
   rpc PublicMuxiOfficialMSG(PublicMuxiOfficialMSGReq)returns(PublicMuxiOfficialMSGResp);//发布木犀官方消息
@@ -74,11 +74,11 @@ message ChangeFeedAllowListReq {
 
 message ChangeFeedAllowListResp {}
 
-message GetFeedAllowListReq{
+message FindOrCreateAllowListReq{
   string studentId =1;
 }
 
-message GetFeedAllowListResp{
+message FindOrCreateAllowListResp{
   AllowList allowList =1;
 }
 

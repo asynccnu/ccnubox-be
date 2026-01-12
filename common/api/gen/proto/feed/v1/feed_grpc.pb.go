@@ -23,7 +23,7 @@ const (
 	FeedService_ReadFeedEvent_FullMethodName            = "/feed.v1.FeedService/ReadFeedEvent"
 	FeedService_ClearFeedEvent_FullMethodName           = "/feed.v1.FeedService/ClearFeedEvent"
 	FeedService_ChangeFeedAllowList_FullMethodName      = "/feed.v1.FeedService/ChangeFeedAllowList"
-	FeedService_GetFeedAllowList_FullMethodName         = "/feed.v1.FeedService/GetFeedAllowList"
+	FeedService_FindOrCreateAllowList_FullMethodName    = "/feed.v1.FeedService/FindOrCreateAllowList"
 	FeedService_SaveFeedToken_FullMethodName            = "/feed.v1.FeedService/SaveFeedToken"
 	FeedService_RemoveFeedToken_FullMethodName          = "/feed.v1.FeedService/RemoveFeedToken"
 	FeedService_PublicMuxiOfficialMSG_FullMethodName    = "/feed.v1.FeedService/PublicMuxiOfficialMSG"
@@ -40,7 +40,7 @@ type FeedServiceClient interface {
 	ReadFeedEvent(ctx context.Context, in *ReadFeedEventReq, opts ...grpc.CallOption) (*ReadFeedEventResp, error)
 	ClearFeedEvent(ctx context.Context, in *ClearFeedEventReq, opts ...grpc.CallOption) (*ClearFeedEventResp, error)
 	ChangeFeedAllowList(ctx context.Context, in *ChangeFeedAllowListReq, opts ...grpc.CallOption) (*ChangeFeedAllowListResp, error)
-	GetFeedAllowList(ctx context.Context, in *GetFeedAllowListReq, opts ...grpc.CallOption) (*GetFeedAllowListResp, error)
+	FindOrCreateAllowList(ctx context.Context, in *FindOrCreateAllowListReq, opts ...grpc.CallOption) (*FindOrCreateAllowListResp, error)
 	SaveFeedToken(ctx context.Context, in *SaveFeedTokenReq, opts ...grpc.CallOption) (*SaveFeedTokenResp, error)
 	RemoveFeedToken(ctx context.Context, in *RemoveFeedTokenReq, opts ...grpc.CallOption) (*RemoveFeedTokenResp, error)
 	PublicMuxiOfficialMSG(ctx context.Context, in *PublicMuxiOfficialMSGReq, opts ...grpc.CallOption) (*PublicMuxiOfficialMSGResp, error)
@@ -97,10 +97,10 @@ func (c *feedServiceClient) ChangeFeedAllowList(ctx context.Context, in *ChangeF
 	return out, nil
 }
 
-func (c *feedServiceClient) GetFeedAllowList(ctx context.Context, in *GetFeedAllowListReq, opts ...grpc.CallOption) (*GetFeedAllowListResp, error) {
+func (c *feedServiceClient) FindOrCreateAllowList(ctx context.Context, in *FindOrCreateAllowListReq, opts ...grpc.CallOption) (*FindOrCreateAllowListResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetFeedAllowListResp)
-	err := c.cc.Invoke(ctx, FeedService_GetFeedAllowList_FullMethodName, in, out, cOpts...)
+	out := new(FindOrCreateAllowListResp)
+	err := c.cc.Invoke(ctx, FeedService_FindOrCreateAllowList_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ type FeedServiceServer interface {
 	ReadFeedEvent(context.Context, *ReadFeedEventReq) (*ReadFeedEventResp, error)
 	ClearFeedEvent(context.Context, *ClearFeedEventReq) (*ClearFeedEventResp, error)
 	ChangeFeedAllowList(context.Context, *ChangeFeedAllowListReq) (*ChangeFeedAllowListResp, error)
-	GetFeedAllowList(context.Context, *GetFeedAllowListReq) (*GetFeedAllowListResp, error)
+	FindOrCreateAllowList(context.Context, *FindOrCreateAllowListReq) (*FindOrCreateAllowListResp, error)
 	SaveFeedToken(context.Context, *SaveFeedTokenReq) (*SaveFeedTokenResp, error)
 	RemoveFeedToken(context.Context, *RemoveFeedTokenReq) (*RemoveFeedTokenResp, error)
 	PublicMuxiOfficialMSG(context.Context, *PublicMuxiOfficialMSGReq) (*PublicMuxiOfficialMSGResp, error)
@@ -204,8 +204,8 @@ func (UnimplementedFeedServiceServer) ClearFeedEvent(context.Context, *ClearFeed
 func (UnimplementedFeedServiceServer) ChangeFeedAllowList(context.Context, *ChangeFeedAllowListReq) (*ChangeFeedAllowListResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangeFeedAllowList not implemented")
 }
-func (UnimplementedFeedServiceServer) GetFeedAllowList(context.Context, *GetFeedAllowListReq) (*GetFeedAllowListResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetFeedAllowList not implemented")
+func (UnimplementedFeedServiceServer) FindOrCreateAllowList(context.Context, *FindOrCreateAllowListReq) (*FindOrCreateAllowListResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FindOrCreateAllowList not implemented")
 }
 func (UnimplementedFeedServiceServer) SaveFeedToken(context.Context, *SaveFeedTokenReq) (*SaveFeedTokenResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SaveFeedToken not implemented")
@@ -318,20 +318,20 @@ func _FeedService_ChangeFeedAllowList_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FeedService_GetFeedAllowList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetFeedAllowListReq)
+func _FeedService_FindOrCreateAllowList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FindOrCreateAllowListReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FeedServiceServer).GetFeedAllowList(ctx, in)
+		return srv.(FeedServiceServer).FindOrCreateAllowList(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FeedService_GetFeedAllowList_FullMethodName,
+		FullMethod: FeedService_FindOrCreateAllowList_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FeedServiceServer).GetFeedAllowList(ctx, req.(*GetFeedAllowListReq))
+		return srv.(FeedServiceServer).FindOrCreateAllowList(ctx, req.(*FindOrCreateAllowListReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -468,8 +468,8 @@ var FeedService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _FeedService_ChangeFeedAllowList_Handler,
 		},
 		{
-			MethodName: "GetFeedAllowList",
-			Handler:    _FeedService_GetFeedAllowList_Handler,
+			MethodName: "FindOrCreateAllowList",
+			Handler:    _FeedService_FindOrCreateAllowList_Handler,
 		},
 		{
 			MethodName: "SaveFeedToken",

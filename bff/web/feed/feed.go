@@ -158,7 +158,7 @@ func (h *FeedHandler) ChangeFeedAllowList(ctx *gin.Context, req ChangeFeedAllowL
 // @Failure 500 {object} web.Response "系统异常"
 // @Router /feed/getFeedAllowList [get]
 func (h *FeedHandler) GetFeedAllowList(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
-	allowlist, err := h.feedClient.GetFeedAllowList(ctx, &feedv1.GetFeedAllowListReq{StudentId: uc.StudentId})
+	allowlist, err := h.feedClient.FindOrCreateAllowList(ctx, &feedv1.FindOrCreateAllowListReq{StudentId: uc.StudentId})
 	if err != nil {
 		return web.Response{}, errs.GET_FEED_ALLOW_LIST_ERROR(err)
 	}

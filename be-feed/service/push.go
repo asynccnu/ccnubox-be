@@ -95,6 +95,7 @@ func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) e
 	if err != nil {
 		return err
 	}
+	s.l.Info("token列表", logger.Field{Val: tokens})
 
 	err = s.pushClient.Push(tokens, jpush.PushData{
 		ContentType: pushData.Type,

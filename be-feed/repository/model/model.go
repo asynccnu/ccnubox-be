@@ -72,8 +72,8 @@ type UserFeedConfig struct {
 	BaseModel
 }
 
-// Token 表，存储每个用户的推送 Token
-type Token struct {
+// UserToken 表，存储每个用户的推送 UserToken
+type UserToken struct {
 	StudentId string `gorm:"column:student_id;not null"`
 	Token     string `gorm:"column:token;type:VARCHAR(255);not null"` // 单个 token
 	BaseModel

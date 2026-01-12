@@ -2,6 +2,7 @@ package jpush
 
 import (
 	"github.com/Scorpio69t/jpush-api-golang-client"
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -40,7 +41,9 @@ func NewJPushClient(AppKey string, MasterSecret string) PushClient {
 func (c *client) Push(ids []string, pushData PushData) error {
 	//设置推送对象
 	var at jpush.Audience
+	log.Debug(ids)
 	at.SetID(ids)
+
 	// 设置智能推送以及智能推送的内容
 	var n jpush.Notification
 

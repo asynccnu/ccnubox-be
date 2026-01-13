@@ -15,7 +15,7 @@ type ElecpriceController struct {
 	feedClient      feedv1.FeedServiceClient
 	elecpriceSerice service.ElecpriceService
 	stopChan        chan struct{}
-	cfg             *conf.TransConf
+	durationTime    time.Duration
 	l               logger.Logger
 }
 
@@ -23,20 +23,20 @@ func NewElecpriceController(
 	feedClient feedv1.FeedServiceClient,
 	elecpriceSerice service.ElecpriceService,
 	l logger.Logger,
-	cfg *conf.TransConf,
+	cfg *conf.ServerConf,
 ) *ElecpriceController {
 	return &ElecpriceController{
 		feedClient:      feedClient,
 		elecpriceSerice: elecpriceSerice,
 		stopChan:        make(chan struct{}),
-		cfg:             cfg,
+		durationTime:    time.Duration(cfg.ElecpriceController.DurationTime) * time.Hour,
 		l:               l,
 	}
 }
 
 func (r *ElecpriceController) StartCronTask() {
 	go func() {
-		ticker := time.NewTicker(time.Duration(r.cfg.Elec.DurationTime) * time.Hour)
+		ticker := time.NewTicker(r.durationTime)
 		for {
 			select {
 			case <-ticker.C:
@@ -67,7 +67,7 @@ func (r *ElecpriceController) publishMSG() error {
 			_, err = r.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 				StudentId: msgs[i].StudentId,
 				Event: &feedv1.FeedEvent{
-					Type:    "energy",
+					Type:    "energy", // TODO 改成使用proto定义的常量
 					Title:   "电费不足提醒",
 					Content: fmt.Sprintf("您的房间%s当前的电费为:%s,低于设置阈值,请及时充费", *(msgs[i].RoomName), *(msgs[i].Remain)),
 				},

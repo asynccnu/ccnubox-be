@@ -5,17 +5,16 @@ import (
 	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/conf"
+	"github.com/go-kratos/kratos/v2/log"
 
 	"github.com/redis/go-redis/v9"
 )
 
-func InitRedis(cfg *conf.InfraConf) *redis.Client {
+func InitRedisClient(cfg *conf.InfraConf) *redis.Client {
 	cmd := redis.NewClient(&redis.Options{Addr: cfg.Redis.Addr, Password: cfg.Redis.Password})
 
-	ctx := context.Background()
-	if err := cmd.Ping(ctx).Err(); err != nil {
-		panic(fmt.Sprintf("Redis 连接失败: %v", err))
+	if err := cmd.Ping(context.Background()).Err(); err != nil {
+		log.Fatal(fmt.Sprintf("Redis 连接失败: %v", err))
 	}
-
 	return cmd
 }

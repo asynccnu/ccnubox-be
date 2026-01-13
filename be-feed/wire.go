@@ -16,10 +16,10 @@ import (
 	"github.com/google/wire"
 )
 
-func InitApp() App {
+func InitApp() *App {
 	wire.Build(
 		conf.InitInfraConfig,
-		conf.InitTransConfig,
+		conf.InitServerConf,
 
 		grpc.NewFeedServiceServer,
 		//feed服务
@@ -48,9 +48,10 @@ func InitApp() App {
 		ioc.InitEtcdClient,
 		ioc.InitLogger,
 		ioc.InitKafka,
+		ioc.InitOTel,
 		ioc.InitJPushClient,
 		ioc.InitGRPCxKratosServer,
 		NewApp,
 	)
-	return App{}
+	return &App{}
 }

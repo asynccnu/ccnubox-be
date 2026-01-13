@@ -20,10 +20,9 @@ import (
 
 // Injectors from wire.go:
 
-func InitApp() App {
+func InitApp() *App {
 	infraConf := conf.InitInfraConfig()
-	logger := ioc.InitLogger(infraConf)
-	db := ioc.InitDB(logger, infraConf)
+	db := ioc.InitDB(infraConf)
 	feedEventDAO := dao.NewFeedEventDAO(db)
 	cmdable := ioc.InitRedis(infraConf)
 	feedEventCache := cache.NewRedisFeedEventCache(cmdable)
@@ -31,20 +30,22 @@ func InitApp() App {
 	feedFailEventDAO := dao.NewFeedFailEventDAO(db)
 	client := ioc.InitKafka(infraConf)
 	producerProducer := producer.NewSaramaProducer(client)
+	serverConf := conf.InitServerConf()
+	logger := ioc.InitLogger(serverConf)
 	feedEventService := service.NewFeedEventService(feedEventDAO, feedEventCache, userFeedConfigDAO, feedFailEventDAO, producerProducer, logger)
 	userFeedTokenDAO := dao.NewUserFeedTokenDAO(db)
 	feedUserConfigService := service.NewFeedUserConfigService(feedEventDAO, feedEventCache, userFeedConfigDAO, userFeedTokenDAO)
 	muxiOfficialMSGService := service.NewMuxiOfficialMSGService(feedEventDAO, feedEventCache, userFeedConfigDAO)
-	transConf := conf.InitTransConfig()
-	pushClient := ioc.InitJPushClient(transConf)
+	pushClient := ioc.InitJPushClient(serverConf)
 	pushService := service.NewPushService(pushClient, userFeedConfigDAO, userFeedTokenDAO, feedFailEventDAO, logger)
 	feedServiceServer := grpc.NewFeedServiceServer(feedEventService, feedUserConfigService, muxiOfficialMSGService, pushService, logger)
 	clientv3Client := ioc.InitEtcdClient(infraConf)
-	server := ioc.InitGRPCxKratosServer(feedServiceServer, clientv3Client, logger, transConf)
-	muxiController := cron.NewMuxiController(muxiOfficialMSGService, feedEventService, pushService, logger, transConf)
+	server := ioc.InitGRPCxKratosServer(feedServiceServer, clientv3Client, logger, infraConf)
+	muxiController := cron.NewMuxiController(muxiOfficialMSGService, feedEventService, pushService, logger, serverConf)
 	v := cron.NewCron(muxiController)
-	feedEventConsumerHandler := events.NewFeedEventConsumerHandler(client, logger, feedEventService, pushService)
+	feedEventConsumerHandler := events.NewFeedEventConsumerHandler(client, logger, feedEventService, pushService, serverConf)
 	v2 := ioc.InitConsumers(feedEventConsumerHandler)
-	app := NewApp(server, v, v2)
+	v3 := ioc.InitOTel(serverConf)
+	app := NewApp(server, v, v2, v3)
 	return app
 }

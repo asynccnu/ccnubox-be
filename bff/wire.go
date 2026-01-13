@@ -13,12 +13,14 @@ import (
 func InitApp() *App {
 	wire.Build(
 		conf.InitInfraConfig,
-		conf.InitTransConfig,
+		conf.InitServerConf,
 		// 组件
 		ioc.InitPrometheus,
 		ioc.InitEtcdClient,
 		ioc.InitLogger,
 		ioc.InitRedis,
+		ioc.InitOTel,
+
 		//grpc注册
 		ioc.InitFeedClient,
 		ioc.InitJwtHandler,
@@ -28,9 +30,9 @@ func InitApp() *App {
 		ioc.InitContentClient,
 		ioc.InitCounterClient,
 		//基于kratos的微服务
-		ioc.InitClassList,
-		ioc.InitClassService,
-		ioc.InitFreeClassroomClient,
+		ioc.InitClassListClient,
+		ioc.InitClassClient,
+		ioc.InitClassRoomClient,
 		ioc.InitLibrary,
 
 		//http服务

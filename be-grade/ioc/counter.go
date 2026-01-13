@@ -1,29 +1,13 @@
 package ioc
 
 import (
-	"context"
-	"time"
-
 	"github.com/asynccnu/ccnubox-be/be-grade/conf"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/grpc/client"
 
 	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
-	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
-	"github.com/go-kratos/kratos/v2/transport/grpc"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 )
 
-func InitCounterClient(etcdClient *etcdv3.Client, cfg *conf.TransConf) counterv1.CounterServiceClient {
-	const c = "counter"
-	r := etcd.New(etcdClient)
-	cc, err := grpc.DialInsecure(context.Background(),
-		grpc.WithEndpoint(cfg.Grpc.Client[c].Endpoint),
-		grpc.WithDiscovery(r),
-		grpc.WithTimeout(10*time.Second),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	counterClient := counterv1.NewCounterServiceClient(cc)
-	return counterClient
+func InitCounterClient(etcdClient *etcdv3.Client, cfg *conf.InfraConf) counterv1.CounterServiceClient {
+	return client.InitCounter(etcdClient, cfg.Grpc, cfg.Env)
 }

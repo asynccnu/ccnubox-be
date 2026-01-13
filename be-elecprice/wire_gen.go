@@ -17,20 +17,21 @@ import (
 
 // Injectors from wire.go:
 
-func InitApp() App {
+func InitApp() *App {
 	infraConf := conf.InitInfraConfig()
-	logger := ioc.InitLogger(infraConf)
-	db := ioc.InitDB(logger, infraConf)
+	db := ioc.InitDB(infraConf)
 	elecpriceDAO := dao.NewElecpriceDAO(db)
+	serverConf := conf.InitServerConf()
+	logger := ioc.InitLogger(serverConf)
 	client := ioc.InitEtcdClient(infraConf)
-	transConf := conf.InitTransConfig()
-	proxyClient := ioc.InitProxyClient(client, transConf)
+	proxyClient := ioc.InitProxyClient(client, infraConf)
 	elecpriceService := service.NewElecpriceService(elecpriceDAO, logger, proxyClient)
 	elecpriceServiceServer := grpc.NewElecpriceGrpcService(elecpriceService)
-	server := ioc.InitGRPCxKratosServer(elecpriceServiceServer, client, logger, transConf)
-	feedServiceClient := ioc.InitFeedClient(client, transConf)
-	elecpriceController := cron.NewElecpriceController(feedServiceClient, elecpriceService, logger, transConf)
+	server := ioc.InitGRPCxKratosServer(elecpriceServiceServer, client, logger, infraConf)
+	feedServiceClient := ioc.InitFeedClient(client, infraConf)
+	elecpriceController := cron.NewElecpriceController(feedServiceClient, elecpriceService, logger, serverConf)
 	v := cron.NewCron(elecpriceController)
-	app := NewApp(server, v)
+	v2 := ioc.InitOTel(serverConf)
+	app := NewApp(server, v, v2)
 	return app
 }

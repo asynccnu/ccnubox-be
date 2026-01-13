@@ -1,5 +1,4 @@
 //go:build wireinject
-// +build wireinject
 
 package main
 
@@ -9,22 +8,22 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-counter/ioc"
 	"github.com/asynccnu/ccnubox-be/be-counter/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-counter/service"
-	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/google/wire"
 )
 
-func InitGRPCServer() grpcx.Server {
+func InitApp() *App {
 	wire.Build(
 		conf.InitInfraConfig,
-		conf.InitTransConfig,
+		conf.InitServerConf,
 		ioc.InitGRPCxKratosServer,
 		grpc.NewCounterServiceServer,
 		service.NewCachedCounterService,
 		cache.NewRedisCounterCache,
-		// 第三方
+		ioc.InitOTel,
 		ioc.InitRedis,
 		ioc.InitLogger,
 		ioc.InitEtcdClient,
+		NewApp,
 	)
-	return grpcx.Server(nil)
+	return &App{}
 }

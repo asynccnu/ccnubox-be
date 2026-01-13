@@ -10,6 +10,7 @@ message Bootstrap {
   Data data = 2;
   Registry registry = 3;
   string proxyStuId = 4; // 执行定时任务时使用的学生ID
+  string env =5; // 开发环境
 }
 
 message Server {

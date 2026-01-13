@@ -2,39 +2,33 @@ package cron
 
 import (
 	"context"
+	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-feed/conf"
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/pkg/lunar"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
-	"time"
 
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/spf13/viper"
 )
 
 type HolidayController struct {
 	svcFeed  service.FeedEventService
 	stopChan chan struct{}
-	cfg      HolidayControllerConfig
+	cfg      *conf.HolidayControllerConfig
 	l        logger.Logger
-}
-
-type HolidayControllerConfig struct {
-	DurationTime int64 `yaml:"durationTime"`
-	AdvanceDay   int64 `yaml:"advanceDay"`
 }
 
 func NewHolidayController(
 	svcFeed service.FeedEventService,
 	l logger.Logger,
+	cfg *conf.ServerConf,
 ) *HolidayController {
-	var cfg HolidayControllerConfig
-	if err := viper.UnmarshalKey("holidayController", &cfg); err != nil {
-		panic(err)
-	}
+
 	return &HolidayController{
 		svcFeed:  svcFeed,
 		stopChan: make(chan struct{}),
-		cfg:      cfg,
+		cfg:      cfg.HolidayController,
 		l:        l,
 	}
 }

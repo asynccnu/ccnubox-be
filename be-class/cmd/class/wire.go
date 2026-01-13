@@ -6,6 +6,8 @@
 package main
 
 import (
+	"io"
+
 	"github.com/asynccnu/ccnubox-be/be-class/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/client"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/conf"
@@ -17,11 +19,10 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-class/internal/timedTask"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
-	"io"
 )
 
 // wireApp init kratos application.
-func wireApp(*conf.Server, *conf.Data, *conf.Registry, log.Logger, io.Writer) (*APP, func(), error) {
+func wireApp(string, *conf.Server, *conf.Data, *conf.Registry, log.Logger, io.Writer) (*APP, func(), error) {
 	panic(wire.Build(server.ProviderSet,
 		data.ProviderSet,
 		biz.ProviderSet,
@@ -34,7 +35,7 @@ func wireApp(*conf.Server, *conf.Data, *conf.Registry, log.Logger, io.Writer) (*
 		wire.Bind(new(biz.ClassListService), new(*client.ClassListService)),
 		wire.Bind(new(biz.FreeClassRoomData), new(*data.FreeClassroomData)),
 		wire.Bind(new(biz.ClassData), new(*data.ClassData)),
-		wire.Bind(new(biz.CookieClient), new(*client.CookieSvc)),
+		wire.Bind(new(biz.CookieClient), new(*client.UserSvc)),
 		wire.Bind(new(biz.Cache), new(*data.Cache)),
 		wire.Bind(new(service.ClassInfoProxy), new(*biz.ClassServiceUserCase)),
 		wire.Bind(new(service.FreeClassRoomSaver), new(*biz.FreeClassroomBiz)),

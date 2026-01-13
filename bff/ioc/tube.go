@@ -13,27 +13,27 @@ type TubePolicies struct {
 	officialSite  storage.PutPolicy
 }
 
-func InitTubePolicies(cfg *conf.TransConf) *TubePolicies {
+func InitTubePolicies(cfg *conf.ServerConf) *TubePolicies {
 	return &TubePolicies{
 		defaultPolicy: InitPutPolicy(cfg),
 		officialSite:  InitOfficialSitePutPolicy(cfg),
 	}
 }
 
-func InitPutPolicy(cfg *conf.TransConf) storage.PutPolicy {
+func InitPutPolicy(cfg *conf.ServerConf) storage.PutPolicy {
 	return storage.PutPolicy{
 		Scope:   cfg.Oss.BucketName,
 		Expires: 60 * 60 * 24, // 一天过期
 	}
 }
 
-func InitOfficialSitePutPolicy(cfg *conf.TransConf) storage.PutPolicy {
+func InitOfficialSitePutPolicy(cfg *conf.ServerConf) storage.PutPolicy {
 	return storage.PutPolicy{
 		Scope:   fmt.Sprintf("%s:%s%s", cfg.Oss.BucketName, cfg.Oss.BaseName, cfg.Oss.FileName),
 		Expires: 60 * 60,
 	}
 }
 
-func InitMac(cfg *conf.TransConf) *qbox.Mac {
+func InitMac(cfg *conf.ServerConf) *qbox.Mac {
 	return qbox.NewMac(cfg.Oss.AccessKey, cfg.Oss.SecretKey)
 }

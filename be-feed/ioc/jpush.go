@@ -5,8 +5,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/pkg/jpush"
 )
 
-func InitJPushClient(cfg *conf.TransConf) jpush.PushClient {
+func InitJPushClient(cfg *conf.ServerConf) jpush.PushClient {
 	client := jpush.NewJPushClient(cfg.JPush.AppKey, cfg.JPush.MasterSecret)
-
 	return client
 }

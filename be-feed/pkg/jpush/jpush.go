@@ -1,6 +1,8 @@
 package jpush
 
 import (
+	"errors"
+
 	"github.com/Scorpio69t/jpush-api-golang-client"
 	"github.com/mitchellh/mapstructure"
 )
@@ -38,6 +40,10 @@ func NewJPushClient(AppKey string, MasterSecret string) PushClient {
 }
 
 func (c *client) Push(ids []string, pushData PushData) error {
+	if len(ids) == 0 {
+		return errors.New("jpush: audience ids 不能为空")
+	}
+
 	//设置推送对象
 	var at jpush.Audience
 	at.SetID(ids)

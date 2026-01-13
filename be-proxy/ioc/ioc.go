@@ -6,4 +6,5 @@ var Provider = wire.NewSet(
 	InitLogger,
 	InitEtcdClient,
 	InitGRPCxKratosServer,
+	InitOTel,
 )

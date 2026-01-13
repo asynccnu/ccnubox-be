@@ -6,39 +6,48 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/conf"
-	"github.com/asynccnu/ccnubox-be/bff/ioc"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
-func main() {
-	cfg := conf.InitTransConfig()
-	if cfg == nil {
-		panic("transCfg is nil")
-	}
-	// 初始化 OTel 并注册优雅关闭
-	shutdown := ioc.InitOTel(cfg)
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := shutdown(ctx); err != nil {
-			panic(fmt.Sprintln("OTel shutdown error:", err))
-		}
-	}()
+func init() {
+	// 预加载.env文件,用于本地开发
+	_ = godotenv.Load()
+}
 
+func main() {
 	app := InitApp()
-	app.Start(cfg)
+	app.Start()
 }
 
 type App struct {
-	g *gin.Engine
+	shutdown func(ctx context.Context) error
+	g        *gin.Engine
+	cfg      *conf.HttpConf
 }
 
-func NewApp(g *gin.Engine) *App {
-	return &App{g: g}
+func NewApp(
+	g *gin.Engine,
+	cfg *conf.ServerConf,
+	shutdown func(ctx context.Context) error,
+) *App {
+	return &App{
+		g:        g,
+		cfg:      cfg.Http,
+		shutdown: shutdown,
+	}
 }
 
-func (app *App) Start(cfg *conf.TransConf) {
-	addr := cfg.Http.Addr
+func (app *App) Start() {
+	// 优雅关闭
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := app.shutdown(ctx); err != nil {
+			panic(fmt.Sprintln("shutdown error:", err))
+		}
+	}()
+	addr := app.cfg.Addr
 	err := app.g.Run(addr)
 	if err != nil {
 		return

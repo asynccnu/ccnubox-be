@@ -8,9 +8,9 @@ import (
 	"time"
 
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 
 	"github.com/asynccnu/ccnubox-be/be-ccnu/crawler"
-	"github.com/asynccnu/ccnubox-be/be-ccnu/tool"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
 	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"

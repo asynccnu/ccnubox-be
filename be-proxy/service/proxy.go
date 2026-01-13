@@ -47,18 +47,18 @@ func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, error) {
 	return proxyAddr, nil
 }
 
-func NewProxyService(l logger.Logger, cfg *conf.TransConf) ProxyService {
-	if cfg.ShenLong.API == "" {
+func NewProxyService(l logger.Logger, cfg *conf.ServerConf) ProxyService {
+	if cfg.ShenLongConf.API == "" {
 		log.Warnf("use DefualtClient due to the empty of proxy setting (time:%s)", time.Now())
 		panic(ErrEmptyConfig)
 	}
 
 	s := &ShenLongProxy{
-		Api:          cfg.ShenLong.API,
-		PollInterval: cfg.ShenLong.Interval,
-		RetryCount:   cfg.ShenLong.Retry,
-		Username:     cfg.ShenLong.Username,
-		Password:     cfg.ShenLong.Password,
+		Api:          cfg.ShenLongConf.API,
+		PollInterval: cfg.ShenLongConf.Interval,
+		RetryCount:   cfg.ShenLongConf.Retry,
+		Username:     cfg.ShenLongConf.Username,
+		Password:     cfg.ShenLongConf.Password,
 
 		l: l,
 	}

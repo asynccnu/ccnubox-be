@@ -18,7 +18,7 @@ import (
 func InitApp() App {
 	wire.Build(
 		conf.InitInfraConfig,
-		conf.InitTransConfig,
+		conf.InitServerConf,
 		events.NewGradeDetailEventConsumerHandler,
 		producer.NewSaramaProducer,
 		grpc.NewGradeGrpcService,
@@ -28,6 +28,7 @@ func InitApp() App {
 		dao.NewRankDAO,
 		// 第三方
 		ioc.InitEtcdClient,
+		ioc.InitOTel,
 		ioc.InitDB,
 		ioc.InitLogger,
 		ioc.InitGRPCxKratosServer,
@@ -35,8 +36,8 @@ func InitApp() App {
 		ioc.InitProxyClient,
 		ioc.InitCounterClient,
 		ioc.InitFeedClient,
-		ioc.InitClasslistClient,
-		ioc.InitRedis,
+		ioc.InitClassListClient,
+		ioc.InitRedisClient,
 		ioc.InitRedisLock,
 		ioc.InitKafka,
 		ioc.InitConsumers,

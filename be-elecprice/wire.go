@@ -13,10 +13,10 @@ import (
 	"github.com/google/wire"
 )
 
-func InitApp() App {
+func InitApp() *App {
 	wire.Build(
 		conf.InitInfraConfig,
-		conf.InitTransConfig,
+		conf.InitServerConf,
 		grpc.NewElecpriceGrpcService,
 		service.NewElecpriceService,
 		dao.NewElecpriceDAO,
@@ -27,9 +27,10 @@ func InitApp() App {
 		ioc.InitLogger,
 		ioc.InitGRPCxKratosServer,
 		ioc.InitFeedClient,
+		ioc.InitOTel,
 		cron.NewElecpriceController,
 		cron.NewCron,
 		NewApp,
 	)
-	return App{}
+	return &App{}
 }

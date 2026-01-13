@@ -5,6 +5,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-content/conf"
 	"github.com/asynccnu/ccnubox-be/be-content/cron"
 	"github.com/asynccnu/ccnubox-be/be-content/grpc"
 	"github.com/asynccnu/ccnubox-be/be-content/ioc"
@@ -13,7 +14,7 @@ import (
 	"github.com/google/wire"
 )
 
-func InitApp() App {
+func InitApp() *App {
 	wire.Build(
 		// 第三方
 		ioc.InitDB,
@@ -22,6 +23,9 @@ func InitApp() App {
 		ioc.InitEtcdClient,
 		ioc.InitQiniu,
 		ioc.InitGRPCxKratosServer,
+		ioc.InitOTel,
+		conf.InitServerConf,
+		conf.InitInfraConfig,
 		grpc.NewCalendarServiceServer,
 		repository.ProviderSet,
 		service.NewCalendarService,
@@ -33,5 +37,5 @@ func InitApp() App {
 		cron.NewCron,
 		NewApp,
 	)
-	return App{}
+	return &App{}
 }

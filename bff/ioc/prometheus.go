@@ -7,7 +7,7 @@ import (
 )
 
 // 感觉划分上不是特别的优雅,但是暂时没更好的办法
-func InitPrometheus(cfg *conf.TransConf) *prometheusx.PrometheusCounter {
+func InitPrometheus(cfg *conf.ServerConf) *prometheusx.PrometheusCounter {
 	p := prometheusx.NewPrometheus(cfg.Prometheus.Namespace)
 	return &prometheusx.PrometheusCounter{
 		RouterCounter:     p.RegisterCounter(cfg.Prometheus.RouterCounter.Name, cfg.Prometheus.RouterCounter.Help, []string{"method", "endpoint", "status"}),

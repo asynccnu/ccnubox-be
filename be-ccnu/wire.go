@@ -7,20 +7,21 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-ccnu/grpc"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/ioc"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/service"
-	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/google/wire"
 )
 
-func InitGRPCServer() grpcx.Server {
+func InitApp() *App {
 	wire.Build(
 		conf.InitInfraConfig,
-		conf.InitTransConfig,
+		conf.InitServerConf,
 		ioc.InitGRPCxKratosServer,
 		grpc.NewCCNUServiceServer,
 		service.NewCCNUService,
+		ioc.InitOTel,
 		ioc.InitProxyClient,
 		ioc.InitLogger,
 		ioc.InitEtcdClient,
+		NewApp,
 	)
-	return grpcx.Server(nil)
+	return &App{}
 }

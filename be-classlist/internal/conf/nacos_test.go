@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestInitBootstrapFromNacos(t *testing.T) {
-	bc := InitBootstrapFromNacos()
+func TestInitBootstrap(t *testing.T) {
+	bc := InitBootstrap()
 	if bc == nil {
 		t.Fatal("初始化失败")
 	}

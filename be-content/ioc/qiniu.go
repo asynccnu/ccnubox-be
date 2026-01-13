@@ -1,23 +1,11 @@
 package ioc
 
 import (
-	"github.com/asynccnu/ccnubox-be/be-content/pkg/qiniu"
-	"github.com/spf13/viper"
+	"github.com/asynccnu/ccnubox-be/be-content/conf"
+	"github.com/asynccnu/ccnubox-be/common/pkg/qiniu"
 )
 
-func InitQiniu() qiniu.QiniuClient {
-	var cfg struct {
-		AccessKey string `yaml:"accessKey"`
-		SecretKey string `yaml:"secretKey"`
-		Bucket    string `yaml:"bucket"`
-		Domain    string `yaml:"domain"`
-		BaseName  string `yaml:"baseName"`
-	}
-
-	err := viper.UnmarshalKey("qiniu", &cfg)
-	if err != nil {
-		panic(err)
-	}
-
-	return qiniu.NewQiniuService(cfg.AccessKey, cfg.SecretKey, cfg.Bucket, cfg.Domain, cfg.BaseName)
+func InitQiniu(cfg *conf.ServerConf) qiniu.QiniuClient {
+	qu := cfg.Qiniu
+	return qiniu.NewQiniuService(qu.AccessKey, qu.SecretKey, qu.Bucket, qu.Domain, qu.BaseName)
 }

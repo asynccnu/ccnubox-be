@@ -50,7 +50,7 @@ func InitContentHandler(
 }
 
 func InitFeedHandler(
-	cfg *conf.TransConf,
+	cfg *conf.ServerConf,
 	feedServiceClient feedv1.FeedServiceClient) *feed.FeedHandler {
 	return feed.NewFeedHandler(feedServiceClient,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
@@ -58,14 +58,14 @@ func InitFeedHandler(
 		}))
 }
 
-func InitElecpriceHandler(cfg *conf.TransConf, client elecpricev1.ElecpriceServiceClient) *elecprice.ElecPriceHandler {
+func InitElecpriceHandler(cfg *conf.ServerConf, client elecpricev1.ElecpriceServiceClient) *elecprice.ElecPriceHandler {
 	return elecprice.NewElecPriceHandler(client,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
-func InitClassHandler(cfg *conf.TransConf, client1 classlistv1.ClasserClient, client2 cs.ClassServiceClient) *class.ClassHandler {
+func InitClassHandler(cfg *conf.ServerConf, client1 classlistv1.ClasserClient, client2 cs.ClassServiceClient) *class.ClassHandler {
 	return class.NewClassListHandler(client1, client2,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
@@ -75,7 +75,7 @@ func InitClassHandler(cfg *conf.TransConf, client1 classlistv1.ClasserClient, cl
 func InitClassRoomHandler(client cs.FreeClassroomSvcClient) *classroom.ClassRoomHandler {
 	return classroom.NewClassRoomHandler(client)
 }
-func InitGradeHandler(cfg *conf.TransConf, l logger.Logger, gradeClient gradev1.GradeServiceClient, counterServiceClient counterv1.CounterServiceClient) *grade.GradeHandler {
+func InitGradeHandler(cfg *conf.ServerConf, l logger.Logger, gradeClient gradev1.GradeServiceClient, counterServiceClient counterv1.CounterServiceClient) *grade.GradeHandler {
 	return grade.NewGradeHandler(
 		gradeClient,
 		counterServiceClient,
@@ -84,17 +84,17 @@ func InitGradeHandler(cfg *conf.TransConf, l logger.Logger, gradeClient gradev1.
 	)
 }
 
-func InitUserHandler(cfg *conf.TransConf, hdl ijwt.Handler, userClient userv1.UserServiceClient, gradeClient gradev1.GradeServiceClient,
+func InitUserHandler(cfg *conf.ServerConf, hdl ijwt.Handler, userClient userv1.UserServiceClient, gradeClient gradev1.GradeServiceClient,
 	classerClient classlistv1.ClasserClient) *user.UserHandler {
 	return user.NewUserHandler(hdl, userClient, gradeClient, classerClient)
 }
 
-func InitLibraryHandler(cfg *conf.TransConf, client libraryv1.LibraryClient) *library.LibraryHandler {
+func InitLibraryHandler(cfg *conf.ServerConf, client libraryv1.LibraryClient) *library.LibraryHandler {
 	return library.NewLibraryHandler(client,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
 
-func InitTubeHandler(cfg *conf.TransConf, tb *TubePolicies, mac *qbox.Mac) *tube.TubeHandler {
+func InitTubeHandler(cfg *conf.ServerConf, tb *TubePolicies, mac *qbox.Mac) *tube.TubeHandler {
 	return tube.NewTubeHandler(tb.defaultPolicy, tb.officialSite, mac, cfg.Oss.DomainName)
 }
 

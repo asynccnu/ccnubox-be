@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-content/conf"
 	"github.com/asynccnu/ccnubox-be/be-content/cron"
 	"github.com/asynccnu/ccnubox-be/be-content/grpc"
 	"github.com/asynccnu/ccnubox-be/be-content/ioc"
@@ -16,10 +17,12 @@ import (
 
 // Injectors from wire.go:
 
-func InitApp() App {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
-	cmdable := ioc.InitRedis()
+func InitApp() *App {
+	infraConf := conf.InitInfraConfig()
+	db := ioc.InitDB(infraConf)
+	cmdable := ioc.InitRedis(infraConf)
+	serverConf := conf.InitServerConf()
+	logger := ioc.InitLogger(serverConf)
 	contentRepo := repository.NewCalendarRepo(db, cmdable, logger)
 	calendarService := service.NewCalendarService(contentRepo, logger)
 	repositoryContentRepo := repository.NewBannerRepo(db, cmdable, logger)
@@ -31,11 +34,12 @@ func InitApp() App {
 	contentRepo4 := repository.NewInfoSumRepo(db, cmdable, logger)
 	infoSumService := service.NewInfoSumService(contentRepo4, logger)
 	contentServiceServer := grpc.NewCalendarServiceServer(calendarService, bannerService, departmentService, websiteService, infoSumService)
-	client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxKratosServer(contentServiceServer, client, logger)
-	qiniuClient := ioc.InitQiniu()
-	calendarController := cron.NewCalendarController(calendarService, qiniuClient, logger)
+	client := ioc.InitEtcdClient(infraConf)
+	server := ioc.InitGRPCxKratosServer(contentServiceServer, client, logger, infraConf)
+	qiniuClient := ioc.InitQiniu(serverConf)
+	calendarController := cron.NewCalendarController(calendarService, qiniuClient, logger, serverConf)
 	v := cron.NewCron(calendarController)
-	app := NewApp(server, v)
+	v2 := ioc.InitOTel(serverConf)
+	app := NewApp(server, v, v2)
 	return app
 }

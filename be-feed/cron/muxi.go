@@ -11,12 +11,12 @@ import (
 )
 
 type MuxiController struct {
-	muxi     service.MuxiOfficialMSGService
-	push     service.PushService
-	feed     service.FeedEventService
-	cfg      *conf.TransConf
-	stopChan chan struct{}
-	l        logger.Logger
+	muxi         service.MuxiOfficialMSGService
+	push         service.PushService
+	feed         service.FeedEventService
+	durationTime time.Duration
+	stopChan     chan struct{}
+	l            logger.Logger
 }
 
 func NewMuxiController(
@@ -24,21 +24,21 @@ func NewMuxiController(
 	feed service.FeedEventService,
 	push service.PushService,
 	l logger.Logger,
-	cfg *conf.TransConf,
+	cfg *conf.ServerConf,
 ) *MuxiController {
 	return &MuxiController{
-		muxi:     muxi,
-		push:     push,
-		feed:     feed,
-		cfg:      cfg,
-		stopChan: make(chan struct{}),
-		l:        l,
+		muxi:         muxi,
+		push:         push,
+		feed:         feed,
+		durationTime: time.Duration(cfg.MuxiController.DurationTime) * time.Second,
+		stopChan:     make(chan struct{}),
+		l:            l,
 	}
 }
 
 func (c *MuxiController) StartCronTask() {
 	go func() {
-		ticker := time.NewTicker(time.Duration(c.cfg.MuxiController.DurationTime) * time.Second)
+		ticker := time.NewTicker(c.durationTime)
 
 		for {
 			select {

@@ -15,10 +15,10 @@ func TestInitInfraConfig(t *testing.T) {
 }
 
 func TestInitTransConfig(t *testing.T) {
-	trans := InitTransConfig()
+	trans := InitServerConf()
 	if trans == nil {
 		t.Fatal("Failed to init transConfig")
 	}
 
-	fmt.Printf("InitTransConfig: %+v\n", trans)
+	fmt.Printf("InitServerConf: %+v\n", trans)
 }

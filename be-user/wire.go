@@ -9,14 +9,13 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-user/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-user/service"
-	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/google/wire"
 )
 
-func InitGRPCServer() grpcx.Server {
+func InitApp() *App {
 	wire.Build(
 		conf.InitInfraConfig,
-		conf.InitTransConfig,
+		conf.InitServerConf,
 		ioc.InitGRPCxKratosServer,
 		grpc.NewUserServiceServer,
 		service.NewUserService,
@@ -29,7 +28,9 @@ func InitGRPCServer() grpcx.Server {
 		ioc.NewCrypto,
 		ioc.InitRedis,
 		ioc.InitDB,
+		ioc.InitOTel,
 		ioc.InitLogger,
+		NewApp,
 	)
-	return grpcx.Server(nil)
+	return &App{}
 }

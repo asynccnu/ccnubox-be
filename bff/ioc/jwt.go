@@ -8,7 +8,7 @@ import (
 
 // InitJwtHandler 初始化 JWT 处理程序，并返回一个 ijwt.Handler
 // 参数 cmd 是 redis.Cmdable 接口，用于与 Redis 进行交互
-func InitJwtHandler(cmd redis.Cmdable, cfg *conf.TransConf) ijwt.Handler {
+func InitJwtHandler(cmd redis.Cmdable, cfg *conf.ServerConf) ijwt.Handler {
 	// 定义一个配置结构体，用于存储从配置文件中读取的 JWT 配置,
 	//包括用于生成长短token的两个配置,长token保存时间较长,
 	//使用长token获取短token，短token进行身份验证,可以有效加强安全性,防止用户账号被盗用。

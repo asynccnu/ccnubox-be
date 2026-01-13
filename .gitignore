@@ -36,6 +36,7 @@ bin/
 .vscode/
 .idea/
 *.swp
+*.env
 
 # deploy 
 /deploy/
@@ -49,4 +50,3 @@ test.sh
 test.yaml
 
 config-local.yaml
-

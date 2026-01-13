@@ -11,6 +11,7 @@ const (
 	MaxTries    = 3  //重试次数
 )
 
+// TODO Retry Tool统一化
 func Retry[T any](fn func() (T, error)) (T, error) {
 	var data T
 	err := retry.Do(

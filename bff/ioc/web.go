@@ -62,7 +62,7 @@ func InitGinServer(
 	// 创建用户认证中间件
 	authMiddleware := loginMiddleware.MiddlewareFunc()
 
-	// 注册一堆路由
+	// 注册路由
 	user.RegisterRoutes(api, authMiddleware)
 	content.RegisterRoutes(api, authMiddleware)
 	feed.RegisterRoutes(api, authMiddleware, basicAuthMiddleware.MiddlewareFunc())

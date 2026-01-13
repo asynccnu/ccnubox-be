@@ -23,7 +23,7 @@ type GradeController struct {
 	gradeService service.GradeService
 	rankService  service.RankService
 	stopChan     chan struct{}
-	cfg          *conf.TransConf
+	cfg          *conf.GradeConf
 	l            logger.Logger
 	muRedis      *redsync.Redsync
 }
@@ -37,7 +37,7 @@ func NewGradeController(
 	gradeService service.GradeService,
 	rankService service.RankService,
 	muRedis *redsync.Redsync,
-	cfg *conf.TransConf,
+	cfg *conf.ServerConf,
 ) *GradeController {
 	return &GradeController{
 		counter:      counter,
@@ -47,7 +47,7 @@ func NewGradeController(
 		classlist:    classlist,
 		userClient:   userClient,
 		stopChan:     make(chan struct{}),
-		cfg:          cfg,
+		cfg:          cfg.GradeConf,
 		l:            l,
 		muRedis:      muRedis,
 	}
@@ -58,9 +58,9 @@ func (c *GradeController) StartCronTask() {
 	c.StartRankCronTask()
 
 	go func() {
-		lowTicker := time.NewTicker(time.Duration(c.cfg.Grade.Low) * time.Minute)
-		middleTicker := time.NewTicker(time.Duration(c.cfg.Grade.Middle) * time.Minute)
-		highTicker := time.NewTicker(time.Duration(c.cfg.Grade.High) * time.Minute)
+		lowTicker := time.NewTicker(time.Duration(c.cfg.Low) * time.Minute)
+		middleTicker := time.NewTicker(time.Duration(c.cfg.Middle) * time.Minute)
+		highTicker := time.NewTicker(time.Duration(c.cfg.High) * time.Minute)
 		for {
 			select {
 			case <-lowTicker.C:

@@ -47,13 +47,18 @@ func (f *GradeDetailEventConsumerHandler) Start() error {
 
 	// 启动一个 Goroutine 异步消费消息
 	go func() {
-		err := f.cg.Consume(context.Background(), []string{topic.GradeDetailEvent}, saramax.NewHandler(f.l, f.cfg, f.Consume))
-		if err != nil {
-			// 如果消费循环中出现错误，记录错误日志
-			f.l.Error("退出了消费循环异常", logger.Error(err))
-			//feed消息消费出现问题属于重大问题,选择直接panic
-			panic(err)
+		for {
+			f.l.Info("开始消费")
+			err := f.cg.Consume(context.Background(), []string{topic.GradeDetailEvent}, saramax.NewHandler(f.l, f.cfg, f.Consume))
+			if err != nil {
+				// 如果消费循环中出现错误，记录错误日志
+				f.l.Error("退出了消费循环异常", logger.Error(err))
+				//feed消息消费出现问题属于重大问题,选择直接panic
+				panic(err)
+			}
+			f.l.Info("消费者退出消费")
 		}
+
 	}()
 	return nil
 }

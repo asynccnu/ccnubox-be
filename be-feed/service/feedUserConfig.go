@@ -33,15 +33,15 @@ var configMap = map[string]int{
 type feedUserConfigService struct {
 	feedEventDAO      dao.FeedEventDAO
 	feedEventCache    cache.FeedEventCache
-	userFeedConfigDAO dao.UserFeedConfigDAO
-	feedTokenDAO      dao.UserFeedTokenDAO
+	userFeedConfigDAO dao.FeedUserConfigDAO
+	feedTokenDAO      dao.FeedTokenDAO
 }
 
 func NewFeedUserConfigService(
 	feedEventDAO dao.FeedEventDAO,
 	feedEventCache cache.FeedEventCache,
-	feedAllowListEventDAO dao.UserFeedConfigDAO,
-	tokenFeedDAO dao.UserFeedTokenDAO,
+	feedAllowListEventDAO dao.FeedUserConfigDAO,
+	tokenFeedDAO dao.FeedTokenDAO,
 ) FeedUserConfigService {
 	return &feedUserConfigService{
 		feedEventCache:    feedEventCache,

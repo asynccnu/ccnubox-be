@@ -25,7 +25,7 @@ func InitApp() App {
 		service.NewMuxiOfficialMSGService,
 		service.NewFeedEventService,
 		//dao层
-		dao.NewUserFeedConfigDAO,
+		dao.NewFeedUserConfigDAO,
 		dao.NewFeedEventDAO,
 		dao.NewUserFeedTokenDAO,
 		dao.NewFeedFailEventDAO,

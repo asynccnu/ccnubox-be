@@ -38,11 +38,10 @@ var (
 )
 
 type feedEventService struct {
-	feedEventDAO     dao.FeedEventDAO
-	feedFailEventDAO dao.FeedFailEventDAO
-
+	feedEventDAO      dao.FeedEventDAO
+	feedFailEventDAO  dao.FeedFailEventDAO
 	feedEventCache    cache.FeedEventCache
-	userFeedConfigDAO dao.UserFeedConfigDAO
+	feedUserConfigDAO dao.FeedUserConfigDAO
 	feedProducer      producer.Producer
 	l                 logger.Logger
 }
@@ -50,7 +49,7 @@ type feedEventService struct {
 func NewFeedEventService(
 	feedEventDAO dao.FeedEventDAO,
 	feedEventCache cache.FeedEventCache,
-	userFeedConfigDAO dao.UserFeedConfigDAO,
+	feedUserConfigDAO dao.FeedUserConfigDAO,
 	feedFailEventDAO dao.FeedFailEventDAO,
 	feedProducer producer.Producer,
 	l logger.Logger,
@@ -58,7 +57,7 @@ func NewFeedEventService(
 	return &feedEventService{
 		feedEventCache:    feedEventCache,
 		feedEventDAO:      feedEventDAO,
-		userFeedConfigDAO: userFeedConfigDAO,
+		feedUserConfigDAO: feedUserConfigDAO,
 		feedFailEventDAO:  feedFailEventDAO,
 		feedProducer:      feedProducer,
 		l:                 l,
@@ -159,7 +158,7 @@ func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, even
 
 		for {
 			// 获取一批 studentIds
-			studentIds, newLastId, err := s.userFeedConfigDAO.GetStudentIdsByCursor(ctx, lastId, batchSize)
+			studentIds, newLastId, err := s.feedUserConfigDAO.GetStudentIdsByCursor(ctx, lastId, batchSize)
 			if err != nil {
 				s.l.Error("获取用户studentIds错误", logger.Error(err), logger.Int64("当前索引:", lastId))
 			}

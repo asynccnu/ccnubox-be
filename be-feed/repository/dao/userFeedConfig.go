@@ -2,13 +2,14 @@ package dao
 
 import (
 	"context"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"gorm.io/gorm"
 )
 
 // 用来对用户的feed数据进行处理
 
-type UserFeedConfigDAO interface {
+type FeedUserConfigDAO interface {
 	FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.FeedUserConfig, error)
 	SaveUserFeedConfig(ctx context.Context, req *model.FeedUserConfig) error
 	SetConfigBit(config *uint16, position int)
@@ -17,17 +18,17 @@ type UserFeedConfigDAO interface {
 	GetStudentIdsByCursor(ctx context.Context, lastID int64, limit int) ([]string, int64, error)
 }
 
-type userFeedConfigDAO struct {
+type feedUserConfigDAO struct {
 	gorm *gorm.DB
 }
 
-// NewUserFeedConfigDAO 创建一个新的 UserFeedConfigDAO 实例
-func NewUserFeedConfigDAO(db *gorm.DB) UserFeedConfigDAO {
-	return &userFeedConfigDAO{gorm: db}
+// NewFeedUserConfigDAO 创建一个新的 FeedUserConfigDAO 实例
+func NewFeedUserConfigDAO(db *gorm.DB) FeedUserConfigDAO {
+	return &feedUserConfigDAO{gorm: db}
 }
 
 // FindOrCreateFeedAllowList 查找或创建 FeedUserConfig
-func (dao *userFeedConfigDAO) FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.FeedUserConfig, error) {
+func (dao *feedUserConfigDAO) FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.FeedUserConfig, error) {
 	allowList := model.FeedUserConfig{StudentId: studentId}
 	err := dao.gorm.WithContext(ctx).Model(model.FeedUserConfig{}).Where("student_id = ?", studentId).FirstOrCreate(&allowList).Error
 	if err != nil {
@@ -37,26 +38,26 @@ func (dao *userFeedConfigDAO) FindOrCreateUserFeedConfig(ctx context.Context, st
 }
 
 // SaveFeedAllowList 保存 FeedUserConfig
-func (dao *userFeedConfigDAO) SaveUserFeedConfig(ctx context.Context, req *model.FeedUserConfig) error {
+func (dao *feedUserConfigDAO) SaveUserFeedConfig(ctx context.Context, req *model.FeedUserConfig) error {
 	return dao.gorm.WithContext(ctx).Save(req).Error
 }
 
 // 设置指定位置的配置为 1
-func (dao *userFeedConfigDAO) SetConfigBit(config *uint16, position int) {
+func (dao *feedUserConfigDAO) SetConfigBit(config *uint16, position int) {
 	*config |= (1 << position)
 }
 
 // 设置指定位置的配置为 0
-func (dao *userFeedConfigDAO) ClearConfigBit(config *uint16, position int) {
+func (dao *feedUserConfigDAO) ClearConfigBit(config *uint16, position int) {
 	*config &= ^(1 << position)
 }
 
 // 获取指定位置的配置值（返回 true 或 false）
-func (dao *userFeedConfigDAO) GetConfigBit(config uint16, position int) bool {
+func (dao *feedUserConfigDAO) GetConfigBit(config uint16, position int) bool {
 	return (config & (1 << position)) != 0
 }
 
-func (dao *userFeedConfigDAO) GetStudentIdsByCursor(ctx context.Context, lastID int64, limit int) ([]string, int64, error) {
+func (dao *feedUserConfigDAO) GetStudentIdsByCursor(ctx context.Context, lastID int64, limit int) ([]string, int64, error) {
 	// 创建查询条件：从 lastID 开始，限制数量为 limit
 	var students []struct {
 		ID        int64  `gorm:"column:id"`

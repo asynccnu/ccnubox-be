@@ -36,11 +36,11 @@ var (
 type muxiOfficialMSGService struct {
 	feedEventDAO      dao.FeedEventDAO
 	feedEventCache    cache.FeedEventCache
-	userFeedConfigDAO dao.UserFeedConfigDAO
+	userFeedConfigDAO dao.FeedUserConfigDAO
 	muxiRedisLock     sync.Mutex //用于防止读取muxi缓存不一致
 }
 
-func NewMuxiOfficialMSGService(feedEventDAO dao.FeedEventDAO, feedEventCache cache.FeedEventCache, feedAllowListEventDAO dao.UserFeedConfigDAO) MuxiOfficialMSGService {
+func NewMuxiOfficialMSGService(feedEventDAO dao.FeedEventDAO, feedEventCache cache.FeedEventCache, feedAllowListEventDAO dao.FeedUserConfigDAO) MuxiOfficialMSGService {
 	return &muxiOfficialMSGService{
 		feedEventCache:    feedEventCache,
 		feedEventDAO:      feedEventDAO,

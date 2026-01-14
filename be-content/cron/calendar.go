@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-content/conf"
 	"github.com/asynccnu/ccnubox-be/be-content/domain"
 	"github.com/asynccnu/ccnubox-be/be-content/pkg/pdf"
-	"github.com/asynccnu/ccnubox-be/be-content/pkg/qiniu"
 	"github.com/asynccnu/ccnubox-be/be-content/pkg/reptile"
 	"github.com/asynccnu/ccnubox-be/be-content/service"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/spf13/viper"
+	"github.com/asynccnu/ccnubox-be/common/pkg/qiniu"
 )
 
 type CalendarController struct {
@@ -19,38 +19,30 @@ type CalendarController struct {
 	qiniu           qiniu.QiniuClient
 	reptile         reptile.Reptile
 	stopChan        chan struct{}
-	cfg             CalendarControllerConfig
+	durationTime    time.Duration
 	l               logger.Logger
-}
-
-// 配置定时任务周期
-type CalendarControllerConfig struct {
-	DurationTime int64 `yaml:"durationTime"`
 }
 
 func NewCalendarController(
 	repo service.CalendarService,
 	qiniu qiniu.QiniuClient,
 	l logger.Logger,
+	cfg *conf.ServerConf,
 ) *CalendarController {
-	var cfg CalendarControllerConfig
-	if err := viper.UnmarshalKey("calendarController", &cfg); err != nil {
-		panic(err)
-	}
 
 	return &CalendarController{
 		calendarService: repo,
 		qiniu:           qiniu,
 		reptile:         reptile.NewReptile(),
 		stopChan:        make(chan struct{}),
-		cfg:             cfg,
+		durationTime:    time.Duration(cfg.CalendarController.DurationTime) * time.Hour,
 		l:               l,
 	}
 }
 
 func (r *CalendarController) StartCronTask() {
 	go func() {
-		ticker := time.NewTicker(time.Duration(r.cfg.DurationTime) * time.Hour)
+		ticker := time.NewTicker(r.durationTime)
 		for {
 			select {
 			case <-ticker.C:

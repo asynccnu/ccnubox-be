@@ -1,20 +1,11 @@
 package ioc
 
 import (
-	"github.com/spf13/viper"
+	"github.com/asynccnu/ccnubox-be/bff/conf"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/infra"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func InitEtcdClient() *clientv3.Client {
-	//初始化etcd
-	var cfg clientv3.Config
-	err := viper.UnmarshalKey("etcd", &cfg)
-	if err != nil {
-		panic(err)
-	}
-	client, err := clientv3.New(cfg)
-	if err != nil {
-		panic(err)
-	}
-	return client
+func InitEtcdClient(cfg *conf.InfraConf) *clientv3.Client {
+	return infra.InitEtcdClient(cfg.Etcd)
 }

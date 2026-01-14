@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/asynccnu/ccnubox-be/be-ccnu/tool"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 )
 
 const (

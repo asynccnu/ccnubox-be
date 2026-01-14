@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/IBM/sarama"
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/consumer"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/topic"
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/saramax"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 )
 
 // GradeDetailEventConsumerHandler 是处理 GradeDetail 事件消费的结构体
@@ -19,18 +20,23 @@ type GradeDetailEventConsumerHandler struct {
 	l            logger.Logger        // 日志记录器
 	stopChan     chan struct{}        //用于停止的管道,没用上
 	gradeService service.GradeService // 事件数据的存储库
-
+	cfg          *saramax.HandlerConfig
 }
 
 func NewGradeDetailEventConsumerHandler(
 	kafkaClient sarama.Client,
 	l logger.Logger,
 	gradeService service.GradeService,
+	cfg *conf.ServerConf,
 ) *GradeDetailEventConsumerHandler {
 	cg := consumer.NewSaramaConsumer(kafkaClient, topic.GradeDetailEvent)
 	return &GradeDetailEventConsumerHandler{
-		cg:           cg,
-		l:            l,
+		cg: cg,
+		l:  l,
+		cfg: &saramax.HandlerConfig{
+			ConsumeTime: cfg.ConsumeConf.ConsumeTime,
+			ConsumeNum:  cfg.ConsumeConf.ConsumeNum,
+		},
 		gradeService: gradeService,
 		stopChan:     make(chan struct{}),
 	}
@@ -43,7 +49,7 @@ func (f *GradeDetailEventConsumerHandler) Start() error {
 	go func() {
 		for {
 			f.l.Info("开始消费")
-			err := f.cg.Consume(context.Background(), []string{topic.GradeDetailEvent}, saramax.NewHandler(f.l, f.Consume))
+			err := f.cg.Consume(context.Background(), []string{topic.GradeDetailEvent}, saramax.NewHandler(f.l, f.cfg, f.Consume))
 			if err != nil {
 				// 如果消费循环中出现错误，记录错误日志
 				f.l.Error("退出了消费循环异常", logger.Error(err))

@@ -7,10 +7,13 @@ import (
 	classLog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/metrics"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/timedTask"
+	b_conf "github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
+	b_grpc "github.com/asynccnu/ccnubox-be/common/bizpkg/grpc"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/asynccnu/ccnubox-be/be-class/internal/conf"
@@ -24,14 +27,10 @@ import (
 
 // go build -ldflags "-X main.Version=x.y.z"
 var (
-	// Name is the name of the compiled software.
-	Name string = "be-class"
 	// Version is the version of the compiled software.
 	Version string = "v1"
 	// flagconf is the config flag.
 	flagconf string
-
-	id, _ = os.Hostname()
 )
 
 type APP struct {
@@ -42,15 +41,17 @@ type APP struct {
 func NewApp(app *kratos.App, task *timedTask.Task) *APP {
 	return &APP{app: app, task: task}
 }
+
 func init() {
+	// 预加载.env文件,用于本地开发
+	_ = godotenv.Load()
 	prometheus.MustRegister(metrics.Counter, metrics.Summary)
 	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
 }
 
-func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, r *etcd.Registry) *kratos.App {
+func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, r *etcd.Registry, server *conf.Server, env *b_conf.Env) *kratos.App {
 	return kratos.New(
-		kratos.ID(id),
-		kratos.Name(Name),
+		kratos.Name(b_grpc.GetNamePrefix(env, server.Name)),
 		kratos.Version(Version),
 		kratos.Metadata(map[string]string{}),
 		kratos.Logger(logger),
@@ -64,31 +65,32 @@ func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, r *etcd.Registr
 
 func main() {
 	flag.Parse()
-	c := config.New(
-		config.WithSource(
-			file.NewSource(flagconf),
-		),
-	)
-	defer c.Close()
-
-	if err := c.Load(); err != nil {
-		panic(err)
-	}
-
 	var bc conf.Bootstrap
-	if err := c.Scan(&bc); err != nil {
-		panic(err)
-	}
-
-	if len(bc.Server.Name) > 0 {
-		Name = bc.Server.Name
+	if os.Getenv(conf.Class) != "" {
+		bootstrap := conf.InitBootstrap()
+		if bootstrap == nil {
+			panic("nacos 配置初始化失败")
+		}
+		bc = *bootstrap
+	} else {
+		c := config.New(
+			config.WithSource(
+				file.NewSource(flagconf),
+			),
+		)
+		defer c.Close()
+		if err := c.Load(); err != nil {
+			panic(err)
+		}
+		if err := c.Scan(&bc); err != nil {
+			panic(err)
+		}
 	}
 
 	logger := log.With(log.NewStdLogger(os.Stdout),
 		"ts", log.DefaultTimestamp,
 		"caller", log.DefaultCaller,
-		"service.id", id,
-		"service.name", Name,
+		"service.name", bc.Server.Name,
 		"service.version", Version,
 		"trace.id", tracing.TraceID(),
 		"span.id", tracing.SpanID(),
@@ -98,7 +100,7 @@ func main() {
 		bc.Data.Database.LogFileName, 6, 5, 30, false)
 	defer logfile.Close()
 
-	svc, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger, logfile)
+	svc, cleanup, err := wireApp(bc.Env, bc.Server, bc.Data, bc.Registry, logger, logfile)
 	if err != nil {
 		panic(err)
 	}

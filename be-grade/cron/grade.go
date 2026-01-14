@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
@@ -12,7 +13,6 @@ import (
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-redsync/redsync/v4"
-	"github.com/spf13/viper"
 )
 
 type GradeController struct {
@@ -23,15 +23,9 @@ type GradeController struct {
 	gradeService service.GradeService
 	rankService  service.RankService
 	stopChan     chan struct{}
-	cfg          gradeControllerConfig
+	cfg          *conf.GradeConf
 	l            logger.Logger
 	muRedis      *redsync.Redsync
-}
-
-type gradeControllerConfig struct {
-	Low    int64 `yaml:"low"`
-	Middle int64 `yaml:"middle"`
-	High   int64 `yaml:"high"`
 }
 
 func NewGradeController(
@@ -43,12 +37,8 @@ func NewGradeController(
 	gradeService service.GradeService,
 	rankService service.RankService,
 	muRedis *redsync.Redsync,
+	cfg *conf.ServerConf,
 ) *GradeController {
-	var cfg gradeControllerConfig
-	if err := viper.UnmarshalKey("gradeController", &cfg); err != nil {
-		panic(err)
-	}
-
 	return &GradeController{
 		counter:      counter,
 		gradeService: gradeService,
@@ -57,7 +47,7 @@ func NewGradeController(
 		classlist:    classlist,
 		userClient:   userClient,
 		stopChan:     make(chan struct{}),
-		cfg:          cfg,
+		cfg:          cfg.GradeConf,
 		l:            l,
 		muRedis:      muRedis,
 	}

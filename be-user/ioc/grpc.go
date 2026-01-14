@@ -1,113 +1,15 @@
 package ioc
 
 import (
-	"context"
-	"fmt"
-	"time"
-
+	"github.com/asynccnu/ccnubox-be/be-user/conf"
 	"github.com/asynccnu/ccnubox-be/be-user/grpc"
-	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	b_grpc "github.com/asynccnu/ccnubox-be/common/bizpkg/grpc"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/grpc/server"
 	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/go-kratos/kratos/v2/middleware"
-	"github.com/go-kratos/kratos/v2/middleware/recovery"
-	"github.com/go-kratos/kratos/v2/middleware/tracing"
-	"github.com/go-kratos/kratos/v2/transport"
-	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func InitGRPCxKratosServer(userServer *grpc.UserServiceServer, ecli *clientv3.Client, l logger.Logger) grpcx.Server {
-	type Config struct {
-		Name    string `yaml:"name"`
-		Weight  int    `yaml:"weight"`
-		Addr    string `yaml:"addr"`
-		EtcdTTL int64  `yaml:"etcdTTL"`
-	}
-	var cfg Config
-
-	err := viper.UnmarshalKey("grpc.server", &cfg)
-	if err != nil {
-		panic(err)
-	}
-	server := kgrpc.NewServer(
-		kgrpc.Address(cfg.Addr),
-		kgrpc.Middleware(
-			recovery.Recovery(),
-			tracing.Server(), // 必须放 log 前，不然日志获取不到 traceid
-			LoggingMiddleware(l),
-		),
-		kgrpc.Timeout(2*time.Minute), //涉及华师的接口都改成2分钟
-	)
-
-	userServer.Register(server)
-	return &grpcx.KratosServer{
-		Server:     server,
-		Name:       cfg.Name,
-		Weight:     cfg.Weight,
-		EtcdTTL:    time.Second * time.Duration(cfg.EtcdTTL),
-		EtcdClient: ecli,
-		L:          l,
-	}
-}
-
-// LoggingMiddleware 返回一个日志中间件
-func LoggingMiddleware(l logger.Logger) middleware.Middleware {
-	return func(handler middleware.Handler) middleware.Handler {
-		return func(ctx context.Context, req interface{}) (interface{}, error) {
-			// 获取请求信息
-			tr, ok := transport.FromServerContext(ctx)
-			if !ok {
-				return handler(ctx, req)
-			}
-			// 记录请求开始时间
-			start := time.Now()
-
-			// 获取调用方信息：服务名称和方法
-			operationName := tr.Operation() // 获取调用的服务名称
-
-			endPointName := tr.Endpoint() // 获取调用的具体方法名
-			reqHeader := tr.RequestHeader()
-			// 执行下一个 handler
-			reply, err := handler(ctx, req)
-
-			// 计算耗时
-			duration := time.Since(start)
-
-			tlog := l.WithContext(ctx)
-
-			if err != nil {
-				customError := errorx.ToCustomError(err)
-				if customError != nil {
-					// 捕获错误并记录
-					tlog.Error("执行业务逻辑出错",
-						logger.Error(err),
-						logger.String("operationName", operationName),
-						logger.String("endPointName", endPointName),
-						logger.String("request", fmt.Sprintf("%v", req)),
-						logger.String("duration", duration.String()),
-						logger.String("category", customError.Category),
-						logger.String("file", customError.File),
-						logger.Int("line", customError.Line),
-						logger.String("function", customError.Function),
-					)
-					//转化为 kratos 的错误,非常的优雅
-					err = customError.ERR
-				}
-			} else {
-				// 记录常规日志
-				tlog.Info("请求成功",
-					logger.String("operationName", operationName),
-					logger.String("endPointName", endPointName),
-					logger.String("request", fmt.Sprintf("%v", req)),
-					logger.String("reqHeader", fmt.Sprintf("%v", reqHeader)),
-					logger.String("duration", duration.String()),
-					logger.String("timestamp", time.Now().Format(time.RFC3339)),
-				)
-			}
-
-			return reply, err
-		}
-	}
+func InitGRPCxKratosServer(grpcServer *grpc.UserServiceServer, ecli *clientv3.Client, l logger.Logger, cfg *conf.InfraConf) grpcx.Server {
+	return server.InitGRPCxKratosServer(grpcServer, ecli, l, (*cfg.Grpc)[b_grpc.USER], cfg.Env)
 }

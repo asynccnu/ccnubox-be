@@ -8,7 +8,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/go-kratos/kratos/v2/transport/grpc"
+	"google.golang.org/grpc"
 )
 
 type FeedServiceServer struct {
@@ -164,6 +164,6 @@ func (g *FeedServiceServer) PublicFeedEvent(ctx context.Context, req *feedv1.Pub
 	return &feedv1.PublicFeedEventResp{}, nil
 }
 
-func (g *FeedServiceServer) Register(server *grpc.Server) {
+func (g *FeedServiceServer) Register(server grpc.ServiceRegistrar) {
 	feedv1.RegisterFeedServiceServer(server, g)
 }

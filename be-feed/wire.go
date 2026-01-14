@@ -4,6 +4,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-feed/conf"
 	"github.com/asynccnu/ccnubox-be/be-feed/cron"
 	"github.com/asynccnu/ccnubox-be/be-feed/events"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/producer"
@@ -15,8 +16,10 @@ import (
 	"github.com/google/wire"
 )
 
-func InitApp() App {
+func InitApp() *App {
 	wire.Build(
+		conf.InitInfraConfig,
+		conf.InitServerConf,
 
 		grpc.NewFeedServiceServer,
 		//feed服务
@@ -46,9 +49,10 @@ func InitApp() App {
 		ioc.InitEtcdClient,
 		ioc.InitLogger,
 		ioc.InitKafka,
+		ioc.InitOTel,
 		ioc.InitJPushClient,
 		ioc.InitGRPCxKratosServer,
 		NewApp,
 	)
-	return App{}
+	return &App{}
 }

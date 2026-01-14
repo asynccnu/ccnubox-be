@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-proxy/conf"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/robfig/cron/v3"
-	"github.com/spf13/viper"
 )
 
 type ShenLongProxy struct {
@@ -47,29 +47,18 @@ func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, error) {
 	return proxyAddr, nil
 }
 
-func NewProxyService(l logger.Logger) ProxyService {
-	var config struct {
-		Api      string `json:"api"`
-		Interval int    `json:"interval"`
-		Retry    int    `json:"retry"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-	if err := viper.UnmarshalKey("shenlong", &config); err != nil {
-		panic(err)
-	}
-
-	if config.Api == "" {
+func NewProxyService(l logger.Logger, cfg *conf.ServerConf) ProxyService {
+	if cfg.ShenLongConf.API == "" {
 		log.Warnf("use DefualtClient due to the empty of proxy setting (time:%s)", time.Now())
 		panic(ErrEmptyConfig)
 	}
 
 	s := &ShenLongProxy{
-		Api:          config.Api,
-		PollInterval: config.Interval,
-		RetryCount:   config.Retry,
-		Username:     config.Username,
-		Password:     config.Password,
+		Api:          cfg.ShenLongConf.API,
+		PollInterval: cfg.ShenLongConf.Interval,
+		RetryCount:   cfg.ShenLongConf.Retry,
+		Username:     cfg.ShenLongConf.Username,
+		Password:     cfg.ShenLongConf.Password,
 
 		l: l,
 	}

@@ -310,7 +310,7 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 }
 
 func (s *elecpriceService) getProxyAddr(ctx context.Context) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	res, err := s.p.GetProxyAddr(ctx, &proxyv1.GetProxyAddrRequest{})
 	if err != nil {

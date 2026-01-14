@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type chainError struct {
+type customError struct {
 	msg   string
 	file  string
 	line  int
@@ -16,19 +16,19 @@ type chainError struct {
 }
 
 // Error 保持简洁，用于日志单行打印
-func (e *chainError) Error() string {
+func (e *customError) Error() string {
 	if e.cause == nil {
 		return e.msg
 	}
 	return fmt.Sprintf("%s: %v", e.msg, e.cause)
 }
 
-func (e *chainError) Unwrap() error {
+func (e *customError) Unwrap() error {
 	return e.cause
 }
 
 // Format 实现 fmt.Formatter 接口，核心逻辑在这里
-func (e *chainError) Format(s fmt.State, verb rune) {
+func (e *customError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
@@ -50,7 +50,7 @@ func (e *chainError) Format(s fmt.State, verb rune) {
 // New 创建错误
 func New(message string) error {
 	file, line, fn := getCallerInfo(2)
-	return &chainError{
+	return &customError{
 		msg:   message,
 		file:  file,
 		line:  line,
@@ -64,7 +64,7 @@ func Wrap(err error, message string) error {
 		return nil
 	}
 	file, line, fn := getCallerInfo(2)
-	return &chainError{
+	return &customError{
 		msg:   message,
 		file:  file,
 		line:  line,
@@ -91,7 +91,7 @@ func Errorf(format string, args ...any) error {
 	}
 
 	file, line, fn := getCallerInfo(2)
-	return &chainError{
+	return &customError{
 		msg:   msg,
 		file:  file,
 		line:  line,

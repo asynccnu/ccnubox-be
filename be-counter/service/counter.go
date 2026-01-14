@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
+
+	"github.com/asynccnu/ccnubox-be/be-counter/conf"
 	"github.com/asynccnu/ccnubox-be/be-counter/domain"
-	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-counter/repository/cache"
-	"github.com/spf13/viper"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type CounterService interface {
@@ -19,23 +20,16 @@ type CounterService interface {
 type CachedCounterService struct {
 	cache  cache.CounterCache //此处不做任何持久化,所有的数据都存到Redis中
 	l      logger.Logger
-	config CounterConfig
+	config *conf.CountLevelConfig
 }
 
-type CounterConfig struct {
-	Low           int64
-	MStudentIddle int64
-	High          int64
-	Step          int64 //一次更改的大小
-}
+func NewCachedCounterService(cache cache.CounterCache, l logger.Logger, cfg *conf.ServerConf) CounterService {
 
-func NewCachedCounterService(cache cache.CounterCache, l logger.Logger) CounterService {
-	var config CounterConfig
-	err := viper.UnmarshalKey("countLevel", &config)
-	if err != nil {
-		return nil
+	return &CachedCounterService{
+		cache:  cache,
+		l:      l,
+		config: cfg.CountLevel,
 	}
-	return &CachedCounterService{cache: cache, l: l, config: config}
 }
 
 func (repo *CachedCounterService) AddCounter(ctx context.Context, StudentId string) error {
@@ -63,7 +57,7 @@ func (repo *CachedCounterService) GetCounterLevels(ctx context.Context, label st
 
 	// 预先计算阈值
 	lowThreshold := repo.config.Low
-	mStudentIdThreshold := repo.config.MStudentIddle
+	middleThreshold := repo.config.Middle
 	highThreshold := repo.config.High
 
 	// 预先分配一个大致的容量，避免多次扩容
@@ -73,13 +67,13 @@ func (repo *CachedCounterService) GetCounterLevels(ctx context.Context, label st
 	switch label {
 	case "low":
 		for _, count := range counts {
-			if count.Count >= lowThreshold && count.Count < mStudentIdThreshold {
+			if count.Count >= lowThreshold && count.Count < middleThreshold {
 				StudentIds = append(StudentIds, count.StudentId)
 			}
 		}
 	case "middle":
 		for _, count := range counts {
-			if count.Count >= mStudentIdThreshold && count.Count < highThreshold {
+			if count.Count >= middleThreshold && count.Count < highThreshold {
 				StudentIds = append(StudentIds, count.StudentId)
 			}
 		}
@@ -90,7 +84,7 @@ func (repo *CachedCounterService) GetCounterLevels(ctx context.Context, label st
 			}
 		}
 	default:
-		return nil, fmt.Errorf("invalStudentId label: %s", label)
+		return nil, fmt.Errorf("invalid label: %s", label)
 	}
 
 	return StudentIds, nil

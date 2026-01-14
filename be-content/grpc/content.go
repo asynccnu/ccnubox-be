@@ -3,7 +3,7 @@ package grpc
 import (
 	"github.com/asynccnu/ccnubox-be/be-content/service"                        // 替换为calendar的服务路径
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1" // 替换为calendar的proto包路径
-	"github.com/go-kratos/kratos/v2/transport/grpc"
+	"google.golang.org/grpc"
 )
 
 type ContentServiceServer struct {
@@ -32,6 +32,6 @@ func NewCalendarServiceServer(
 }
 
 // 注册为grpc服务
-func (c *ContentServiceServer) Register(server *grpc.Server) {
+func (c *ContentServiceServer) Register(server grpc.ServiceRegistrar) {
 	contentv1.RegisterContentServiceServer(server, c)
 }

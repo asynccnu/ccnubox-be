@@ -1,6 +1,7 @@
 package ioc
 
 import (
+	"github.com/asynccnu/ccnubox-be/bff/conf"
 	"github.com/asynccnu/ccnubox-be/bff/web/class"
 	"github.com/asynccnu/ccnubox-be/bff/web/classroom"
 	"github.com/asynccnu/ccnubox-be/bff/web/content"
@@ -49,39 +50,24 @@ func InitContentHandler(
 }
 
 func InitFeedHandler(
+	cfg *conf.ServerConf,
 	feedServiceClient feedv1.FeedServiceClient) *feed.FeedHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
 	return feed.NewFeedHandler(feedServiceClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
-func InitElecpriceHandler(client elecpricev1.ElecpriceServiceClient) *elecprice.ElecPriceHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
-
+func InitElecpriceHandler(cfg *conf.ServerConf, client elecpricev1.ElecpriceServiceClient) *elecprice.ElecPriceHandler {
 	return elecprice.NewElecPriceHandler(client,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
 
-func InitClassHandler(client1 classlistv1.ClasserClient, client2 cs.ClassServiceClient) *class.ClassHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
+func InitClassHandler(cfg *conf.ServerConf, client1 classlistv1.ClasserClient, client2 cs.ClassServiceClient) *class.ClassHandler {
 	return class.NewClassListHandler(client1, client2,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }
@@ -89,49 +75,34 @@ func InitClassHandler(client1 classlistv1.ClasserClient, client2 cs.ClassService
 func InitClassRoomHandler(client cs.FreeClassroomSvcClient) *classroom.ClassRoomHandler {
 	return classroom.NewClassRoomHandler(client)
 }
-func InitGradeHandler(l logger.Logger, gradeClient gradev1.GradeServiceClient, counterServiceClient counterv1.CounterServiceClient) *grade.GradeHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
+func InitGradeHandler(cfg *conf.ServerConf, l logger.Logger, gradeClient gradev1.GradeServiceClient, counterServiceClient counterv1.CounterServiceClient) *grade.GradeHandler {
 	return grade.NewGradeHandler(
 		gradeClient,
 		counterServiceClient,
 		l,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }),
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) { return element, struct{}{} }),
 	)
 }
 
 func InitUserHandler(
+	l logger.Logger,
 	hdl ijwt.Handler,
 	userClient userv1.UserServiceClient,
 	gradeClient gradev1.GradeServiceClient,
 	classListClient classlistv1.ClasserClient,
 	feedClient feedv1.FeedServiceClient,
-	l logger.Logger,
 ) *user.UserHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
 	preLoader := user.NewPreLoader(gradeClient, classListClient, feedClient, l)
 	return user.NewUserHandler(hdl, userClient, preLoader)
 }
 
-func InitLibraryHandler(client libraryv1.LibraryClient) *library.LibraryHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
+func InitLibraryHandler(cfg *conf.ServerConf, client libraryv1.LibraryClient) *library.LibraryHandler {
 	return library.NewLibraryHandler(client,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
 
-func InitTubeHandler(tb *TubePolicies, mac *qbox.Mac) *tube.TubeHandler {
-	return tube.NewTubeHandler(tb.defaultPolicy, tb.officialSite, mac, viper.GetString("oss.domainName"))
+func InitTubeHandler(cfg *conf.ServerConf, tb *TubePolicies, mac *qbox.Mac) *tube.TubeHandler {
+	return tube.NewTubeHandler(tb.defaultPolicy, tb.officialSite, mac, cfg.Oss.DomainName)
 }
 
 func InitMetricsHandel(l logger.Logger, redisClient redis.Cmdable, prometheus *prometheusx.PrometheusCounter) *metrics.MetricsHandler {

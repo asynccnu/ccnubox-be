@@ -25,7 +25,7 @@ func InitApp() App {
 	feedEventDAO := dao.NewFeedEventDAO(db)
 	cmdable := ioc.InitRedis()
 	feedEventCache := cache.NewRedisFeedEventCache(cmdable)
-	userFeedConfigDAO := dao.NewUserFeedConfigDAO(db)
+	userFeedConfigDAO := dao.NewFeedUserConfigDAO(db)
 	feedFailEventDAO := dao.NewFeedFailEventDAO(db)
 	client := ioc.InitKafka()
 	producerProducer := producer.NewSaramaProducer(client)

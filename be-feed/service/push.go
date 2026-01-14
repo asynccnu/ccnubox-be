@@ -12,9 +12,9 @@ import (
 
 type pushService struct {
 	pushClient        jpush.PushClient //用于推送的客户端
-	userFeedConfigDAO dao.UserFeedConfigDAO
+	userFeedConfigDAO dao.FeedUserConfigDAO
 	feedFailEventDAO  dao.FeedFailEventDAO
-	feedTokenDAO      dao.UserFeedTokenDAO
+	feedTokenDAO      dao.FeedTokenDAO
 	l                 logger.Logger
 }
 
@@ -32,8 +32,8 @@ type ErrWithData struct {
 
 func NewPushService(pushClient jpush.PushClient,
 
-	userFeedConfigDAO dao.UserFeedConfigDAO,
-	feedTokenDAO dao.UserFeedTokenDAO,
+	userFeedConfigDAO dao.FeedUserConfigDAO,
+	feedTokenDAO dao.FeedTokenDAO,
 	feedFailEventDAO dao.FeedFailEventDAO,
 	l logger.Logger,
 ) PushService {

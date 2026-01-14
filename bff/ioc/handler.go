@@ -84,9 +84,16 @@ func InitGradeHandler(cfg *conf.ServerConf, l logger.Logger, gradeClient gradev1
 	)
 }
 
-func InitUserHandler(cfg *conf.ServerConf, hdl ijwt.Handler, userClient userv1.UserServiceClient, gradeClient gradev1.GradeServiceClient,
-	classerClient classlistv1.ClasserClient) *user.UserHandler {
-	return user.NewUserHandler(hdl, userClient, gradeClient, classerClient)
+func InitUserHandler(
+	l logger.Logger,
+	hdl ijwt.Handler,
+	userClient userv1.UserServiceClient,
+	gradeClient gradev1.GradeServiceClient,
+	classListClient classlistv1.ClasserClient,
+	feedClient feedv1.FeedServiceClient,
+) *user.UserHandler {
+	preLoader := user.NewPreLoader(gradeClient, classListClient, feedClient, l)
+	return user.NewUserHandler(hdl, userClient, preLoader)
 }
 
 func InitLibraryHandler(cfg *conf.ServerConf, client libraryv1.LibraryClient) *library.LibraryHandler {

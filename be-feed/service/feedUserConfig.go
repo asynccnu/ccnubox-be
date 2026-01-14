@@ -15,7 +15,7 @@ import (
 
 type FeedUserConfigService interface {
 	ChangeAllowList(ctx context.Context, req domain.AllowList) error
-	GetFeedAllowList(ctx context.Context, studentId string) (domain.AllowList, error)
+	FindOrCreateAllowList(ctx context.Context, studentId string) (domain.AllowList, error)
 	SaveFeedToken(ctx context.Context, studentId string, token string) error
 	GetFeedTokens(ctx context.Context, studentId string) (tokens []string, err error)
 	RemoveFeedToken(ctx context.Context, studentId string, token string) error
@@ -33,15 +33,15 @@ var configMap = map[string]int{
 type feedUserConfigService struct {
 	feedEventDAO      dao.FeedEventDAO
 	feedEventCache    cache.FeedEventCache
-	userFeedConfigDAO dao.UserFeedConfigDAO
-	feedTokenDAO      dao.UserFeedTokenDAO
+	userFeedConfigDAO dao.FeedUserConfigDAO
+	feedTokenDAO      dao.FeedTokenDAO
 }
 
 func NewFeedUserConfigService(
 	feedEventDAO dao.FeedEventDAO,
 	feedEventCache cache.FeedEventCache,
-	feedAllowListEventDAO dao.UserFeedConfigDAO,
-	tokenFeedDAO dao.UserFeedTokenDAO,
+	feedAllowListEventDAO dao.FeedUserConfigDAO,
+	tokenFeedDAO dao.FeedTokenDAO,
 ) FeedUserConfigService {
 	return &feedUserConfigService{
 		feedEventCache:    feedEventCache,
@@ -105,7 +105,7 @@ func (s *feedUserConfigService) ChangeAllowList(ctx context.Context, req domain.
 	return nil
 }
 
-func (s *feedUserConfigService) GetFeedAllowList(ctx context.Context, studentId string) (domain.AllowList, error) {
+func (s *feedUserConfigService) FindOrCreateAllowList(ctx context.Context, studentId string) (domain.AllowList, error) {
 	list, err := s.userFeedConfigDAO.FindOrCreateUserFeedConfig(ctx, studentId)
 	if err != nil {
 		return domain.AllowList{}, FIND_CONFIG_OR_TOKEN_ERROR(err)

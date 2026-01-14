@@ -28,14 +28,15 @@ func InitApp() *App {
 		service.NewMuxiOfficialMSGService,
 		service.NewFeedEventService,
 		//dao层
-		dao.NewUserFeedConfigDAO,
+		dao.NewFeedUserConfigDAO,
 		dao.NewFeedEventDAO,
 		dao.NewUserFeedTokenDAO,
 		dao.NewFeedFailEventDAO,
 		//cache层一个
 		cache.NewRedisFeedEventCache,
-		//auto服务层三个
+		//corn服务层三个
 		cron.NewMuxiController,
+		cron.NewHolidayController,
 		cron.NewCron,
 		//event消费者控制服务
 		events.NewFeedEventConsumerHandler,

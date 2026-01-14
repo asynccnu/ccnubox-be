@@ -7,7 +7,6 @@
 package main
 
 import (
-	"github.com/asynccnu/ccnubox-be/be-feed/conf"
 	"github.com/asynccnu/ccnubox-be/be-feed/cron"
 	"github.com/asynccnu/ccnubox-be/be-feed/events"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/producer"

@@ -1,6 +1,6 @@
 module github.com/asynccnu/ccnubox-be/be-feed
 
-go 1.24.0
+go 1.24.4
 
 replace github.com/asynccnu/ccnubox-be/common => ./../common
 
@@ -13,6 +13,7 @@ require (
 	github.com/google/wire v0.7.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/redis/go-redis/v9 v9.17.2
+	github.com/samber/lo v1.52.0
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	go.etcd.io/etcd/client/v3 v3.6.7

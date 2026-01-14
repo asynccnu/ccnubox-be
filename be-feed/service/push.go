@@ -12,9 +12,9 @@ import (
 
 type pushService struct {
 	pushClient        jpush.PushClient //用于推送的客户端
-	userFeedConfigDAO dao.UserFeedConfigDAO
+	userFeedConfigDAO dao.FeedUserConfigDAO
 	feedFailEventDAO  dao.FeedFailEventDAO
-	feedTokenDAO      dao.UserFeedTokenDAO
+	feedTokenDAO      dao.FeedTokenDAO
 	l                 logger.Logger
 }
 
@@ -32,8 +32,8 @@ type ErrWithData struct {
 
 func NewPushService(pushClient jpush.PushClient,
 
-	userFeedConfigDAO dao.UserFeedConfigDAO,
-	feedTokenDAO dao.UserFeedTokenDAO,
+	userFeedConfigDAO dao.FeedUserConfigDAO,
+	feedTokenDAO dao.FeedTokenDAO,
 	feedFailEventDAO dao.FeedFailEventDAO,
 	l logger.Logger,
 ) PushService {
@@ -81,6 +81,13 @@ func (s *pushService) InsertFailFeedEvents(ctx context.Context, failEvents []dom
 
 // 推送单条消息
 func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) error {
+	tokens, err := s.feedTokenDAO.GetTokens(ctx, pushData.StudentId)
+	if err != nil {
+		return err
+	}
+	if len(tokens) == 0 {
+		return nil
+	}
 
 	//权限检测
 	allowed, err := s.checkIfAllow(ctx, pushData.Type, pushData.StudentId)
@@ -89,11 +96,6 @@ func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) e
 	}
 	if !allowed {
 		return nil
-	}
-
-	tokens, err := s.feedTokenDAO.GetTokens(ctx, pushData.StudentId)
-	if err != nil {
-		return err
 	}
 
 	err = s.pushClient.Push(tokens, jpush.PushData{

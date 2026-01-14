@@ -86,7 +86,7 @@ func (f *FeedEventConsumerHandler) Consume(events []domain.FeedEvent) error {
 			return err
 		}
 
-		return errors.New(fmt.Sprintf("批量消费发生错误! 原数据量为%d,发生错误次数为:%d,首次发生错误为:%s", len(events), len(errWithData), errWithData[0].Err))
+		return errors.New(fmt.Sprintf("批量消费发生错误! 原数据量为%d, 发生错误次数为:%d, 发生错误为:%v", len(events), len(errWithData), errWithData))
 	}
 	return nil
 }

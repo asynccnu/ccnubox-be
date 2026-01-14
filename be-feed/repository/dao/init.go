@@ -10,8 +10,8 @@ func InitTables(db *gorm.DB) error {
 	//创建用户配置表
 	err := db.AutoMigrate(
 		&model.FeedEvent{},
-		&model.UserFeedConfig{},
-		&model.Token{},
+		&model.FeedUserConfig{},
+		&model.FeedUserToken{},
 		&model.FeedFailEvent{},
 	)
 	if err != nil {

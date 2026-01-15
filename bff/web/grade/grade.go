@@ -67,7 +67,7 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 	grades, err := h.GradeClient.GetGradeByTerm(ctx, &gradev1.GetGradeByTermReq{
 		StudentId: uc.StudentId,
 		Terms:     convTermsToProto(req.Terms),
-		Kcxzmcs:   req.Kcxzmcs,
+		Kcxzmcs:   h.changeKCXZMCS(req.Kcxzmcs),
 		Refresh:   req.Refresh,
 	})
 	if err != nil {
@@ -79,17 +79,17 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 		resp.Grades = append(resp.Grades, Grade{
 			Xnm:                 grade.Xnm,
 			Xqm:                 grade.Xqm,
-			Kcmc:                grade.Kcmc,                             // 课程名
-			Xf:                  grade.Xf,                               // 学分
-			Jd:                  grade.Jd,                               // 绩点
-			Cj:                  grade.Cj,                               // 总成绩
-			Kcxzmc:              grade.Kcxzmc,                           // 课程性质名称 比如专业主干课程/通识必修课
-			Kclbmc:              grade.Kclbmc,                           // 课程类别名称，比如专业课/公共课
-			Kcbj:                grade.Kcbj,                             // 课程标记，比如主修/辅修
+			Kcmc:                grade.Kcmc,                         // 课程名
+			Xf:                  grade.Xf,                           // 学分
+			Jd:                  grade.Jd,                           // 绩点
+			Cj:                  grade.Cj,                           // 总成绩
+			Kcxzmc:              grade.Kcxzmc,                       // 课程性质名称 比如专业主干课程/通识必修课
+			Kclbmc:              grade.Kclbmc,                       // 课程类别名称，比如专业课/公共课
+			Kcbj:                grade.Kcbj,                         // 课程标记，比如主修/辅修
 			RegularGradePercent: "平时成绩" + grade.RegularGradePercent, // 平时分占比
-			RegularGrade:        grade.RegularGrade,                     // 平时分分数
+			RegularGrade:        grade.RegularGrade,                 // 平时分分数
 			FinalGradePercent:   "期末成绩" + grade.FinalGradePercent,   // 期末占比
-			FinalGrade:          grade.FinalGrade,                       // 期末分数
+			FinalGrade:          grade.FinalGrade,                   // 期末分数
 		})
 	}
 
@@ -106,6 +106,63 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 		Msg:  fmt.Sprintf("获取成绩成功!"),
 		Data: resp,
 	}, nil
+}
+
+// 为了解决教务系统的课程性质名称问题
+func (h *GradeHandler) changeKCXZMCS(kcxzmcs []string) []string {
+	if len(kcxzmcs) == 0 {
+		return kcxzmcs
+	}
+
+	// 旧 -> 新 映射表
+	mapping := map[string]string{
+		"专业主干课程":   "专业主干课程",
+		"通识必修课":    "通识必修课",
+		"通识选修课":    "通识选修课",
+		"个性发展课程":   "个性发展课",
+		"通识核心课":    "通识核心课",
+		"专业选修课":    "专业选修课",
+		"教师教育必修":   "教师教育必修课",
+		"教师教育选修":   "教师教育选修课",
+		"公共必修课":    "公共必修课",
+		"必修":       "必修",
+		"选修":       "选修",
+		"大学英语分级教学": "大学英语分级教学",
+	}
+
+	// 额外归一化（老系统可能出现的模糊值）
+	alias := map[string]string{
+		"专业必修课": "专业必修课",
+		"专业必修":  "专业必修课",
+		"选修课":   "选修课",
+		"选修课程":  "选修课",
+		"专业课":   "专业课",
+	}
+
+	result := make([]string, 0, len(kcxzmcs))
+	seen := make(map[string]struct{})
+
+	for _, old := range kcxzmcs {
+		old = strings.TrimSpace(old)
+
+		var newName string
+
+		if v, ok := mapping[old]; ok {
+			newName = v
+		} else if v, ok := alias[old]; ok {
+			newName = v
+		} else {
+			// 未识别的直接透传，避免影响查询
+			newName = old
+		}
+
+		if _, ok := seen[newName]; !ok {
+			seen[newName] = struct{}{}
+			result = append(result, newName)
+		}
+	}
+
+	return result
 }
 
 // GetGradeScore 查询学分

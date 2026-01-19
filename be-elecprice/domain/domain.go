@@ -9,6 +9,7 @@ type ElectricMSG struct {
 	RoomName  *string
 	StudentId string // 学号
 	Remain    *string
+	Limit     *int64
 }
 
 type ResultInfo struct {

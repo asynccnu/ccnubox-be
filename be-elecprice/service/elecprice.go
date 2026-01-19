@@ -154,6 +154,7 @@ func (s *elecpriceService) GetTobePushMSG(ctx context.Context) ([]*domain.Electr
 						RoomName:  &cfg.RoomName,
 						StudentId: cfg.StudentID,
 						Remain:    &elecPrice.RemainMoney,
+						Limit:     &cfg.Limit,
 					}
 
 					// 并发安全地添加结果
@@ -171,8 +172,8 @@ func (s *elecpriceService) GetTobePushMSG(ctx context.Context) ([]*domain.Electr
 		// 检查是否有错误
 		for err := range errChan {
 			if err != nil {
-				// 可以选择返回第一个错误，或者记录日志
-				return nil, err
+				// 可以记录日志
+				s.l.Error("获取电费信息错误: %v", logger.Error(err))
 			}
 		}
 

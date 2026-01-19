@@ -134,7 +134,7 @@ func (c *GradeController) publishMSG(label string) {
 			_, err = c.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 				StudentId: studentId,
 				Event: &feedv1.FeedEvent{
-					Type:    "grade",
+					Type:    feedv1.FeedEventType_GRADE,
 					Title:   "成绩更新提醒",
 					Content: fmt.Sprintf("您的课程:%s分数更新了,请及时查看", grade.Kcmc),
 				},

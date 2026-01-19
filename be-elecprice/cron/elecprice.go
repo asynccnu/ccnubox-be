@@ -67,9 +67,9 @@ func (r *ElecpriceController) publishMSG() error {
 			_, err = r.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 				StudentId: msgs[i].StudentId,
 				Event: &feedv1.FeedEvent{
-					Type:    "energy", // TODO 改成使用proto定义的常量
+					Type:    feedv1.FeedEventType_ENERGY,
 					Title:   "电费不足提醒",
-					Content: fmt.Sprintf("您的房间%s当前的电费为:%s,低于设置阈值,请及时充费", *(msgs[i].RoomName), *(msgs[i].Remain)),
+					Content: fmt.Sprintf("房间%s剩余 %s 元，已低于设定阈值 %d 元，请及时充值。", *(msgs[i].RoomName), *(msgs[i].Remain), *(msgs[i].Limit)),
 				},
 			})
 		}

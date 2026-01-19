@@ -3,6 +3,14 @@ syntax = "proto3";
 package feed.v1;
 option go_package="github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1;feedv1";
 
+enum FeedEventType{
+  GRADE=0;
+  HOLIDAY=1;
+  MUXIOFFICIAL=2;
+  ENERGY=3;
+  FEEDBACK=4;
+}
+
 service FeedService {
   rpc GetFeedEvents (GetFeedEventsReq) returns (GetFeedEventsResp);//获取所有的消息,包括已读和未读两部分
   rpc ReadFeedEvent(ReadFeedEventReq)returns(ReadFeedEventResp);//用来更新信息的已读取状态
@@ -28,7 +36,7 @@ message PublicFeedEventResp{}
 
 message FeedEvent {
   int64 id = 1;
-  string type = 2;
+  FeedEventType type = 2;
   string title = 3;
   string content = 4;
   map<string, string> ExtendFields=5;

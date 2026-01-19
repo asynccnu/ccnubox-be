@@ -332,7 +332,7 @@ func (h *FeedHandler) PublicFeedEvent(ctx *gin.Context, req PublicFeedEventReq) 
 	_, err := h.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 		StudentId: req.StudentId,
 		Event: &feedv1.FeedEvent{
-			Type:    req.Type,
+			Type:    feedEventTypeMapper[req.Type],
 			Title:   req.Title,
 			Content: req.Content,
 		},

@@ -28,6 +28,7 @@ type ClassInfo struct {
 	Semester     string    `gorm:"type:varchar(1);column:semester;not null;index:idx_time,priority:2" json:"semester"` //学期
 	Year         string    `gorm:"type:varchar(5);column:year;not null;index:idx_time,priority:1" json:"year"`         //学年
 	Note         string    `json:"note"`                                                                               //备注，用于和学生课程表联合查询，数据库中不存储
+	Nature       string    `gorm:"type:varchar(255);column:nature" json:"nature"`                                      // 课程性质
 }
 
 func (ci *ClassInfo) TableName() string {

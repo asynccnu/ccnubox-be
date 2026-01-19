@@ -20,6 +20,7 @@ type ClassInfo struct {
 	Year         string  `json:"year" binding:"required"`          //学年
 	Note         string  `json:"note" binding:"required"`          // 备注
 	IsOfficial   bool    `json:"is_official" binding:"required"`   // 是否为官方课程
+	Nature       string  `json:"nature" binding:"required"`        // 课程性质
 }
 
 type AddClassRequest struct {

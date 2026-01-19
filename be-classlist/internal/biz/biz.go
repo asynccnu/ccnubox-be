@@ -36,6 +36,7 @@ type ClassRepo interface {
 	IsClassOfficial(ctx context.Context, stuID, year, semester, classID string) bool
 	GetClassNote(ctx context.Context, stuID, year, semester, classID string) string
 	UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error
+	GetClassNatures(ctx context.Context, stuID string) []string
 }
 
 type JxbRepo interface {

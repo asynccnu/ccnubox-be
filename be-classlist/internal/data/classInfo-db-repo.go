@@ -140,3 +140,26 @@ func (c ClassInfoDBRepo) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm
 	}
 	return cla, nil
 }
+
+func (c ClassInfoDBRepo) GetClassNaturesFromDB(ctx context.Context, stuID string) ([]string, error) {
+	logh := classLog.GetLogHelperFromCtx(ctx)
+	db := c.data.Mysql.WithContext(ctx)
+
+	var natures []string
+
+	subQuery := db.
+		Table(do.StudentCourseTableName).
+		Select("cla_id").
+		Where("stu_id = ?", stuID)
+
+	err := db.
+		Table(do.ClassInfoTableName).
+		Distinct("nature").
+		Where("id IN (?)", subQuery).
+		Pluck("nature", &natures).Error
+	if err != nil {
+		logh.Errorf("mysql failed to find classNatures from db: %v", err)
+		return nil, err
+	}
+	return natures, nil
+}

@@ -11,7 +11,11 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-type ProxyGetter struct {
+type ProxyGetter interface {
+	GetProxy(ctx context.Context) *url.URL
+}
+
+type proxyGetter struct {
 	pc                  proxyv1.ProxyClient
 	lastUpdateProxyTime int64 // 上一次更新代理时间的秒级时间戳
 	updateInterval      int64 // 更新代理间隔(s)
@@ -23,8 +27,8 @@ type ProxyGetter struct {
 }
 
 // NewProxyGetter 初始化
-func NewProxyGetter(pc proxyv1.ProxyClient) *ProxyGetter {
-	return &ProxyGetter{
+func NewProxyGetter(pc proxyv1.ProxyClient) ProxyGetter {
+	return &proxyGetter{
 		pc:                  pc,
 		lastUpdateProxyTime: -1,
 		updateInterval:      160,
@@ -32,7 +36,7 @@ func NewProxyGetter(pc proxyv1.ProxyClient) *ProxyGetter {
 }
 
 // GetProxy 获取代理
-func (p *ProxyGetter) GetProxy(ctx context.Context) *url.URL {
+func (p *proxyGetter) GetProxy(ctx context.Context) *url.URL {
 	currentTime := time.Now().Unix()
 
 	// 如果缓存有效，直接返回
@@ -70,7 +74,7 @@ func (p *ProxyGetter) GetProxy(ctx context.Context) *url.URL {
 }
 
 // doFetchProxy 实际执行 RPC 请求的方法
-func (p *ProxyGetter) doFetchProxy(ctx context.Context) (*url.URL, error) {
+func (p *proxyGetter) doFetchProxy(ctx context.Context) (*url.URL, error) {
 	// 再次 Double Check，防止重复请求
 	p.proxyMutex.RLock()
 	if time.Now().Unix()-p.lastUpdateProxyTime <= p.updateInterval {
@@ -114,7 +118,7 @@ func (p *ProxyGetter) doFetchProxy(ctx context.Context) (*url.URL, error) {
 }
 
 // getOldProxy 降级逻辑：获取当前持有的（可能是旧的）代理
-func (p *ProxyGetter) getOldProxy() *url.URL {
+func (p *proxyGetter) getOldProxy() *url.URL {
 	p.proxyMutex.RLock()
 	defer p.proxyMutex.RUnlock()
 	return p.proxy

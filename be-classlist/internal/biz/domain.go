@@ -22,6 +22,7 @@ type ClassInfo struct {
 	Semester     string  //学期
 	Year         string  //学年
 	Note         string  //备注
+	Nature       string  //课程性质
 	IsOfficial   bool    // 是否为官方课程
 }
 

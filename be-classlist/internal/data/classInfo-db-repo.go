@@ -30,7 +30,14 @@ func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*d
 	}
 
 	db := c.data.DB(ctx).Table(do.ClassInfoTableName).WithContext(ctx)
-	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&classInfos).Error
+	err := db.Debug().
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"nature",
+			}),
+		}).
+		Create(&classInfos).Error
 	if err != nil {
 		logh.Errorf("Mysql:create %v in %s failed: %v", classInfos, do.ClassInfoTableName, err)
 		return err
@@ -155,7 +162,7 @@ func (c ClassInfoDBRepo) GetClassNaturesFromDB(ctx context.Context, stuID string
 	err := db.
 		Table(do.ClassInfoTableName).
 		Distinct("nature").
-		Where("id IN (?)", subQuery).
+		Where("id IN (?) AND nature IS NOT NULL", subQuery).
 		Pluck("nature", &natures).Error
 	if err != nil {
 		logh.Errorf("mysql failed to find classNatures from db: %v", err)

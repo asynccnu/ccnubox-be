@@ -19,7 +19,7 @@ func GetConfigFromNacos(env string) (string, error) {
 		return "", fmt.Errorf("环境变量: %s 未设置", env)
 	}
 
-	server, port, namespace, user, pass, group, dataId := ParseNacosDSN(env)
+	server, port, namespace, user, pass, group, dataId := ParseNacosDSN(dsn)
 
 	serverConfigs := []constant.ServerConfig{
 		{

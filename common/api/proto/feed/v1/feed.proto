@@ -6,7 +6,7 @@ option go_package="github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1;f
 enum FeedEventType{
   GRADE=0;
   HOLIDAY=1;
-  MUXIOFFICIAL=2;
+  MUXI=2;
   ENERGY=3;
   FEEDBACK=4;
 }

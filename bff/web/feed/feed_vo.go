@@ -101,7 +101,7 @@ type PublicFeedEventReq struct {
 
 var feedEventTypeMapper = map[string]feedv1.FeedEventType{
 	"grade":     feedv1.FeedEventType_GRADE,
-	"muxi":      feedv1.FeedEventType_MUXIOFFICIAL,
+	"muxi":      feedv1.FeedEventType_MUXI,
 	"holiday":   feedv1.FeedEventType_HOLIDAY,
 	"energy":    feedv1.FeedEventType_ENERGY,
 	"feed_back": feedv1.FeedEventType_FEEDBACK,

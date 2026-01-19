@@ -2,6 +2,8 @@ package cron
 
 import (
 	"context"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	"strings"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/conf"
@@ -63,7 +65,7 @@ func (r *HolidayController) publishMSG() error {
 	ctx := context.Background()
 	//发送给全体成员
 	err := r.svcFeed.PublicFeedEvent(ctx, true, domain.FeedEvent{
-		Type:    "holiday",
+		Type:    strings.ToLower(feedv1.FeedEventType_HOLIDAY.String()),
 		Title:   "假期临近提醒",
 		Content: holiday + "假期临近,请及时查看放假通知及调休安排",
 	})

@@ -113,14 +113,14 @@ func (c *GradeController) publishMSG(label string) {
 		//逐个推送(本科生)
 		for _, grade := range grades {
 			//获取学生id
-			res, err := c.classlist.GetStuIdByJxbId(ctx, &classlistv1.GetStuIdByJxbIdRequest{JxbId: grade.JxbId})
+			res, err := c.gradeService.GetStuIdsFromJxbId(ctx, grade.JxbId)
 			if err != nil {
 				return
 			}
 
 			//更改等级到最高级别
 			_, err = c.counter.ChangeCounterLevels(ctx, &counterv1.ChangeCounterLevelsReq{
-				StudentIds: res.StuId,
+				StudentIds: res,
 				IsReduce:   false,
 				Step:       int64(counterv1.CounterLevel_LEVEL_THERE),
 			})

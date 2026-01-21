@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	"gorm.io/gorm"
@@ -59,7 +60,7 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 	ids := make([]string, len(grades))
 	for i, grade := range grades {
 		if grade.JxbId == "" {
-			grade.JxbId = grade.Kcmc
+			grade.JxbId = grade.Kcmc + strconv.FormatInt(grade.Xnm, 10) + strconv.FormatInt(grade.Xqm, 10)
 		}
 		ids[i] = grade.StudentId + grade.JxbId
 	}

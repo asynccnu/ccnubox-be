@@ -3,11 +3,13 @@ package content
 import (
 	"context"
 	"fmt"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
+	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -28,10 +30,13 @@ func (h *ContentHandler) RegisterBannerRoute(group *gin.RouterGroup, authMiddlew
 // @Router /banner/getBanners [get]
 func (h *ContentHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 	go func() {
-		// 此处做一个cookie预热
+		// 此处做一个cookie预热和一个成绩预加载
 		// 为什么在这里做呢? 好问题
 		// 因为用户打开匣子必然会发送这个请求,如果短时间(5分钟)内要获取课表或者是成绩会体验感好很多
-		_, _ = h.userClient.GetCookie(context.Background(), &userv1.GetCookieRequest{StudentId: uc.StudentId})
+		ctx := context.Background()
+		_, _ = h.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: uc.StudentId})
+		_, _ = h.gradeClient.GetGradeByTerm(ctx, &gradev1.GetGradeByTermReq{StudentId: uc.StudentId})
+
 	}()
 
 	banners, err := h.contentClient.GetBanners(ctx, &contentv1.GetBannersRequest{})

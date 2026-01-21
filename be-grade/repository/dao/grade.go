@@ -120,12 +120,14 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 	affectedGrades = append(toInsert, toUpdate...)
 	return affectedGrades, nil
 }
+
 func normalizeJxbId(g *model.Grade) string {
 	if g.JxbId != "" {
 		return g.JxbId
 	}
 	return g.Kcmc + strconv.FormatInt(g.Xnm, 10) + strconv.FormatInt(g.Xqm, 10)
 }
+
 func (d *gradeDAO) GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error) {
 	var results []string
 	if err := d.db.WithContext(ctx).Model(&model.Grade{}).Where("student_id = ?", stuID).Distinct("kcxzmc").Pluck("kcxzmc", &results).Error; err != nil {

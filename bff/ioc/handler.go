@@ -35,6 +35,8 @@ import (
 func InitContentHandler(
 	contentClient contentv1.ContentServiceClient,
 	userClient userv1.UserServiceClient,
+	gradeClient gradev1.GradeServiceClient,
+
 ) *content.ContentHandler {
 	var administrators []string
 	err := viper.UnmarshalKey("administrators", &administrators)
@@ -44,6 +46,7 @@ func InitContentHandler(
 	return content.NewContentHandler(
 		contentClient,
 		userClient,
+		gradeClient,
 		slice.ToMapV(administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))

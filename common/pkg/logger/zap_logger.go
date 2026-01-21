@@ -3,11 +3,14 @@ package logger
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	klog "github.com/go-kratos/kratos/v2/log"
 )
 
 type ZapLogger struct {
@@ -54,6 +57,54 @@ func (z *ZapLogger) Error(msg string, args ...Field) {
 	}
 
 	z.log(zapcore.ErrorLevel, msg, args...)
+}
+
+// 实现链式字段注入字段，返回 Logger 接口本身
+func (z *ZapLogger) With(args ...Field) Logger {
+	zapFields := z.toArgs(args)
+	newZap := z.l.With(zapFields...)
+	return &ZapLogger{
+		l:   newZap,
+		ctx: z.ctx,
+	}
+}
+
+// 兼容 kratos 框架
+// 对 kratos 框架的自身记日志
+func (z *ZapLogger) Log(level klog.Level, keyvals ...any) error {
+	fields := make([]zap.Field, 0, len(keyvals)/2)
+	for i := 0; i < len(keyvals); i += 2 {
+		key := fmt.Sprint(keyvals[i])
+		var val any
+		if i+1 < len(keyvals) {
+			val = keyvals[i+1]
+		}
+		fields = append(fields, zap.Any(key, val))
+	}
+
+	var zapLevel zapcore.Level
+	switch level {
+	case klog.LevelDebug:
+		zapLevel = zapcore.DebugLevel
+	case klog.LevelInfo:
+		zapLevel = zapcore.InfoLevel
+	case klog.LevelWarn:
+		zapLevel = zapcore.WarnLevel
+	case klog.LevelError:
+		zapLevel = zapcore.ErrorLevel
+	default:
+		zapLevel = zapcore.InfoLevel
+	}
+
+	// 这里的 msg 传空字符串，因为 kratos 的习惯是吧 msg 也放在 keyvals 里
+	// 比如 Log(LevelInfo, "msg", "hello")
+	// Zap 打印出来会自动处理好
+	z.l.Log(zapLevel, "", fields...)
+	return nil
+}
+
+func (z *ZapLogger) Sync() error {
+	return z.l.Sync()
 }
 
 // 这里使用统一的日志处理逻辑负责把 trace_id 和 span_id 注入到 zap 的字段里

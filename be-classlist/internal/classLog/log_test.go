@@ -2,18 +2,34 @@ package classLog
 
 import (
 	"context"
-	"github.com/asynccnu/ccnubox-be/be-classlist/test"
-	"github.com/go-kratos/kratos/v2/log"
 	"testing"
+
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
+	bizlog "github.com/asynccnu/ccnubox-be/common/bizpkg/log"
+
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
-func TestWithLogger(t *testing.T) {
-	logger := test.NewLogger()
-	logger = log.With(logger, "stuId", "testID")
-	ctx := context.Background()
-	ctx = WithLogger(ctx, logger) // 将 logger 注入到 context 中
+var testLogConf = &conf.LogConf{
+	Path:       "../logs/app.log",
+	MaxSize:    100,
+	MaxBackups: 7,
+	MaxAge:     30,
+	Compress:   true,
+}
 
-	newLogger := GetLoggerFromCtx(ctx)
-	h := log.NewHelper(newLogger)
-	h.Info("This is a test log message.")
+func TestWithLogger(t *testing.T) {
+	testlogger := bizlog.InitLogger(testLogConf)
+	testlogger = testlogger.With(
+		logger.String("stu_id", "testId"),
+	)
+	ctx := context.Background()
+
+	ctx = logger.WithLogger(ctx, testlogger) // 将 logger 注入到 context 中
+	newLogger := logger.GetLoggerFromCtx(ctx).(*logger.ZapLogger)
+	defer newLogger.Sync()
+
+	newLogger.Info("test",
+		logger.String("hellokey", "worldvalue"),
+	)
 }

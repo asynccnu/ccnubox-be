@@ -29,7 +29,7 @@ func NewElecpriceController(
 		feedClient:      feedClient,
 		elecpriceSerice: elecpriceSerice,
 		stopChan:        make(chan struct{}),
-		durationTime:    time.Duration(cfg.ElecpriceController.DurationTime/24) * time.Second,
+		durationTime:    time.Duration(cfg.ElecpriceController.DurationTime) * time.Hour,
 		l:               l,
 	}
 }

@@ -58,11 +58,11 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 
 	// 构造联合键：student_id + jxb_id
 	ids := make([]string, len(grades))
-	for i, grade := range grades {
-		if grade.JxbId == "" {
-			grade.JxbId = grade.Kcmc + strconv.FormatInt(grade.Xnm, 10) + strconv.FormatInt(grade.Xqm, 10)
+	for i := range grades {
+		if grades[i].JxbId == "" {
+			grades[i].JxbId = grades[i].Kcmc + strconv.FormatInt(grades[i].Xnm, 10) + strconv.FormatInt(grades[i].Xqm, 10)
 		}
-		ids[i] = grade.StudentId + grade.JxbId
+		ids[i] = grades[i].StudentId + grades[i].JxbId
 	}
 
 	// 查询已有记录

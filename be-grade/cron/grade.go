@@ -115,6 +115,7 @@ func (c *GradeController) publishMSG(label string) {
 			//获取学生id
 			res, err := c.gradeService.GetStuIdsFromJxbId(ctx, grade.JxbId)
 			if err != nil {
+				c.l.Error("获取学生ID失败", logger.Error(err))
 				return
 			}
 

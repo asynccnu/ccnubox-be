@@ -329,10 +329,14 @@ func (h *FeedHandler) GetToBePublicOfficialMSG(ctx *gin.Context, uc ijwt.UserCla
 // @Failure 500 {object} web.Response "系统异常"
 // @Router /feed/publicFeedEvent [post]
 func (h *FeedHandler) PublicFeedEvent(ctx *gin.Context, req PublicFeedEventReq) (web.Response, error) {
+	tpe, exists := feedEventTypeMapper[req.Type]
+	if !exists {
+		return web.Response{}, errs.PUBLIC_FEED_EVENT_ERROR(fmt.Errorf("消息类型错误: %s", req.Type))
+	}
 	_, err := h.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 		StudentId: req.StudentId,
 		Event: &feedv1.FeedEvent{
-			Type:    feedEventTypeMapper[req.Type],
+			Type:    tpe,
 			Title:   req.Title,
 			Content: req.Content,
 		},

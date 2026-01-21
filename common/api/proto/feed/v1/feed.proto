@@ -8,7 +8,7 @@ enum FeedEventType{
   HOLIDAY=1;
   MUXI=2;
   ENERGY=3;
-  FEEDBACK=4;
+  FEED_BACK=4;
 }
 
 service FeedService {

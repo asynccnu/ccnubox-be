@@ -104,5 +104,5 @@ var feedEventTypeMapper = map[string]feedv1.FeedEventType{
 	"muxi":      feedv1.FeedEventType_MUXI,
 	"holiday":   feedv1.FeedEventType_HOLIDAY,
 	"energy":    feedv1.FeedEventType_ENERGY,
-	"feed_back": feedv1.FeedEventType_FEEDBACK,
+	"feed_back": feedv1.FeedEventType_FEED_BACK,
 }

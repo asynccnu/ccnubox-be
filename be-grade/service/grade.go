@@ -50,7 +50,6 @@ type GradeService interface {
 	GetUpdateScore(ctx context.Context, studentId string) ([]domain.Grade, error)
 	UpdateDetailScore(ctx context.Context, need domain.NeedDetailGrade) error
 	GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error)
-	GetStuIdsFromJxbId(ctx context.Context, jxbId string) ([]string, error)
 }
 
 type gradeService struct {
@@ -383,8 +382,4 @@ func isUndergraduate(stuID string) bool {
 		return false
 	}
 	return stuID[4] == '2'
-}
-
-func (g *gradeService) GetStuIdsFromJxbId(ctx context.Context, jxbId string) ([]string, error) {
-	return g.gradeDAO.GetStuIdsFromJxbId(ctx, jxbId)
 }

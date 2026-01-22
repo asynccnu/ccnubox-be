@@ -13,7 +13,6 @@ type GradeDAO interface {
 	FindGrades(ctx context.Context, studentId string, Xnm int64, Xqm int64) ([]model.Grade, error)
 	BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) (updateGrade []model.Grade, err error)
 	GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error)
-	GetStuIdsFromJxbId(ctx context.Context, jxbId string) ([]string, error)
 }
 
 type gradeDAO struct {
@@ -131,13 +130,6 @@ func (d *gradeDAO) GetDistinctGradeType(ctx context.Context, stuID string) ([]st
 	return results, nil
 }
 
-func (d *gradeDAO) GetStuIdsFromJxbId(ctx context.Context, jxbId string) ([]string, error) {
-	var stuIds []string
-	if err := d.db.WithContext(ctx).Model(&model.Grade{}).Where("jxb_id = ?", jxbId).Distinct("student_id").Pluck("student_id", &stuIds).Error; err != nil {
-		return nil, err
-	}
-	return stuIds, nil
-}
 func isGradeEqual(a, b model.Grade, ifDetail bool) bool {
 	if ifDetail {
 		return a.Kcmc == b.Kcmc &&

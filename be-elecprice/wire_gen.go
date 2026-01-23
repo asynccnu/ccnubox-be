@@ -11,6 +11,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-elecprice/cron"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/grpc"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/ioc"
+	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/service"
 )
@@ -23,9 +24,11 @@ func InitApp() *App {
 	elecpriceDAO := dao.NewElecpriceDAO(db)
 	serverConf := conf.InitServerConf()
 	logger := ioc.InitLogger(serverConf)
+	cmdable := ioc.InitRedis(infraConf)
+	elecPriceCache := cache.NewRedisElecPriceCache(cmdable)
 	client := ioc.InitEtcdClient(infraConf)
 	proxyClient := ioc.InitProxyClient(client, infraConf)
-	elecpriceService := service.NewElecpriceService(elecpriceDAO, logger, proxyClient)
+	elecpriceService := service.NewElecpriceService(elecpriceDAO, logger, elecPriceCache, proxyClient)
 	elecpriceServiceServer := grpc.NewElecpriceGrpcService(elecpriceService)
 	server := ioc.InitGRPCxKratosServer(elecpriceServiceServer, client, logger, infraConf)
 	feedServiceClient := ioc.InitFeedClient(client, infraConf)

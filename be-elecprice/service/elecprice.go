@@ -5,6 +5,8 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/cache"
+	"golang.org/x/sync/errgroup"
 	"net/url"
 	"strconv"
 	"sync"
@@ -18,6 +20,7 @@ import (
 	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/log"
+	lg "log"
 )
 
 var (
@@ -39,18 +42,21 @@ type ElecpriceService interface {
 	GetTobePushMSG(ctx context.Context) ([]*domain.ElectricMSG, error)
 
 	GetArchitecture(ctx context.Context, area string) (domain.ResultArchitectureInfo, error)
-	GetRoomInfo(ctx context.Context, archiID string, floor string) (map[string]string, error)
-	GetPrice(ctx context.Context, roomid string) (*domain.Prices, error)
+	GetRoomInfo(ctx context.Context, archiID string, floor string) (domain.RoomInfoList, error)
+	GetPriceById(ctx context.Context, roomid string) (*domain.PriceInfo, error)
+	GetPriceByName(ctx context.Context, roomName string) (*domain.Prices, error)
 }
 
 type elecpriceService struct {
 	elecpriceDAO dao.ElecpriceDAO
+	cache        cache.ElecPriceCache
 	l            logger.Logger
 	p            proxyv1.ProxyClient
 }
 
-func NewElecpriceService(elecpriceDAO dao.ElecpriceDAO, l logger.Logger, p proxyv1.ProxyClient) ElecpriceService {
-	return &elecpriceService{elecpriceDAO: elecpriceDAO, l: l, p: p}
+func NewElecpriceService(elecpriceDAO dao.ElecpriceDAO, l logger.Logger, c cache.ElecPriceCache,
+	p proxyv1.ProxyClient) ElecpriceService {
+	return &elecpriceService{elecpriceDAO: elecpriceDAO, l: l, p: p, cache: c}
 }
 
 func (s *elecpriceService) SetStandard(ctx context.Context, r *domain.SetStandardRequest) error {
@@ -132,7 +138,7 @@ func (s *elecpriceService) GetTobePushMSG(ctx context.Context) ([]*domain.Electr
 				defer func() { <-semaphore }()
 
 				// 获取房间的实时电费
-				elecPrice, err := s.GetPrice(ctx, cfg.TargetID)
+				elecPrice, err := s.GetPriceById(ctx, cfg.TargetID)
 
 				if err != nil {
 					errChan <- err
@@ -183,35 +189,57 @@ func (s *elecpriceService) GetTobePushMSG(ctx context.Context) ([]*domain.Electr
 }
 
 func (s *elecpriceService) GetArchitecture(ctx context.Context, area string) (domain.ResultArchitectureInfo, error) {
-	for name_, code := range ConstantMap {
-		if area == name_ {
-			proxyAddr, err := s.getProxyAddr(ctx)
-			if err != nil {
-				log.Warn("get proxy addr in GetArchitecture err: %v", err)
+	if code, ok := ConstantMap[area]; ok {
+		var resp domain.ResultArchitectureInfo
+
+		// 查缓存
+		cacheData, err := s.cache.GetArchitectureInfos(ctx, area)
+		if err == nil && !s.checkEmptyOrNil(cacheData) {
+			err = resp.ArchitectureInfoList.Unmarshal(cacheData)
+			if err == nil {
+				return resp, nil
 			}
-			ctx = addProxyAddrToCtx(ctx, proxyAddr)
-
-			body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", code))
-			if err != nil {
-				return domain.ResultArchitectureInfo{}, INTERNET_ERROR(err)
-			}
-			var result domain.ResultArchitectureInfo
-
-			err = xml.Unmarshal([]byte(body), &result)
-			if err != nil {
-				return domain.ResultArchitectureInfo{}, INTERNET_ERROR(err)
-			}
-
-			handleDirtyArch(ctx, &result, area)
-
-			return result, nil
-
 		}
+
+		proxyAddr, err := s.getProxyAddr(ctx)
+		if err != nil {
+			log.Warn("get proxy addr in GetArchitecture err: %v", err)
+		}
+		ctx = addProxyAddrToCtx(ctx, proxyAddr)
+
+		body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", code))
+		if err != nil {
+			return domain.ResultArchitectureInfo{}, INTERNET_ERROR(err)
+		}
+
+		err = xml.Unmarshal([]byte(body), &resp)
+		if err != nil {
+			return domain.ResultArchitectureInfo{}, INTERNET_ERROR(err)
+		}
+
+		handleDirtyArch(ctx, &resp, area)
+		go func() {
+			ctxTm, cancelTm := context.WithTimeout(ctx, 2*time.Second)
+			defer cancelTm()
+			if er := s.cache.SetArchitectureInfos(ctxTm, area, resp.ArchitectureInfoList.Marshal()); er != nil {
+				s.l.Warn("SetArchitectureInfos cache warning", logger.Error(er))
+			}
+		}()
+		return resp, nil
 	}
 	return domain.ResultArchitectureInfo{}, errors.New("不存在的区域")
 }
 
-func (s *elecpriceService) GetRoomInfo(ctx context.Context, archiID string, floor string) (map[string]string, error) {
+func (s *elecpriceService) GetRoomInfo(ctx context.Context, archiID string, floor string) (domain.RoomInfoList, error) {
+	var resp domain.RoomInfoList
+
+	// 查缓存
+	cacheData, err := s.cache.GetRoomInfos(ctx, archiID, floor)
+	if err == nil && !s.checkEmptyOrNil(cacheData) {
+		resp.Unmarshal(cacheData)
+		return resp, nil
+	}
+	// 不管是缓存未命中还是redis内部错误, 都开始爬虫
 	proxyAddr, err := s.getProxyAddr(ctx)
 	if err != nil {
 		log.Warn("get proxy addr in GetRoomInfo err: %v", err)
@@ -220,26 +248,100 @@ func (s *elecpriceService) GetRoomInfo(ctx context.Context, archiID string, floo
 
 	body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getRoomInfo?Architecture_ID=%s&Floor=%s", archiID, floor))
 	if err != nil {
-		return nil, INTERNET_ERROR(err)
+		return resp, INTERNET_ERROR(err)
 	}
 
-	rege := `<RoomNo>(\d+)</RoomNo>\s*<RoomName>(.*?)</RoomName>`
-	res, err := matchRegex(body, rege)
+	res, err := matchRegex(body, roomInfoReg)
 	if err != nil {
-		return nil, INTERNET_ERROR(err)
+		return resp, INTERNET_ERROR(err)
 	}
 	res = filter(res)
-	return res, nil
+	resp = mergeRoomIds(res)
+	setRes := resp
+
+	go func() { // 这个是为后续的缓存存储做准备
+		ctxTm, cancelTm := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancelTm()
+		if er := s.cache.SetRoomInfos(ctxTm, archiID, floor, setRes.Marshal()); er != nil {
+			s.l.Warn("SetRoomInfos cache warning", logger.Error(er))
+		}
+	}() // 缓存存储
+
+	go func() { // 下一步会用到这些details
+		ctxTm, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		g, ctxEg := errgroup.WithContext(ctxTm)
+		for _, detail := range resp.Rooms {
+			detail_ := detail // 捕获变量
+			g.Go(func() error {
+				if err := s.cache.SetRoomDetail(ctxEg, detail_.RoomName, detail_.Marshal()); err != nil {
+					s.l.Warn("SetRoomDetail cache warning", logger.Error(err))
+				}
+				return nil
+			})
+		}
+		_ = g.Wait() // 等待所有存储完成
+	}()
+
+	return resp, nil
 }
 
-func (s *elecpriceService) GetPrice(ctx context.Context, roomid string) (*domain.Prices, error) {
+func (s *elecpriceService) GetPriceByName(ctx context.Context, roomName string) (*domain.Prices, error) {
+	var (
+		resp   = new(domain.Prices)
+		detail domain.RoomInfo
+	)
+	cacheData, err := s.cache.GetRoomDetail(ctx, roomName)
+	if err == nil && !s.checkEmptyOrNil(cacheData) {
+		detail.Unmarshal(cacheData)
+		if detail.IsUnion() {
+			res, er := s.GetPriceById(ctx, detail.Union)
+			if er != nil {
+				s.l.Error("GetPriceById err", logger.Error(er))
+				return nil, er
+			}
+			resp.Union = *res
+		} else {
+			g, ctxEg := errgroup.WithContext(ctx)
+
+			g.Go(func() error {
+				res, er := s.GetPriceById(ctxEg, detail.AC)
+				if er != nil {
+					s.l.Error("GetPriceById AC err", logger.Error(er))
+					return er
+				}
+				resp.AC = *res
+				return nil
+			})
+			g.Go(func() error {
+				res, er := s.GetPriceById(ctxEg, detail.Light)
+				if er != nil {
+					s.l.Error("GetPriceById Light err", logger.Error(er))
+					return er
+				}
+				resp.Light = *res
+				return nil
+			})
+			if errW := g.Wait(); errW != nil {
+				return nil, errW
+			}
+		}
+
+		return resp, nil
+	}
+
+	return nil, errors.New("")
+}
+func (s *elecpriceService) GetPriceById(ctx context.Context, roomid string) (*domain.PriceInfo, error) {
 	mid, err := s.GetMeterID(ctx, roomid)
 	if err != nil {
+		s.l.Error("GetMeterId err", logger.Error(err))
 		return nil, INTERNET_ERROR(err)
 	}
 
 	price, err := s.GetFinalInfo(ctx, mid)
 	if err != nil {
+		s.l.Error("GetFinalInfo err", logger.Error(err))
 		return nil, INTERNET_ERROR(err)
 	}
 
@@ -251,6 +353,7 @@ func (s *elecpriceService) GetMeterID(ctx context.Context, RoomID string) (strin
 	if err != nil {
 		log.Warn("get proxy addr in GetMeterID err: %v", err)
 	}
+	lg.Println("proxyAddr in GetMeterID:", proxyAddr)
 	ctx = addProxyAddrToCtx(ctx, proxyAddr)
 
 	body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getRoomMeterInfo?Room_ID=%s", RoomID))
@@ -258,8 +361,7 @@ func (s *elecpriceService) GetMeterID(ctx context.Context, RoomID string) (strin
 		return "", INTERNET_ERROR(err)
 	}
 
-	rege := `<meterId>(.*?)</meterId>`
-	id, err := matchRegexpOneEle(body, rege)
+	id, err := matchRegexpOneEle(body, meterIdReg)
 	if err != nil {
 		return "", INTERNET_ERROR(err)
 	}
@@ -267,41 +369,59 @@ func (s *elecpriceService) GetMeterID(ctx context.Context, RoomID string) (strin
 	return id, nil
 }
 
-func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*domain.Prices, error) {
+func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*domain.PriceInfo, error) {
 	proxyAddr, err := s.getProxyAddr(ctx)
 	if err != nil {
 		log.Warn("get proxy addr in GetFinalInfo err: %v", err)
 	}
+	lg.Println("proxyAddr in GetFinalInfo:", proxyAddr)
 	ctx = addProxyAddrToCtx(ctx, proxyAddr)
+	g, ctx := errgroup.WithContext(ctx)
 
-	//取余额
-	body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getReserveHKAM?AmMeter_ID=%s", meterID))
-	if err != nil {
-		return nil, INTERNET_ERROR(err)
-	}
-	reg1 := `<remainPower>(.*?)</remainPower>`
-	remain, err := matchRegexpOneEle(body, reg1)
-	if err != nil {
-		return nil, INTERNET_ERROR(err)
+	var (
+		remain      string
+		dayUseMeony string
+		dayValue    string
+	)
+
+	g.Go(func() error {
+		//取余额
+		body, err_ := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getReserveHKAM?AmMeter_ID=%s", meterID))
+		if err_ != nil {
+			return INTERNET_ERROR(err_)
+		}
+		remain, err_ = matchRegexpOneEle(body, remainPowerReg)
+		if err_ != nil {
+			return INTERNET_ERROR(err_)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		//取昨天消费
+		encodedDate := url.QueryEscape(time.Now().AddDate(0, 0, -1).Format("2006/1/2"))
+		body, err_ := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getMeterDayValue?AmMeter_ID=%s&startDate=%s&endDate=%s", meterID, encodedDate, encodedDate))
+		if err_ != nil {
+			return INTERNET_ERROR(err_)
+		}
+
+		dayValue, err_ = matchRegexpOneEle(body, dayValueReg)
+		if err_ != nil {
+			return INTERNET_ERROR(err_)
+		}
+
+		dayUseMeony, err_ = matchRegexpOneEle(body, dayUseMeonyReg)
+		if err_ != nil {
+			return INTERNET_ERROR(err_)
+		}
+		return nil
+	})
+
+	if errW := g.Wait(); errW != nil {
+		return nil, errW
 	}
 
-	//取昨天消费
-	encodedDate := url.QueryEscape(time.Now().AddDate(0, 0, -1).Format("2006/1/2"))
-	body, err = sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getMeterDayValue?AmMeter_ID=%s&startDate=%s&endDate=%s", meterID, encodedDate, encodedDate))
-	if err != nil {
-		return nil, INTERNET_ERROR(err)
-	}
-	reg2 := `<dayValue>(.*?)</dayValue>`
-	dayValue, err := matchRegexpOneEle(body, reg2)
-	if err != nil {
-		return nil, INTERNET_ERROR(err)
-	}
-	reg3 := `<dayUseMeony>(.*?)</dayUseMeony>`
-	dayUseMeony, err := matchRegexpOneEle(body, reg3)
-	if err != nil {
-		return nil, INTERNET_ERROR(err)
-	}
-	finalInfo := &domain.Prices{
+	finalInfo := &domain.PriceInfo{
 		RemainMoney:       remain,
 		YesterdayUseMoney: dayUseMeony,
 		YesterdayUseValue: dayValue,
@@ -323,4 +443,8 @@ func (s *elecpriceService) getProxyAddr(ctx context.Context) (string, error) {
 
 func addProxyAddrToCtx(ctx context.Context, proxyAddr string) context.Context {
 	return context.WithValue(ctx, ProxyAddr, proxyAddr)
+}
+
+func (s *elecpriceService) checkEmptyOrNil(value string) bool {
+	return value == cache.DataValueNil || value == cache.DataValueEmpty || value == ""
 }

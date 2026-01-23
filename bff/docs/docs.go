@@ -1272,7 +1272,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "room_id",
+                        "name": "room_name",
                         "in": "query",
                         "required": true
                     }
@@ -4148,10 +4148,18 @@ const docTemplate = `{
         "elecprice.GetPriceResponse": {
             "type": "object",
             "required": [
-                "price"
+                "ac_price",
+                "light_price",
+                "union_price"
             ],
             "properties": {
-                "price": {
+                "ac_price": {
+                    "$ref": "#/definitions/elecprice.Price"
+                },
+                "light_price": {
+                    "$ref": "#/definitions/elecprice.Price"
+                },
+                "union_price": {
                     "$ref": "#/definitions/elecprice.Price"
                 }
             }
@@ -4206,14 +4214,22 @@ const docTemplate = `{
         "elecprice.Room": {
             "type": "object",
             "required": [
-                "room_id",
-                "room_name"
+                "ac",
+                "light",
+                "room_name",
+                "union"
             ],
             "properties": {
-                "room_id": {
+                "ac": {
+                    "type": "string"
+                },
+                "light": {
                     "type": "string"
                 },
                 "room_name": {
+                    "type": "string"
+                },
+                "union": {
                     "type": "string"
                 }
             }

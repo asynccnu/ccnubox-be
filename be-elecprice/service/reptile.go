@@ -15,14 +15,15 @@ import (
 	"strings"
 )
 
+var (
+	client = http.DefaultClient // 复用
+)
+
 // 通用 HTTP 请求函数
 func sendRequest(ctx context.Context, url string) (string, error) {
-	var client *http.Client
-	proxyAddr, ok := ctx.Value(ProxyAddr).(string)
-	if !ok {
-		client = http.DefaultClient
+	if proxyAddr, ok := ctx.Value(ProxyAddr).(string); ok {
+		client = newClient(proxyAddr)
 	}
-	client = newClient(proxyAddr)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -94,6 +95,63 @@ func matchRegexpOneEle(input, pattern string) (string, error) {
 		return "", errors.New("未匹配到结果")
 	}
 	return matches[1], nil
+}
+
+// merge 111空调(id1), 111照明(id2) -> 111[id1,id2], 222(id3) -> 222[id3] //map[id]name
+func mergeRoomIds(m map[string]string) domain.RoomInfoList {
+	resp := domain.RoomInfoList{}
+	res := make([]domain.RoomInfo, 0, len(m))
+	mp := make(map[string]domain.RoomInfo, len(m))
+	for k, v := range m {
+		// 获取房间名称和电费分布
+		name := trimWord(v, KeyWordTypeLight, KeyWordTypeAC)
+		if val, exists := mp[name]; exists {
+			if hasWord(v, KeyWordTypeLight) {
+				val.Light = k
+			} else if hasWord(v, KeyWordTypeAC) {
+				val.AC = k
+			} else {
+				val.Union = k
+			}
+			mp[name] = val
+			continue
+		}
+
+		ri := domain.RoomInfo{
+			RoomName: name,
+		}
+		if hasWord(v, KeyWordTypeLight) {
+			ri.Light = k
+		} else if hasWord(v, KeyWordTypeAC) {
+			ri.AC = k
+		} else {
+			ri.Union = k
+		}
+		mp[name] = ri
+	}
+
+	for _, v := range mp {
+		res = append(res, v)
+	}
+
+	resp.Rooms = res
+	return resp
+}
+
+func hasWord(name string, kw ...KeyWordType) bool {
+	for _, v := range kw {
+		if strings.Contains(name, string(v)) {
+			return true
+		}
+	}
+	return false
+}
+
+func trimWord(name string, kw ...KeyWordType) string {
+	for _, v := range kw {
+		name = strings.ReplaceAll(name, string(v), "")
+	}
+	return name
 }
 
 func filter(m map[string]string) map[string]string {

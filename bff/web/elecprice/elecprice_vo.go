@@ -1,5 +1,7 @@
 package elecprice
 
+import elecpricev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/elecprice/v1"
+
 type SetStandardRequest struct {
 	RoomName string `json:"room_name" binding:"required"`
 	RoomId   string `json:"room_id" binding:"required"`
@@ -7,9 +9,17 @@ type SetStandardRequest struct {
 }
 
 type Price struct {
-	RemainMoney       string `json:"remain_money" binding:"required"`
-	YesterdayUseValue string `json:"yesterday_use_value" binding:"required"`
-	YesterdayUseMoney string `json:"yesterday_use_money" binding:"required"`
+	RemainMoney       string `json:"remain_money,omitempty" binding:"required"`
+	YesterdayUseValue string `json:"yesterday_use_value,omitempty" binding:"required"`
+	YesterdayUseMoney string `json:"yesterday_use_money,omitempty" binding:"required"`
+}
+
+func priceToVo(p *elecpricev1.GetPriceResponse_Price) Price {
+	return Price{
+		RemainMoney:       p.RemainMoney,
+		YesterdayUseValue: p.YesterdayUseValue,
+		YesterdayUseMoney: p.YesterdayUseMoney,
+	}
 }
 
 type GetArchitectureRequest struct {
@@ -33,8 +43,10 @@ type GetRoomInfoRequest struct {
 }
 
 type Room struct {
-	RoomID   string `json:"room_id" binding:"required"`
 	RoomName string `json:"room_name" binding:"required"`
+	AC       string `json:"ac,omitempty" binding:"required"`
+	Light    string `json:"light,omitempty" binding:"required"`
+	Union    string `json:"union,omitempty" binding:"required"`
 }
 
 type GetRoomInfoResponse struct {
@@ -42,11 +54,13 @@ type GetRoomInfoResponse struct {
 }
 
 type GetPriceRequest struct {
-	RoomId string `json:"room_id" form:"room_id" binding:"required"`
+	RoomName string `json:"room_name" form:"room_name" binding:"required"`
 }
 
 type GetPriceResponse struct {
-	Price *Price `json:"price" binding:"required"`
+	AC    Price `json:"ac_price,omitempty" binding:"required"`
+	Light Price `json:"light_price,omitempty" binding:"required"`
+	Union Price `json:"union_price,omitempty" binding:"required"`
 }
 
 type GetStandardListRequest struct {

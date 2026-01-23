@@ -30,7 +30,10 @@ func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*d
 	}
 
 	db := c.data.DB(ctx).Table(do.ClassInfoTableName).WithContext(ctx)
-	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&classInfos).Error
+	err := db.Debug().Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"jxb_id"}),
+	}).Create(&classInfos).Error
 	if err != nil {
 		logh.Errorf("Mysql:create %v in %s failed: %v", classInfos, do.ClassInfoTableName, err)
 		return err

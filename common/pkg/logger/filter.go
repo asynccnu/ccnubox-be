@@ -3,8 +3,6 @@ package logger
 import (
 	"context"
 	"fmt"
-
-	klog "github.com/go-kratos/kratos/v2/log"
 )
 
 const fuzzyStr = "***"
@@ -141,60 +139,4 @@ func (f *FilterLogger) With(args ...Field) Logger {
 		filterVals:      f.filterVals,
 		filterFuncSlice: f.filterFuncSlice,
 	}
-}
-
-// Log 方法只是为了实现 Kratos 内部的
-func (f *FilterLogger) Log(level klog.Level, keyvals ...any) error {
-	// 如果没有参数，直接调用底层
-	if len(keyvals) == 0 {
-		return f.logger.Log(level, keyvals...)
-	}
-
-	// 重新构建过滤后的 keyvals
-	// 预分配切片容量
-	out := make([]any, 0, len(keyvals))
-
-	// 存入kv
-	for i := 0; i < len(keyvals); i += 2 {
-		key := fmt.Sprint(keyvals[i])
-
-		// 为避免传入奇数个参数时存在某个 key 的 value 为空
-		var val any = "MISSING_VALUE"
-		if i+1 < len(keyvals) {
-			val = keyvals[i+1]
-		}
-
-		_, ok := f.filterKeys[key]
-		if ok {
-			out = append(out, key, fuzzyStr)
-			continue
-		}
-
-		strVal, ok := stringify(val)
-		if ok {
-			_, hit := f.filterVals[strVal]
-			if hit {
-				out = append(out, key, fuzzyStr)
-				continue
-			}
-
-			filtered := false
-
-			for _, fn := range f.filterFuncSlice {
-				newVal, hit := fn(toSelfLevel(level), key, strVal)
-				if hit {
-					out = append(out, key, newVal)
-					filtered = true
-					break
-				}
-			}
-			
-			if filtered {
-				continue
-			}
-		}
-		out = append(out, key, val)
-	}
-
-	return f.logger.Log(level, out...)
 }

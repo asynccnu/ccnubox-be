@@ -30,6 +30,8 @@ func InitLogger(cfg *conf.LogConf) logger.Logger {
 
 	l := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(1))
 	res := logger.NewZapLogger(l)
+	logger.InitGlobalLogger(res)
 
 	return res
 }
+	

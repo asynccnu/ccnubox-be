@@ -2,14 +2,11 @@ package logger
 
 import (
 	"context"
-
-	klog "github.com/go-kratos/kratos/v2/log"
 )
 
 type Logger interface {
 	WithContext(ctx context.Context) Logger
 	With(args ...Field) Logger
-	Log(level klog.Level, keyvals ...any) error
 
 	Debug(msg string, args ...Field)
 	Info(msg string, args ...Field)

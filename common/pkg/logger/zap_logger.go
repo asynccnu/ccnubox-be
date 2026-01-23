@@ -3,14 +3,11 @@ package logger
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	klog "github.com/go-kratos/kratos/v2/log"
 )
 
 type ZapLogger struct {
@@ -69,40 +66,7 @@ func (z *ZapLogger) With(args ...Field) Logger {
 	}
 }
 
-// 兼容 kratos 框架
-// 对 kratos 框架的自身记日志
-func (z *ZapLogger) Log(level klog.Level, keyvals ...any) error {
-	fields := make([]zap.Field, 0, len(keyvals)/2)
-	for i := 0; i < len(keyvals); i += 2 {
-		key := fmt.Sprint(keyvals[i])
-		var val any
-		if i+1 < len(keyvals) {
-			val = keyvals[i+1]
-		}
-		fields = append(fields, zap.Any(key, val))
-	}
-
-	var zapLevel zapcore.Level
-	switch level {
-	case klog.LevelDebug:
-		zapLevel = zapcore.DebugLevel
-	case klog.LevelInfo:
-		zapLevel = zapcore.InfoLevel
-	case klog.LevelWarn:
-		zapLevel = zapcore.WarnLevel
-	case klog.LevelError:
-		zapLevel = zapcore.ErrorLevel
-	default:
-		zapLevel = zapcore.InfoLevel
-	}
-
-	// 这里的 msg 传空字符串，因为 kratos 的习惯是吧 msg 也放在 keyvals 里
-	// 比如 Log(LevelInfo, "msg", "hello")
-	// Zap 打印出来会自动处理好
-	z.l.Log(zapLevel, "", fields...)
-	return nil
-}
-
+// 要直接使用这个功能需要对 Logger 接口直接做断言 zaplogger 使用
 func (z *ZapLogger) Sync() error {
 	return z.l.Sync()
 }

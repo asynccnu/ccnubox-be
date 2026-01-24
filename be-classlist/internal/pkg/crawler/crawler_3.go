@@ -202,6 +202,7 @@ func (c *Crawler3) extractCourses(ctx context.Context, year, semester string, re
 			info.Classname = string(item.GetStringBytes("kc_mc"))  // 课程名
 			info.Teacher = string(item.GetStringBytes("jg0101mc")) // 教师
 			info.Nature = string(item.GetStringBytes("kcxz"))      // 课程性质
+			info.JxbId = string(item.GetStringBytes("jx0404id"))   // 教学班ID
 			info.Credit = item.GetFloat64("xf")                    // 学分
 			info.Semester = semester
 			info.Year = year
@@ -214,7 +215,6 @@ func (c *Crawler3) extractCourses(ctx context.Context, year, semester string, re
 
 			// 生成课程ID
 			info.UpdateID()
-			info.UpdateJxbId()
 
 			info.CreatedAt = time.Now()
 			info.UpdatedAt = time.Now()

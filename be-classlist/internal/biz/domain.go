@@ -2,7 +2,6 @@ package biz
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -28,11 +27,6 @@ type ClassInfo struct {
 
 func (ci *ClassInfo) UpdateID() {
 	ci.ID = fmt.Sprintf("Class:%s:%s:%s:%d:%s:%s:%s:%d", ci.Classname, ci.Year, ci.Semester, ci.Day, ci.ClassWhen, ci.Teacher, ci.Where, ci.Weeks)
-}
-
-func (ci *ClassInfo) UpdateJxbId() {
-	strs := []string{"jxb", ci.Classname, ci.Year, ci.Semester, ci.Teacher, ci.Where, fmt.Sprint(ci.Weeks)}
-	ci.JxbId = strings.Join(strs, ":")
 }
 
 type StudentCourse struct {

@@ -400,7 +400,12 @@ func (cluc *ClassUsecase) GetAllSchoolClassInfosToOtherService(ctx context.Conte
 	return cluc.classRepo.GetAllSchoolClassInfos(ctx, year, semester, cursor)
 }
 func (cluc *ClassUsecase) GetStuIdsByJxbId(ctx context.Context, jxbId string) ([]string, error) {
-	return cluc.jxbRepo.FindStuIdsByJxbId(ctx, jxbId)
+	res, err := cluc.jxbRepo.FindStuIdsByJxbId(ctx, jxbId)
+	if err != nil || len(res) == 0 {
+		return []string{}, errcode.ErrGetStuIdByJxbId
+	}
+
+	return res, nil
 }
 
 func (cluc *ClassUsecase) addClass(ctx context.Context, stuID string, info *ClassInfo, isAdded bool) error {

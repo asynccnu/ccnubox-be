@@ -91,7 +91,12 @@ func NewDB(c *conf.Data, logfile io.Writer, logger log.Logger) *gorm.DB {
 	if err != nil {
 		panic(fmt.Sprintf("connect mysql failed:%v", err))
 	}
-	if err := db.AutoMigrate(&do.ClassInfo{}, &do.StudentCourse{}, &do.Jxb{}, &do.ClassRefreshLog{}); err != nil {
+	if err := db.AutoMigrate(
+		&do.ClassInfo{},
+		&do.StudentCourse{},
+		&do.Jxb{},
+		&do.ClassRefreshLog{},
+	); err != nil {
 		panic(fmt.Sprintf("mysql auto migrate failed:%v", err))
 	}
 

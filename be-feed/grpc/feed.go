@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
@@ -148,7 +149,7 @@ func (g *FeedServiceServer) PublicFeedEvent(ctx context.Context, req *feedv1.Pub
 		feedEvent := domain.FeedEvent{
 			ID:           req.GetEvent().Id,
 			StudentId:    req.GetStudentId(),
-			Type:         req.GetEvent().GetType(),
+			Type:         strings.ToLower(req.GetEvent().GetType().String()),
 			Title:        req.GetEvent().GetTitle(),
 			Content:      req.GetEvent().GetContent(),
 			ExtendFields: req.GetEvent().GetExtendFields(),

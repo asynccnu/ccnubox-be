@@ -217,10 +217,22 @@ func (c *Crawler2) extractCourses(ctx context.Context, year, semester string, ht
 		var classInfo biz.ClassInfo
 
 		classInfo.Year, classInfo.Semester = year, semester
-
 		classInfo.Classname = selection.Find(".qz-tooltipContent-title").Text()
 		classInfo.UpdatedAt = time.Now()
 		classInfo.CreatedAt = classInfo.UpdatedAt
+
+		// 获取jxb_id
+		selection.Find(`img[src*="ewmck"]`).Each(func(_ int, img *goquery.Selection) {
+			src, ok := img.Attr("src")
+			if !ok {
+				return
+			}
+			re := regexp.MustCompile(`id=(\d+)`)
+			m := re.FindStringSubmatch(src)
+			if len(m) == 2 {
+				classInfo.JxbId = m[1]
+			}
+		})
 
 		selection.Find(".qz-tooltipContent-detailitem").Each(func(i int, selection *goquery.Selection) {
 			str := c.extractAfterColon(selection.Text())
@@ -246,7 +258,6 @@ func (c *Crawler2) extractCourses(ctx context.Context, year, semester string, ht
 		})
 
 		classInfo.UpdateID()
-		classInfo.UpdateJxbId()
 
 		classInfos = append(classInfos, &classInfo)
 	})

@@ -265,7 +265,6 @@ func (s *ClassListService) GetStuIdByJxbId(ctx context.Context, req *pb.GetStuId
 	ctx = classLog.WithLogger(ctx, valLogger)
 	stuIds, err := s.clu.GetStuIdsByJxbId(ctx, req.GetJxbId())
 	if err != nil {
-
 		return &pb.GetStuIdByJxbIdResponse{}, errcode.ErrGetStuIdByJxbId
 	}
 	return &pb.GetStuIdByJxbIdResponse{

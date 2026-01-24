@@ -2,6 +2,8 @@ package cron
 
 import (
 	"context"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	"strings"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/conf"
@@ -69,7 +71,7 @@ func (c *MuxiController) publicMuxiFeed() {
 	for _, msg := range msgs {
 		//发布消息给全体成员
 		err = c.feed.PublicFeedEvent(ctx, true, domain.FeedEvent{
-			Type:         "muxi",
+			Type:         strings.ToLower(feedv1.FeedEventType_MUXI.String()),
 			Title:        msg.Title,
 			Content:      msg.Content,
 			ExtendFields: msg.ExtendFields,

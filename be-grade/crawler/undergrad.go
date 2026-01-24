@@ -183,7 +183,6 @@ func ParseScoreFromHTML(html string) (Score, error) {
 	var scores []Score
 	err = json.Unmarshal([]byte(jsonStr), &scores)
 	if err != nil {
-
 		return Score{}, fmt.Errorf("成绩 JSON 解析失败: %v", err)
 	}
 

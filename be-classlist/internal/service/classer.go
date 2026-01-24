@@ -347,6 +347,15 @@ func (s *ClassListService) DeleteClassNote(ctx context.Context, req *pb.DeleteCl
 	}, nil
 }
 
+func (s *ClassListService) GetClassNatures(ctx context.Context, req *pb.GetClassNaturesReq) (*pb.GetClassNaturesResp, error) {
+	valLogger := log.With(s.logger, "stu_id", req.GetStuId())
+	ctx = classLog.WithLogger(ctx, valLogger)
+	natures := s.clu.GetClassNatures(ctx, req.GetStuId())
+	return &pb.GetClassNaturesResp{
+		ClassNatures: natures,
+	}, nil
+}
+
 func convertToShanghaiTimeStamp(t time.Time) int64 {
 	return tool.ToShanghaiTime(t).Unix()
 }

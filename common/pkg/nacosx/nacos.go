@@ -1,6 +1,7 @@
 package nacosx
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -13,7 +14,12 @@ import (
 )
 
 func GetConfigFromNacos(env string) (string, error) {
-	server, port, namespace, user, pass, group, dataId := ParseNacosDSN(env)
+	dsn := os.Getenv(env)
+	if dsn == "" {
+		return "", fmt.Errorf("环境变量: %s 未设置", env)
+	}
+
+	server, port, namespace, user, pass, group, dataId := ParseNacosDSN(dsn)
 
 	serverConfigs := []constant.ServerConfig{
 		{
@@ -51,11 +57,7 @@ func GetConfigFromNacos(env string) (string, error) {
 	return content, nil
 }
 
-func ParseNacosDSN(env string) (server string, port uint64, ns, user, pass, group, dataId string) {
-	dsn := os.Getenv(env)
-	if dsn == "" {
-		log.Fatalf("%s 环境变量未设置", env)
-	}
+func ParseNacosDSN(dsn string) (server string, port uint64, ns, user, pass, group, dataId string) {
 
 	parts := strings.SplitN(dsn, "?", 2)
 	host := parts[0]

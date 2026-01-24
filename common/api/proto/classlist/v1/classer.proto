@@ -30,6 +30,8 @@ service Classer {
     rpc UpdateClassNote(UpdateClassNoteReq) returns (UpdateClassNoteResp);
     //删除课程备注
     rpc DeleteClassNote(DeleteClassNoteReq) returns (DeleteClassNoteResp);
+    //获取课程性质集合
+    rpc GetClassNatures(GetClassNaturesReq) returns (GetClassNaturesResp);
 }
 
 message GetClassRequest {
@@ -202,6 +204,8 @@ message  ClassInfo {
     string note=13;
     // 是否为官方课程
     bool is_official = 14;
+    // 课程性质
+    string nature = 15;
 }
 
 message Class {
@@ -246,4 +250,12 @@ message DeleteClassNoteReq {
 
 message DeleteClassNoteResp{
     string msg=1;
+}
+
+message GetClassNaturesReq {
+    string stuId = 1;
+}
+
+message GetClassNaturesResp {
+    repeated string class_natures = 1;
 }

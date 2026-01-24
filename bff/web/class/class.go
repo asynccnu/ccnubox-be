@@ -93,6 +93,7 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 			Year:         class.Info.Year,
 			Note:         class.Info.Note,
 			IsOfficial:   class.Info.IsOfficial,
+			Nature:       class.Info.Nature,
 		})
 	}
 

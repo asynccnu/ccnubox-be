@@ -25,12 +25,12 @@ var semesterMap = map[string]string{
 }
 
 type Crawler struct {
-	pg *ProxyGetter
+	pg ProxyGetter
 
 	clientPool sync.Pool
 }
 
-func NewClassCrawler(pg *ProxyGetter) *Crawler {
+func NewClassCrawler(pg ProxyGetter) *Crawler {
 	newClient := func() interface{} {
 		return &http.Client{
 			Transport: &http.Transport{

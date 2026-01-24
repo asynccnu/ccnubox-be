@@ -5,4 +5,4 @@ import (
 	"github.com/google/wire"
 )
 
-var ProviderSet = wire.NewSet(crawler.NewClassCrawler, crawler.NewClassCrawler2, crawler.NewProxyGetter)
+var ProviderSet = wire.NewSet(crawler.NewClassCrawler, crawler.NewClassCrawler2, crawler.NewClassCrawler3, crawler.NewProxyGetter)

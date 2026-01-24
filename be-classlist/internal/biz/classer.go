@@ -500,6 +500,10 @@ func (cluc *ClassUsecase) GetClassNote(ctx context.Context, stuID, year, semeste
 	return cluc.classRepo.GetClassNote(ctx, stuID, year, semester, classID)
 }
 
+func (cluc *ClassUsecase) GetClassNatures(ctx context.Context, stuID string) []string {
+	return cluc.classRepo.GetClassNatures(ctx, stuID)
+}
+
 func extractJxb(infos []*ClassInfo) []string {
 	if len(infos) == 0 {
 		return nil

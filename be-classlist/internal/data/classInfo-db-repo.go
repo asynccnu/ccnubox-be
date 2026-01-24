@@ -35,6 +35,7 @@ func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*d
 			Columns: []clause.Column{{Name: "id"}},
 			DoUpdates: clause.AssignmentColumns([]string{
 				"nature",
+				"jxb_id",
 			}),
 		}).
 		Create(&classInfos).Error

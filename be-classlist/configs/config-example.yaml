@@ -1,3 +1,4 @@
+env: "prod"
 server:
   name: "classlist"  # 新增字段：服务名称
   grpc:

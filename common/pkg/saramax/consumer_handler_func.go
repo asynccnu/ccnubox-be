@@ -109,6 +109,7 @@ func (h *Handler[T]) ConsumeEvents(events *[]T, msgRecords *[]*sarama.ConsumerMe
 	err := h.fn(*events)
 	if err != nil {
 		h.l.Error("批量推送消息发生失败", logger.Error(err))
+		return
 	}
 
 	//标记消息已消费，清空未消费消息

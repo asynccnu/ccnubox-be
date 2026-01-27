@@ -23,11 +23,11 @@ type FeedUserConfigService interface {
 
 // 使用封装好的 map 获取对应位的位置信息
 var configMap = map[string]int{
-	"muxi":      model.MuxiPos,
-	"grade":     model.GradePos,
-	"energy":    model.EnergyPos,
-	"holiday":   model.HolidayPos,
-	"feed_back": model.FeedBackPos,
+	"muxi":     model.MuxiPos,
+	"grade":    model.GradePos,
+	"energy":   model.EnergyPos,
+	"holiday":  model.HolidayPos,
+	"feedback": model.FeedBackPos,
 }
 
 type feedUserConfigService struct {

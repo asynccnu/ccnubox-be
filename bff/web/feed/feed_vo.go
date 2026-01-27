@@ -54,7 +54,7 @@ type GetFeedAllowListResp struct {
 	Muxi     bool `json:"muxi"`
 	Holiday  bool `json:"holiday"`
 	Energy   bool `json:"energy"`
-	FeedBack bool `json:"feed_back"`
+	FeedBack bool `json:"feedback"`
 }
 
 type ChangeElectricityStandardReq struct {
@@ -100,9 +100,9 @@ type PublicFeedEventReq struct {
 }
 
 var feedEventTypeMapper = map[string]feedv1.FeedEventType{
-	"grade":     feedv1.FeedEventType_GRADE,
-	"muxi":      feedv1.FeedEventType_MUXI,
-	"holiday":   feedv1.FeedEventType_HOLIDAY,
-	"energy":    feedv1.FeedEventType_ENERGY,
-	"feed_back": feedv1.FeedEventType_FEED_BACK,
+	"grade":    feedv1.FeedEventType_GRADE,
+	"muxi":     feedv1.FeedEventType_MUXI,
+	"holiday":  feedv1.FeedEventType_HOLIDAY,
+	"energy":   feedv1.FeedEventType_ENERGY,
+	"feedback": feedv1.FeedEventType_FEEDBACK,
 }

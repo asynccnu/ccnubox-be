@@ -3411,6 +3411,7 @@ const docTemplate = `{
                 "day",
                 "id",
                 "is_official",
+                "nature",
                 "note",
                 "semester",
                 "teacher",
@@ -3443,6 +3444,10 @@ const docTemplate = `{
                 "is_official": {
                     "description": "是否为官方课程",
                     "type": "boolean"
+                },
+                "nature": {
+                    "description": "课程性质",
+                    "type": "string"
                 },
                 "note": {
                     "description": "备注",
@@ -4328,7 +4333,7 @@ const docTemplate = `{
                 "energy": {
                     "type": "boolean"
                 },
-                "feed_back": {
+                "feedback": {
                     "type": "boolean"
                 },
                 "grade": {

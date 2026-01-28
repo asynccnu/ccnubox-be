@@ -6,7 +6,7 @@ import (
 )
 
 type ProxyService interface {
-	GetProxyAddr(ctx context.Context) (string, error)
+	GetProxyAddr(ctx context.Context) (string, string, error)
 }
 
 var Provider = wire.NewSet(

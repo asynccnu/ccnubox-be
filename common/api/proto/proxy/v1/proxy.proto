@@ -14,4 +14,5 @@ message GetProxyAddrRequest {
 
 message GetProxyAddrResponse {
   string addr = 1;
+  string backup = 2;
 }

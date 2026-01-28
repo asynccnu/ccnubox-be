@@ -46,14 +46,14 @@ type ElecpriceService interface {
 
 type elecpriceService struct {
 	elecpriceDAO dao.ElecpriceDAO
-	proxyGetter  ProxyGetter
+	ProxyService ProxyService
 	cache        cache.ElecPriceCache
 	l            logger.Logger
 }
 
 func NewElecpriceService(elecpriceDAO dao.ElecpriceDAO, l logger.Logger, c cache.ElecPriceCache,
-	proxyGetter ProxyGetter) ElecpriceService {
-	return &elecpriceService{elecpriceDAO: elecpriceDAO, l: l, proxyGetter: proxyGetter, cache: c}
+	ProxyService ProxyService) ElecpriceService {
+	return &elecpriceService{elecpriceDAO: elecpriceDAO, l: l, ProxyService: ProxyService, cache: c}
 }
 
 func (s *elecpriceService) SetStandard(ctx context.Context, r *domain.SetStandardRequest) error {
@@ -287,27 +287,18 @@ func (s *elecpriceService) GetPriceByName(ctx context.Context, roomName string) 
 			}
 			resp.Union = *res
 		} else {
-			//g, ctxEg := errgroup.WithContext(ctx)
-
-			//g.Go(func() error {
+			// todo:感觉这里可以优化成并发, 但是会增大请求407失败的风险, 扩大ip池提取数量可以解决
 			res, er := s.GetPriceById(ctx, detail.AC)
 			if er != nil {
 				return nil, er
 			}
 			resp.AC = *res
-			//return resp,nil
-			//})
-			//g.Go(func() error {
+
 			res, er = s.GetPriceById(ctx, detail.Light)
 			if er != nil {
 				return nil, er
 			}
 			resp.Light = *res
-			//return nil
-			//})
-			//if errW := g.Wait(); errW != nil {
-			//	return nil, errW
-			//}
 		}
 
 		return resp, nil
@@ -343,6 +334,7 @@ func (s *elecpriceService) GetMeterID(ctx context.Context, RoomID string) (strin
 	return id, nil
 }
 
+// 不能缓存, 存在充了电费再来查的情况
 func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*domain.PriceInfo, error) {
 	var (
 		remain      string
@@ -354,9 +346,6 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 	g.Go(func() error {
 		//取余额
 		body, err_ := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getReserveHKAM?AmMeter_ID=%s", meterID), false)
-		//if err_ != nil {
-		//	return nil, INTERNET_ERROR(err_)
-		//}
 		if err_ != nil {
 			return INTERNET_ERROR(err_)
 		}
@@ -370,22 +359,18 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 	g.Go(func() error {
 		//取昨天消费
 		encodedDate := url.QueryEscape(time.Now().AddDate(0, 0, -1).Format("2006/1/2"))
-		body2, err_2 := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getMeterDayValue?AmMeter_ID=%s&startDate=%s&endDate=%s", meterID, encodedDate, encodedDate), true)
-		//if err_2 != nil {
-		//	return nil, INTERNET_ERROR(err_2)
-		//}
-		if err_2 != nil {
-			return INTERNET_ERROR(err_2)
+		body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getMeterDayValue?AmMeter_ID=%s&startDate=%s&endDate=%s", meterID, encodedDate, encodedDate), true)
+		if err != nil {
+			return INTERNET_ERROR(err)
 		}
 
-		dayValue, err_2 = matchRegexpOneEle(body2, dayValueReg)
-		if err_2 != nil {
-			return INTERNET_ERROR(err_2)
+		dayValue, err = matchRegexpOneEle(body, dayValueReg)
+		if err != nil {
+			return INTERNET_ERROR(err)
 		}
-		//
-		dayUseMeony, err_2 = matchRegexpOneEle(body2, dayUseMeonyReg)
-		if err_2 != nil {
-			return INTERNET_ERROR(err_2)
+		dayUseMeony, err = matchRegexpOneEle(body, dayUseMeonyReg)
+		if err != nil {
+			return INTERNET_ERROR(err)
 		}
 		return nil
 	})
@@ -400,10 +385,6 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 		YesterdayUseValue: dayValue,
 	}
 	return finalInfo, nil
-}
-
-func addProxyAddrToCtx(ctx context.Context, proxyAddr string) context.Context {
-	return context.WithValue(ctx, ProxyAddr, proxyAddr)
 }
 
 func (s *elecpriceService) checkEmptyOrNil(value string) bool {

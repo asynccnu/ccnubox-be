@@ -10,7 +10,7 @@ type Cron interface {
 
 func NewCron(
 	elecpriceController *ElecpriceController,
-	proxyGetter service.ProxyGetter,
+	ProxyService service.ProxyService,
 ) []Cron {
-	return []Cron{elecpriceController, proxyGetter}
+	return []Cron{elecpriceController, ProxyService}
 }

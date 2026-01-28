@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-type ProxyGetter interface {
+type ProxyService interface {
 	StartCronTask()
 }
 
@@ -23,7 +23,7 @@ type proxyService struct {
 	backup  string
 }
 
-func NewProxyService(ps proxyv1.ProxyClient, l logger.Logger) ProxyGetter {
+func NewProxyService(ps proxyv1.ProxyClient, l logger.Logger) ProxyService {
 	p := &proxyService{ps: ps, l: l}
 	p.fetchProxy()
 

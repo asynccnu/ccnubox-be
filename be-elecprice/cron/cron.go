@@ -1,5 +1,7 @@
 package cron
 
+import "github.com/asynccnu/ccnubox-be/be-elecprice/service"
+
 type Cron interface {
 	StartCronTask()
 }
@@ -8,6 +10,7 @@ type Cron interface {
 
 func NewCron(
 	elecpriceController *ElecpriceController,
+	ProxyService service.ProxyService,
 ) []Cron {
-	return []Cron{elecpriceController}
+	return []Cron{elecpriceController, ProxyService}
 }

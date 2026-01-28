@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const REDISKEY = "FUC:"
+const REDISKEY = "CCNUBOX:FUC:"
 
 type CounterCache interface {
 	GetCounterByStudentId(ctx context.Context, StudentId string) (count int64, err error)

@@ -28,7 +28,6 @@ import (
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/redis/go-redis/v9"
-	"github.com/spf13/viper"
 )
 
 // InitContentHandler 初始化 ContentHandler
@@ -36,18 +35,14 @@ func InitContentHandler(
 	contentClient contentv1.ContentServiceClient,
 	userClient userv1.UserServiceClient,
 	gradeClient gradev1.GradeServiceClient,
-
+	cfg *conf.ServerConf,
 ) *content.ContentHandler {
-	var administrators []string
-	err := viper.UnmarshalKey("administrators", &administrators)
-	if err != nil {
-		panic(err)
-	}
+
 	return content.NewContentHandler(
 		contentClient,
 		userClient,
 		gradeClient,
-		slice.ToMapV(administrators, func(element string) (string, struct{}) {
+		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
 }

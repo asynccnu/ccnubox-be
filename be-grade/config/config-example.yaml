@@ -1,46 +1,13 @@
-mysql:
-  dsn: "root:12345678@tcp(ccnubox-mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
-
-redis:
-  addr: "ccnubox-redis:6379"
-  password: "12345678"
-
-etcd:
-  endpoints:
-    - "ccnubox-etcd:2379"
-  username: root
-  password: "12345678"
-
-kafka:
-  addrs:
-    - "ccnubox-kafka:9094"
-
-grpc:
-  server:
-    name: "grade"
-    weight: 100
-    addr: ":19089"
-    etcdTTL: 60
-  client:
-    classlist:
-      endpoint: "discovery:///classlist"
-    user:
-      endpoint: "discovery:///user"
-    counter:
-      endpoint: "discovery:///counter"
-    feed:
-      endpoint: "discovery:///feed"
-    ccnu:
-      endpoint: "discovery:///ccnu"
-    proxy:
-      endpoint: "discovery:///proxy"
-
 #成绩自动提醒
-gradeController:
-  high: 1  #单位是分钟
+gradeConf:
+  high: 15  #单位是分钟
   middle: 30 #单位是分钟
   low: 60 #单位是分钟
   
+consumeConf:
+  consumeTime: 1 #强制插入的时间(如果长期没有消息被消费的话),单位是分钟
+  consumeNum: 100 #批量存入,每次最多一次存入500条数据(设置最大值不能超过一千,否则请自行修改dao层的gorm插入feedEvent的最大上限值)
+
 log:
   path: "/logs/app.log"  # 日志文件路径
   maxSize: 100           # 单个日志文件的最大大小（MB）
@@ -48,3 +15,7 @@ log:
   maxAge: 30             # 日志文件保留天数
   compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
 
+otel:
+  serviceName: "be-grade"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"

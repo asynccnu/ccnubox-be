@@ -1,31 +1,5 @@
-mysql:
-  dsn: "root:12345678@tcp(ccnubox-mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
-
-redis:
-  addr: "ccnubox-redis:6379"
-  password: "12345678"
-
-etcd:
-  endpoints:
-    - "ccnubox-etcd:2379"
-  username: root
-  password: "12345678"
-
-grpc:
-  server:
-    name: "user"
-    weight: 100
-    addr: ":19091"
-    etcdTTL: 60
-  client:
-    ccnu:
-      endpoint: "discovery:///ccnu"
-      retryCnt: 3
-    proxy:
-      endpoint: "discovery:///proxy"
-
 log:
-  path: "/logs/user.log"  # 日志文件路径
+  path: "/logs/app.log"  # 日志文件路径
   maxSize: 100           # 单个日志文件的最大大小（MB）
   maxBackups: 7          # 保留旧日志文件的最大数量
   maxAge: 30             # 日志文件保留天数
@@ -34,4 +8,4 @@ log:
 otel:
   serviceName: "be-user"
   serviceVersion: "1.0.0"
-  endpoint: "ccnubox-otel"
+  endpoint: "localhost:4318"

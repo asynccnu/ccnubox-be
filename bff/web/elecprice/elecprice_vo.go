@@ -9,9 +9,9 @@ type SetStandardRequest struct {
 }
 
 type Price struct {
-	RemainMoney       string `json:"remain_money,omitempty" binding:"required"`
-	YesterdayUseValue string `json:"yesterday_use_value,omitempty" binding:"required"`
-	YesterdayUseMoney string `json:"yesterday_use_money,omitempty" binding:"required"`
+	RemainMoney       string `json:"remain_money,omitempty"`
+	YesterdayUseValue string `json:"yesterday_use_value,omitempty"`
+	YesterdayUseMoney string `json:"yesterday_use_money,omitempty"`
 }
 
 func priceToVo(p *elecpricev1.GetPriceResponse_Price) Price {
@@ -44,9 +44,9 @@ type GetRoomInfoRequest struct {
 
 type Room struct {
 	RoomName string `json:"room_name" binding:"required"`
-	AC       string `json:"ac,omitempty" binding:"required"`
-	Light    string `json:"light,omitempty" binding:"required"`
-	Union    string `json:"union,omitempty" binding:"required"`
+	AC       string `json:"ac,omitempty"`
+	Light    string `json:"light,omitempty"`
+	Union    string `json:"union,omitempty"`
 }
 
 type GetRoomInfoResponse struct {
@@ -58,9 +58,9 @@ type GetPriceRequest struct {
 }
 
 type GetPriceResponse struct {
-	AC    Price `json:"ac_price,omitempty" binding:"required"`
-	Light Price `json:"light_price,omitempty" binding:"required"`
-	Union Price `json:"union_price,omitempty" binding:"required"`
+	AC    Price `json:"ac_price,omitempty"`
+	Light Price `json:"light_price,omitempty"`
+	Union Price `json:"union_price,omitempty"`
 }
 
 type GetStandardListRequest struct {

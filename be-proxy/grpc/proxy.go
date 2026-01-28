@@ -26,7 +26,7 @@ func (s *ProxyServiceServer) GetProxyAddr(ctx context.Context,
 	res, backup, err := s.svc.GetProxyAddr(ctx)
 	if err != nil {
 		// 这里就算报错也不能返回空响应, 防止报错, 下游返回的是一个“”, 也可以用
-		return &proxyv1.GetProxyAddrResponse{}, err
+		return &proxyv1.GetProxyAddrResponse{Addr: res, Backup: backup}, err
 	}
 
 	return &proxyv1.GetProxyAddrResponse{Addr: res, Backup: backup}, nil

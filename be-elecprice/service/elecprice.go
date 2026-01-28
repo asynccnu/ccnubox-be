@@ -211,7 +211,7 @@ func (s *elecpriceService) GetArchitecture(ctx context.Context, area string) (do
 
 		handleDirtyArch(ctx, &resp, area)
 		go func() {
-			ctxTm, cancelTm := context.WithTimeout(ctx, 2*time.Second)
+			ctxTm, cancelTm := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancelTm()
 			if er := s.cache.SetArchitectureInfos(ctxTm, area, resp.ArchitectureInfoList.Marshal()); er != nil {
 				s.l.Warn("SetArchitectureInfos cache warning", logger.Error(er))
@@ -304,7 +304,10 @@ func (s *elecpriceService) GetPriceByName(ctx context.Context, roomName string) 
 		return resp, nil
 	}
 
-	return nil, errors.New("")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get room detail from cache for room %s: %w", roomName, err)
+	}
+	return nil, fmt.Errorf("room detail for room %s not found in cache or is empty", roomName)
 }
 func (s *elecpriceService) GetPriceById(ctx context.Context, roomid string) (*domain.PriceInfo, error) {
 	mid, err := s.GetMeterID(ctx, roomid)
@@ -337,9 +340,13 @@ func (s *elecpriceService) GetMeterID(ctx context.Context, RoomID string) (strin
 // 不能缓存, 存在充了电费再来查的情况
 func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*domain.PriceInfo, error) {
 	var (
-		remain      string
-		dayUseMeony string
-		dayValue    string
+		remain struct {
+			RemainMoney string
+		}
+		dayUse struct {
+			DayUseMoney string
+			DayUseValue string
+		}
 	)
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -349,7 +356,7 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 		if err_ != nil {
 			return INTERNET_ERROR(err_)
 		}
-		remain, err_ = matchRegexpOneEle(body, remainPowerReg)
+		remain.RemainMoney, err_ = matchRegexpOneEle(body, remainPowerReg)
 		if err_ != nil {
 			return INTERNET_ERROR(err_)
 		}
@@ -364,11 +371,11 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 			return INTERNET_ERROR(err)
 		}
 
-		dayValue, err = matchRegexpOneEle(body, dayValueReg)
+		dayUse.DayUseValue, err = matchRegexpOneEle(body, dayValueReg)
 		if err != nil {
 			return INTERNET_ERROR(err)
 		}
-		dayUseMeony, err = matchRegexpOneEle(body, dayUseMeonyReg)
+		dayUse.DayUseMoney, err = matchRegexpOneEle(body, dayUseMeonyReg)
 		if err != nil {
 			return INTERNET_ERROR(err)
 		}
@@ -380,9 +387,9 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 	}
 
 	finalInfo := &domain.PriceInfo{
-		RemainMoney:       remain,
-		YesterdayUseMoney: dayUseMeony,
-		YesterdayUseValue: dayValue,
+		RemainMoney:       remain.RemainMoney,
+		YesterdayUseMoney: dayUse.DayUseMoney,
+		YesterdayUseValue: dayUse.DayUseValue,
 	}
 	return finalInfo, nil
 }

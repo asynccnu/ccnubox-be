@@ -14,12 +14,12 @@ import (
 )
 
 var (
-	client       = http.DefaultClient // 复用
-	clientBackup = http.DefaultClient
+	client       = http.DefaultClient // 主要使用这个
+	clientBackup = http.DefaultClient // 避免单client导致服务器407, 从而请求失败
 )
 
 // 通用 HTTP 请求函数
-func sendRequest(ctx context.Context, url string, backup bool) (string, error) {
+func sendRequest(ctx context.Context, url string, useBackupProxy bool) (string, error) {
 	var (
 		resp *http.Response
 		err  error
@@ -34,7 +34,7 @@ func sendRequest(ctx context.Context, url string, backup bool) (string, error) {
 	req.Header.Set("Host", "jnb.ccnu.edu.cn")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0")
 
-	if backup {
+	if useBackupProxy {
 		resp, err = clientBackup.Do(req)
 	} else {
 		resp, err = client.Do(req)

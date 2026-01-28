@@ -25,14 +25,14 @@ type proxyService struct {
 
 func NewProxyService(ps proxyv1.ProxyClient, l logger.Logger) ProxyService {
 	p := &proxyService{ps: ps, l: l}
-	p.fetchProxy()
+	go p.fetchProxy()
 
 	return p
 }
 
 func (p *proxyService) StartCronTask() {
 	c := cron.New()
-	_, _ = c.AddFunc("@every 100s", p.fetchProxy)
+	_, _ = c.AddFunc("@every 50s", p.fetchProxy)
 	c.Start()
 }
 

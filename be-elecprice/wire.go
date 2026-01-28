@@ -20,6 +20,7 @@ func InitApp() *App {
 		conf.InitServerConf,
 		grpc.NewElecpriceGrpcService,
 		service.NewElecpriceService,
+		service.NewProxyService,
 		dao.NewElecpriceDAO,
 		cache.NewRedisElecPriceCache,
 		// 第三方

@@ -128,3 +128,15 @@ func (f *FilterLogger) Warn(msg string, args ...Field) {
 func (f *FilterLogger) Error(msg string, args ...Field) {
 	f.logger.Error(msg, f.filter(ERROR, args)...)
 }
+
+func (f *FilterLogger) With(args ...Field) Logger {
+	filteredArgs := f.filter(INFO, args)
+	newBaseLogger := f.logger.With(filteredArgs...)
+
+	return &FilterLogger{
+		logger:          newBaseLogger,
+		filterKeys:      f.filterKeys,
+		filterVals:      f.filterVals,
+		filterFuncSlice: f.filterFuncSlice,
+	}
+}

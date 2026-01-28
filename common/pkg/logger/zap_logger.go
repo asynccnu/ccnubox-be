@@ -56,6 +56,21 @@ func (z *ZapLogger) Error(msg string, args ...Field) {
 	z.log(zapcore.ErrorLevel, msg, args...)
 }
 
+// 实现链式字段注入字段，返回 Logger 接口本身
+func (z *ZapLogger) With(args ...Field) Logger {
+	zapFields := z.toArgs(args)
+	newZap := z.l.With(zapFields...)
+	return &ZapLogger{
+		l:   newZap,
+		ctx: z.ctx,
+	}
+}
+
+// 要直接使用这个功能需要对 Logger 接口直接做断言 zaplogger 使用
+func (z *ZapLogger) Sync() error {
+	return z.l.Sync()
+}
+
 // 这里使用统一的日志处理逻辑负责把 trace_id 和 span_id 注入到 zap 的字段里
 func (z *ZapLogger) log(level zapcore.Level, msg string, args ...Field) {
 	zapFields := z.toArgs(args)

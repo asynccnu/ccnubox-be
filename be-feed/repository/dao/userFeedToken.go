@@ -2,27 +2,28 @@ package dao
 
 import (
 	"context"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"gorm.io/gorm"
 )
 
-type UserFeedTokenDAO interface {
+type FeedTokenDAO interface {
 	GetStudentIdAndTokensByCursor(ctx context.Context, lastID int64, limit int) (map[string][]string, int64, error)
 	GetTokens(ctx context.Context, studentId string) ([]string, error)
 	AddToken(ctx context.Context, studentId string, token string) error
 	RemoveToken(ctx context.Context, studentId string, token string) error
 }
 
-type userFeedTokenDAO struct {
+type feedTokenDAO struct {
 	gorm *gorm.DB
 }
 
-// NewUserFeedTokenDAO 创建一个新的 UserFeedTokenDAO 实例
-func NewUserFeedTokenDAO(db *gorm.DB) UserFeedTokenDAO {
-	return &userFeedTokenDAO{gorm: db}
+// NewUserFeedTokenDAO 创建一个新的 FeedTokenDAO 实例
+func NewUserFeedTokenDAO(db *gorm.DB) FeedTokenDAO {
+	return &feedTokenDAO{gorm: db}
 }
 
-func (dao *userFeedTokenDAO) GetStudentIdAndTokensByCursor(ctx context.Context, lastID int64, limit int) (map[string][]string, int64, error) {
+func (dao *feedTokenDAO) GetStudentIdAndTokensByCursor(ctx context.Context, lastID int64, limit int) (map[string][]string, int64, error) {
 	// 定义存储查询结果的结构体
 	type UserTokens struct {
 		ID        uint   `gorm:"column:id"`
@@ -36,7 +37,7 @@ func (dao *userFeedTokenDAO) GetStudentIdAndTokensByCursor(ctx context.Context, 
 	// 分页查询数据
 	var userTokens []UserTokens
 	query := dao.gorm.WithContext(ctx).
-		Model(model.Token{}).
+		Model(model.FeedUserToken{}).
 		Select("id, student_id, token").
 		Order("id ASC"). // 按 id 排序，确保数据有序
 		Limit(limit)
@@ -66,11 +67,11 @@ func (dao *userFeedTokenDAO) GetStudentIdAndTokensByCursor(ctx context.Context, 
 	return userTokenMap, newLastID, nil
 }
 
-func (dao *userFeedTokenDAO) GetTokens(ctx context.Context, studentId string) ([]string, error) {
+func (dao *feedTokenDAO) GetTokens(ctx context.Context, studentId string) ([]string, error) {
 	var tokens []string
 	// 限制最多返回4个最新的 token
 	err := dao.gorm.WithContext(ctx).
-		Model(model.Token{}).
+		Model(model.FeedUserToken{}).
 		Select("token").
 		Where("student_id = ?", studentId).
 		Order("created_at DESC"). // 按照 created_at 字段降序排列，确保获取最新的 token
@@ -82,13 +83,13 @@ func (dao *userFeedTokenDAO) GetTokens(ctx context.Context, studentId string) ([
 	return tokens, nil
 }
 
-// 添加 Token
-func (dao *userFeedTokenDAO) AddToken(ctx context.Context, studentId string, token string) error {
-	newToken := model.Token{StudentId: studentId, Token: token}
-	return dao.gorm.WithContext(ctx).Model(model.Token{}).Create(&newToken).Error
+// 添加 FeedUserToken
+func (dao *feedTokenDAO) AddToken(ctx context.Context, studentId string, token string) error {
+	newToken := model.FeedUserToken{StudentId: studentId, Token: token}
+	return dao.gorm.WithContext(ctx).Model(model.FeedUserToken{}).Create(&newToken).Error
 }
 
-// 删除 Token
-func (dao *userFeedTokenDAO) RemoveToken(ctx context.Context, studentId string, token string) error {
-	return dao.gorm.WithContext(ctx).Model(model.Token{}).Where("student_id = ? and token = ?", studentId, token).Delete(&model.Token{}).Error
+// 删除 FeedUserToken
+func (dao *feedTokenDAO) RemoveToken(ctx context.Context, studentId string, token string) error {
+	return dao.gorm.WithContext(ctx).Model(model.FeedUserToken{}).Where("student_id = ? and token = ?", studentId, token).Delete(&model.FeedUserToken{}).Error
 }

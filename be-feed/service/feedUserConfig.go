@@ -2,19 +2,20 @@ package service
 
 import (
 	"context"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
+	"reflect"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"golang.org/x/exp/slices"
-	"reflect"
 )
 
 type FeedUserConfigService interface {
 	ChangeAllowList(ctx context.Context, req domain.AllowList) error
-	GetFeedAllowList(ctx context.Context, studentId string) (domain.AllowList, error)
+	FindOrCreateAllowList(ctx context.Context, studentId string) (domain.AllowList, error)
 	SaveFeedToken(ctx context.Context, studentId string, token string) error
 	GetFeedTokens(ctx context.Context, studentId string) (tokens []string, err error)
 	RemoveFeedToken(ctx context.Context, studentId string, token string) error
@@ -22,24 +23,25 @@ type FeedUserConfigService interface {
 
 // 使用封装好的 map 获取对应位的位置信息
 var configMap = map[string]int{
-	"muxi":    model.MuxiPos,
-	"grade":   model.GradePos,
-	"energy":  model.EnergyPos,
-	"holiday": model.HolidayPos,
+	"muxi":      model.MuxiPos,
+	"grade":     model.GradePos,
+	"energy":    model.EnergyPos,
+	"holiday":   model.HolidayPos,
+	"feed_back": model.FeedBackPos,
 }
 
 type feedUserConfigService struct {
 	feedEventDAO      dao.FeedEventDAO
 	feedEventCache    cache.FeedEventCache
-	userFeedConfigDAO dao.UserFeedConfigDAO
-	feedTokenDAO      dao.UserFeedTokenDAO
+	userFeedConfigDAO dao.FeedUserConfigDAO
+	feedTokenDAO      dao.FeedTokenDAO
 }
 
 func NewFeedUserConfigService(
 	feedEventDAO dao.FeedEventDAO,
 	feedEventCache cache.FeedEventCache,
-	feedAllowListEventDAO dao.UserFeedConfigDAO,
-	tokenFeedDAO dao.UserFeedTokenDAO,
+	feedAllowListEventDAO dao.FeedUserConfigDAO,
+	tokenFeedDAO dao.FeedTokenDAO,
 ) FeedUserConfigService {
 	return &feedUserConfigService{
 		feedEventCache:    feedEventCache,
@@ -73,10 +75,11 @@ func (s *feedUserConfigService) ChangeAllowList(ctx context.Context, req domain.
 
 	// 定义映射关系：字段名 -> 对应的 bit 位
 	bitMap := map[string]int{
-		"Grade":   model.GradePos,
-		"Muxi":    model.MuxiPos,
-		"Holiday": model.HolidayPos,
-		"Energy":  model.EnergyPos,
+		"Grade":    model.GradePos,
+		"Muxi":     model.MuxiPos,
+		"Holiday":  model.HolidayPos,
+		"Energy":   model.EnergyPos,
+		"FeedBack": model.FeedBackPos,
 	}
 
 	// 反射获取字段值，并修改 pushConfig
@@ -102,7 +105,7 @@ func (s *feedUserConfigService) ChangeAllowList(ctx context.Context, req domain.
 	return nil
 }
 
-func (s *feedUserConfigService) GetFeedAllowList(ctx context.Context, studentId string) (domain.AllowList, error) {
+func (s *feedUserConfigService) FindOrCreateAllowList(ctx context.Context, studentId string) (domain.AllowList, error) {
 	list, err := s.userFeedConfigDAO.FindOrCreateUserFeedConfig(ctx, studentId)
 	if err != nil {
 		return domain.AllowList{}, FIND_CONFIG_OR_TOKEN_ERROR(err)
@@ -113,6 +116,7 @@ func (s *feedUserConfigService) GetFeedAllowList(ctx context.Context, studentId 
 		Muxi:      s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.MuxiPos),
 		Holiday:   s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.HolidayPos),
 		Energy:    s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.EnergyPos),
+		FeedBack:  s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.FeedBackPos),
 	}, nil
 }
 

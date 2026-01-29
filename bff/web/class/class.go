@@ -2,32 +2,36 @@ package class
 
 import (
 	"errors"
+	"sort"
 	"time"
 
-	cs "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
-	classlistv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	cs "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classService/v1"
+	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
 
 type ClassHandler struct {
 	ClassListClient    classlistv1.ClasserClient
-	ClassServiceClinet cs.ClassServiceClient
+	ClassServiceClient cs.ClassServiceClient
 	Administrators     map[string]struct{} // 这里注入的是管理员权限验证配置
 }
 
+const TmpYear = "2025"
+const TmpSemester = "1"
+
 func NewClassListHandler(
 	ClassListClient classlistv1.ClasserClient,
-	ClassServiceClinet cs.ClassServiceClient,
+	ClassServiceClient cs.ClassServiceClient,
 	administrators map[string]struct{},
 ) *ClassHandler {
 	return &ClassHandler{
 		ClassListClient:    ClassListClient,
-		ClassServiceClinet: ClassServiceClinet,
+		ClassServiceClient: ClassServiceClient,
 		Administrators:     administrators,
 	}
 }
@@ -44,6 +48,8 @@ func (c *ClassHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 	sg.GET("/day/get", ginx.Wrap(c.GetSchoolDay))
 	sg.POST("/note/insert", authMiddleware, ginx.WrapClaimsAndReq(c.InsertClassNote))
 	sg.POST("/note/delete", authMiddleware, ginx.WrapClaimsAndReq(c.DeleteClassNote))
+	sg.GET("/toBeStudied", authMiddleware, ginx.WrapClaims(c.GetToBeStudiedClass))
+	sg.POST("/toBeStudied", authMiddleware, ginx.WrapClaimsAndReq(c.GetToBeStudiedClassByStatus))
 }
 
 // GetClassList 获取课表
@@ -62,15 +68,15 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 	}
 	getResp, err := c.ClassListClient.GetClass(ctx, &classlistv1.GetClassRequest{
 		StuId:    uc.StudentId,
-		Semester: req.Semester,
-		Year:     req.Year,
+		Semester: TmpSemester,
+		Year:     TmpYear,
 		Refresh:  *req.Refresh,
 	})
 	if err != nil {
 		return web.Response{}, errs.GET_CLASS_LIST_ERROR(err)
 	}
 
-	var respClasses = make([]*ClassInfo, 0, len(getResp.Classes))
+	respClasses := make([]*ClassInfo, 0, len(getResp.Classes))
 
 	for _, class := range getResp.Classes {
 		respClasses = append(respClasses, &ClassInfo{
@@ -87,6 +93,7 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 			Year:         class.Info.Year,
 			Note:         class.Info.Note,
 			IsOfficial:   class.Info.IsOfficial,
+			Nature:       class.Info.Nature,
 		})
 	}
 
@@ -112,23 +119,22 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 // @Success 200 {object} web.Response "成功添加课表"
 // @Router /class/add [post]
 func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.UserClaims) (web.Response, error) {
-
 	weeks := convertWeekFromArrayToInt(req.Weeks)
 
-	var preq = &cs.AddClassRequest{
+	preq := &cs.AddClassRequest{
 		StuId:    uc.StudentId,
 		Name:     req.Name,
 		DurClass: req.DurClass,
 		Where:    req.Where,
 		Teacher:  req.Teacher,
 		Weeks:    weeks,
-		Semester: req.Semester,
-		Year:     req.Year,
+		Semester: TmpSemester,
+		Year:     TmpYear,
 		Day:      req.Day,
 		Credit:   req.Credit,
 	}
 
-	_, err := c.ClassServiceClinet.AddClass(ctx, preq)
+	_, err := c.ClassServiceClient.AddClass(ctx, preq)
 	if err != nil {
 		return web.Response{}, errs.ADD_CLASS_ERROR(err)
 	}
@@ -151,8 +157,8 @@ func (c *ClassHandler) DeleteClass(ctx *gin.Context, req DeleteClassRequest, uc 
 	_, err := c.ClassListClient.DeleteClass(ctx, &classlistv1.DeleteClassRequest{
 		Id:       req.Id,
 		StuId:    uc.StudentId,
-		Year:     req.Year,
-		Semester: req.Semester,
+		Year:     TmpYear,
+		Semester: TmpSemester,
 	})
 	if err != nil {
 		return web.Response{}, errs.DELETE_CLASS_ERROR(err)
@@ -179,7 +185,7 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 		weeks = &tmpWeeks
 	}
 
-	var preq = &classlistv1.UpdateClassRequest{
+	preq := &classlistv1.UpdateClassRequest{
 		ClassId:  req.ClassId,
 		StuId:    uc.StudentId,
 		Name:     req.Name,
@@ -187,8 +193,8 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 		Where:    req.Where,
 		Teacher:  req.Teacher,
 		Weeks:    weeks,
-		Semester: req.Semester,
-		Year:     req.Year,
+		Semester: TmpSemester,
+		Year:     TmpYear,
 		Day:      req.Day,
 		Credit:   req.Credit,
 	}
@@ -214,8 +220,8 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 func (c *ClassHandler) GetRecycleBinClassInfos(ctx *gin.Context, req GetRecycleBinClassInfosReq, uc ijwt.UserClaims) (web.Response, error) {
 	classes, err := c.ClassListClient.GetRecycleBinClassInfos(ctx, &classlistv1.GetRecycleBinClassRequest{
 		StuId:    uc.StudentId,
-		Year:     req.Year,
-		Semester: req.Semester,
+		Year:     TmpYear,
+		Semester: TmpSemester,
 	})
 	if err != nil {
 		return web.Response{}, errs.GET_RECYCLE_CLASS_ERROR(err)
@@ -244,8 +250,8 @@ func (c *ClassHandler) GetRecycleBinClassInfos(ctx *gin.Context, req GetRecycleB
 func (c *ClassHandler) RecoverClass(ctx *gin.Context, req RecoverClassRequest, uc ijwt.UserClaims) (web.Response, error) {
 	_, err := c.ClassListClient.RecoverClass(ctx, &classlistv1.RecoverClassRequest{
 		StuId:    uc.StudentId,
-		Year:     req.Year,
-		Semester: req.Semester,
+		Year:     TmpYear,
+		Semester: TmpSemester,
 		ClassId:  req.ClassId,
 	})
 	if err != nil {
@@ -270,14 +276,13 @@ func (c *ClassHandler) SearchClass(ctx *gin.Context, req SearchRequest) (web.Res
 		return web.Response{}, errs.INVALID_PARAM_VALUE_ERROR(errors.New("page or pageSize must be greater than 0"))
 	}
 
-	classes, err := c.ClassServiceClinet.SearchClass(ctx, &cs.SearchRequest{
+	classes, err := c.ClassServiceClient.SearchClass(ctx, &cs.SearchRequest{
 		Year:           req.Year,
 		Semester:       req.Semester,
 		SearchKeyWords: req.SearchKeyWords,
 		Page:           int32(req.Page),
 		PageSize:       int32(req.PageSize),
 	})
-
 	if err != nil {
 		return web.Response{}, errs.SEARCH_CLASS_ERROR(err)
 	}
@@ -318,7 +323,6 @@ func (c *ClassHandler) SearchClass(ctx *gin.Context, req SearchRequest) (web.Res
 // @Success 200 {object} web.Response{data=GetSchoolDayResp} "成功获取到当前周"
 // @Router /class/day/get [get]
 func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
-
 	res, err := c.ClassListClient.GetSchoolDay(ctx, &classlistv1.GetSchoolDayReq{})
 	if err != nil {
 		return web.Response{
@@ -326,7 +330,7 @@ func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
 			Msg:  "系统异常",
 		}, errs.TYPE_CHANGE_ERROR(err)
 	}
-	//加载 "Asia/Shanghai" 时区
+	// 加载 "Asia/Shanghai" 时区
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	holiday, err := time.ParseInLocation("2006-01-02", res.GetHolidayTime(), loc)
 	if err != nil {
@@ -341,7 +345,6 @@ func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
 	return web.Response{
 		Msg: "Success",
 		Data: GetSchoolDayResp{
-
 			HolidayTime: holiday.Unix(),
 			SchoolTime:  school.Unix(),
 		},
@@ -361,8 +364,8 @@ func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
 func (c *ClassHandler) InsertClassNote(ctx *gin.Context, req UpdateClassNoteReq, uc ijwt.UserClaims) (web.Response, error) {
 	resp, err := c.ClassListClient.UpdateClassNote(ctx, &classlistv1.UpdateClassNoteReq{
 		StuId:    uc.StudentId,
-		Year:     req.Year,
-		Semester: req.Semester,
+		Year:     TmpYear,
+		Semester: TmpSemester,
 		ClassId:  req.ClassId,
 		Note:     req.Note,
 	})
@@ -387,8 +390,8 @@ func (c *ClassHandler) InsertClassNote(ctx *gin.Context, req UpdateClassNoteReq,
 func (c *ClassHandler) DeleteClassNote(ctx *gin.Context, req DeleteClassNoteReq, uc ijwt.UserClaims) (web.Response, error) {
 	resp, err := c.ClassListClient.DeleteClassNote(ctx, &classlistv1.DeleteClassNoteReq{
 		StuId:    uc.StudentId,
-		Year:     req.Year,
-		Semester: req.Semester,
+		Year:     TmpYear,
+		Semester: TmpSemester,
 		ClassId:  req.ClassId,
 	})
 	if err != nil {
@@ -397,6 +400,78 @@ func (c *ClassHandler) DeleteClassNote(ctx *gin.Context, req DeleteClassNoteReq,
 	return web.Response{
 		Msg: resp.Msg,
 	}, nil
+}
+
+// GetToBeStudiedClass 获取人培课程(全部)
+// @Summary 获取人培课程(全部)
+// @Description 获取需要上的课程, 返回全部课程
+// @Tags class
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer Token"
+// @Success 200 {object} web.Response{data=GetToBeStudiedClassResp{identity_develop=[]ClassToBeStudiedInfo,specific_skill=[]ClassToBeStudiedInfo,common_educate=[]ClassToBeStudiedInfo}} "成功获取待修课程"
+// @Router /class/toBeStudied [get]
+func (c *ClassHandler) GetToBeStudiedClass(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
+	res, err := c.ClassServiceClient.GetClassToBeStudied(ctx, &cs.GetClassToBeStudiedRequest{
+		StuId: uc.StudentId,
+	})
+	if err != nil {
+		return web.Response{}, errs.GET_TO_BE_STUDIED_CLASS_ERROR(err)
+	}
+
+	var resp GetToBeStudiedClassResp
+	if err = copier.Copy(&resp, res); err != nil {
+		return web.Response{}, errs.TYPE_CHANGE_ERROR(err)
+	}
+	sortClassesResp(&resp)
+
+	return web.Response{
+		Msg:  "Success",
+		Data: resp,
+	}, nil
+}
+
+// GetToBeStudiedClassByStatus 根据状态获取待修课程
+// @Summary 获取人培课程(部分)
+// @Description 根据用户选择返回各种状态的课程
+// @Tags class
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer Token"
+// @Param request body GetToBeStudiedClassReq true "获取待修课请求"
+// @Success 200 {object} web.Response{data=GetToBeStudiedClassResp} "成功获取待修课程"
+// @Router /class/toBeStudied [post]
+func (c *ClassHandler) GetToBeStudiedClassByStatus(ctx *gin.Context, req GetToBeStudiedClassReq, uc ijwt.UserClaims) (web.Response, error) {
+	res, err := c.ClassServiceClient.GetClassToBeStudied(ctx, &cs.GetClassToBeStudiedRequest{
+		StuId:  uc.StudentId,
+		Status: req.Status,
+	})
+	if err != nil {
+		return web.Response{}, errs.GET_TO_BE_STUDIED_CLASS_ERROR(err)
+	}
+
+	var resp GetToBeStudiedClassResp
+	if err = copier.Copy(&resp, res); err != nil {
+		return web.Response{}, errs.TYPE_CHANGE_ERROR(err)
+	}
+	sortClassesResp(&resp)
+
+	return web.Response{
+		Msg:  "Success",
+		Data: resp,
+	}, nil
+}
+
+func sortClassesResp(r *GetToBeStudiedClassResp) {
+	sortClassesById(r.SpecificSkill)
+	sortClassesById(r.IdentityDevelop)
+	sortClassesById(r.CommonEducate)
+}
+
+func sortClassesById(classes []ClassToBeStudiedInfo) {
+	sort.Slice(classes, func(i, j int) bool {
+		return classes[i].ID < classes[j].ID
+	})
 }
 
 func convertWeekFromArrayToInt(weeks []int) int64 {

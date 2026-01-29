@@ -2,10 +2,11 @@ package grpc
 
 import (
 	"context"
-	counterv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/counter/v1"
+
 	"github.com/asynccnu/ccnubox-be/be-counter/domain"
 	"github.com/asynccnu/ccnubox-be/be-counter/service"
-	"github.com/go-kratos/kratos/v2/transport/grpc"
+	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
+	"google.golang.org/grpc"
 )
 
 type CounterServiceServer struct {
@@ -54,6 +55,6 @@ func (d *CounterServiceServer) ClearCounterLevels(ctx context.Context, req *coun
 }
 
 // 注册为grpc服务
-func (d *CounterServiceServer) Register(server *grpc.Server) {
+func (d *CounterServiceServer) Register(server grpc.ServiceRegistrar) {
 	counterv1.RegisterCounterServiceServer(server, d)
 }

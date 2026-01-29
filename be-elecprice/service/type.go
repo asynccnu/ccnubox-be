@@ -1,6 +1,16 @@
 package service
 
 const (
+	ProxyAddr = "proxyAddr"
+
+	roomInfoReg    = `<RoomNo>(\d+)</RoomNo>\s*<RoomName>(.*?)</RoomName>`
+	meterIdReg     = `<meterId>(.*?)</meterId>`
+	remainPowerReg = `<remainPower>(.*?)</remainPower>`
+	dayValueReg    = `<dayValue>(.*?)</dayValue>`
+	dayUseMeonyReg = `<dayUseMeony>(.*?)</dayUseMeony>`
+)
+
+const (
 	EastRegion  = "东区学生宿舍"
 	YuanBaoShan = "元宝山学生宿舍"
 	SouthEast   = "东南区学生宿舍"
@@ -134,3 +144,10 @@ var BlackList = []string{
 	"日", // 正日旭升 1月1日空调
 	"插座",
 }
+
+type KeyWordType string
+
+const (
+	KeyWordTypeAC    KeyWordType = "空调"
+	KeyWordTypeLight KeyWordType = "照明"
+)

@@ -1,53 +1,70 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-grade/cron"
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/grpcx"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
+	"github.com/joho/godotenv"
 )
 
-func main() {
-	initViper()
+func init() {
+	// 预加载.env文件,用于本地开发
+	_ = godotenv.Load()
+}
 
+func main() {
 	app := InitApp()
 	app.Start()
 }
 
-func initViper() {
-	cfile := pflag.String("config", "config/config.yaml", "配置文件路径")
-	pflag.Parse()
-
-	viper.SetConfigType("yaml")
-	viper.SetConfigFile(*cfile)
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(err)
-	}
-}
-
 type App struct {
-	server grpcx.Server
-	crons  []cron.Cron
+	server    grpcx.Server
+	consumers []saramax.Consumer
+	crons     []cron.Cron
+	shutdown  func(ctx context.Context) error
 }
 
 func NewApp(server grpcx.Server,
-	crons []cron.Cron) App {
+	crons []cron.Cron,
+	consumers []saramax.Consumer,
+	shutdown func(ctx context.Context) error,
+) App {
 	return App{
-		server: server,
-		crons:  crons,
+		server:    server,
+		crons:     crons,
+		consumers: consumers,
+		shutdown:  shutdown,
 	}
 }
 
-func (a *App) Start() {
+func (app *App) Start() {
+	// 优雅关闭
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := app.shutdown(ctx); err != nil {
+			panic(fmt.Sprintln("shutdown error:", err))
+		}
+	}()
 
-	for _, c := range a.crons {
+	for _, c := range app.crons {
 		c.StartCronTask()
 	}
 
-	err := a.server.Serve()
-	if err != nil {
-		return
+	//启动所有的消费者,但是这里实际上只注入了一个消费者
+	for _, c := range app.consumers {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
 	}
 
+	err := app.server.Serve()
+	if err != nil {
+		panic(err)
+	}
 }

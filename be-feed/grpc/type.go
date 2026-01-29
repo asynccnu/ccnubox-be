@@ -1,8 +1,9 @@
 package grpc
 
 import (
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	"strings"
 )
 
 // 好长的函数名称
@@ -13,6 +14,7 @@ func convAllowListFromGRPCToDomain(list *feedv1.AllowList) domain.AllowList {
 		Muxi:      list.Muxi,
 		Holiday:   list.Holiday,
 		Energy:    list.Energy,
+		FeedBack:  list.FeedBack,
 	}
 }
 
@@ -23,6 +25,7 @@ func convAllowListFromDomainToGRPC(list *domain.AllowList) *feedv1.AllowList {
 		Muxi:      list.Muxi,
 		Holiday:   list.Holiday,
 		Energy:    list.Energy,
+		FeedBack:  list.FeedBack,
 	}
 }
 
@@ -47,7 +50,7 @@ func convFeedEventsFromGRPCToDomain(feedEvents []*feedv1.FeedEvent) []domain.Fee
 	for i := range feedEvents {
 		result[i] = domain.FeedEvent{
 			ID:           feedEvents[i].GetId(),
-			Type:         feedEvents[i].GetType(),
+			Type:         strings.ToLower(feedEvents[i].GetType().String()),
 			Title:        feedEvents[i].GetTitle(),
 			Content:      feedEvents[i].GetContent(),
 			ExtendFields: feedEvents[i].GetExtendFields(),

@@ -7,26 +7,35 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-elecprice/conf"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/cron"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/grpc"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/ioc"
+	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/service"
 )
 
 // Injectors from wire.go:
 
-func InitApp() App {
-	logger := ioc.InitLogger()
-	db := ioc.InitDB(logger)
+func InitApp() *App {
+	infraConf := conf.InitInfraConfig()
+	db := ioc.InitDB(infraConf)
 	elecpriceDAO := dao.NewElecpriceDAO(db)
-	elecpriceService := service.NewElecpriceService(elecpriceDAO, logger)
+	serverConf := conf.InitServerConf()
+	logger := ioc.InitLogger(serverConf)
+	cmdable := ioc.InitRedis(infraConf)
+	elecPriceCache := cache.NewRedisElecPriceCache(cmdable)
+	client := ioc.InitEtcdClient(infraConf)
+	proxyClient := ioc.InitProxyClient(client, infraConf)
+	ProxyService := service.NewProxyService(proxyClient, logger)
+	elecpriceService := service.NewElecpriceService(elecpriceDAO, logger, elecPriceCache, ProxyService)
 	elecpriceServiceServer := grpc.NewElecpriceGrpcService(elecpriceService)
-	client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxKratosServer(elecpriceServiceServer, client, logger)
-	feedServiceClient := ioc.InitFeedClient(client)
-	elecpriceController := cron.NewElecpriceController(feedServiceClient, elecpriceService, logger)
-	v := cron.NewCron(elecpriceController)
-	app := NewApp(server, v)
+	server := ioc.InitGRPCxKratosServer(elecpriceServiceServer, client, logger, infraConf)
+	feedServiceClient := ioc.InitFeedClient(client, infraConf)
+	elecpriceController := cron.NewElecpriceController(feedServiceClient, elecpriceService, logger, serverConf)
+	v := cron.NewCron(elecpriceController, ProxyService)
+	v2 := ioc.InitOTel(serverConf)
+	app := NewApp(server, v, v2)
 	return app
 }

@@ -23,7 +23,7 @@ import (
 )
 
 // wireApp init kratos application.
-func wireApp(*conf.Server, *conf.Data, *conf.Registry, *conf.SchoolDay, *conf.Defaults, io.Writer, log.Logger) (*kratos.App, func(), error) {
+func wireApp(string, *conf.Server, *conf.Data, *conf.Registry, *conf.SchoolDay, *conf.Defaults, io.Writer, log.Logger) (*kratos.App, func(), error) {
 	panic(wire.Build(server.ProviderSet,
 		data.ProviderSet,
 		biz.ProviderSet,
@@ -32,10 +32,10 @@ func wireApp(*conf.Server, *conf.Data, *conf.Registry, *conf.SchoolDay, *conf.De
 		service.ProviderSet,
 		client.ProviderSet,
 		newApp,
-		wire.Bind(new(biz.ClassCrawler), new(*crawler.Crawler)),
+		wire.Bind(new(biz.ClassCrawler), new(*crawler.Crawler3)),
 		wire.Bind(new(biz.RefreshLogRepo), new(*data.RefreshLogRepo)),
 		wire.Bind(new(biz.DelayQueue), new(*data.DelayKafka)),
-		wire.Bind(new(biz.CCNUServiceProxy), new(*client.CCNUService)),
+		wire.Bind(new(biz.CCNUServiceProxy), new(*client.UserSvc)),
 		wire.Bind(new(biz.ClassRepo), new(*data.ClassRepo)),
 		wire.Bind(new(biz.JxbRepo), new(*data.JxbDBRepo)),
 		wire.Bind(new(data.Transaction), new(*data.Data)),

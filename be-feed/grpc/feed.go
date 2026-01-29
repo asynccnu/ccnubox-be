@@ -3,11 +3,13 @@ package grpc
 import (
 	"context"
 	"fmt"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
+	"strings"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
-	"github.com/go-kratos/kratos/v2/transport/grpc"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"google.golang.org/grpc"
 )
 
 type FeedServiceServer struct {
@@ -67,12 +69,12 @@ func (g *FeedServiceServer) ChangeFeedAllowList(ctx context.Context, req *feedv1
 	return &feedv1.ChangeFeedAllowListResp{}, nil
 }
 
-func (g *FeedServiceServer) GetFeedAllowList(ctx context.Context, req *feedv1.GetFeedAllowListReq) (*feedv1.GetFeedAllowListResp, error) {
-	list, err := g.feedUserConfigService.GetFeedAllowList(ctx, req.GetStudentId())
+func (g *FeedServiceServer) FindOrCreateAllowList(ctx context.Context, req *feedv1.FindOrCreateAllowListReq) (*feedv1.FindOrCreateAllowListResp, error) {
+	list, err := g.feedUserConfigService.FindOrCreateAllowList(ctx, req.GetStudentId())
 	if err != nil {
 		return nil, err
 	}
-	return &feedv1.GetFeedAllowListResp{AllowList: convAllowListFromDomainToGRPC(&list)}, nil
+	return &feedv1.FindOrCreateAllowListResp{AllowList: convAllowListFromDomainToGRPC(&list)}, nil
 }
 
 func (g *FeedServiceServer) ClearFeedEvent(ctx context.Context, req *feedv1.ClearFeedEventReq) (*feedv1.ClearFeedEventResp, error) {
@@ -126,7 +128,7 @@ func (g *FeedServiceServer) StopMuxiOfficialMSG(ctx context.Context, req *feedv1
 }
 
 func (g *FeedServiceServer) GetToBePublicOfficialMSG(ctx context.Context, req *feedv1.GetToBePublicOfficialMSGReq) (*feedv1.GetToBePublicOfficialMSGResp, error) {
-	msgs, err := g.muxiOfficialMSGService.GetToBePublicOfficialMSG(ctx)
+	msgs, err := g.muxiOfficialMSGService.GetToBePublicOfficialMSG(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +147,9 @@ func (g *FeedServiceServer) PublicFeedEvent(ctx context.Context, req *feedv1.Pub
 		//此处进行异步,为什么异步呢,主要是内部调用也有上下文取消时间这在推送给所有人的时候将会非常致命
 		ctx = context.Background()
 		feedEvent := domain.FeedEvent{
+			ID:           req.GetEvent().Id,
 			StudentId:    req.GetStudentId(),
-			Type:         req.GetEvent().GetType(),
+			Type:         strings.ToLower(req.GetEvent().GetType().String()),
 			Title:        req.GetEvent().GetTitle(),
 			Content:      req.GetEvent().GetContent(),
 			ExtendFields: req.GetEvent().GetExtendFields(),
@@ -162,6 +165,6 @@ func (g *FeedServiceServer) PublicFeedEvent(ctx context.Context, req *feedv1.Pub
 	return &feedv1.PublicFeedEventResp{}, nil
 }
 
-func (g *FeedServiceServer) Register(server *grpc.Server) {
+func (g *FeedServiceServer) Register(server grpc.ServiceRegistrar) {
 	feedv1.RegisterFeedServiceServer(server, g)
 }

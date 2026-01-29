@@ -1,0 +1,94 @@
+http:
+  addr: ":8080"
+
+redis:
+  addr: "ccnubox-redis:6379"
+  password: "12345678"
+
+classlist:
+  currentSemester: "1" # 当前学期："1" 表示第一学期，"2" 表示第二学期；每学期变更时需手动更新该值
+  currentYear: "2025"  # 当前学年，格式为 "YYYY"，如 "2025" 表示 2025-2026 学年；每学年变更时需手动更新该值 # todo 手动转自动
+
+etcd:
+  endpoints:
+    - "ccnubox-etcd:2379"
+  username: root
+  password: "12345678"
+
+administrators:
+  - "1234123456"
+
+grpc:
+  client:
+    ccnu:
+      endpoint: "discovery:///ccnu"
+      retryCnt: 3    # 具备重试装饰时的重试次数
+    user:
+      endpoint: "discovery:///user"
+    feed:
+      endpoint: "discovery:///feed"
+    content:
+      endpoint: "discovery:///content"
+    elecprice:
+      endpoint: "discovery:///elecprice"
+    classlist:
+      endpoint: "discovery:///classlist"
+    classService:
+      endpoint: "discovery:///class"
+    grade:
+      endpoint: "discovery:///grade"
+    library:
+      endpoint: "discovery:///library"
+    counter:
+      endpoint: "discovery:///counter"
+
+
+jwt:
+  jwtKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  refreshKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  encKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+oss:
+  accessKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  secretKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  bucketName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  domainName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # CDN 域名
+  baseName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  fileName: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# 日志配置
+log:
+  path: "/logs/app.log"  # 日志文件路径
+  maxSize: 100           # 单个日志文件的最大大小（MB）
+  maxBackups: 7          # 保留旧日志文件的最大数量
+  maxAge: 30             # 日志文件保留天数
+  compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+
+# Prometheus 配置
+prometheus:
+  namespace: "ccnubox" # Prometheus 命名空间，通常为项目名称
+
+  routerCounter:
+    name: "http_requests_total"  # 路由请求总数指标名称
+    help: "Total number of HTTP requests" # 指标说明
+
+  activeConnections:
+    name: "active_connections"  # 活跃连接指标名称
+    help: "Number of active connections per route" # 指标说明
+
+  durationTime:
+    name: "http_request_duration_seconds"  # 请求时长直方图名称
+    help: "Histogram of response times for HTTP requests" # 指标说明
+
+  dailyActiveUsers:
+    name: "daily_active_users"  # 日活指标名称
+    help: "Number of active users in last 24 hours calculated by Redis HyperLogLog" # 指标说明
+
+basicAuth:
+  username: "user"
+  password: "password"
+
+otel:
+  serviceName: "bff"
+  serviceVersion: "1.0.0"
+  endpoint: "ccnubox-otel"

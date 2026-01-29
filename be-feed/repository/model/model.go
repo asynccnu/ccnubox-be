@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // ExtendFields 是自定义类型，表示可以包含任意键值对的扩展字段,通过序列化和反序列化进行操作,实际使用量较小所以json也OK
@@ -61,17 +62,18 @@ const (
 	GradePos
 	HolidayPos
 	MuxiPos
+	FeedBackPos
 )
 
-// UserFeedConfig 表示用户的 Feed 配置
-type UserFeedConfig struct {
+// FeedUserConfig 表示用户的 Feed 配置
+type FeedUserConfig struct {
 	StudentId  string `gorm:"column:student_id;type:varchar(255);not null;uniqueIndex"`
 	PushConfig uint16 `gorm:"column:push_config;type:SMALLINT UNSIGNED;not null;default:31"` // 16位二进制，默认值 0000 0000 0001 1111 (十进制 31)
 	BaseModel
 }
 
-// Token 表，存储每个用户的推送 Token
-type Token struct {
+// FeedUserToken 表，存储每个用户的推送 FeedUserToken
+type FeedUserToken struct {
 	StudentId string `gorm:"column:student_id;not null"`
 	Token     string `gorm:"column:token;type:VARCHAR(255);not null"` // 单个 token
 	BaseModel

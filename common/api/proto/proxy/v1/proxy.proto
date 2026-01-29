@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package  proxy.v1;
+
+option go_package = "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1;proxyv1";
+
+service Proxy {
+  rpc GetProxyAddr(GetProxyAddrRequest) returns (GetProxyAddrResponse);
+}
+
+message GetProxyAddrRequest {
+
+}
+
+message GetProxyAddrResponse {
+  string addr = 1;
+  string backup = 2;
+}

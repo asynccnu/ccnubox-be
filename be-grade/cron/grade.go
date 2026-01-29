@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	classlistv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
-	counterv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/counter/v1"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
-	userv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/user/v1"
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
+	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
+	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-redsync/redsync/v4"
-	"github.com/spf13/viper"
 )
 
 type GradeController struct {
@@ -23,15 +23,9 @@ type GradeController struct {
 	gradeService service.GradeService
 	rankService  service.RankService
 	stopChan     chan struct{}
-	cfg          gradeControllerConfig
+	cfg          *conf.GradeConf
 	l            logger.Logger
 	muRedis      *redsync.Redsync
-}
-
-type gradeControllerConfig struct {
-	Low    int64 `yaml:"low"`
-	Middle int64 `yaml:"middle"`
-	High   int64 `yaml:"high"`
 }
 
 func NewGradeController(
@@ -43,12 +37,8 @@ func NewGradeController(
 	gradeService service.GradeService,
 	rankService service.RankService,
 	muRedis *redsync.Redsync,
+	cfg *conf.ServerConf,
 ) *GradeController {
-	var cfg gradeControllerConfig
-	if err := viper.UnmarshalKey("gradeController", &cfg); err != nil {
-		panic(err)
-	}
-
 	return &GradeController{
 		counter:      counter,
 		gradeService: gradeService,
@@ -57,7 +47,7 @@ func NewGradeController(
 		classlist:    classlist,
 		userClient:   userClient,
 		stopChan:     make(chan struct{}),
-		cfg:          cfg,
+		cfg:          cfg.GradeConf,
 		l:            l,
 		muRedis:      muRedis,
 	}
@@ -125,7 +115,8 @@ func (c *GradeController) publishMSG(label string) {
 			//获取学生id
 			res, err := c.classlist.GetStuIdByJxbId(ctx, &classlistv1.GetStuIdByJxbIdRequest{JxbId: grade.JxbId})
 			if err != nil {
-				return
+				c.l.Error("获取学生ID失败", logger.Error(err), logger.String("JxbId", grade.JxbId))
+				continue
 			}
 
 			//更改等级到最高级别
@@ -137,14 +128,14 @@ func (c *GradeController) publishMSG(label string) {
 
 			if err != nil {
 				c.l.Error("更改优先级发生错误", logger.Error(err))
-				return
+				continue
 			}
 
 			//推送
 			_, err = c.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 				StudentId: studentId,
 				Event: &feedv1.FeedEvent{
-					Type:    "grade",
+					Type:    feedv1.FeedEventType_GRADE,
 					Title:   "成绩更新提醒",
 					Content: fmt.Sprintf("您的课程:%s分数更新了,请及时查看", grade.Kcmc),
 				},

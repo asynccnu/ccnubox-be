@@ -11,6 +11,7 @@ message Bootstrap {
   ZapLogConfigs zaplog = 4;
   SchoolDay schoolday = 5;
   Defaults defaults = 6;
+  string env =7; // 开发环境
 }
 
 message Server {
@@ -57,6 +58,7 @@ message Etcd {
 message Registry {
   Etcd etcd = 1;
   string usersvc = 2;
+  string proxysvc = 3;
 }
 message ZapLogConfigs {
   string log_level = 1;          // 日志打印级别 debug, info, warning, error

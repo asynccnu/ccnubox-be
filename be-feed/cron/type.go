@@ -8,6 +8,7 @@ type Cron interface {
 
 func NewCron(
 	muxi *MuxiController,
+	holiday *HolidayController,
 ) []Cron {
-	return []Cron{muxi}
+	return []Cron{muxi, holiday}
 }

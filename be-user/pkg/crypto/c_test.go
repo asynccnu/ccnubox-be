@@ -9,7 +9,7 @@ import (
 )
 
 func TestDecrypt(t *testing.T) {
-	encodedCiphertext := "cw6i42Acv3+Iu0dIGJbRRZqg84wiQLSGBqM="
+	encodedCiphertext := "xxxxxxxx"
 	ciphertext, err := base64.StdEncoding.DecodeString(encodedCiphertext)
 	if err != nil {
 		fmt.Println(err)

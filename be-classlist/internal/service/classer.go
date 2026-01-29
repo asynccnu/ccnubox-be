@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	pb "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1" //此处改成了be-api中的,方便其他服务调用.
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
+	pb "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1" //此处改成了api中的,方便其他服务调用.
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/jinzhu/copier"
 )
@@ -56,7 +56,7 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		return &pb.GetClassResponse{}, errcode.ErrParam
 	}
 	pclasses := make([]*pb.Class, 0)
-	classInfos, lastTime, err := s.clu.GetClasses(ctx, req.GetStuId(), req.GetYear(), req.GetSemester(), req.GetRefresh())
+	classInfos, lastTime, err := s.clu.GetClasses(ctx, req.GetStuId(), req.Year, req.Semester, req.GetRefresh())
 	if err != nil {
 		return &pb.GetClassResponse{}, err
 	}
@@ -88,6 +88,7 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		LastTime: lastTimeStamp,
 	}, nil
 }
+
 func (s *ClassListService) AddClass(ctx context.Context, req *pb.AddClassRequest) (*pb.AddClassResponse, error) {
 	valLogger := log.With(s.logger,
 		"stu_id", req.GetStuId(), "year", req.GetYear(), "semester", req.GetSemester())
@@ -264,7 +265,6 @@ func (s *ClassListService) GetStuIdByJxbId(ctx context.Context, req *pb.GetStuId
 	ctx = classLog.WithLogger(ctx, valLogger)
 	stuIds, err := s.clu.GetStuIdsByJxbId(ctx, req.GetJxbId())
 	if err != nil {
-
 		return &pb.GetStuIdByJxbIdResponse{}, errcode.ErrGetStuIdByJxbId
 	}
 	return &pb.GetStuIdByJxbIdResponse{
@@ -344,6 +344,15 @@ func (s *ClassListService) DeleteClassNote(ctx context.Context, req *pb.DeleteCl
 	}
 	return &pb.DeleteClassNoteResp{
 		Msg: "删除课程备注成功",
+	}, nil
+}
+
+func (s *ClassListService) GetClassNatures(ctx context.Context, req *pb.GetClassNaturesReq) (*pb.GetClassNaturesResp, error) {
+	valLogger := log.With(s.logger, "stu_id", req.GetStuId())
+	ctx = classLog.WithLogger(ctx, valLogger)
+	natures := s.clu.GetClassNatures(ctx, req.GetStuId())
+	return &pb.GetClassNaturesResp{
+		ClassNatures: natures,
 	}, nil
 }
 

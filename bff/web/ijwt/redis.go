@@ -138,9 +138,9 @@ func (r *RedisJWTHandler) CheckSession(ctx *gin.Context, ssid string) (bool, err
 // NewRedisJWTHandler 创建并返回一个新的 RedisJWTHandler 实例
 func NewRedisJWTHandler(cmd redis.Cmdable, jwtKey string, rcJWTKey string, encKey string) Handler {
 	return &RedisJWTHandler{
-		cmd:           cmd,                     //redis实体
-		signingMethod: jwt.SigningMethodHS256,  //签名的加密方式
-		rcExpiration:  time.Hour * 24 * 30 * 6, //设置为六个月之后过期
+		cmd:           cmd,                     // redis实体
+		signingMethod: jwt.SigningMethodHS256,  // 签名的加密方式
+		rcExpiration:  time.Hour * 24 * 30 * 6, // 设置为六个月之后过期
 		jwtKey:        []byte(jwtKey),
 		rcJWTKey:      []byte(rcJWTKey),
 		encKey:        []byte(encKey),

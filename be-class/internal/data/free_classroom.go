@@ -137,12 +137,11 @@ func (f *FreeClassroomData) ClearClassroomOccupancy(ctx context.Context, year, s
 	return nil
 }
 
-func (f *FreeClassroomData) QueryAvailableClassrooms(ctx context.Context, year, semester string, week, day, section int, wherePrefix string) (map[string]bool, error) {
-
-	allWheres, err := f.getAllWheres(ctx, wherePrefix)
-	if err != nil {
-		return nil, err
+func (f *FreeClassroomData) QueryAvailableClassrooms(ctx context.Context, year, semester string, week, day, section int, wherePrefix string, allWheres []string) (map[string]bool, error) {
+	if len(allWheres) == 0 {
+		return nil, fmt.Errorf("allWheres is empty, cannot query available classrooms")
 	}
+
 	var occupancyStat = make(map[string]bool, len(allWheres))
 	//先全部标记为空闲
 	for _, w := range allWheres {
@@ -160,6 +159,7 @@ func (f *FreeClassroomData) QueryAvailableClassrooms(ctx context.Context, year, 
 
 	return occupancyStat, nil
 }
+
 func (f *FreeClassroomData) getAllWheres(ctx context.Context, wherePrefix string) ([]string, error) {
 	boolQuery := elastic.NewBoolQuery().
 		Must(

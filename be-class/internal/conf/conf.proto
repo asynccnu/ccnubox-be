@@ -10,6 +10,7 @@ message Bootstrap {
   Data data = 2;
   Registry registry = 3;
   string proxyStuId = 4; // 执行定时任务时使用的学生ID
+  string env =5; // 开发环境
 }
 
 message Server {
@@ -25,6 +26,7 @@ message Server {
   }
   HTTP http = 1;
   GRPC grpc = 2;
+  string name = 3;
 }
 
 message Data {
@@ -40,8 +42,16 @@ message Data {
     string addr = 1;
     string password = 2;
   }
+  message DataBase {
+    string dsn = 1;
+    int32 data_alive = 2;
+    string log_level = 3;
+    string log_path = 4;
+    string log_file_name = 5;
+  }
   ES es = 1;
   Redis redis = 2;
+  DataBase database = 3;
 }
 message Etcd {
   string addr = 1;
@@ -50,4 +60,7 @@ message Etcd {
 }
 message Registry {
   Etcd etcd = 1;
+  string proxysvc = 2;
+  string classlistsvc = 3;
+  string usersvc = 4;
 }

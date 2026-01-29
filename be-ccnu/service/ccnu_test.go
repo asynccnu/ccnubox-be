@@ -2,9 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 
-	"github.com/asynccnu/ccnubox-be/be-ccnu/pkg/logger"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"google.golang.org/grpc"
 )
 
 type TestLogger struct {
@@ -26,9 +29,19 @@ func (t *TestLogger) Error(msg string, args ...logger.Field) {
 
 }
 
+func (t *TestLogger) WithContext(ctx context.Context) logger.Logger {
+	return &TestLogger{}
+}
+
+type MockProxy struct{}
+
+func (m *MockProxy) GetProxyAddr(ctx context.Context, in *proxyv1.GetProxyAddrRequest, opts ...grpc.CallOption) (*proxyv1.GetProxyAddrResponse, error) {
+	return nil, errors.New("mock")
+}
+
 func Test_ccnuService_getGradCookie(t *testing.T) {
 	testLogger := new(TestLogger)
-	ccs := NewCCNUService(testLogger)
+	ccs := NewCCNUService(testLogger, &MockProxy{})
 	stuId, password := "", ""
 	cookie, err := ccs.GetLibraryCookie(context.Background(), stuId, password)
 	if err != nil {

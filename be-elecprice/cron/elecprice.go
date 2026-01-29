@@ -3,46 +3,40 @@ package cron
 import (
 	"context"
 	"fmt"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/pkg/logger"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/service"
-	"github.com/spf13/viper"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-elecprice/conf"
+	"github.com/asynccnu/ccnubox-be/be-elecprice/service"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type ElecpriceController struct {
 	feedClient      feedv1.FeedServiceClient
 	elecpriceSerice service.ElecpriceService
 	stopChan        chan struct{}
-	cfg             ElecpriceControllerConfig
+	durationTime    time.Duration
 	l               logger.Logger
-}
-
-type ElecpriceControllerConfig struct {
-	DurationTime int64 `yaml:"durationTime"`
 }
 
 func NewElecpriceController(
 	feedClient feedv1.FeedServiceClient,
 	elecpriceSerice service.ElecpriceService,
 	l logger.Logger,
+	cfg *conf.ServerConf,
 ) *ElecpriceController {
-	var cfg ElecpriceControllerConfig
-	if err := viper.UnmarshalKey("elecpriceController", &cfg); err != nil {
-		panic(err)
-	}
 	return &ElecpriceController{
 		feedClient:      feedClient,
 		elecpriceSerice: elecpriceSerice,
 		stopChan:        make(chan struct{}),
-		cfg:             cfg,
+		durationTime:    time.Duration(cfg.ElecpriceController.DurationTime) * time.Hour,
 		l:               l,
 	}
 }
 
 func (r *ElecpriceController) StartCronTask() {
 	go func() {
-		ticker := time.NewTicker(time.Duration(r.cfg.DurationTime) * time.Hour)
+		ticker := time.NewTicker(r.durationTime)
 		for {
 			select {
 			case <-ticker.C:
@@ -73,9 +67,9 @@ func (r *ElecpriceController) publishMSG() error {
 			_, err = r.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 				StudentId: msgs[i].StudentId,
 				Event: &feedv1.FeedEvent{
-					Type:    "energy",
+					Type:    feedv1.FeedEventType_ENERGY,
 					Title:   "电费不足提醒",
-					Content: fmt.Sprintf("您的房间%s当前的电费为:%s,低于设置阈值,请及时充费", *(msgs[i].RoomName), *(msgs[i].Remain)),
+					Content: fmt.Sprintf("房间%s剩余 %s 元，已低于设定阈值 %d 元，请及时充值。", *(msgs[i].RoomName), *(msgs[i].Remain), *(msgs[i].Limit)),
 				},
 			})
 		}

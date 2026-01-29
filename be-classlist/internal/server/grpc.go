@@ -1,16 +1,17 @@
 package server
 
 import (
-	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classlist/v1"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/metrics"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/service"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/ratelimit"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	"time"
 )
 
 // NewGRPCServer new a gRPC server.

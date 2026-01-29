@@ -38,9 +38,16 @@ func NewJPushClient(AppKey string, MasterSecret string) PushClient {
 }
 
 func (c *client) Push(ids []string, pushData PushData) error {
+	// 如果无推送目标直接跳过
+	if len(ids) == 0 {
+		return nil
+	}
+
 	//设置推送对象
 	var at jpush.Audience
+
 	at.SetID(ids)
+
 	// 设置智能推送以及智能推送的内容
 	var n jpush.Notification
 

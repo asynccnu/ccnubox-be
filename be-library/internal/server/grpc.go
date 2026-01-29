@@ -1,9 +1,9 @@
 package server
 
 import (
-	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/service"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
 
 	"github.com/asynccnu/ccnubox-be/be-library/pkg/metrics"
 	"github.com/go-kratos/kratos/v2/log"

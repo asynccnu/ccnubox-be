@@ -41,7 +41,7 @@ var (
 	gregorian = map[string]string{
 		"01-01": "元旦节",
 		"05-01": "五一劳动节",
-		"04-05": "清明节", //清明是24节气,是根据太阳历定的,不是阴历,所以在农历中时间不固定,但是公历中时间相对固定一般是 04-04 ~ 04-06这里取05
+		"04-05": "清明节", // 清明是24节气,是根据太阳历定的,不是阴历,所以在农历中时间不固定,但是公历中时间相对固定一般是 04-04 ~ 04-06这里取05
 		"10-01": "国庆节",
 	}
 	lunar = map[string]string{
@@ -52,15 +52,14 @@ var (
 )
 
 func IsHoliday(t time.Time) string {
-	date := t.Format("2006-01-02")
 
 	// 检查公历节日
-	if holiday, exists := gregorian[date]; exists {
+	if holiday, exists := gregorian[t.Format("01-02")]; exists {
 		return holiday
 	}
 
 	// 检查农历节日
-	lunarDate := gregorianToLunar(date)
+	lunarDate := gregorianToLunar(t.Format("2006-01-02"))
 	if holiday, exists := lunar[lunarDate]; exists {
 		return holiday
 	}

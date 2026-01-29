@@ -1,121 +1,4 @@
 definitions:
-  banner.Banner:
-    properties:
-      id:
-        type: integer
-      picture_link:
-        type: string
-      web_link:
-        type: string
-    required:
-    - id
-    - picture_link
-    - web_link
-    type: object
-  banner.DelBannerRequest:
-    properties:
-      id:
-        type: integer
-    required:
-    - id
-    type: object
-  banner.GetBannersResponse:
-    properties:
-      banners:
-        items:
-          $ref: '#/definitions/banner.Banner'
-        type: array
-    required:
-    - banners
-    type: object
-  banner.SaveBannerRequest:
-    properties:
-      id:
-        description: 可选,如果新增记录不用填写
-        type: integer
-      picture_link:
-        type: string
-      web_link:
-        type: string
-    required:
-    - picture_link
-    - web_link
-    type: object
-  calendar.Calendar:
-    properties:
-      link:
-        type: string
-      year:
-        type: integer
-    required:
-    - link
-    - year
-    type: object
-  calendar.DelCalendarRequest:
-    properties:
-      year:
-        type: integer
-    required:
-    - year
-    type: object
-  calendar.GetCalendarsResponse:
-    properties:
-      calendars:
-        items:
-          $ref: '#/definitions/calendar.Calendar'
-        type: array
-    type: object
-  calendar.SaveCalendarRequest:
-    properties:
-      link:
-        type: string
-      year:
-        type: integer
-    required:
-    - link
-    - year
-    type: object
-  card.GetRecordOfConsumptionRequest:
-    properties:
-      key:
-        type: string
-      start_time:
-        type: string
-      type:
-        type: string
-    type: object
-  card.GetRecordOfConsumptionResponse:
-    properties:
-      records:
-        items:
-          $ref: '#/definitions/card.Records'
-        type: array
-    type: object
-  card.NoteUserKeyRequest:
-    properties:
-      key:
-        type: string
-    type: object
-  card.Records:
-    properties:
-      SMT_DEALDATETIME:
-        type: string
-      SMT_DEALNAME:
-        type: string
-      SMT_ORG_NAME:
-        type: string
-      SMT_TIMES:
-        type: integer
-      after_money:
-        type: number
-      money:
-        type: number
-    type: object
-  card.UpdateUserKeyRequest:
-    properties:
-      key:
-        type: string
-    type: object
   class.AddClassRequest:
     properties:
       credit:
@@ -215,6 +98,34 @@ definitions:
     - where
     - year
     type: object
+  class.ClassToBeStudiedInfo:
+    properties:
+      credit:
+        description: 学分
+        type: string
+      id:
+        description: 课程ID
+        type: string
+      name:
+        description: 课程名称
+        type: string
+      property:
+        description: 课程性质，
+        type: string
+      status:
+        description: 课程状态，未修读/修读中/已修读
+        type: string
+      studiable:
+        description: 开设学年期
+        type: string
+    required:
+    - credit
+    - id
+    - name
+    - property
+    - status
+    - studiable
+    type: object
   class.DeleteClassNoteReq:
     properties:
       classId:
@@ -278,6 +189,36 @@ definitions:
     required:
     - holiday_time
     - school_time
+    type: object
+  class.GetToBeStudiedClassReq:
+    properties:
+      status:
+        description: 课程状态，未修读/修读中/已修读
+        type: string
+    required:
+    - status
+    type: object
+  class.GetToBeStudiedClassResp:
+    properties:
+      common_educate:
+        description: 通识教育课
+        items:
+          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+        type: array
+      identity_develop:
+        description: 个性发展课
+        items:
+          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+        type: array
+      specific_skill:
+        description: 专业主干课
+        items:
+          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+        type: array
+    required:
+    - common_educate
+    - identity_develop
+    - specific_skill
     type: object
   class.RecoverClassRequest:
     properties:
@@ -382,14 +323,58 @@ definitions:
           $ref: '#/definitions/classroom.ClassroomAvailableStat'
         type: array
     type: object
-  department.DelDepartmentRequest:
+  content.Banner:
+    properties:
+      id:
+        type: integer
+      picture_link:
+        type: string
+      web_link:
+        type: string
+    type: object
+  content.Calendar:
+    properties:
+      link:
+        type: string
+      year:
+        type: integer
+    type: object
+  content.DelBannerRequest:
     properties:
       id:
         type: integer
     required:
     - id
     type: object
-  department.Department:
+  content.DelCalendarRequest:
+    properties:
+      year:
+        type: integer
+    required:
+    - year
+    type: object
+  content.DelDepartmentRequest:
+    properties:
+      id:
+        type: integer
+    required:
+    - id
+    type: object
+  content.DelInfoSumRequest:
+    properties:
+      id:
+        type: integer
+    required:
+    - id
+    type: object
+  content.DelWebsiteRequest:
+    properties:
+      id:
+        type: integer
+    required:
+    - id
+    type: object
+  content.Department:
     properties:
       id:
         type: integer
@@ -401,23 +386,79 @@ definitions:
         type: string
       time:
         type: string
-    required:
-    - id
-    - name
-    - phone
-    - place
-    - time
     type: object
-  department.GetDepartmentsResponse:
+  content.GetBannersResponse:
+    properties:
+      banners:
+        items:
+          $ref: '#/definitions/content.Banner'
+        type: array
+    type: object
+  content.GetCalendarsResponse:
+    properties:
+      calendars:
+        items:
+          $ref: '#/definitions/content.Calendar'
+        type: array
+    type: object
+  content.GetDepartmentsResponse:
     properties:
       departments:
         items:
-          $ref: '#/definitions/department.Department'
+          $ref: '#/definitions/content.Department'
         type: array
-    required:
-    - departments
     type: object
-  department.SaveDepartmentRequest:
+  content.GetInfoSumsResponse:
+    properties:
+      info_sums:
+        items:
+          $ref: '#/definitions/content.InfoSum'
+        type: array
+    type: object
+  content.GetWebsitesResponse:
+    properties:
+      websites:
+        items:
+          $ref: '#/definitions/content.Website'
+        type: array
+    type: object
+  content.InfoSum:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
+    type: object
+  content.SaveBannerRequest:
+    properties:
+      id:
+        description: 可选,如果新增记录不用填写
+        type: integer
+      picture_link:
+        type: string
+      web_link:
+        type: string
+    required:
+    - picture_link
+    - web_link
+    type: object
+  content.SaveCalendarRequest:
+    properties:
+      link:
+        type: string
+      year:
+        type: integer
+    required:
+    - link
+    - year
+    type: object
+  content.SaveDepartmentRequest:
     properties:
       id:
         description: 可选,如果新增记录不用填写
@@ -430,11 +471,57 @@ definitions:
         type: string
       time:
         type: string
+    type: object
+  content.SaveInfoSumRequest:
+    properties:
+      description:
+        type: string
+      id:
+        description: 可选,如果新增记录不用填写
+        type: integer
+      image:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
     required:
+    - description
+    - image
+    - link
     - name
-    - phone
-    - place
-    - time
+    type: object
+  content.SaveWebsiteRequest:
+    properties:
+      description:
+        type: string
+      id:
+        description: 可选,如果新增记录不用填写
+        type: integer
+      image:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
+    required:
+    - description
+    - image
+    - link
+    - name
+    type: object
+  content.Website:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
     type: object
   elecprice.Architecture:
     properties:
@@ -470,10 +557,16 @@ definitions:
     type: object
   elecprice.GetPriceResponse:
     properties:
-      price:
+      ac_price:
+        $ref: '#/definitions/elecprice.Price'
+      light_price:
+        $ref: '#/definitions/elecprice.Price'
+      union_price:
         $ref: '#/definitions/elecprice.Price'
     required:
-    - price
+    - ac_price
+    - light_price
+    - union_price
     type: object
   elecprice.GetRoomInfoResponse:
     properties:
@@ -508,13 +601,19 @@ definitions:
     type: object
   elecprice.Room:
     properties:
-      room_id:
+      ac:
+        type: string
+      light:
         type: string
       room_name:
         type: string
+      union:
+        type: string
     required:
-    - room_id
+    - ac
+    - light
     - room_name
+    - union
     type: object
   elecprice.SetStandardRequest:
     properties:
@@ -543,6 +642,8 @@ definitions:
     properties:
       energy:
         type: boolean
+      feedback:
+        type: boolean
       grade:
         type: boolean
       holiday:
@@ -551,6 +652,7 @@ definitions:
         type: boolean
     required:
     - energy
+    - feedback
     - grade
     - holiday
     - muxi
@@ -563,9 +665,6 @@ definitions:
       status:
         description: 有三个可选字段all表示清除所有消息,read表示清除所有已读消息,unread表示清除所有未读消息
         type: string
-    required:
-    - feed_id
-    - status
     type: object
   feed.FeedEventVO:
     properties:
@@ -586,18 +685,12 @@ definitions:
         type: string
       type:
         type: string
-    required:
-    - content
-    - created_at
-    - extend_fields
-    - id
-    - read
-    - title
-    - type
     type: object
   feed.GetFeedAllowListResp:
     properties:
       energy:
+        type: boolean
+      feed_back:
         type: boolean
       grade:
         type: boolean
@@ -605,11 +698,6 @@ definitions:
         type: boolean
       muxi:
         type: boolean
-    required:
-    - energy
-    - grade
-    - holiday
-    - muxi
     type: object
   feed.GetFeedEventsResp:
     properties:
@@ -624,8 +712,6 @@ definitions:
         items:
           $ref: '#/definitions/feed.MuxiOfficialMSG'
         type: array
-    required:
-    - msg_list
     type: object
   feed.MuxiOfficialMSG:
     properties:
@@ -643,12 +729,22 @@ definitions:
         type: integer
       title:
         type: string
+    type: object
+  feed.PublicFeedEventReq:
+    properties:
+      content:
+        type: string
+      student_id:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
     required:
     - content
-    - extend_fields
-    - id
-    - public_time
+    - student_id
     - title
+    - type
     type: object
   feed.PublicMuxiOfficialMSGReq:
     properties:
@@ -663,11 +759,6 @@ definitions:
         type: integer
       title:
         type: string
-    required:
-    - content
-    - extend_fields
-    - later_time
-    - title
     type: object
   feed.PublicMuxiOfficialMSGResp:
     properties:
@@ -683,12 +774,6 @@ definitions:
         type: string
       title:
         type: string
-    required:
-    - content
-    - extend_fields
-    - id
-    - public_time
-    - title
     type: object
   feed.ReadFeedEventReq:
     properties:
@@ -717,62 +802,6 @@ definitions:
         type: string
     required:
     - id
-    type: object
-  feedback_help.ChangeQuestionReq:
-    properties:
-      answer:
-        type: string
-      question:
-        type: string
-      question_id:
-        type: integer
-    type: object
-  feedback_help.CreateQuestionReq:
-    properties:
-      answer:
-        type: string
-      question:
-        type: string
-    type: object
-  feedback_help.DeleteQuestionReq:
-    properties:
-      question_id:
-        type: integer
-    type: object
-  feedback_help.FindQuestionsByNameResp:
-    properties:
-      questions:
-        items:
-          $ref: '#/definitions/feedback_help.FrequentlyAskedQuestion'
-        type: array
-    type: object
-  feedback_help.FrequentlyAskedQuestion:
-    properties:
-      answer:
-        type: string
-      clickTimes:
-        description: |-
-          Utime      time.Time
-          Ctime      time.Time
-        type: integer
-      id:
-        type: integer
-      question:
-        type: string
-    type: object
-  feedback_help.GetQuestionsResp:
-    properties:
-      questions:
-        items:
-          $ref: '#/definitions/feedback_help.FrequentlyAskedQuestion'
-        type: array
-    type: object
-  feedback_help.NoteQuestionReq:
-    properties:
-      if_over:
-        type: boolean
-      question_id:
-        type: integer
     type: object
   grade.GetGradeByTermReq:
     properties:
@@ -808,6 +837,14 @@ definitions:
         type: array
     required:
     - type_of_grade_scores
+    type: object
+  grade.GetGradeTypeResp:
+    properties:
+      kcxzmc:
+        description: 课程类别
+        items:
+          type: string
+        type: array
     type: object
   grade.GetRankByTermReq:
     properties:
@@ -914,60 +951,6 @@ definitions:
     required:
     - grade_score_list
     - kcxzmc
-    type: object
-  infoSum.DelInfoSumRequest:
-    properties:
-      id:
-        type: integer
-    required:
-    - id
-    type: object
-  infoSum.GetInfoSumsResponse:
-    properties:
-      info_sums:
-        items:
-          $ref: '#/definitions/infoSum.InfoSum'
-        type: array
-    required:
-    - info_sums
-    type: object
-  infoSum.InfoSum:
-    properties:
-      description:
-        type: string
-      id:
-        type: integer
-      image:
-        type: string
-      link:
-        type: string
-      name:
-        type: string
-    required:
-    - description
-    - id
-    - image
-    - link
-    - name
-    type: object
-  infoSum.SaveInfoSumRequest:
-    properties:
-      description:
-        type: string
-      id:
-        description: 可选,如果新增记录不用填写
-        type: integer
-      image:
-        type: string
-      link:
-        type: string
-      name:
-        type: string
-    required:
-    - description
-    - image
-    - link
-    - name
     type: object
   library.Comment:
     properties:
@@ -1175,9 +1158,7 @@ definitions:
       end:
         type: string
       room_ids:
-        items:
-          type: string
-        type: array
+        type: string
       start:
         type: string
     type: object
@@ -1257,35 +1238,6 @@ definitions:
         description: 错误信息
         type: string
     type: object
-  static.GetStaticByLabelsResp:
-    properties:
-      statics:
-        items:
-          $ref: '#/definitions/static.StaticVo'
-        type: array
-    type: object
-  static.SaveStaticReq:
-    properties:
-      content:
-        type: string
-      labels:
-        additionalProperties:
-          type: string
-        type: object
-      name:
-        type: string
-    type: object
-  static.StaticVo:
-    properties:
-      content:
-        type: string
-      labels:
-        additionalProperties:
-          type: string
-        type: object
-      name:
-        type: string
-    type: object
   tube.GetTubeTokenData:
     properties:
       access_token:
@@ -1319,60 +1271,6 @@ definitions:
       msg:
         type: string
     type: object
-  website.DelWebsiteRequest:
-    properties:
-      id:
-        type: integer
-    required:
-    - id
-    type: object
-  website.GetWebsitesResponse:
-    properties:
-      websites:
-        items:
-          $ref: '#/definitions/website.Website'
-        type: array
-    required:
-    - websites
-    type: object
-  website.SaveWebsiteRequest:
-    properties:
-      description:
-        type: string
-      id:
-        description: 可选,如果新增记录不用填写
-        type: integer
-      image:
-        type: string
-      link:
-        type: string
-      name:
-        type: string
-    required:
-    - description
-    - image
-    - link
-    - name
-    type: object
-  website.Website:
-    properties:
-      description:
-        type: string
-      id:
-        type: integer
-      image:
-        type: string
-      link:
-        type: string
-      name:
-        type: string
-    required:
-    - description
-    - id
-    - image
-    - link
-    - name
-    type: object
 info:
   contact: {}
 paths:
@@ -1387,14 +1285,19 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/infoSum.DelInfoSumRequest'
+          $ref: '#/definitions/content.DelInfoSumRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功
           schema:
-            $ref: '#/definitions/web.Response'
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/content.GetInfoSumsResponse'
+              type: object
       summary: 删除信息整合信息
       tags:
       - InfoSum
@@ -1409,7 +1312,7 @@ paths:
             - $ref: '#/definitions/web.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/infoSum.GetInfoSumsResponse'
+                  $ref: '#/definitions/content.GetInfoSumsResponse'
               type: object
       summary: 获取信息整合列表
       tags:
@@ -1425,14 +1328,19 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/infoSum.SaveInfoSumRequest'
+          $ref: '#/definitions/content.SaveInfoSumRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功
           schema:
-            $ref: '#/definitions/web.Response'
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/content.GetInfoSumsResponse'
+              type: object
       summary: 保存信息整合信息
       tags:
       - InfoSum
@@ -1447,7 +1355,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/banner.DelBannerRequest'
+          $ref: '#/definitions/content.DelBannerRequest'
       produces:
       - application/json
       responses:
@@ -1469,7 +1377,7 @@ paths:
             - $ref: '#/definitions/web.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/banner.GetBannersResponse'
+                  $ref: '#/definitions/content.GetBannersResponse'
               type: object
       summary: 获取 banner 列表
       tags:
@@ -1485,7 +1393,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/banner.SaveBannerRequest'
+          $ref: '#/definitions/content.SaveBannerRequest'
       produces:
       - application/json
       responses:
@@ -1507,7 +1415,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/calendar.DelCalendarRequest'
+          $ref: '#/definitions/content.DelCalendarRequest'
       produces:
       - application/json
       responses:
@@ -1520,11 +1428,7 @@ paths:
       - calendar
   /calendar/getCalendars:
     get:
-      consumes:
-      - application/json
       description: 获取日历列表
-      produces:
-      - application/json
       responses:
         "200":
           description: 成功
@@ -1533,7 +1437,7 @@ paths:
             - $ref: '#/definitions/web.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/calendar.GetCalendarsResponse'
+                  $ref: '#/definitions/content.GetCalendarsResponse'
               type: object
       summary: 获取日历列表
       tags:
@@ -1549,7 +1453,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/calendar.SaveCalendarRequest'
+          $ref: '#/definitions/content.SaveCalendarRequest'
       produces:
       - application/json
       responses:
@@ -1560,90 +1464,6 @@ paths:
       summary: 保存日历内容
       tags:
       - calendar
-  /card/getRecords:
-    post:
-      consumes:
-      - application/json
-      description: 【弃用】获取用户消费记录，student_id, start_time, type 必须存在，type 分为 "card"（实体卡）与
-        "virtual"（虚拟卡）
-      parameters:
-      - description: 获取消费记录
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/card.GetRecordOfConsumptionRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            allOf:
-            - $ref: '#/definitions/web.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/card.GetRecordOfConsumptionResponse'
-              type: object
-        "500":
-          description: 创建失败
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 获取消费记录
-      tags:
-      - card[Deprecation]
-  /card/noteUserKey:
-    post:
-      consumes:
-      - application/json
-      description: 【弃用】记录用户的key
-      parameters:
-      - description: 记录用户的key
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/card.NoteUserKeyRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            $ref: '#/definitions/web.Response'
-        "500":
-          description: 创建失败
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 记录用户的key
-      tags:
-      - card[Deprecation]
-  /card/updateUserKey:
-    post:
-      consumes:
-      - application/json
-      description: 【弃用】更新用户的key
-      parameters:
-      - description: 更新用户的key
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/card.UpdateUserKeyRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            $ref: '#/definitions/web.Response'
-        "500":
-          description: 创建失败
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 更新用户的key
-      tags:
-      - card[Deprecation]
   /class/add:
     post:
       consumes:
@@ -1922,6 +1742,78 @@ paths:
       summary: 搜索课程
       tags:
       - class
+  /class/toBeStudied:
+    get:
+      consumes:
+      - application/json
+      description: 获取需要上的课程, 返回全部课程
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取待修课程
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  allOf:
+                  - $ref: '#/definitions/class.GetToBeStudiedClassResp'
+                  - properties:
+                      common_educate:
+                        items:
+                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+                        type: array
+                      identity_develop:
+                        items:
+                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+                        type: array
+                      specific_skill:
+                        items:
+                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
+                        type: array
+                    type: object
+              type: object
+      summary: 获取人培课程(全部)
+      tags:
+      - class
+    post:
+      consumes:
+      - application/json
+      description: 根据用户选择返回各种状态的课程
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 获取待修课请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/class.GetToBeStudiedClassReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取待修课程
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.GetToBeStudiedClassResp'
+              type: object
+      summary: 获取人培课程(部分)
+      tags:
+      - class
   /class/update:
     put:
       consumes:
@@ -2014,17 +1906,12 @@ paths:
       - application/json
       description: 删除部门信息
       parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: 删除部门信息请求参数
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/department.DelDepartmentRequest'
+          $ref: '#/definitions/content.DelDepartmentRequest'
       produces:
       - application/json
       responses:
@@ -2038,12 +1925,6 @@ paths:
   /department/getDepartments:
     get:
       description: 获取部门列表
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       responses:
         "200":
           description: 成功
@@ -2052,7 +1933,7 @@ paths:
             - $ref: '#/definitions/web.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/department.GetDepartmentsResponse'
+                  $ref: '#/definitions/content.GetDepartmentsResponse'
               type: object
       summary: 获取部门列表
       tags:
@@ -2063,17 +1944,12 @@ paths:
       - application/json
       description: 保存部门信息
       parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: 保存部门信息请求参数
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/department.SaveDepartmentRequest'
+          $ref: '#/definitions/content.SaveDepartmentRequest'
       produces:
       - application/json
       responses:
@@ -2172,7 +2048,7 @@ paths:
         required: true
         type: string
       - in: query
-        name: room_id
+        name: room_name
         required: true
         type: string
       produces:
@@ -2468,6 +2344,38 @@ paths:
       summary: 获取待发布的官方消息
       tags:
       - feed
+  /feed/publicFeedEvent:
+    post:
+      consumes:
+      - application/json
+      description: 发布消息
+      parameters:
+      - description: 消息
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feed.PublicFeedEventReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "403":
+          description: 没有访问权限
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - BasicAuth: []
+      summary: 发布消息
+      tags:
+      - feed
   /feed/publicMuxiOfficialMSG:
     post:
       consumes:
@@ -2636,164 +2544,6 @@ paths:
       summary: 停止木犀官方消息
       tags:
       - feed
-  /feedback_help/changeQuestion:
-    post:
-      consumes:
-      - application/json
-      description: 修改一个常见问题的内容与答复
-      parameters:
-      - description: 修改常见问题
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/feedback_help.ChangeQuestionReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            $ref: '#/definitions/web.Response'
-        "500":
-          description: 系统异常
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 修改一个问题与答复
-      tags:
-      - feedback_help[Deprecation]
-  /feedback_help/createQuestion:
-    post:
-      consumes:
-      - application/json
-      description: 创建一个常见问题的内容与答复
-      parameters:
-      - description: 创建一个常见问题
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/feedback_help.CreateQuestionReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            $ref: '#/definitions/web.Response'
-        "500":
-          description: 系统异常
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 创建一个问题与答复
-      tags:
-      - feedback_help[Deprecation]
-  /feedback_help/deleteQuestion:
-    post:
-      consumes:
-      - application/json
-      description: 删除一个常见问题的内容与答复
-      parameters:
-      - description: 删除常见问题
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/feedback_help.DeleteQuestionReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            $ref: '#/definitions/web.Response'
-        "500":
-          description: 系统异常
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 删除一个问题与答复
-      tags:
-      - feedback_help[Deprecation]
-  /feedback_help/findQuestionsByName:
-    get:
-      consumes:
-      - application/json
-      description: 对常见问题进行模糊搜索
-      parameters:
-      - description: 问题名称
-        in: query
-        name: question
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            allOf:
-            - $ref: '#/definitions/web.Response'
-            - properties:
-                date:
-                  $ref: '#/definitions/feedback_help.FindQuestionsByNameResp'
-              type: object
-        "500":
-          description: 系统异常
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 搜取问题
-      tags:
-      - feedback_help[Deprecation]
-  /feedback_help/getQuestion:
-    get:
-      consumes:
-      - application/json
-      description: 获取点击数量最多的10个常见问题
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            allOf:
-            - $ref: '#/definitions/web.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/feedback_help.GetQuestionsResp'
-              type: object
-        "500":
-          description: 系统异常
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 获取常见问题
-      tags:
-      - feedback_help[Deprecation]
-  /feedback_help/noteQuestion:
-    post:
-      consumes:
-      - application/json
-      description: 标记问题解决状态
-      parameters:
-      - description: 标记问题解决状态
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/feedback_help.NoteQuestionReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            $ref: '#/definitions/web.Response'
-        "500":
-          description: 系统异常
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 标记问题解决状态
-      tags:
-      - feedback_help[Deprecation]
   /grade/getGradeByTerm:
     post:
       consumes:
@@ -2847,6 +2597,30 @@ paths:
           schema:
             $ref: '#/definitions/web.Response'
       summary: 查询学分
+      tags:
+      - grade
+  /grade/getGradeType:
+    get:
+      consumes:
+      - application/json
+      description: 获取课程类别
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回课程列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/grade.GetGradeTypeResp'
+              type: object
+        "500":
+          description: 系统异常，获取失败
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 获取课程类别
       tags:
       - grade
   /grade/getRankByTerm:
@@ -3281,7 +3055,7 @@ paths:
       tags:
       - library
   /library/search_user:
-    post:
+    get:
       consumes:
       - application/json
       description: 传入学生学号获取对应的学生ID
@@ -3314,9 +3088,24 @@ paths:
       summary: 搜索学生ID
       tags:
       - library
+  /metrics:
+    get:
+      description: 暴露标准的 Prometheus 监控数据，供 Prometheus 定时拉取，使用BasicAuth进行验证
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Prometheus Exporter Text Data
+          schema:
+            type: string
+      security:
+      - BasicAuth: []
+      summary: 导出 Prometheus 监控指标
+      tags:
+      - metrics
   /metrics/:type/:name:
     post:
-      description: 用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/banner/xxx)表示跳转banner的xxx页面,使用这一路由必须携带Auth请求头
+      description: 用于打点的路由,如果是不经过后端的服务但是需要打点的话,可以使用这个路由自动记录(例如:/metrics/content/xxx)表示跳转banner的xxx页面,使用这一路由必须携带Auth请求头
       parameters:
       - description: 打点附带的信息,将会计入日志
         in: body
@@ -3332,79 +3121,21 @@ paths:
       summary: 用于打点的路由
       tags:
       - metrics
-  /statics:
+  /swag:
     get:
-      consumes:
-      - application/json
-      description: 【弃用】根据静态资源名称获取静态资源的内容。
-      parameters:
-      - description: 静态资源名称
-        in: query
-        name: static_name
-        required: true
-        type: string
+      description: 接口直接返回 docs/openapi3.yaml yaml格式的原始内容，使用BasicAuth进行验证
       produces:
-      - application/json
+      - application/x-yaml
       responses:
         "200":
-          description: 成功
+          description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/web.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/static.StaticVo'
-              type: object
-      summary: 获取静态资源[精确名称]
+            type: string
+      security:
+      - BasicAuth: []
+      summary: 获取 OpenAPI3 接口文档 (YAML)
       tags:
-      - statics[Deprecation]
-  /statics/match/labels:
-    get:
-      consumes:
-      - multipart/form-data
-      parameters:
-      - description: 标签：标明匹配哪一类的资源
-        in: query
-        name: labels[type]
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            allOf:
-            - $ref: '#/definitions/web.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/static.GetStaticByLabelsResp'
-              type: object
-      summary: 获取静态资源[标签匹配]
-      tags:
-      - statics[Deprecation]
-  /statics/save:
-    post:
-      consumes:
-      - application/json
-      description: 【弃用】保存静态内容
-      parameters:
-      - description: 保存静态内容请求参数
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/static.SaveStaticReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 保存静态内容
-      tags:
-      - statics[Deprecation]
+      - swag
   /tube/access_token:
     get:
       consumes:
@@ -3422,6 +3153,26 @@ paths:
                   $ref: '#/definitions/tube.GetTubeTokenData'
               type: object
       summary: 获取图床访问令牌
+      tags:
+      - tube
+  /tube/upload/official:
+    get:
+      consumes:
+      - application/json
+      description: 获取用于前端 CD 部署时上传官网资源到七牛云的令牌
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/tube.GetTubeTokenData'
+              type: object
+      summary: 获取官网上传令牌
       tags:
       - tube
   /users/deactivate:
@@ -3471,7 +3222,7 @@ paths:
       tags:
       - user
   /users/logout:
-    post:
+    get:
       consumes:
       - application/json
       description: 通过短token登出
@@ -3513,14 +3264,19 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/website.DelWebsiteRequest'
+          $ref: '#/definitions/content.DelWebsiteRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功
           schema:
-            $ref: '#/definitions/web.Response'
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/content.GetWebsitesResponse'
+              type: object
       summary: 删除网站信息
       tags:
       - website
@@ -3535,7 +3291,7 @@ paths:
             - $ref: '#/definitions/web.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/website.GetWebsitesResponse'
+                  $ref: '#/definitions/content.GetWebsitesResponse'
               type: object
       summary: 获取网站列表
       tags:
@@ -3551,14 +3307,19 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/website.SaveWebsiteRequest'
+          $ref: '#/definitions/content.SaveWebsiteRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 成功
           schema:
-            $ref: '#/definitions/web.Response'
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/content.GetWebsitesResponse'
+              type: object
       summary: 保存网站信息
       tags:
       - website

@@ -1,0 +1,143 @@
+version: "3.9"
+
+services:
+  mysql8:
+    container_name: ccnubox-mysql
+    image: mysql:8.0
+    networks:
+      - ccnubox-network
+    restart: always
+    command:
+      - --default_authentication_plugin=mysql_native_password
+      - --port=3306
+    ports:
+      - "13306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  etcd:
+    container_name: ccnubox-etcd
+    image: quay.io/coreos/etcd:v3.5.15
+    networks:
+      - ccnubox-network
+    restart: always
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    environment:
+      - TZ=Asia/Shanghai
+      - ETCDCTL_API=3
+    command:
+      - /usr/local/bin/etcd
+      - --name=s1
+      - --data-dir=/etcd-data
+      - --auth-token=simple
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://ccnubox-etcd:2379
+      - --listen-peer-urls=http://0.0.0.0:2380
+      - --initial-advertise-peer-urls=http://ccnubox-etcd:2380
+      - --initial-cluster=s1=http://ccnubox-etcd:2380
+      - --initial-cluster-state=new
+      - --logger=zap
+      - --log-outputs=stderr
+    volumes:
+      - etcd_data:/etcd-data
+
+  kafka:
+    container_name: ccnubox-kafka
+    image: apache/kafka:3.7.0
+    networks:
+      - ccnubox-network
+    restart: always
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://ccnubox-kafka:9092,PLAINTEXT_HOST://localhost:29092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@ccnubox-kafka:9093
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_LOG_DIRS=/var/lib/kafka/data
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+
+  elasticsearch:
+    container_name: ccnubox-elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0
+    networks:
+      - ccnubox-network
+    restart: always
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+      - "xpack.security.enabled=true"
+      - "ELASTIC_PASSWORD=12345678"
+      - TZ=Asia/Shanghai
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+  redis:
+    container_name: ccnubox-redis
+    image: redis:7.2
+    networks:
+      - ccnubox-network
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass 12345678 --port 6379
+    volumes:
+      - redis_data:/data
+
+  prometheus:
+    container_name: ccnubox-prometheus
+    image: prom/prometheus:v3.1.0
+    networks:
+      - ccnubox-network
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ../configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.listen-address=:9090"
+
+  node_exporter:
+    container_name: ccnubox-node-exporter
+    image: prom/node-exporter:latest
+    networks:
+      - ccnubox-network
+    restart: always
+    ports:
+      - "9100:9100"
+
+# --- 网络定义 ---
+networks:
+  ccnubox-network:
+    name: ccnubox-network
+    driver: bridge
+
+# --- 数据卷定义 ---
+volumes:
+  mysql_data:
+  etcd_data:
+  kafka_data:
+  es_data:
+  redis_data:
+  prometheus_data:

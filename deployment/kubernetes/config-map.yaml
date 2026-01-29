@@ -4,10 +4,10 @@ metadata:
   name: ccnube-config
   namespace: ccnube
 data:
-  be-banner.yaml: |
+  be-content.yaml: |
     grpc:
       server:
-        name: "banner"
+        name: "content"
         weight: 100
         addr: ":19080"
         etcdTTL: 60
@@ -206,33 +206,7 @@ data:
       maxBackups: 7          # 保留旧日志文件的最大数量
       maxAge: 30             # 日志文件保留天数
       compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
-  be-department.yaml: |
-    grpc:
-      server:
-        name: "department"
-        weight: 100
-        addr: ":19086"
-        etcdTTL: 60
 
-    redis:
-      addr: "redis-0.redis:6379"
-      password: ""
-
-    etcd:
-      endpoints:
-        - "etcd-0.etcd:12379"
-      username: root
-      password: ""
-
-    mysql:
-      dsn: "root:@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
-
-    log:
-      path: "/logs/app.log"  # 日志文件路径
-      maxSize: 100           # 单个日志文件的最大大小（MB）
-      maxBackups: 7          # 保留旧日志文件的最大数量
-      maxAge: 30             # 日志文件保留天数
-      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
   be-elecprice.yaml: |
     mysql:
       dsn: "root:@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
@@ -354,32 +328,6 @@ data:
       maxBackups: 7          # 保留旧日志文件的最大数量
       maxAge: 30             # 日志文件保留天数
       compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
-  be-infosum.yaml: |
-    grpc:
-      server:
-        name: "info_sum"
-        weight: 100
-        addr: ":19090"
-        etcdTTL: 60
-
-    etcd:
-      endpoints:
-        - "etcd-0.etcd:2379"
-      username: root
-      password: ""
-
-    redis:
-      addr: "redis-0.redis:6379"
-      password: ""
-
-    mysql:
-      dsn: "root:@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
-    log:
-      path: "/logs/app.log"  # 日志文件路径
-      maxSize: 100           # 单个日志文件的最大大小（MB）
-      maxBackups: 7          # 保留旧日志文件的最大数量
-      maxAge: 30             # 日志文件保留天数
-      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
 
   be-user.yaml: |
     mysql:
@@ -411,33 +359,6 @@ data:
         ccnu:
           endpoint: "discovery:///ccnu"
 
-  be-website.yaml: |
-    grpc:
-      server:
-        name: "website"
-        weight: 100
-        addr: ":19092"
-        etcdTTL: 60
-
-    etcd:
-      endpoints:
-        - "etcd-0.etcd:12379"
-      username: root
-      password: ""
-
-    redis:
-      addr: "redis-0.redis:6379"
-      password: ""
-
-    mysql:
-      dsn: "root:@tcp(mysql-0.mysql:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
-
-    log:
-      path: "/logs/app.log"  # 日志文件路径
-      maxSize: 100           # 单个日志文件的最大大小（MB）
-      maxBackups: 7          # 保留旧日志文件的最大数量
-      maxAge: 30             # 日志文件保留天数
-      compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
 
   bff.yaml: |
     http:
@@ -464,34 +385,20 @@ data:
           retryCnt: 3    # 具备重试装饰时的重试次数
         user:
           endpoint: "discovery:///user"
-        static:
-          endpoint: "discovery:///static"
         feed:
           endpoint: "discovery:///feed"
-        banner:
-          endpoint: "discovery:///banner"
         calendar:
           endpoint: "discovery:///calendar"
-        department:
-          endpoint: "discovery:///department"
-        website:
-          endpoint: "discovery:///website"
         elecprice:
           endpoint: "discovery:///elecprice"
         classlist:
           endpoint: "discovery:///be-classlist"
         classService:
           endpoint: "discovery:///be-class"
-        feedbackHelp:
-          endpoint: "discovery:///feedback_help"
         grade:
           endpoint: "discovery:///grade"
-        infoSum:
-          endpoint: "discovery:///info_sum"
         counter:
           endpoint: "discovery:///counter"
-        card:
-          endpoint: "discovery:///card"
 
     jwt:
       jwtKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"

@@ -24,3 +24,21 @@ type CTWPair struct {
 	CT    CTime  // 上课时间
 	Where string // 上课地点
 }
+
+type ToBeStudiedClass struct {
+	Id        string `gorm:"primaryKey;column:id" json:"id"`             //课程ID
+	Name      string `gorm:"column:name;not null" json:"name"`           //课程名称
+	Property  string `gorm:"column:property;not null" json:"property"`   //课程性质
+	Credit    string `gorm:"column:credit;not null" json:"credit"`       // 学分
+	Studiable string `gorm:"column:studiable;not null" json:"studiable"` //开设学年期
+	Type      string `gorm:"column:type;not null" json:"type"`           // 个性0/通识1/专业2
+}
+
+type UnStudiedClassStudentRelationship struct {
+	Id                 uint   `gorm:"primaryKey;column:id;auto_increment" json:"id"`                                         // 自增主键
+	StudentId          string `gorm:"column:student_id;Index:uniq_idx_stu_class" json:"student_id"`                          // 学号
+	ToBeStudiedClassId string `gorm:"column:to_be_studied_class_id;Index:uniq_idx_stu_class" json:"to_be_studied_class_id" ` // 课程id
+	Status             string `gorm:"column:status;not null" json:"status"`                                                  //未修读/修读中/已修读
+	CreatedAt          int64  `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt          int64  `gorm:"column:updated_at" json:"updated_at"`
+}

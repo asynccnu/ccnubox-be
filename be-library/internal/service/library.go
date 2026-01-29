@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	pb "github.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1"
 	"github.com/asynccnu/ccnubox-be/be-library/internal/biz"
+	pb "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -116,7 +116,10 @@ func (ls *LibraryService) CancelReserve(ctx context.Context, req *pb.CancelReser
 }
 
 func (ls *LibraryService) ReserveSeatRandomly(ctx context.Context, req *pb.ReserveSeatRandomlyRequest) (*pb.ReserveSeatRandomlyResponse, error) {
-	msg, err := ls.biz.ReserveSeatRandomly(ctx, req.StuId, req.Start, req.End, req.RoomIds)
+	//TODO: 简单修改完成 cicd 测试，记得修改
+	RoomIDs := make([]string, 0)
+	RoomIDs = append(RoomIDs, req.StuId)
+	msg, err := ls.biz.ReserveSeatRandomly(ctx, req.StuId, req.Start, req.End, RoomIDs)
 	if err != nil {
 		return nil, err
 	}

@@ -30,7 +30,15 @@ func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*d
 	}
 
 	db := c.data.DB(ctx).Table(do.ClassInfoTableName).WithContext(ctx)
-	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&classInfos).Error
+	err := db.Debug().
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"nature",
+				"jxb_id",
+			}),
+		}).
+		Create(&classInfos).Error
 	if err != nil {
 		logh.Errorf("Mysql:create %v in %s failed: %v", classInfos, do.ClassInfoTableName, err)
 		return err
@@ -106,13 +114,9 @@ func (c ClassInfoDBRepo) GetAllClassInfos(ctx context.Context, xnm, xqm string, 
 		cla = make([]*do.ClassInfo, 0)
 	)
 	err := db.Table(do.ClassInfoTableName).
-		Where(fmt.Sprintf(
-			`%s.year = ? AND %s.semester = ? AND %s.created_at > ?`, do.ClassInfoTableName, do.ClassInfoTableName, do.ClassInfoTableName),
-			xnm, xqm, cursor,
-		).
-		Order(fmt.Sprintf(
-			"%s.created_at ASC", do.ClassInfoTableName,
-		)).
+		Where("created_at > ? and id in (select distinct cla_id from student_course where year = ? and semester = ? and is_manually_added = ?)",
+			cursor, xnm, xqm, false).
+		Order("created_at ASC").
 		Limit(100). //最多100个
 		Find(&cla).Error
 
@@ -143,4 +147,27 @@ func (c ClassInfoDBRepo) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm
 		return nil, err
 	}
 	return cla, nil
+}
+
+func (c ClassInfoDBRepo) GetClassNaturesFromDB(ctx context.Context, stuID string) ([]string, error) {
+	logh := classLog.GetLogHelperFromCtx(ctx)
+	db := c.data.Mysql.WithContext(ctx)
+
+	var natures []string
+
+	subQuery := db.
+		Table(do.StudentCourseTableName).
+		Select("cla_id").
+		Where("stu_id = ?", stuID)
+
+	err := db.
+		Table(do.ClassInfoTableName).
+		Distinct("nature").
+		Where("id IN (?) AND nature IS NOT NULL", subQuery).
+		Pluck("nature", &natures).Error
+	if err != nil {
+		logh.Errorf("mysql failed to find classNatures from db: %v", err)
+		return nil, err
+	}
+	return natures, nil
 }

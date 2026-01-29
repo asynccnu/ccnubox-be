@@ -5,9 +5,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-grade/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-redsync/redsync/v4"
 	cronv3 "github.com/robfig/cron/v3"
 )

@@ -2,63 +2,46 @@ package middleware
 
 import (
 	"errors"
+	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"strings"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	"github.com/ecodeclub/ekit/set"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"strings"
 )
 
 type LoginMiddleware struct {
-	allowRestrictedAccessPaths set.Set[string]
-	ijwt.Handler
+	handler    ijwt.Handler
+	userClient userv1.UserServiceClient
 }
 
-// TODO 登陆中间件是从课栈抄的,有很多东西没有清理
-func NewLoginMiddleWare(hdl ijwt.Handler) *LoginMiddleware {
-	s := set.NewMapSet[string](3)
-	s.Add("/evaluations/list/all")
+func NewLoginMiddleWare(hdl ijwt.Handler, userClient userv1.UserServiceClient) *LoginMiddleware {
+
 	l := &LoginMiddleware{
-		allowRestrictedAccessPaths: s,
-		Handler:                    hdl,
+		handler:    hdl,
+		userClient: userClient,
 	}
 	return l
 }
 
-func (m *LoginMiddleware) allowRestrictedAccess(path string) bool {
-	if m.allowRestrictedAccessPaths.Exist(path) {
-		return true
-	}
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) == 3 && parts[0] == "evaluations" && parts[2] == "detail" {
-		return true
-	}
-
-	return false
-}
-
 func (m *LoginMiddleware) MiddlewareFunc() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		// 放行游客可访问的路由，
 		uc, err := m.extractUserClaimsFromAuthorizationHeader(ctx)
-		if err == nil {
-			//设置claims
-			ginx.SetClaims[ijwt.UserClaims](ctx, uc)
-		} else {
-			if m.allowRestrictedAccess(ctx.Request.URL.Path) {
-				ginx.SetClaims[ijwt.UserClaims](ctx, uc)
-			} else {
-				ctx.Error(errs.UNAUTHORIED_ERROR(errors.New("身份验证失败!")))
-				return
-			}
+		if err != nil {
+			ctx.Error(errs.UNAUTHORIED_ERROR(errors.New("身份验证失败!")))
+			return
 		}
+		// 设置claims并执行下一个
+		ginx.SetClaims[ijwt.UserClaims](ctx, uc)
+		ctx.Next()
 	}
 }
 
 func (m *LoginMiddleware) extractUserClaimsFromAuthorizationHeader(ctx *gin.Context) (ijwt.UserClaims, error) {
 	authCode := ctx.GetHeader("Authorization")
+
 	// 没token
 	if authCode == "" {
 		return ijwt.UserClaims{}, errors.New("authorization为空")
@@ -69,15 +52,18 @@ func (m *LoginMiddleware) extractUserClaimsFromAuthorizationHeader(ctx *gin.Cont
 	if len(segs) != 2 {
 		return ijwt.UserClaims{}, errors.New("authorization为空格式不合理")
 	}
+
 	tokenStr := segs[1]
 	uc := ijwt.UserClaims{}
+
 	token, err := jwt.ParseWithClaims(tokenStr, &uc, func(*jwt.Token) (interface{}, error) {
 		// 可以根据具体情况给出不同的key
-		return m.JWTKey(), nil
+		return m.handler.JWTKey(), nil
 	})
 	if err != nil {
 		return ijwt.UserClaims{}, err
 	}
+
 	if token == nil || !token.Valid {
 		return ijwt.UserClaims{}, errors.New("token无效")
 	}
@@ -89,11 +75,23 @@ func (m *LoginMiddleware) extractUserClaimsFromAuthorizationHeader(ctx *gin.Cont
 	//	return ijwt.UserClaims{}, errors.New("User-Agent验证：不安全")
 	//}
 
-	ok, err := m.CheckSession(ctx, uc.Ssid)
+	ok, err := m.handler.CheckSession(ctx, uc.Ssid)
 	if err != nil || ok {
 		// err如果是redis崩溃导致，考虑进行降级，不再验证是否退出 refresh_token降级的话收益会很少，因为是低频接口
-		// 这里 != nil 就是异常，可能崩溃，或连不上
 		return ijwt.UserClaims{}, errors.New("session检验：失败")
 	}
+	password, err := m.handler.DecryptPasswordFromClaims(&uc)
+	if err != nil {
+		return ijwt.UserClaims{}, err
+	}
+	// TODO 临时逻辑,用于解决秘钥不统一的问题,后续需要删除
+	_, err = m.userClient.SaveUser(ctx, &userv1.SaveUserReq{
+		StudentId: uc.StudentId,
+		Password:  password,
+	})
+	if err != nil {
+		return ijwt.UserClaims{}, err
+	}
+
 	return uc, nil
 }

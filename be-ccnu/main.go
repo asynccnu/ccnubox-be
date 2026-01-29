@@ -1,26 +1,47 @@
 package main
 
 import (
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
+	"github.com/joho/godotenv"
 )
 
-func main() {
-	initViper()
-	server := InitGRPCServer()
-	err := server.Serve()
-	if err != nil {
-		panic(err)
-	}
+func init() {
+	// 预加载.env文件,用于本地开发
+	_ = godotenv.Load()
 }
 
-func initViper() {
-	cfile := pflag.String("config", "config/config.yaml", "配置文件路径")
-	pflag.Parse()
+func main() {
+	app := InitApp()
+	app.Run()
+	return
+}
 
-	viper.SetConfigType("yaml")
-	viper.SetConfigFile(*cfile)
-	err := viper.ReadInConfig()
+type App struct {
+	shutdown func(ctx context.Context) error
+	server   grpcx.Server
+}
+
+func NewApp(server grpcx.Server, shutdown func(ctx context.Context) error) *App {
+	return &App{
+		shutdown: shutdown,
+		server:   server,
+	}
+}
+func (app *App) Run() {
+	// 优雅关闭
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := app.shutdown(ctx); err != nil {
+			panic(fmt.Sprintln("shutdown error:", err))
+		}
+	}()
+
+	err := app.server.Serve()
 	if err != nil {
 		panic(err)
 	}

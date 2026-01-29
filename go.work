@@ -1,20 +1,17 @@
-go 1.24.0
+go 1.24.4
 
 use (
-	./be-library
-	be-api
-	be-banner
-	be-calendar
+	common
+	be-library
+	be-proxy
 	be-ccnu
 	be-class
 	be-classlist
 	be-counter
-	be-department
 	be-elecprice
 	be-feed
 	be-grade
-	be-infosum
 	be-user
-	be-website
 	bff
+	be-content
 )

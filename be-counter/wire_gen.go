@@ -7,22 +7,26 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-counter/conf"
 	"github.com/asynccnu/ccnubox-be/be-counter/grpc"
 	"github.com/asynccnu/ccnubox-be/be-counter/ioc"
-	"github.com/asynccnu/ccnubox-be/be-counter/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/be-counter/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-counter/service"
 )
 
 // Injectors from wire.go:
 
-func InitGRPCServer() grpcx.Server {
-	cmdable := ioc.InitRedis()
+func InitApp() *App {
+	infraConf := conf.InitInfraConfig()
+	cmdable := ioc.InitRedis(infraConf)
 	counterCache := cache.NewRedisCounterCache(cmdable)
-	logger := ioc.InitLogger()
-	counterService := service.NewCachedCounterService(counterCache, logger)
+	serverConf := conf.InitServerConf()
+	logger := ioc.InitLogger(serverConf)
+	counterService := service.NewCachedCounterService(counterCache, logger, serverConf)
 	counterServiceServer := grpc.NewCounterServiceServer(counterService)
-	client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxKratosServer(counterServiceServer, client, logger)
-	return server
+	client := ioc.InitEtcdClient(infraConf)
+	server := ioc.InitGRPCxKratosServer(counterServiceServer, client, logger, infraConf)
+	v := ioc.InitOTel(serverConf)
+	app := NewApp(server, v)
+	return app
 }

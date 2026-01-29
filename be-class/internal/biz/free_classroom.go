@@ -6,8 +6,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
+	"sync"
 	"time"
+
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/robfig/cron/v3"
 
 	"github.com/asynccnu/ccnubox-be/be-class/internal/lock"
 	clog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
@@ -28,7 +34,7 @@ type FreeClassRoomData interface {
 	AddClassroomOccupancy(ctx context.Context, year, semester string, cwtPairs ...model.CTWPair) error
 	ClearClassroomOccupancy(ctx context.Context, year, semester string) error
 	GetAllClassroom(ctx context.Context, wherePrefix string) ([]string, error)
-	QueryAvailableClassrooms(ctx context.Context, year, semester string, week, day, section int, wherePrefix string) (map[string]bool, error)
+	QueryAvailableClassrooms(ctx context.Context, year, semester string, week, day, section int, wherePrefix string, allWheres []string) (map[string]bool, error)
 }
 
 type ClassData interface {
@@ -36,7 +42,7 @@ type ClassData interface {
 }
 
 type CookieClient interface {
-	GetCookie(ctx context.Context, stuID string) (string, error)
+	GetCookie(ctx context.Context, stuID string, tpe ...string) (string, error)
 }
 
 type FreeClassroomBiz struct {
@@ -45,10 +51,11 @@ type FreeClassroomBiz struct {
 	cookieCli         CookieClient
 	lockBuilder       lock.Builder
 	cache             Cache
+	p                 proxyv1.ProxyClient
 	httpCli           *http.Client
 }
 
-func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli CookieClient, lockBuilder lock.Builder, cache Cache) *FreeClassroomBiz {
+func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli CookieClient, lockBuilder lock.Builder, cache Cache, p proxyv1.ProxyClient) *FreeClassroomBiz {
 	httpCli := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        100,              // 最大空闲连接
@@ -61,14 +68,40 @@ func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli 
 		MaxIdleConnsPerHost: 20, // 每个主机最大空闲连接
 	}
 
-	return &FreeClassroomBiz{
+	fcb := &FreeClassroomBiz{
 		classData:         classData,
 		freeClassRoomData: data,
 		cookieCli:         cookieCli,
 		httpCli:           httpCli,
 		lockBuilder:       lockBuilder,
 		cache:             cache,
+		p:                 p,
 	}
+	fcb.pullProxy()
+	beginCronTask(fcb)
+
+	return fcb
+}
+
+func (f *FreeClassroomBiz) pullProxy() {
+	res, err := f.p.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
+	if err != nil {
+		log.Error("GetProxyAddr in pull proxy err:", err)
+		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
+	}
+	proxy, err := url.Parse(res.Addr)
+	if err != nil {
+		log.Error("parse proxy in pull proxy addr err:", err)
+	}
+
+	f.httpCli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxy)
+	log.Debug("pull proxy addr success, now: ", time.Now())
+}
+
+func beginCronTask(f *FreeClassroomBiz) {
+	cr := cron.New()
+	_, _ = cr.AddFunc("@every 160s", f.pullProxy)
+	cr.Start()
 }
 
 func (f *FreeClassroomBiz) ClearClassroomOccupancyFromES(ctx context.Context, year, semester string) error {
@@ -89,11 +122,10 @@ func (f *FreeClassroomBiz) SaveFreeClassRoomFromLocal(ctx context.Context, year,
 		classes, total, err := f.classData.GetBatchClassInfos(ctx, year, semester, page, pageSize)
 		if err != nil {
 			clog.LogPrinter.Errorf("failed to get batch classlist infos: %v", err)
-			return err
 		}
 		if len(classes) == 0 {
 			clog.LogPrinter.Warnf("get class from local es, but the length of res is 0")
-			return nil
+			break
 		}
 
 		// 加锁
@@ -138,6 +170,10 @@ func (f *FreeClassroomBiz) SaveFreeClassRoomFromLocal(ctx context.Context, year,
 
 		var cwtPairs []model.CTWPair
 		for _, class := range classes {
+			if tmp := strings.TrimSpace(class.Where); len(tmp) == 0 {
+				continue
+			}
+
 			var (
 				sections []int
 				weeks    []int
@@ -215,42 +251,99 @@ func (f *FreeClassroomBiz) SaveFreeClassRoomInfo(ctx context.Context, year, seme
 }
 
 func (f *FreeClassroomBiz) SearchAvailableClassroom(ctx context.Context, year, semester, stuID string, week, day int, sections []int, wherePrefix string) ([]service.AvailableClassroomStat, error) {
-	var (
-		classroomStats = make(map[string][]bool)
-		err            error
-	)
 
-	//先获取全部的教室
-	classroomSet, err := f.freeClassRoomData.GetAllClassroom(ctx, wherePrefix)
+	year = strings.Split(year, "-")[0]
+
+	// 先获取全部教室
+	classroomSet, err := f.getAllClassrooms(ctx, wherePrefix)
+
+	//爬取失败就使用本地数据
+	localFreeClassrooms, err := f.queryAvailableClassroomFromLocal(ctx, year, semester, week, day, sections, wherePrefix, classroomSet)
 	if err != nil {
 		return nil, err
 	}
-	//从教务系统中爬取
-	freeClassroomMp, err := f.getFreeClassrooms(ctx, year, semester, stuID, week, day, sections, wherePrefix)
-	if err == nil {
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	var mu sync.RWMutex
+
+	var crawClassroomStats = make(map[string][]bool)
+
+	var crawOk = false
+
+	go func() {
+		var once sync.Once
+		done := func() {
+			once.Do(func() {
+				wg.Done()
+			})
+		}
+
+		// 保证在主协程最多等待1.5秒
+		time.AfterFunc(1500*time.Millisecond, done)
+
+		defer done()
+
+		//从教务系统中爬取
+		freeClassroomMp, err := f.getFreeClassrooms(ctx, year, semester, stuID, week, day, sections, wherePrefix)
+		if err != nil {
+			return
+		}
+		mu.Lock()
+		defer func() {
+			crawOk = true
+			mu.Unlock()
+		}()
 		//如果爬取成功，则使用爬取的数据
 		for _, classroom := range classroomSet {
-			classroomStats[classroom] = make([]bool, len(sections))
+			crawClassroomStats[classroom] = make([]bool, len(sections))
 		}
 		var secIdx = make(map[int]int)
 		for k, v := range sections {
 			secIdx[v] = k
 		}
-		for sec, freeclassrooms := range freeClassroomMp {
-			for _, freeclassroom := range freeclassrooms {
-				if stats, ok := classroomStats[freeclassroom]; ok {
+		for sec, freeClassrooms := range freeClassroomMp {
+			for _, freeClassroom := range freeClassrooms {
+				if stats, ok := crawClassroomStats[freeClassroom]; ok {
 					stats[secIdx[sec]] = true
 				}
 			}
 		}
-		return toSerializableClassroomStats(classroomStats), nil
+	}()
+
+	wg.Wait()
+
+	mu.RLock()
+	defer mu.RUnlock()
+
+	if crawOk {
+		return toSerializableClassroomStats(crawClassroomStats), nil
 	}
-	//爬取失败就使用本地数据
-	classroomStats, err = f.queryAvailableClassroomFromLocal(ctx, year, semester, week, day, sections, wherePrefix)
+
+	return toSerializableClassroomStats(localFreeClassrooms), nil
+}
+
+func (f *FreeClassroomBiz) getAllClassrooms(ctx context.Context, wherePrefix string) ([]string, error) {
+	key := fmt.Sprintf("all_classrooms:%s", wherePrefix)
+
+	res, err := f.cache.SMembers(ctx, key)
+	if err == nil && len(res) > 0 {
+		return res, nil
+	}
+
+	rooms, err := f.freeClassRoomData.GetAllClassroom(ctx, wherePrefix)
 	if err != nil {
 		return nil, err
 	}
-	return toSerializableClassroomStats(classroomStats), nil
+
+	if len(rooms) == 0 {
+		return []string{}, fmt.Errorf("no classrooms found with prefix %s", wherePrefix)
+	}
+
+	_ = f.cache.SAdd(ctx, key, rooms)
+	_ = f.cache.SExpire(ctx, key, 7*24*time.Hour)
+	return rooms, nil
 }
 
 func toSerializableClassroomStats(classroomStats map[string][]bool) []service.AvailableClassroomStat {
@@ -264,10 +357,10 @@ func toSerializableClassroomStats(classroomStats map[string][]bool) []service.Av
 	return res
 }
 
-func (f *FreeClassroomBiz) queryAvailableClassroomFromLocal(ctx context.Context, year, semester string, week, day int, sections []int, wherePrefix string) (map[string][]bool, error) {
+func (f *FreeClassroomBiz) queryAvailableClassroomFromLocal(ctx context.Context, year, semester string, week, day int, sections []int, wherePrefix string, allWheres []string) (map[string][]bool, error) {
 	var classroomStats = make(map[string][]bool)
 	for i, section := range sections {
-		availableClassrooms, err := f.freeClassRoomData.QueryAvailableClassrooms(ctx, year, semester, week, day, section, wherePrefix)
+		availableClassrooms, err := f.freeClassRoomData.QueryAvailableClassrooms(ctx, year, semester, week, day, section, wherePrefix, allWheres)
 		if i == 0 {
 			if err != nil {
 				clog.LogPrinter.Errorf("failed to query available classrooms at the first section: %v", err)
@@ -299,10 +392,9 @@ func (f *FreeClassroomBiz) getFreeClassrooms(ctx context.Context, year, semester
 	if wherePrefix[0] == 'n' {
 		campus = 2
 	}
-	preYear := strings.Split(year, "-")[0]
 
 	// 先从缓存拿数据
-	freeClassroomCache, err := f.GetFreeClassRoomFromCache(ctx, preYear, semester, week, campus, day, sections, wherePrefix)
+	freeClassroomCache, err := f.GetFreeClassRoomFromCache(ctx, year, semester, week, campus, day, sections, wherePrefix)
 	if err == nil {
 		return freeClassroomCache, nil
 	}
@@ -317,7 +409,7 @@ func (f *FreeClassroomBiz) getFreeClassrooms(ctx context.Context, year, semester
 	}
 
 	for _, section := range sections {
-		classrooms, err := f.sendReqFindFreeClassRoom(campus, preYear, semester, wherePrefix, week, day, section, cookie)
+		classrooms, err := f.sendReqFindFreeClassRoom(campus, year, semester, wherePrefix, week, day, section, cookie)
 		if err != nil {
 			return nil, err
 		}
@@ -326,7 +418,7 @@ func (f *FreeClassroomBiz) getFreeClassrooms(ctx context.Context, year, semester
 	}
 
 	// 加载查询周所有空教室
-	go f.LoadOneWeekFreeClassRoom(context.Background(), stuID, preYear, semester, week)
+	go f.LoadOneWeekFreeClassRoom(context.Background(), stuID, year, semester, week)
 
 	return freeClassroomMp, nil
 }

@@ -2,24 +2,23 @@ package cron
 
 import (
 	"context"
-	"github.com/asynccnu/ccnubox-be/be-feed/domain"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/logger"
-	"github.com/asynccnu/ccnubox-be/be-feed/service"
-	"github.com/spf13/viper"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	"strings"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-feed/conf"
+	"github.com/asynccnu/ccnubox-be/be-feed/domain"
+	"github.com/asynccnu/ccnubox-be/be-feed/service"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type MuxiController struct {
-	muxi     service.MuxiOfficialMSGService
-	push     service.PushService
-	feed     service.FeedEventService
-	cfg      muxiControllerConfig
-	stopChan chan struct{}
-	l        logger.Logger
-}
-
-type muxiControllerConfig struct {
-	DurationTime int64 `yaml:"durationTime"`
+	muxi         service.MuxiOfficialMSGService
+	push         service.PushService
+	feed         service.FeedEventService
+	durationTime time.Duration
+	stopChan     chan struct{}
+	l            logger.Logger
 }
 
 func NewMuxiController(
@@ -27,27 +26,21 @@ func NewMuxiController(
 	feed service.FeedEventService,
 	push service.PushService,
 	l logger.Logger,
+	cfg *conf.ServerConf,
 ) *MuxiController {
-
-	var cfg muxiControllerConfig
-
-	if err := viper.UnmarshalKey("muxiController", &cfg); err != nil {
-		panic(err)
-	}
-
 	return &MuxiController{
-		muxi:     muxi,
-		push:     push,
-		feed:     feed,
-		cfg:      cfg,
-		stopChan: make(chan struct{}),
-		l:        l,
+		muxi:         muxi,
+		push:         push,
+		feed:         feed,
+		durationTime: time.Duration(cfg.MuxiController.DurationTime) * time.Second,
+		stopChan:     make(chan struct{}),
+		l:            l,
 	}
 }
 
 func (c *MuxiController) StartCronTask() {
 	go func() {
-		ticker := time.NewTicker(time.Duration(c.cfg.DurationTime) * time.Second)
+		ticker := time.NewTicker(c.durationTime)
 
 		for {
 			select {
@@ -66,28 +59,27 @@ func (c *MuxiController) StartCronTask() {
 func (c *MuxiController) publicMuxiFeed() {
 	ctx := context.Background()
 	//获取feed列表
-	msgs, err := c.muxi.GetToBePublicOfficialMSG(ctx)
+	msgs, err := c.muxi.GetToBePublicOfficialMSG(ctx, true)
 	if err != nil {
 		c.l.Warn("获取木犀消息失败!", logger.Error(err))
 		return
 	}
+	if len(msgs) == 0 {
+		return
+	}
+
 	for _, msg := range msgs {
-		if msg.PublicTime <= time.Now().Unix() {
-			err = c.muxi.StopMuxiOfficialMSG(ctx, msg.Id)
-			if err != nil {
-				return
-			}
-			//发布消息给全体成员
-			err := c.feed.PublicFeedEvent(ctx, true, domain.FeedEvent{
-				Type:         "muxi",
-				Title:        msg.Title,
-				Content:      msg.Content,
-				ExtendFields: msg.ExtendFields,
-			})
-			if err != nil {
-				c.l.Warn("消息推送失败!", logger.Error(err))
-				return
-			}
+		//发布消息给全体成员
+		err = c.feed.PublicFeedEvent(ctx, true, domain.FeedEvent{
+			Type:         strings.ToLower(feedv1.FeedEventType_MUXI.String()),
+			Title:        msg.Title,
+			Content:      msg.Content,
+			ExtendFields: msg.ExtendFields,
+		})
+
+		if err != nil {
+			c.l.Warn("消息推送失败!", logger.Error(err))
+			return
 		}
 	}
 

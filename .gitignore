@@ -36,14 +36,17 @@ bin/
 .vscode/
 .idea/
 *.swp
+*.env
 
 # deploy 
 /deploy/
 
 *.xlsx
 test.*
-configs/
-deployment/docker/logs
 
+deployment/docker/logs
+/volume/
 test.sh
 test.yaml
+
+config-local.yaml

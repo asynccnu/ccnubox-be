@@ -2,12 +2,13 @@ package data
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
+
 	"github.com/asynccnu/ccnubox-be/be-class/internal/conf"
 	clog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
 	"github.com/olivere/elastic/v7"
-	"os"
 )
 
 func NewEsClient(c *conf.Data) (*elastic.Client, error) {
@@ -34,7 +35,7 @@ func NewEsClient(c *conf.Data) (*elastic.Client, error) {
 	createIndex(ctx, cli, c.Es.KeepDataAfterRestart, classroomIndex, classroomMapping)
 
 	//存入classroom信息
-	err = createInitialClassrooms(cli, c.Es.Classroom)
+	err = createInitialClassrooms(cli)
 	if err != nil {
 		clog.LogPrinter.Errorf("es: failed to create initial classrooms: %v", err)
 		return nil, err
@@ -89,18 +90,17 @@ const (
 }`
 )
 
-func createInitialClassrooms(cli *elastic.Client, filePath string) error {
+// 这里直接在编译阶段就将其加载，防止出现挂载之类的问题
+//
+//go:embed classrooms.json
+var classListBytes []byte
+
+func createInitialClassrooms(cli *elastic.Client) error {
 	var data struct {
 		ClassRooms []string `json:"class_rooms"`
 	}
-	f, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 
-	decoder := json.NewDecoder(f)
-	err = decoder.Decode(&data)
+	err := json.Unmarshal(classListBytes, &data)
 	if err != nil {
 		return err
 	}

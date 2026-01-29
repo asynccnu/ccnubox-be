@@ -1,8 +1,8 @@
 package class
 
 type GetClassListRequest struct {
-	Year     string `form:"year"` // binding:"required" //学年,格式为"2024"代表"2024-2025学年"`
-	Semester string `form:"semester"`// binding:"required" // 为添加默认值处理的妥协做法
+	Year     string `form:"year"`     // binding:"required" //学年,格式为"2024"代表"2024-2025学年"`
+	Semester string `form:"semester"` // binding:"required" // 为添加默认值处理的妥协做法
 	Refresh  *bool  `form:"refresh" binding:"required"`
 }
 
@@ -20,6 +20,7 @@ type ClassInfo struct {
 	Year         string  `json:"year" binding:"required"`          //学年
 	Note         string  `json:"note" binding:"required"`          // 备注
 	IsOfficial   bool    `json:"is_official" binding:"required"`   // 是否为官方课程
+	Nature       string  `json:"nature" binding:"required"`        // 课程性质
 }
 
 type AddClassRequest struct {
@@ -128,4 +129,23 @@ type DeleteClassNoteReq struct {
 	Semester string `json:"semester" binding:"required"` //学期
 	Year     string `json:"year" binding:"required"`     //学年
 	ClassId  string `json:"classId" binding:"required"`  //课程ID
+}
+
+type ClassToBeStudiedInfo struct {
+	ID        string `json:"id" binding:"required"`        //课程ID
+	Name      string `json:"name" binding:"required"`      //课程名称
+	Status    string `json:"status" binding:"required"`    //课程状态，未修读/修读中/已修读
+	Property  string `json:"property" binding:"required"`  //课程性质，
+	Credit    string `json:"credit" binding:"required"`    //学分
+	Studiable string `json:"studiable" binding:"required"` //开设学年期
+}
+
+type GetToBeStudiedClassResp struct {
+	IdentityDevelop []ClassToBeStudiedInfo `json:"identity_develop" binding:"required"` // 个性发展课
+	SpecificSkill   []ClassToBeStudiedInfo `json:"specific_skill" binding:"required"`   // 专业主干课
+	CommonEducate   []ClassToBeStudiedInfo `json:"common_educate" binding:"required"`   // 通识教育课
+}
+
+type GetToBeStudiedClassReq struct {
+	Status string `form:"status" binding:"required"` // 课程状态，未修读/修读中/已修读
 }

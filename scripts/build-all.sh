@@ -10,30 +10,20 @@ trap 'echo "Script interrupted."; exit 1' SIGINT
 # shellcheck disable=SC2034
 ds=(
   "be-banner"
-  "be-calendar"
   "be-ccnu"
   "be-class"
   "be-classlist"
   "be-counter"
-  "be-department"
   "be-elecprice"
   "be-feed"
   "be-grade"
   "be-library"
-  "be-infosum"
-  "be-website"
   "bff"
 )
 
 imageRepo=$1
 
-CRYPTO_KEY=$2
-
-## 这里注意需要自己配置一个加密key，否则会使用默认的key，存在安全隐患
-## 本地调试可忽略
-if [[ -n "$CRYPTO_KEY" ]]; then
-  CRYPTO_KEY="muxiStudio123456"
-fi
+CRYPTO_KEY=${2:-"0123456789abcdef"}
 
 for d in "${ds[@]}"; do
   echo -e "🔧🔧🔧 Building and pushing image for $d 🔧🔧🔧\n"

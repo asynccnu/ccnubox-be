@@ -1,27 +1,39 @@
 package ioc
 
 import (
+	"fmt"
+
+	"github.com/asynccnu/ccnubox-be/bff/conf"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/qiniu/api.v7/v7/storage"
-	"github.com/spf13/viper"
 )
 
-func InitPutPolicy() storage.PutPolicy {
+type TubePolicies struct {
+	defaultPolicy storage.PutPolicy
+	officialSite  storage.PutPolicy
+}
+
+func InitTubePolicies(cfg *conf.ServerConf) *TubePolicies {
+	return &TubePolicies{
+		defaultPolicy: InitPutPolicy(cfg),
+		officialSite:  InitOfficialSitePutPolicy(cfg),
+	}
+}
+
+func InitPutPolicy(cfg *conf.ServerConf) storage.PutPolicy {
 	return storage.PutPolicy{
-		Scope:   viper.GetString("oss.bucketName"),
+		Scope:   cfg.Oss.BucketName,
 		Expires: 60 * 60 * 24, // 一天过期
 	}
 }
 
-func InitMac() *qbox.Mac {
-	type oss struct {
-		AccessKey string `json:"accessKey"`
-		SecretKey string `json:"secretKey"`
+func InitOfficialSitePutPolicy(cfg *conf.ServerConf) storage.PutPolicy {
+	return storage.PutPolicy{
+		Scope:   fmt.Sprintf("%s:%s%s", cfg.Oss.BucketName, cfg.Oss.BaseName, cfg.Oss.FileName),
+		Expires: 60 * 60,
 	}
-	var cfg oss
-	err := viper.UnmarshalKey("oss", &cfg)
-	if err != nil {
-		panic(err)
-	}
-	return qbox.NewMac(cfg.AccessKey, cfg.SecretKey)
+}
+
+func InitMac(cfg *conf.ServerConf) *qbox.Mac {
+	return qbox.NewMac(cfg.Oss.AccessKey, cfg.Oss.SecretKey)
 }

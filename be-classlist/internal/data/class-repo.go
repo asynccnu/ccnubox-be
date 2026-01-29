@@ -398,3 +398,21 @@ func (cla ClassRepo) UpdateClassNote(ctx context.Context, stuID, year, semester,
 
 	return nil
 }
+
+func (cla ClassRepo) GetClassNatures(ctx context.Context, stuID string) []string {
+	classNatures, err := cla.ClaRepo.DB.GetClassNaturesFromDB(ctx, stuID)
+	if err != nil {
+		return nil
+	}
+	if len(classNatures) == 0 {
+		return nil
+	}
+	// 去除掉长度为0的元素
+	filteredNatures := make([]string, 0, len(classNatures))
+	for _, nature := range classNatures {
+		if len(nature) > 0 {
+			filteredNatures = append(filteredNatures, nature)
+		}
+	}
+	return filteredNatures
+}

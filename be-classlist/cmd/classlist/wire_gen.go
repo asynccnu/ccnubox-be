@@ -27,7 +27,8 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, defaults *conf.Defaults, writer io.Writer, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, defaults *conf.Defaults, writer io.Writer, logger log.Logger) (*kratos.App, func(), error) {
+	env := client.NewEnv(string2)
 	db := data.NewDB(confData, writer, logger)
 	dataData, cleanup, err := data.NewData(confData, db, logger)
 	if err != nil {
@@ -41,15 +42,20 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	studentAndCourseCacheRepo := data.NewStudentAndCourseCacheRepo(redisClient, confServer)
 	studentAndCourseRepo := data.NewStudentAndCourseRepo(studentAndCourseDBRepo, studentAndCourseCacheRepo)
 	classRepo := data.NewClassRepo(classInfoRepo, dataData, studentAndCourseRepo)
-	crawlerCrawler := crawler.NewClassCrawler()
-	jxbDBRepo := data.NewJxbDBRepo(dataData, logger)
 	etcdRegistry := registry.NewRegistrarServer(confRegistry, logger)
-	userServiceClient, err := client.NewClient(etcdRegistry, confRegistry, logger)
+	proxyClient, err := client.InitProxyClient(etcdRegistry, confRegistry, logger, env)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	ccnuService := client.NewCCNUService(userServiceClient)
+	proxyGetter := crawler.NewProxyGetter(proxyClient)
+	crawler3 := crawler.NewClassCrawler3(proxyGetter)
+	jxbDBRepo := data.NewJxbDBRepo(dataData, logger)
+	userSvc, err := client.NewUserSvc(etcdRegistry, confRegistry, env)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
 	kafkaProducerBuilder := data.NewKafkaProducerBuilder(confData)
 	kafkaConsumerBuilder := data.NewKafkaConsumerBuilder(confData)
 	delayKafkaConfig := data.NewDelayKafkaConfig()
@@ -59,10 +65,10 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 		return nil, nil, err
 	}
 	refreshLogRepo := data.NewRefreshLogRepo(db, confServer)
-	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawlerCrawler, jxbDBRepo, ccnuService, delayKafka, refreshLogRepo, confServer)
+	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawler3, jxbDBRepo, userSvc, delayKafka, refreshLogRepo, confServer)
 	classListService := service.NewClasserService(classUsecase, schoolDay, logger, defaults)
 	grpcServer := server.NewGRPCServer(confServer, classListService, logger)
-	app := newApp(logger, grpcServer, etcdRegistry)
+	app := newApp(env, logger, grpcServer, etcdRegistry, confServer)
 	return app, func() {
 		cleanup3()
 		cleanup2()

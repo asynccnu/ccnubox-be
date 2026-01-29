@@ -3,20 +3,20 @@ package service
 import (
 	"context"
 	"fmt"
-	feedv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/feed/v1"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/producer"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/topic"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-feed/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 // FeedEventService
 type FeedEventService interface {
-	GetFeedEvents(ctx context.Context, studentId string) (
-		feedEvents []domain.FeedEventVO, fail []domain.FeedEvent, err error)
+	GetFeedEvents(ctx context.Context, studentId string) (feedEvents []domain.FeedEventVO, fail []domain.FeedEvent, err error)
 	ReadFeedEvent(ctx context.Context, id int64) error
 	ClearFeedEvent(ctx context.Context, studentId string, feedId int64, status string) error
 	InsertEventList(ctx context.Context, feedEvents []domain.FeedEvent) []error
@@ -38,11 +38,10 @@ var (
 )
 
 type feedEventService struct {
-	feedEventDAO     dao.FeedEventDAO
-	feedFailEventDAO dao.FeedFailEventDAO
-
+	feedEventDAO      dao.FeedEventDAO
+	feedFailEventDAO  dao.FeedFailEventDAO
 	feedEventCache    cache.FeedEventCache
-	userFeedConfigDAO dao.UserFeedConfigDAO
+	feedUserConfigDAO dao.FeedUserConfigDAO
 	feedProducer      producer.Producer
 	l                 logger.Logger
 }
@@ -50,7 +49,7 @@ type feedEventService struct {
 func NewFeedEventService(
 	feedEventDAO dao.FeedEventDAO,
 	feedEventCache cache.FeedEventCache,
-	userFeedConfigDAO dao.UserFeedConfigDAO,
+	feedUserConfigDAO dao.FeedUserConfigDAO,
 	feedFailEventDAO dao.FeedFailEventDAO,
 	feedProducer producer.Producer,
 	l logger.Logger,
@@ -58,7 +57,7 @@ func NewFeedEventService(
 	return &feedEventService{
 		feedEventCache:    feedEventCache,
 		feedEventDAO:      feedEventDAO,
-		userFeedConfigDAO: userFeedConfigDAO,
+		feedUserConfigDAO: feedUserConfigDAO,
 		feedFailEventDAO:  feedFailEventDAO,
 		feedProducer:      feedProducer,
 		l:                 l,
@@ -159,7 +158,7 @@ func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, even
 
 		for {
 			// 获取一批 studentIds
-			studentIds, newLastId, err := s.userFeedConfigDAO.GetStudentIdsByCursor(ctx, lastId, batchSize)
+			studentIds, newLastId, err := s.feedUserConfigDAO.GetStudentIdsByCursor(ctx, lastId, batchSize)
 			if err != nil {
 				s.l.Error("获取用户studentIds错误", logger.Error(err), logger.Int64("当前索引:", lastId))
 			}

@@ -4,7 +4,10 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
 	"github.com/asynccnu/ccnubox-be/be-grade/cron"
+	"github.com/asynccnu/ccnubox-be/be-grade/events"
+	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
 	"github.com/asynccnu/ccnubox-be/be-grade/grpc"
 	"github.com/asynccnu/ccnubox-be/be-grade/ioc"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
@@ -14,6 +17,10 @@ import (
 
 func InitApp() App {
 	wire.Build(
+		conf.InitInfraConfig,
+		conf.InitServerConf,
+		events.NewGradeDetailEventConsumerHandler,
+		producer.NewSaramaProducer,
 		grpc.NewGradeGrpcService,
 		service.NewGradeService,
 		service.NewRankService,
@@ -21,15 +28,19 @@ func InitApp() App {
 		dao.NewRankDAO,
 		// 第三方
 		ioc.InitEtcdClient,
+		ioc.InitOTel,
 		ioc.InitDB,
 		ioc.InitLogger,
 		ioc.InitGRPCxKratosServer,
 		ioc.InitUserClient,
+		ioc.InitProxyClient,
 		ioc.InitCounterClient,
 		ioc.InitFeedClient,
-		ioc.InitClasslistClient,
-		ioc.InitRedis,
+		ioc.InitClassListClient,
+		ioc.InitRedisClient,
 		ioc.InitRedisLock,
+		ioc.InitKafka,
+		ioc.InitConsumers,
 		cron.NewGradeController,
 		cron.NewCron,
 		NewApp,

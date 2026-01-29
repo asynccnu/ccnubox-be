@@ -3,7 +3,7 @@ package errs
 import (
 	"net/http"
 
-	"github.com/asynccnu/ccnubox-be/bff/pkg/errorx"
+	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/apierr"
 )
 
 // TODO 细化错误码,根据错误类型区分不同的错误码
@@ -130,6 +130,10 @@ var (
 	SEARCH_CLASS_ERROR = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "搜索课程失败!", "Class", err)
 	}
+
+	GET_TO_BE_STUDIED_CLASS_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取待修读课程失败!", "Class", err)
+	}
 )
 
 var (
@@ -195,6 +199,10 @@ var (
 	GET_FAIL_MSG_ERROR = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取失败的消息失败!", "feed", err)
 	}
+
+	PUBLIC_FEED_EVENT_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "发布消息失败", "feed", err)
+	}
 )
 
 // question
@@ -236,6 +244,10 @@ var (
 
 	GET_RANK_BY_TERM_ERROR = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取学分绩排名失败!", "grade", err)
+	}
+
+	GET_GRADE_TYPE_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取课程性质列表失败！", "grade", err)
 	}
 )
 

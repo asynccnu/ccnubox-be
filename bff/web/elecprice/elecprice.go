@@ -1,23 +1,23 @@
 package elecprice
 
 import (
-	elecpricev1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/elecprice/v1"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	elecpricev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/elecprice/v1"
 	"github.com/gin-gonic/gin"
 	"sort"
-	"strconv"
 )
 
 type ElecPriceHandler struct {
-	ElecPriceClient elecpricev1.ElecpriceServiceClient //注入的是grpc服务
-	Administrators  map[string]struct{}                //这里注入的是管理员权限验证配置
+	ElecPriceClient elecpricev1.ElecpriceServiceClient // 注入的是grpc服务
+	Administrators  map[string]struct{}                // 这里注入的是管理员权限验证配置
 }
 
 func NewElecPriceHandler(elecPriceClient elecpricev1.ElecpriceServiceClient,
-	administrators map[string]struct{}) *ElecPriceHandler {
+	administrators map[string]struct{},
+) *ElecPriceHandler {
 	return &ElecPriceHandler{ElecPriceClient: elecPriceClient, Administrators: administrators}
 }
 
@@ -62,13 +62,7 @@ func (h *ElecPriceHandler) GetArchitecture(ctx *gin.Context, req GetArchitecture
 	}
 
 	sort.Slice(architectureList, func(i, j int) bool {
-		idI, errI := strconv.Atoi(architectureList[i].ArchitectureID)
-		idJ, errJ := strconv.Atoi(architectureList[j].ArchitectureID)
-
-		if errI == nil && errJ == nil {
-			return idI < idJ
-		}
-		return architectureList[i].ArchitectureID < architectureList[j].ArchitectureID
+		return architectureList[i].ArchitectureName < architectureList[j].ArchitectureName
 	})
 
 	return web.Response{
@@ -99,19 +93,15 @@ func (h *ElecPriceHandler) GetRoomInfo(ctx *gin.Context, req GetRoomInfoRequest,
 	var roomList []*Room
 	for _, r := range res.RoomList {
 		roomList = append(roomList, &Room{
-			RoomID:   r.RoomID,
 			RoomName: r.RoomName,
+			AC:       r.AC,
+			Light:    r.Light,
+			Union:    r.Union,
 		})
 	}
 
 	sort.Slice(roomList, func(i, j int) bool {
-		idI, errI := strconv.Atoi(roomList[i].RoomID)
-		idJ, errJ := strconv.Atoi(roomList[j].RoomID)
-
-		if errI == nil && errJ == nil {
-			return idI < idJ
-		}
-		return roomList[i].RoomID < roomList[j].RoomID
+		return roomList[i].RoomName < roomList[j].RoomName
 	})
 
 	return web.Response{
@@ -133,18 +123,16 @@ func (h *ElecPriceHandler) GetRoomInfo(ctx *gin.Context, req GetRoomInfoRequest,
 // @Router /elecprice/getPrice [get]
 func (h *ElecPriceHandler) GetPrice(ctx *gin.Context, req GetPriceRequest, uc ijwt.UserClaims) (web.Response, error) {
 	res, err := h.ElecPriceClient.GetPrice(ctx, &elecpricev1.GetPriceRequest{
-		RoomId: req.RoomId,
+		RoomName: req.RoomName,
 	})
 	if err != nil {
 		return web.Response{}, errs.ELECPRICE_SET_STANDARD_ERROR(err)
 	}
 	return web.Response{
 		Data: GetPriceResponse{
-			Price: &Price{
-				RemainMoney:       res.Price.RemainMoney,
-				YesterdayUseValue: res.Price.YesterdayUseValue,
-				YesterdayUseMoney: res.Price.YesterdayUseMoney,
-			},
+			AC:    priceToVo(res.Ac),
+			Light: priceToVo(res.Light),
+			Union: priceToVo(res.Union),
 		},
 	}, nil
 }

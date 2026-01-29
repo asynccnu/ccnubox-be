@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 
-	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/grade/v1"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 	"google.golang.org/grpc"
 )
 
@@ -83,6 +83,16 @@ func (s *GradeServiceServer) GetGradeScore(ctx context.Context, req *v1.GetGrade
 	}
 
 	return &v1.GetGradeScoreResp{TypeOfGradeScore: typeOfGradeScores}, nil
+}
+
+func (s *GradeServiceServer) GetGradeType(ctx context.Context, req *v1.GetGradeTypeReq) (*v1.GetGradeTypeResp, error) {
+	list, err := s.ser.GetDistinctGradeType(ctx, req.GetStudentId())
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetGradeTypeResp{
+		GradeTypes: list,
+	}, nil
 }
 
 func convGetGradeByTermReqFromProtoToDomain(req *v1.GetGradeByTermReq) *domain.GetGradeByTermReq {

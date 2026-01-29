@@ -1,11 +1,11 @@
 package library
 
 import (
-	libraryv1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/library/v1"
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	libraryv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
 	"github.com/gin-gonic/gin"
 )
 
@@ -50,12 +50,10 @@ func (h *LibraryHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /library/get_seat [post]
 func (h *LibraryHandler) GetSeatInfos(ctx *gin.Context, req GetSeatRequest, uc ijwt.UserClaims) (web.Response, error) {
-
 	res, err := h.LibraryClient.GetSeat(ctx, &libraryv1.GetSeatRequest{
 		RoomIds: req.RoomIDs,
 		StuId:   uc.StudentId,
 	})
-
 	if err != nil {
 		return web.Response{}, errs.GET_SEAT_ERROR(err)
 	}
@@ -498,10 +496,10 @@ func (h *LibraryHandler) DeleteComment(ctx *gin.Context, req DeleteCommentReq, u
 // @Router /library/reserve_randomly [post]
 func (h *LibraryHandler) ReserveSeatRandomly(ctx *gin.Context, req ReserveSeatRandomlyRequest, uc ijwt.UserClaims) (web.Response, error) {
 	msg, err := h.LibraryClient.ReserveSeatRandomly(ctx, &libraryv1.ReserveSeatRandomlyRequest{
-		Start:   req.Start,
-		End:     req.End,
-		StuId:   uc.StudentId,
-		RoomIds: req.RoomIDs,
+		Start:  req.Start,
+		End:    req.End,
+		StuId:  uc.StudentId,
+		RoomId: req.RoomID,
 	})
 	if err != nil {
 		return web.Response{}, errs.RESERVE_SEAT_ERROR(err)

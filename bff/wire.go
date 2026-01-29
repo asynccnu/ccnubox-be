@@ -4,6 +4,7 @@
 package main
 
 import (
+	"github.com/asynccnu/ccnubox-be/bff/conf"
 	"github.com/asynccnu/ccnubox-be/bff/ioc"
 	"github.com/asynccnu/ccnubox-be/bff/web/middleware"
 	"github.com/google/wire"
@@ -11,50 +12,40 @@ import (
 
 func InitApp() *App {
 	wire.Build(
+		conf.InitInfraConfig,
+		conf.InitServerConf,
 		// 组件
 		ioc.InitPrometheus,
 		ioc.InitEtcdClient,
 		ioc.InitLogger,
 		ioc.InitRedis,
+		ioc.InitOTel,
+
 		//grpc注册
-		ioc.InitDepartmentClient,
-		ioc.InitWebsiteClient,
-		ioc.InitBannerClient,
-		ioc.InitCalendarClient,
-		ioc.InitStaticClient,
 		ioc.InitFeedClient,
 		ioc.InitJwtHandler,
 		ioc.InitUserClient,
 		ioc.InitElecpriceClient,
-		ioc.InitFeedbackHelpClient,
 		ioc.InitGradeClient,
-		ioc.InitInfoSumClient,
-		ioc.InitCardClient,
+		ioc.InitContentClient,
 		ioc.InitCounterClient,
 		//基于kratos的微服务
-		ioc.InitClassList,
-		ioc.InitClassService,
-		ioc.InitFreeClassroomClient,
+		ioc.InitClassListClient,
+		ioc.InitClassClient,
+		ioc.InitClassRoomClient,
 		ioc.InitLibrary,
 
 		//http服务
-		ioc.InitPutPolicy,
+		ioc.InitTubePolicies,
 		ioc.InitMac,
 		ioc.InitClassRoomHandler,
 		ioc.InitTubeHandler,
 		ioc.InitUserHandler,
-		ioc.InitBannerHandler,
-		ioc.InitDepartmentHandler,
-		ioc.InitCalendarHandler,
-		ioc.InitWebsiteHandler,
-		ioc.InitStaticHandler,
+		ioc.InitContentHandler,
 		ioc.InitFeedHandler,
 		ioc.InitElecpriceHandler,
 		ioc.InitClassHandler,
 		ioc.InitGradeHandler,
-		ioc.InitFeedbackHelpHandler,
-		ioc.InitInfoSumHandler,
-		ioc.InitCardHandler,
 		ioc.InitMetricsHandel,
 		ioc.InitLibraryHandler,
 		ioc.InitSwagHandler,
@@ -65,6 +56,7 @@ func InitApp() *App {
 		middleware.NewLoginMiddleWare,
 		middleware.NewPrometheusMiddleware,
 		middleware.NewBasicAuthMiddleware,
+		middleware.NewOtelMiddlerware,
 		//注册api
 		ioc.InitGinServer,
 		NewApp,

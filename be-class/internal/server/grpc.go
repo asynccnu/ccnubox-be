@@ -1,10 +1,10 @@
 package server
 
 import (
-	v1 "github.com/asynccnu/ccnubox-be/be-api/gen/proto/classService/v1"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/metrics"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/service"
+	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classService/v1"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/ratelimit"

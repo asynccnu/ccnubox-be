@@ -1754,14 +1754,14 @@
                 }
             }
         },
-        "/feed/publicFeedEvent": {
+        "/feed/publicFeedbackEvent": {
             "post": {
                 "security": [
                     {
                         "BasicAuth": []
                     }
                 ],
-                "description": "发布消息",
+                "description": "发布反馈消息",
                 "consumes": [
                     "application/json"
                 ],
@@ -1771,7 +1771,7 @@
                 "tags": [
                     "feed"
                 ],
-                "summary": "发布消息",
+                "summary": "发布反馈消息",
                 "parameters": [
                     {
                         "description": "消息",
@@ -1779,7 +1779,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/feed.PublicFeedEventReq"
+                            "$ref": "#/definitions/feed.PublicFeedbackEventReq"
                         }
                     }
                 ],
@@ -4141,11 +4141,6 @@
         },
         "elecprice.GetPriceResponse": {
             "type": "object",
-            "required": [
-                "ac_price",
-                "light_price",
-                "union_price"
-            ],
             "properties": {
                 "ac_price": {
                     "$ref": "#/definitions/elecprice.Price"
@@ -4188,11 +4183,6 @@
         },
         "elecprice.Price": {
             "type": "object",
-            "required": [
-                "remain_money",
-                "yesterday_use_money",
-                "yesterday_use_value"
-            ],
             "properties": {
                 "remain_money": {
                     "type": "string"
@@ -4208,10 +4198,7 @@
         "elecprice.Room": {
             "type": "object",
             "required": [
-                "ac",
-                "light",
-                "room_name",
-                "union"
+                "room_name"
             ],
             "properties": {
                 "ac": {
@@ -4402,31 +4389,25 @@
                 }
             }
         },
-        "feed.PublicFeedEventReq": {
+        "feed.PublicFeedbackEventReq": {
             "type": "object",
             "required": [
                 "content",
+                "recordID",
                 "student_id",
-                "title",
-                "type"
+                "title"
             ],
             "properties": {
                 "content": {
                     "type": "string"
                 },
-                "extend_fields": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
+                "recordID": {
+                    "type": "string"
                 },
                 "student_id": {
                     "type": "string"
                 },
                 "title": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }

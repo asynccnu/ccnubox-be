@@ -143,10 +143,6 @@ func (g *FeedServiceServer) GetToBePublicOfficialMSG(ctx context.Context, req *f
 
 // 微服务内部调用
 func (g *FeedServiceServer) PublicFeedEvent(ctx context.Context, req *feedv1.PublicFeedEventReq) (*feedv1.PublicFeedEventResp, error) {
-	err := service.ValidateFeedEvent(req.GetEvent())
-	if err != nil {
-		return nil, err
-	}
 	go func() {
 		//此处进行异步,为什么异步呢,主要是内部调用也有上下文取消时间这在推送给所有人的时候将会非常致命
 		ctx = context.Background()

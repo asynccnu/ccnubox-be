@@ -36,7 +36,7 @@ func (h *FeedHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 	sg.POST("/publicMuxiOfficialMSG", authMiddleware, ginx.WrapClaimsAndReq(h.PublicMuxiOfficialMSG))
 	sg.POST("/stopMuxiOfficialMSG", authMiddleware, ginx.WrapClaimsAndReq(h.StopMuxiOfficialMSG))
 	sg.GET("/getToBePublicOfficialMSG", authMiddleware, ginx.WrapClaims(h.GetToBePublicOfficialMSG))
-	sg.POST("/publicFeedEvent", basicMiddleware, ginx.WrapReq(h.PublicFeedEvent))
+	sg.POST("/publicFeedbackEvent", basicMiddleware, ginx.WrapReq(h.PublicFeedbackEvent))
 }
 
 // GetFeedEvents
@@ -316,30 +316,26 @@ func (h *FeedHandler) GetToBePublicOfficialMSG(ctx *gin.Context, uc ijwt.UserCla
 	}, nil
 }
 
-// PublicFeedEvent
-// @Summary 发布消息
-// @Description 发布消息
+// PublicFeedbackEvent
+// @Summary 发布反馈消息
+// @Description 发布反馈消息
 // @Tags feed
 // @Accept  json
 // @Produce  json
 // @Security BasicAuth
-// @Param data body PublicFeedEventReq true "消息"
+// @Param data body PublicFeedbackEventReq true "消息"
 // @Success 200 {object} web.Response "成功"
 // @Failure 403 {object} web.Response "没有访问权限"
 // @Failure 500 {object} web.Response "系统异常"
-// @Router /feed/publicFeedEvent [post]
-func (h *FeedHandler) PublicFeedEvent(ctx *gin.Context, req PublicFeedEventReq) (web.Response, error) {
-	tpe, exists := feedEventTypeMapper[req.Type]
-	if !exists {
-		return web.Response{}, errs.PUBLIC_FEED_EVENT_ERROR(fmt.Errorf("消息类型错误: %s", req.Type))
-	}
+// @Router /feed/publicFeedbackEvent [post]
+func (h *FeedHandler) PublicFeedbackEvent(ctx *gin.Context, req PublicFeedbackEventReq) (web.Response, error) {
 	_, err := h.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 		StudentId: req.StudentId,
 		Event: &feedv1.FeedEvent{
-			Type:         tpe,
+			Type:         feedv1.FeedEventType_FEEDBACK,
 			Title:        req.Title,
 			Content:      req.Content,
-			ExtendFields: req.ExtendFields,
+			ExtendFields: map[string]string{"record_id": req.RecordID},
 		},
 	})
 	if err != nil {

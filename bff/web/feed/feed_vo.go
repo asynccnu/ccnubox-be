@@ -1,7 +1,5 @@
 package feed
 
-import feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
-
 type GetFeedEventsResp struct {
 	FeedEvents []FeedEventVO `json:"feed_events"`
 }
@@ -93,18 +91,9 @@ type GetToBePublicMuxiOfficialMSGResp struct {
 	MSGList []MuxiOfficialMSG `json:"msg_list"`
 }
 
-type PublicFeedEventReq struct {
-	StudentId    string            `json:"student_id" binding:"required"`
-	Type         string            `json:"type" binding:"required"`
-	Title        string            `json:"title" binding:"required"`
-	Content      string            `json:"content" binding:"required"`
-	ExtendFields map[string]string `json:"extend_fields"`
-}
-
-var feedEventTypeMapper = map[string]feedv1.FeedEventType{
-	"grade":    feedv1.FeedEventType_GRADE,
-	"muxi":     feedv1.FeedEventType_MUXI,
-	"holiday":  feedv1.FeedEventType_HOLIDAY,
-	"energy":   feedv1.FeedEventType_ENERGY,
-	"feedback": feedv1.FeedEventType_FEEDBACK,
+type PublicFeedbackEventReq struct {
+	StudentId string `json:"student_id" binding:"required"`
+	Title     string `json:"title" binding:"required"`
+	Content   string `json:"content" binding:"required"`
+	RecordID  string `json:"recordID" binding:"required"`
 }

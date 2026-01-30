@@ -567,10 +567,6 @@ definitions:
         $ref: '#/definitions/elecprice.Price'
       union_price:
         $ref: '#/definitions/elecprice.Price'
-    required:
-    - ac_price
-    - light_price
-    - union_price
     type: object
   elecprice.GetRoomInfoResponse:
     properties:
@@ -598,10 +594,6 @@ definitions:
         type: string
       yesterday_use_value:
         type: string
-    required:
-    - remain_money
-    - yesterday_use_money
-    - yesterday_use_value
     type: object
   elecprice.Room:
     properties:
@@ -614,10 +606,7 @@ definitions:
       union:
         type: string
     required:
-    - ac
-    - light
     - room_name
-    - union
     type: object
   elecprice.SetStandardRequest:
     properties:
@@ -736,25 +725,21 @@ definitions:
       title:
         type: string
     type: object
-  feed.PublicFeedEventReq:
+  feed.PublicFeedbackEventReq:
     properties:
       content:
         type: string
-      extend_fields:
-        additionalProperties:
-          type: string
-        type: object
+      recordID:
+        type: string
       student_id:
         type: string
       title:
         type: string
-      type:
-        type: string
     required:
     - content
+    - recordID
     - student_id
     - title
-    - type
     type: object
   feed.PublicMuxiOfficialMSGReq:
     properties:
@@ -2354,18 +2339,18 @@ paths:
       summary: 获取待发布的官方消息
       tags:
       - feed
-  /feed/publicFeedEvent:
+  /feed/publicFeedbackEvent:
     post:
       consumes:
       - application/json
-      description: 发布消息
+      description: 发布反馈消息
       parameters:
       - description: 消息
         in: body
         name: data
         required: true
         schema:
-          $ref: '#/definitions/feed.PublicFeedEventReq'
+          $ref: '#/definitions/feed.PublicFeedbackEventReq'
       produces:
       - application/json
       responses:
@@ -2383,7 +2368,7 @@ paths:
             $ref: '#/definitions/web.Response'
       security:
       - BasicAuth: []
-      summary: 发布消息
+      summary: 发布反馈消息
       tags:
       - feed
   /feed/publicMuxiOfficialMSG:

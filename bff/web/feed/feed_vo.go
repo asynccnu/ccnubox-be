@@ -22,6 +22,7 @@ type FeedEventVO struct {
 	CreatedAt    int64             `json:"created_at"` //Unix时间戳
 	ExtendFields map[string]string `json:"extend_fields"`
 	Read         bool              `json:"read"`
+	Route        string            `json:"route"`
 }
 type MuxiOfficialMSG struct {
 	Title        string            `json:"title"`
@@ -93,10 +94,11 @@ type GetToBePublicMuxiOfficialMSGResp struct {
 }
 
 type PublicFeedEventReq struct {
-	StudentId string `json:"student_id" binding:"required"`
-	Type      string `json:"type" binding:"required"`
-	Title     string `json:"title" binding:"required"`
-	Content   string `json:"content" binding:"required"`
+	StudentId    string            `json:"student_id" binding:"required"`
+	Type         string            `json:"type" binding:"required"`
+	Title        string            `json:"title" binding:"required"`
+	Content      string            `json:"content" binding:"required"`
+	ExtendFields map[string]string `json:"extend_fields"`
 }
 
 var feedEventTypeMapper = map[string]feedv1.FeedEventType{

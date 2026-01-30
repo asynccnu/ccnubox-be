@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/producer"
@@ -188,4 +189,23 @@ func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, even
 		return PUBLIC_FEED_EVENT_ERROR(fmt.Errorf("%v,当前学号:%s", err, event.StudentId))
 	}
 	return nil
+}
+
+func ValidateFeedEvent(event *feedv1.FeedEvent) error {
+	vals, ok := feedEventRules[strings.ToLower(event.GetType().String())]
+	if !ok {
+		return nil
+	}
+	for _, val := range vals {
+		v, ok := event.GetExtendFields()[val]
+		if !ok || v == "" {
+			return PUBLIC_FEED_EVENT_ERROR(fmt.Errorf("%s字段缺失", val))
+		}
+	}
+	return nil
+
+}
+
+var feedEventRules = map[string][]string{
+	strings.ToLower(feedv1.FeedEventType_FEEDBACK.String()): {"record_id"},
 }

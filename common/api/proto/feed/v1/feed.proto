@@ -51,6 +51,7 @@ message FeedEventVO {
   bool read =5;
   map<string, string> ExtendFields=6;
   int64 created_at = 7;//创建时间
+  string route=8;
 }
 
 message GetFeedEventsReq {

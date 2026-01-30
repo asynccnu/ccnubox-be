@@ -1,9 +1,13 @@
 package service
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 )
 
 func convFeedEventsFromModelToDomain(feedEvents []model.FeedEvent) []domain.FeedEvent {
@@ -58,6 +62,7 @@ func convFeedEventFromModelToDomainVO(feedEvents []model.FeedEvent) []domain.Fee
 			ExtendFields: feedEvents[i].ExtendFields,
 			CreatedAt:    feedEvents[i].CreatedAt,
 			Read:         feedEvents[i].Read,
+			Route:        joinRoutes(feedEvents[i]),
 		}
 	}
 	return result
@@ -104,4 +109,30 @@ func convMuxiMessageFromCacheToDomain(feeds []cache.MuxiOfficialMSG) []domain.Mu
 		}
 	}
 	return result
+}
+
+func joinRoutes(feedEvent model.FeedEvent) string {
+	fn, ok := routeRules[feedEvent.Type]
+	if !ok {
+		return ""
+	}
+	return fn(feedEvent)
+}
+
+var routeRules = map[string]func(vo model.FeedEvent) string{
+	strings.ToLower(feedv1.FeedEventType_GRADE.String()): func(vo model.FeedEvent) string {
+		return "/scoreInquiry"
+	},
+	strings.ToLower(feedv1.FeedEventType_HOLIDAY.String()): func(vo model.FeedEvent) string {
+		return "/calendar"
+	},
+	strings.ToLower(feedv1.FeedEventType_MUXI.String()): func(vo model.FeedEvent) string {
+		return ""
+	},
+	strings.ToLower(feedv1.FeedEventType_ENERGY.String()): func(vo model.FeedEvent) string {
+		return "/electricity"
+	},
+	strings.ToLower(feedv1.FeedEventType_FEEDBACK.String()): func(vo model.FeedEvent) string {
+		return fmt.Sprintf("/feedback/%s", vo.ExtendFields["record_id"])
+	},
 }

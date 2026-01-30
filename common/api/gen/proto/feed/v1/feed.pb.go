@@ -265,6 +265,7 @@ type FeedEventVO struct {
 	Read          bool                   `protobuf:"varint,5,opt,name=read,proto3" json:"read,omitempty"`
 	ExtendFields  map[string]string      `protobuf:"bytes,6,rep,name=ExtendFields,proto3" json:"ExtendFields,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CreatedAt     int64                  `protobuf:"varint,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` //创建时间
+	Route         string                 `protobuf:"bytes,8,opt,name=route,proto3" json:"route,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -346,6 +347,13 @@ func (x *FeedEventVO) GetCreatedAt() int64 {
 		return x.CreatedAt
 	}
 	return 0
+}
+
+func (x *FeedEventVO) GetRoute() string {
+	if x != nil {
+		return x.Route
+	}
+	return ""
 }
 
 type GetFeedEventsReq struct {
@@ -1376,7 +1384,7 @@ const file_feed_v1_feed_proto_rawDesc = "" +
 	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x1a?\n" +
 	"\x11ExtendFieldsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa1\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb7\x02\n" +
 	"\vFeedEventVO\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x14\n" +
@@ -1385,7 +1393,8 @@ const file_feed_v1_feed_proto_rawDesc = "" +
 	"\x04read\x18\x05 \x01(\bR\x04read\x12J\n" +
 	"\fExtendFields\x18\x06 \x03(\v2&.feed.v1.FeedEventVO.ExtendFieldsEntryR\fExtendFields\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\a \x01(\x03R\tcreatedAt\x1a?\n" +
+	"created_at\x18\a \x01(\x03R\tcreatedAt\x12\x14\n" +
+	"\x05route\x18\b \x01(\tR\x05route\x1a?\n" +
 	"\x11ExtendFieldsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"0\n" +

@@ -4319,6 +4319,9 @@ const docTemplate = `{
                 "read": {
                     "type": "boolean"
                 },
+                "route": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -4405,6 +4408,12 @@ const docTemplate = `{
             "properties": {
                 "content": {
                     "type": "string"
+                },
+                "extend_fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "student_id": {
                     "type": "string"

@@ -336,9 +336,10 @@ func (h *FeedHandler) PublicFeedEvent(ctx *gin.Context, req PublicFeedEventReq) 
 	_, err := h.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 		StudentId: req.StudentId,
 		Event: &feedv1.FeedEvent{
-			Type:    tpe,
-			Title:   req.Title,
-			Content: req.Content,
+			Type:         tpe,
+			Title:        req.Title,
+			Content:      req.Content,
+			ExtendFields: req.ExtendFields,
 		},
 	})
 	if err != nil {

@@ -115,7 +115,8 @@ func (c *GradeController) publishMSG(label string) {
 			//获取学生id
 			res, err := c.classlist.GetStuIdByJxbId(ctx, &classlistv1.GetStuIdByJxbIdRequest{JxbId: grade.JxbId})
 			if err != nil {
-				return
+				c.l.Error("获取学生ID失败", logger.Error(err), logger.String("JxbId", grade.JxbId))
+				continue
 			}
 
 			//更改等级到最高级别
@@ -127,14 +128,14 @@ func (c *GradeController) publishMSG(label string) {
 
 			if err != nil {
 				c.l.Error("更改优先级发生错误", logger.Error(err))
-				return
+				continue
 			}
 
 			//推送
 			_, err = c.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 				StudentId: studentId,
 				Event: &feedv1.FeedEvent{
-					Type:    "grade",
+					Type:    feedv1.FeedEventType_GRADE,
 					Title:   "成绩更新提醒",
 					Content: fmt.Sprintf("您的课程:%s分数更新了,请及时查看", grade.Kcmc),
 				},

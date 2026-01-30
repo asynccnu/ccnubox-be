@@ -50,7 +50,7 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 		return nil, nil, err
 	}
 	proxyGetter := crawler.NewProxyGetter(proxyClient)
-	crawler2 := crawler.NewClassCrawler2(proxyGetter)
+	crawler3 := crawler.NewClassCrawler3(proxyGetter)
 	jxbDBRepo := data.NewJxbDBRepo(dataData)
 	userSvc, err := client.NewUserSvc(etcdRegistry, confRegistry, env)
 	if err != nil {
@@ -66,7 +66,7 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 		return nil, nil, err
 	}
 	refreshLogRepo := data.NewRefreshLogRepo(db, confServer)
-	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawler2, jxbDBRepo, userSvc, delayQueue, refreshLogRepo, confServer)
+	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawler3, jxbDBRepo, userSvc, delayQueue, refreshLogRepo, confServer)
 	classListService := service.NewClasserService(classUsecase, schoolDay, logger, defaults)
 	grpcServer := server.NewGRPCServer(confServer, classListService, logLogger)
 	app := newApp(env, logLogger, grpcServer, etcdRegistry, confServer)

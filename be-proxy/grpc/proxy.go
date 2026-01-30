@@ -23,13 +23,11 @@ func (s *ProxyServiceServer) Register(server grpc.ServiceRegistrar) {
 
 func (s *ProxyServiceServer) GetProxyAddr(ctx context.Context,
 	_ *proxyv1.GetProxyAddrRequest) (*proxyv1.GetProxyAddrResponse, error) {
-	res, err := s.svc.GetProxyAddr(ctx)
+	res, backup, err := s.svc.GetProxyAddr(ctx)
 	if err != nil {
 		// 这里就算报错也不能返回空响应, 防止报错, 下游返回的是一个“”, 也可以用
-		return &proxyv1.GetProxyAddrResponse{
-			Addr: res,
-		}, err
+		return &proxyv1.GetProxyAddrResponse{Addr: res, Backup: backup}, err
 	}
 
-	return &proxyv1.GetProxyAddrResponse{Addr: res}, nil
+	return &proxyv1.GetProxyAddrResponse{Addr: res, Backup: backup}, nil
 }

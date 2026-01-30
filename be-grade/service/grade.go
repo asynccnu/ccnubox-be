@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	"net/http"
 	"net/url"
 	"time"
@@ -53,16 +54,24 @@ type GradeService interface {
 }
 
 type gradeService struct {
-	userClient  userv1.UserServiceClient
-	proxyClient proxyv1.ProxyClient
-	gradeDAO    dao.GradeDAO
-	l           logger.Logger
-	sf          singleflight.Group
-	producer    producer.Producer
+	userClient      userv1.UserServiceClient
+	proxyClient     proxyv1.ProxyClient
+	classlistClient classlistv1.ClasserClient
+	gradeDAO        dao.GradeDAO
+	l               logger.Logger
+	sf              singleflight.Group
+	producer        producer.Producer
 }
 
-func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.UserServiceClient, proxyClient proxyv1.ProxyClient, producer producer.Producer) GradeService {
-	g := &gradeService{gradeDAO: gradeDAO, l: l, userClient: userClient, proxyClient: proxyClient, producer: producer}
+func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.UserServiceClient, classlistClient classlistv1.ClasserClient, proxyClient proxyv1.ProxyClient, producer producer.Producer) GradeService {
+	g := &gradeService{
+		gradeDAO:        gradeDAO,
+		l:               l,
+		userClient:      userClient,
+		proxyClient:     proxyClient,
+		producer:        producer,
+		classlistClient: classlistClient,
+	}
 
 	g.pullProxyAddr()
 	beginCron(g)
@@ -199,6 +208,13 @@ func (s *gradeService) UpdateDetailScore(ctx context.Context, need domain.NeedDe
 			s.l.Warn(fmt.Sprintf("获取详细分数失败! 学号:%s,教学班id:%s,课程id:%s,总分:%f", grade.StudentId, grade.JxbId, grade.KcId, grade.Cj), logger.Error(err))
 			continue
 		}
+
+		// TODO 这里的判定规则是平时和期末成绩占比是存在的,但是不存在成绩,这里认为其是属于非法数据,可能还需要更多的明确,后续可以考虑继续优化
+		if detail.Cjxm3 == 0 && detail.Cjxm1 == 0 && detail.Cjxm3bl != "" && detail.Cjxm1bl != "" {
+			s.l.Warn(fmt.Sprintf("学校出现错误数据! 学号:%s,教学班id:%s,课程id:%s,总分:%f,错误数据详情: %v", grade.StudentId, grade.JxbId, grade.KcId, grade.Cj, detail))
+			continue
+		}
+
 		grade.RegularGradePercent = detail.Cjxm3bl
 		grade.RegularGrade = detail.Cjxm3
 		grade.FinalGradePercent = detail.Cjxm1bl
@@ -329,11 +345,32 @@ func (s *gradeService) newUGWithCookie(ctx context.Context, studentId string) (*
 }
 
 func (s *gradeService) GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error) {
-	res, err := s.gradeDAO.GetDistinctGradeType(ctx, stuID)
+	var res []string
+	// 从课表服务获取课程性质
+	resp, err := s.classlistClient.GetClassNatures(ctx, &classlistv1.GetClassNaturesReq{StuId: stuID})
+	if err != nil {
+		s.l.Warn("从课表服务获取课程性质列表失败", logger.Error(err))
+		// 注意不用return
+	}
+	// 从本地获取课程性质
+	localNatures, err := s.gradeDAO.GetDistinctGradeType(ctx, stuID)
 	if err != nil {
 		s.l.Warn("获取课程性质列表失败", logger.Error(err))
 		return nil, err
 	}
+
+	// 取并集
+	natureSet := make(map[string]struct{})
+	for _, nature := range resp.ClassNatures {
+		natureSet[nature] = struct{}{}
+	}
+	for _, nature := range localNatures {
+		natureSet[nature] = struct{}{}
+	}
+	for nature := range natureSet {
+		res = append(res, nature)
+	}
+
 	return res, nil
 }
 

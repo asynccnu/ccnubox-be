@@ -2,6 +2,7 @@ package content
 
 import (
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
+	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/gin-gonic/gin"
 )
@@ -10,15 +11,17 @@ import (
 type ContentHandler struct {
 	contentClient  contentv1.ContentServiceClient
 	userClient     userv1.UserServiceClient
+	gradeClient    gradev1.GradeServiceClient
 	Administrators map[string]struct{}
 }
 
 // NewContentHandler 创建一个新的 ContentHandler 实例
 func NewContentHandler(contentClient contentv1.ContentServiceClient,
 	userClient userv1.UserServiceClient,
+	gradeClient gradev1.GradeServiceClient,
 	administrators map[string]struct{},
 ) *ContentHandler {
-	return &ContentHandler{contentClient: contentClient, userClient: userClient, Administrators: administrators}
+	return &ContentHandler{contentClient: contentClient, gradeClient: gradeClient, userClient: userClient, Administrators: administrators}
 }
 
 // RegisterRoutes 注册与 content 相关的路由

@@ -28,13 +28,14 @@ var (
 	parseNumberRegex    = regexp.MustCompile(`\d+`)
 )
 
+// Crawler2 爬取的是对于智慧教务的“培养服务/我的课表/学期课表/个人课表信息”那个HTML
 type Crawler2 struct {
-	pg *ProxyGetter
+	pg ProxyGetter
 
 	clientPool sync.Pool
 }
 
-func NewClassCrawler2(pg *ProxyGetter) *Crawler2 {
+func NewClassCrawler2(pg ProxyGetter) *Crawler2 {
 	newClient := func() interface{} {
 		return &http.Client{
 			Transport: &http.Transport{
@@ -210,27 +211,28 @@ func (c *Crawler2) extractCourses(ctx context.Context, year, semester string, ht
 		return nil, fmt.Errorf("NewDocumentFromReader err: %v", err)
 	}
 
-	weekdayMap := map[string]int{
-		"星期一": 1,
-		"星期二": 2,
-		"星期三": 3,
-		"星期四": 4,
-		"星期五": 5,
-		"星期六": 6,
-		"星期日": 7,
-		"星期天": 7, // 星期日和星期天都对应7
-	}
-
 	var classInfos []*biz.ClassInfo
 
 	doc.Find("li.qz-toolitiplists").Each(func(i int, selection *goquery.Selection) {
 		var classInfo biz.ClassInfo
 
 		classInfo.Year, classInfo.Semester = year, semester
-
 		classInfo.Classname = selection.Find(".qz-tooltipContent-title").Text()
 		classInfo.UpdatedAt = time.Now()
 		classInfo.CreatedAt = classInfo.UpdatedAt
+
+		// 获取jxb_id
+		selection.Find(`img[src*="ewmck"]`).Each(func(_ int, img *goquery.Selection) {
+			src, ok := img.Attr("src")
+			if !ok {
+				return
+			}
+			re := regexp.MustCompile(`id=(\d+)`)
+			m := re.FindStringSubmatch(src)
+			if len(m) == 2 {
+				classInfo.JxbId = m[1]
+			}
+		})
 
 		selection.Find(".qz-tooltipContent-detailitem").Each(func(i int, selection *goquery.Selection) {
 			str := c.extractAfterColon(selection.Text())
@@ -256,7 +258,6 @@ func (c *Crawler2) extractCourses(ctx context.Context, year, semester string, ht
 		})
 
 		classInfo.UpdateID()
-		classInfo.UpdateJxbId()
 
 		classInfos = append(classInfos, &classInfo)
 	})

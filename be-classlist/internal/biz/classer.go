@@ -406,7 +406,12 @@ func (cluc *ClassUsecase) GetAllSchoolClassInfosToOtherService(ctx context.Conte
 }
 
 func (cluc *ClassUsecase) GetStuIdsByJxbId(ctx context.Context, jxbId string) ([]string, error) {
-	return cluc.jxbRepo.FindStuIdsByJxbId(ctx, jxbId)
+	res, err := cluc.jxbRepo.FindStuIdsByJxbId(ctx, jxbId)
+	if err != nil || len(res) == 0 {
+		return []string{}, errcode.ErrGetStuIdByJxbId
+	}
+
+	return res, nil
 }
 
 func (cluc *ClassUsecase) addClass(ctx context.Context, stuID string, info *ClassInfo, isAdded bool) error {
@@ -498,6 +503,10 @@ func (cluc *ClassUsecase) IsClassOfficial(ctx context.Context, stuID, year, seme
 
 func (cluc *ClassUsecase) GetClassNote(ctx context.Context, stuID, year, semester, classID string) string {
 	return cluc.classRepo.GetClassNote(ctx, stuID, year, semester, classID)
+}
+
+func (cluc *ClassUsecase) GetClassNatures(ctx context.Context, stuID string) []string {
+	return cluc.classRepo.GetClassNatures(ctx, stuID)
 }
 
 func extractJxb(infos []*ClassInfo) []string {

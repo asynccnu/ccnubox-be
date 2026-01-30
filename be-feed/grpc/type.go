@@ -3,6 +3,7 @@ package grpc
 import (
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	"strings"
 )
 
 // 好长的函数名称
@@ -49,7 +50,7 @@ func convFeedEventsFromGRPCToDomain(feedEvents []*feedv1.FeedEvent) []domain.Fee
 	for i := range feedEvents {
 		result[i] = domain.FeedEvent{
 			ID:           feedEvents[i].GetId(),
-			Type:         feedEvents[i].GetType(),
+			Type:         strings.ToLower(feedEvents[i].GetType().String()),
 			Title:        feedEvents[i].GetTitle(),
 			Content:      feedEvents[i].GetContent(),
 			ExtendFields: feedEvents[i].GetExtendFields(),

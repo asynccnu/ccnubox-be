@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	"gorm.io/gorm"
@@ -57,11 +58,9 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 
 	// 构造联合键：student_id + jxb_id
 	ids := make([]string, len(grades))
-	for i, grade := range grades {
-		if grade.JxbId == "" {
-			grade.JxbId = grade.Kcmc
-		}
-		ids[i] = grade.StudentId + grade.JxbId
+	for i := range grades {
+		grades[i].JxbId = normalizeJxbId(&grades[i])
+		ids[i] = grades[i].StudentId + grades[i].JxbId
 	}
 
 	// 查询已有记录
@@ -83,9 +82,9 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 	var toUpdate []model.Grade
 
 	for _, grade := range grades {
-		if grade.JxbId == "" {
-			grade.JxbId = grade.Kcmc
-		}
+
+		grade.JxbId = normalizeJxbId(&grade)
+
 		key := grade.StudentId + grade.JxbId
 
 		if existing, exists := existingMap[key]; !exists {
@@ -120,6 +119,13 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 	// 返回受影响的记录（新增 + 更新）
 	affectedGrades = append(toInsert, toUpdate...)
 	return affectedGrades, nil
+}
+
+func normalizeJxbId(g *model.Grade) string {
+	if g.JxbId != "" {
+		return g.JxbId
+	}
+	return g.Kcmc + strconv.FormatInt(g.Xnm, 10) + strconv.FormatInt(g.Xqm, 10)
 }
 
 func (d *gradeDAO) GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error) {

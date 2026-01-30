@@ -47,28 +47,30 @@ func (s *ElecpriceServiceServer) GetRoomInfo(ctx context.Context, req *v1.GetRoo
 		return nil, err
 	}
 
-	var resp v1.GetRoomInfoResponse
-	for k, v := range res {
+	var resp = v1.GetRoomInfoResponse{
+		RoomList: []*v1.GetRoomInfoResponse_Room{},
+	}
+	for _, v := range res.Rooms {
 		resp.RoomList = append(resp.RoomList, &v1.GetRoomInfoResponse_Room{
-			RoomID:   k,
-			RoomName: v,
+			RoomName: v.RoomName,
+			AC:       v.AC,
+			Light:    v.Light,
+			Union:    v.Union,
 		})
 	}
 	return &resp, nil
 }
 
 func (s *ElecpriceServiceServer) GetPrice(ctx context.Context, req *v1.GetPriceRequest) (*v1.GetPriceResponse, error) {
-	res, err := s.ser.GetPrice(ctx, req.RoomId)
+	res, err := s.ser.GetPriceByName(ctx, req.RoomName)
 	if err != nil {
 		return nil, err
 	}
 
 	return &v1.GetPriceResponse{
-		Price: &v1.GetPriceResponse_Price{
-			RemainMoney:       res.RemainMoney,
-			YesterdayUseValue: res.YesterdayUseValue,
-			YesterdayUseMoney: res.YesterdayUseMoney,
-		},
+		Ac:    res.AC.ToProto(),
+		Light: res.Light.ToProto(),
+		Union: res.Union.ToProto(),
 	}, nil
 }
 

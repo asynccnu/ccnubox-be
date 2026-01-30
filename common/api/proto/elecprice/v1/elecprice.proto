@@ -36,13 +36,15 @@ message GetRoomInfoRequest {
 message GetRoomInfoResponse {
   message Room {
     string RoomName = 1;
-    string RoomID = 2;
+    string AC = 2;
+    string Light = 3;
+    string Union = 4;
   }
   repeated Room RoomList = 1;
 }
 
 message GetPriceRequest {
-  string room_id = 1;
+  string room_name = 1;
 }
 
 message GetPriceResponse {
@@ -51,7 +53,9 @@ message GetPriceResponse {
     string YesterdayUseValue = 2; // 昨日花费电量
     string YesterdayUseMoney = 3; // 昨日花费电费
   }
-  Price price = 1;
+  Price ac = 1;
+  Price light = 2;
+  Price union = 3;
 }
 
 //有一个id对应两个状态和一个状态

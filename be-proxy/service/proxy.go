@@ -19,10 +19,11 @@ import (
 type ShenLongProxy struct {
 	Api          string
 	Addr         string
-	PollInterval int
-	RetryCount   int
+	AddrBackup   string
 	Username     string
 	Password     string
+	PollInterval int
+	RetryCount   int
 
 	mu sync.RWMutex // 异步写+并发读
 	l  logger.Logger
@@ -32,19 +33,20 @@ var (
 	ErrEmptyConfig = errors.New("empty config")
 )
 
-func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, error) {
+func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, string, error) {
 	// 未配置代理时使用
 	if s.Api == "" {
 		log.Warnf("empty proxy setting")
-		return "", ErrEmptyConfig
+		return "", "", ErrEmptyConfig
 	}
 
 	// 获取代理addr
 	s.mu.RLock()
 	proxyAddr := s.Addr
+	proxyAddrBackup := s.AddrBackup
 	s.mu.RUnlock()
 
-	return proxyAddr, nil
+	return proxyAddr, proxyAddrBackup, nil
 }
 
 func NewProxyService(l logger.Logger, cfg *conf.ServerConf) ProxyService {
@@ -98,8 +100,11 @@ func (s *ShenLongProxy) fetchIp() {
 			s.l.Info("fetch ip success",
 				logger.String("time", time.Now().Format(time.RFC3339)),
 			)
+			addrs := strings.Split(string(body), "\r\n")
+
 			s.mu.Lock()
-			s.Addr = s.wrapRes(string(body))
+			s.Addr = s.wrapRes(addrs[0])
+			s.AddrBackup = s.wrapRes(addrs[1])
 			s.mu.Unlock()
 
 			break

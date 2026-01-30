@@ -6,32 +6,39 @@ import (
 	"errors"
 	"fmt"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/domain"
-	"github.com/go-kratos/kratos/v2/log"
 	"io"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-// 通用 HTTP 请求函数
-func sendRequest(ctx context.Context, url string) (string, error) {
-	var client *http.Client
-	proxyAddr, ok := ctx.Value(ProxyAddr).(string)
-	if !ok {
-		client = http.DefaultClient
-	}
-	client = newClient(proxyAddr)
+var (
+	client       = http.DefaultClient // 主要使用这个
+	clientBackup = http.DefaultClient // 避免单client导致服务器407, 从而请求失败
+)
 
+// 通用 HTTP 请求函数
+func sendRequest(ctx context.Context, url string, useBackupProxy bool) (string, error) {
+	var (
+		resp *http.Response
+		err  error
+	)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", fmt.Errorf("创建请求失败: %w", err)
 	}
 
-	req.Header.Set("User-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("Referer", "https://jnb.ccnu.edu.cn/MobileWebPayStandard_Vue/")
+	req.Header.Set("Host", "jnb.ccnu.edu.cn")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0")
 
-	resp, err := client.Do(req)
+	if useBackupProxy {
+		resp, err = clientBackup.Do(req)
+	} else {
+		resp, err = client.Do(req)
+	}
 	if err != nil {
 		return "", fmt.Errorf("发送请求失败: %w", err)
 	}
@@ -47,23 +54,6 @@ func sendRequest(ctx context.Context, url string) (string, error) {
 	}
 
 	return string(body), nil
-}
-
-func newClient(proxyAddr string) *http.Client {
-	proxy, err := url.Parse(proxyAddr)
-	if err != nil {
-		log.Warn("url parse error:", err)
-		return http.DefaultClient
-	}
-	p := http.ProxyURL(proxy)
-
-	c := &http.Client{
-		Transport: &http.Transport{
-			Proxy: p,
-		},
-	}
-
-	return c
 }
 
 // 匹配正则工具
@@ -94,6 +84,63 @@ func matchRegexpOneEle(input, pattern string) (string, error) {
 		return "", errors.New("未匹配到结果")
 	}
 	return matches[1], nil
+}
+
+// merge 111空调(id1), 111照明(id2) -> 111[id1,id2], 222(id3) -> 222[id3] //map[id]name
+func mergeRoomIds(m map[string]string) domain.RoomInfoList {
+	resp := domain.RoomInfoList{}
+	res := make([]domain.RoomInfo, 0, len(m))
+	mp := make(map[string]domain.RoomInfo, len(m))
+	for k, v := range m {
+		// 获取房间名称和电费分布
+		name := trimWord(v, KeyWordTypeLight, KeyWordTypeAC)
+		if val, exists := mp[name]; exists {
+			if hasWord(v, KeyWordTypeLight) {
+				val.Light = k
+			} else if hasWord(v, KeyWordTypeAC) {
+				val.AC = k
+			} else {
+				val.Union = k
+			}
+			mp[name] = val
+			continue
+		}
+
+		ri := domain.RoomInfo{
+			RoomName: name,
+		}
+		if hasWord(v, KeyWordTypeLight) {
+			ri.Light = k
+		} else if hasWord(v, KeyWordTypeAC) {
+			ri.AC = k
+		} else {
+			ri.Union = k
+		}
+		mp[name] = ri
+	}
+
+	for _, v := range mp {
+		res = append(res, v)
+	}
+
+	resp.Rooms = res
+	return resp
+}
+
+func hasWord(name string, kw ...KeyWordType) bool {
+	for _, v := range kw {
+		if strings.Contains(name, string(v)) {
+			return true
+		}
+	}
+	return false
+}
+
+func trimWord(name string, kw ...KeyWordType) string {
+	for _, v := range kw {
+		name = strings.ReplaceAll(name, string(v), "")
+	}
+	return name
 }
 
 func filter(m map[string]string) map[string]string {
@@ -185,7 +232,7 @@ func removeDong23(res *domain.ResultArchitectureInfo) {
 }
 
 func addDong23(ctx context.Context, res *domain.ResultArchitectureInfo) {
-	body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", ConstantMap[YuanBaoShan]))
+	body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", ConstantMap[YuanBaoShan]), false)
 	if err != nil {
 		return
 	}

@@ -561,10 +561,16 @@ definitions:
     type: object
   elecprice.GetPriceResponse:
     properties:
-      price:
+      ac_price:
+        $ref: '#/definitions/elecprice.Price'
+      light_price:
+        $ref: '#/definitions/elecprice.Price'
+      union_price:
         $ref: '#/definitions/elecprice.Price'
     required:
-    - price
+    - ac_price
+    - light_price
+    - union_price
     type: object
   elecprice.GetRoomInfoResponse:
     properties:
@@ -599,13 +605,19 @@ definitions:
     type: object
   elecprice.Room:
     properties:
-      room_id:
+      ac:
+        type: string
+      light:
         type: string
       room_name:
         type: string
+      union:
+        type: string
     required:
-    - room_id
+    - ac
+    - light
     - room_name
+    - union
     type: object
   elecprice.SetStandardRequest:
     properties:
@@ -2046,7 +2058,7 @@ paths:
         required: true
         type: string
       - in: query
-        name: room_id
+        name: room_name
         required: true
         type: string
       produces:

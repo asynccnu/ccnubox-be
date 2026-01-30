@@ -12,6 +12,11 @@ type Logger interface {
 	Info(msg string, args ...Field)
 	Warn(msg string, args ...Field)
 	Error(msg string, args ...Field)
+
+	Debugf(template string, args ...interface{})
+	Infof(template string, args ...interface{})
+	Warnf(template string, args ...interface{})
+	Errorf(template string, args ...interface{})
 }
 
 type Field struct {

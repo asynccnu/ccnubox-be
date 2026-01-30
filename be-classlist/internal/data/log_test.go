@@ -1,4 +1,4 @@
-package classLog
+package data
 
 import (
 	"context"

@@ -3,6 +3,7 @@ package logger
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -118,4 +119,20 @@ func ProdEncoderConfig() zapcore.EncoderConfig {
 		EncodeTime:    zapcore.ISO8601TimeEncoder,
 		EncodeCaller:  zapcore.ShortCallerEncoder,
 	}
+}
+
+func (z *ZapLogger) Debugf(template string, args ...interface{}) {
+	z.Debug(fmt.Sprintf(template, args...))
+}
+
+func (z *ZapLogger) Infof(template string, args ...interface{}) {
+	z.Info(fmt.Sprintf(template, args...))
+}
+
+func (z *ZapLogger) Warnf(template string, args ...interface{}) {
+	z.Warn(fmt.Sprintf(template, args...))
+}
+
+func (z *ZapLogger) Errorf(template string, args ...interface{}) {
+	z.Error(fmt.Sprintf(template, args...))
 }

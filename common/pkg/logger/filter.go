@@ -129,6 +129,22 @@ func (f *FilterLogger) Error(msg string, args ...Field) {
 	f.logger.Error(msg, f.filter(ERROR, args)...)
 }
 
+func (f *FilterLogger) Debugf(template string, args ...interface{}) {
+	f.Debug(fmt.Sprintf(template, args...))
+}
+
+func (f *FilterLogger) Infof(template string, args ...interface{}) {
+	f.Info(fmt.Sprintf(template, args...))
+}
+
+func (f *FilterLogger) Warnf(template string, args ...interface{}) {
+	f.Warn(fmt.Sprintf(template, args...))
+}
+
+func (f *FilterLogger) Errorf(template string, args ...interface{}) {
+	f.Error(fmt.Sprintf(template, args...))
+}
+
 func (f *FilterLogger) With(args ...Field) Logger {
 	filteredArgs := f.filter(INFO, args)
 	newBaseLogger := f.logger.With(filteredArgs...)

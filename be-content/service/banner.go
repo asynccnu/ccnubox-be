@@ -3,11 +3,22 @@ package service
 import (
 	"context"
 	"errors"
+
 	"github.com/asynccnu/ccnubox-be/be-content/domain"
-	"github.com/asynccnu/ccnubox-be/be-content/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/be-content/repository"
 	"github.com/asynccnu/ccnubox-be/be-content/repository/model"
+	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+)
+
+// 定义 Banner 相关的错误
+var (
+	GET_BANNERS_ERROR = errorx.FormatErrorFunc(contentv1.ErrorGetBannerError("获取 Banner 列表失败"))
+
+	SAVE_BANNER_ERROR = errorx.FormatErrorFunc(contentv1.ErrorSaveBannerError("保存 Banner 失败"))
+
+	DEL_BANNER_ERROR = errorx.FormatErrorFunc(contentv1.ErrorDelBannerError("删除 Banner 失败"))
 )
 
 type BannerService interface {
@@ -33,7 +44,7 @@ func (s *bannerService) GetList(ctx context.Context) ([]domain.Banner, error) {
 	ms, err := s.repo.GetList(ctx)
 	if err != nil {
 		// 使用 errorx 记录当前层位置和包装底层错误
-		return nil, errorx.Errorf("获取 Banner 列表失败: %w", err)
+		return nil, GET_BANNERS_ERROR(err)
 	}
 	return s.toDomainList(ms), nil
 }
@@ -47,7 +58,7 @@ func (s *bannerService) Save(ctx context.Context, b *domain.Banner) error {
 	if b.ID > 0 {
 		m, err = s.repo.Get(ctx, "id", b.ID)
 		if err != nil && !errors.Is(err, repository.ErrRecordNotFound) {
-			return errorx.Errorf("保存前查询 Banner(id=%d) 失败: %w", b.ID, err)
+			return GET_BANNERS_ERROR(errorx.Errorf("保存前查询 Banner(id=%d) 失败: %w", b.ID, err))
 		}
 	}
 
@@ -62,7 +73,7 @@ func (s *bannerService) Save(ctx context.Context, b *domain.Banner) error {
 
 	// 3. 调用 Repo 保存
 	if err := s.repo.Save(ctx, m); err != nil {
-		return errorx.Errorf("执行 Banner(id=%d) 保存操作失败: %w", b.ID, err)
+		return SAVE_BANNER_ERROR(errorx.Errorf("执行 Banner(id=%d) 保存操作失败: %w", b.ID, err))
 	}
 	return nil
 }
@@ -71,11 +82,11 @@ func (s *bannerService) Save(ctx context.Context, b *domain.Banner) error {
 func (s *bannerService) Del(ctx context.Context, id int64) error {
 	// 业务层防御性校验
 	if id <= 0 {
-		return errorx.Errorf("删除 Banner 失败: 传入了无效的 ID (%d)", id)
+		return DEL_BANNER_ERROR(errorx.Errorf("删除 Banner 失败: 传入了无效的 ID (%d)", id))
 	}
 
 	if err := s.repo.Del(ctx, "id", id); err != nil {
-		return errorx.Errorf("删除 Banner(id=%d) 失败: %w", id, err)
+		return DEL_BANNER_ERROR(errorx.Errorf("删除 Banner(id=%d) 失败: %w", id, err))
 	}
 	return nil
 }

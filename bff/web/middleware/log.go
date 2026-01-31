@@ -1,14 +1,14 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	b_errorx "github.com/asynccnu/ccnubox-be/bff/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
-	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/apierr"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
@@ -37,47 +37,6 @@ func (lm *LoggerMiddleware) MiddlewareFunc() gin.HandlerFunc {
 	}
 }
 
-// 提取的日志逻辑：记录自定义错误日志
-func (lm *LoggerMiddleware) logCustomError(customError *errorx.CustomError, ctx *gin.Context) {
-	lm.log.WithContext(ctx).Error("处理请求出错",
-		logger.Error(customError),
-		logger.String("timestamp", time.Now().Format(time.RFC3339)),
-		logger.String("ip", ctx.ClientIP()),
-		logger.String("path", ctx.Request.URL.Path),
-		logger.String("method", ctx.Request.Method),
-		logger.String("headers", fmt.Sprintf("%v", ctx.Request.Header)),
-		logger.Int("httpCode", customError.HttpCode),
-		logger.Int("code", customError.Code),
-		logger.String("msg", customError.Msg),
-		logger.String("category", customError.Category),
-		logger.String("file", customError.File),
-		logger.Int("line", customError.Line),
-		logger.String("function", customError.Function),
-	)
-}
-
-// 提取的日志逻辑：记录未知错误日志
-func (lm *LoggerMiddleware) logUnexpectedError(err error, ctx *gin.Context) {
-	lm.log.WithContext(ctx).Error("意外错误类型",
-		logger.Error(err),
-		logger.String("timestamp", time.Now().Format(time.RFC3339)),
-		logger.String("ip", ctx.ClientIP()),
-		logger.String("path", ctx.Request.URL.Path),
-		logger.String("method", ctx.Request.Method),
-		logger.String("headers", fmt.Sprintf("%v", ctx.Request.Header)),
-	)
-}
-
-func (lm *LoggerMiddleware) commonInfo(ctx *gin.Context) {
-	lm.log.WithContext(ctx).Info("请求正常",
-		logger.String("timestamp", time.Now().Format(time.RFC3339)),
-		logger.String("ip", ctx.ClientIP()),
-		logger.String("path", ctx.Request.URL.Path),
-		logger.String("method", ctx.Request.Method),
-		logger.String("headers", fmt.Sprintf("%v", ctx.Request.Header)),
-	)
-}
-
 // 处理响应逻辑
 func (lm *LoggerMiddleware) handleResponse(ctx *gin.Context) (web.Response, int) {
 	var res web.Response
@@ -85,20 +44,54 @@ func (lm *LoggerMiddleware) handleResponse(ctx *gin.Context) (web.Response, int)
 
 	// 有错误则进行错误处理
 	if len(ctx.Errors) > 0 {
+		// http层error,携带httpCode,bizCode,msg
 		err := ctx.Errors.Last().Err
-		customError := errorx.ToCustomError(err)
-		if customError == nil {
-			lm.logUnexpectedError(err, ctx)
+		unwarpERR := errors.Unwrap(err)
+		if unwarpERR == nil {
+			lm.log.WithContext(ctx).Error("意外错误类型",
+				logger.Error(err),
+				logger.String("ip", ctx.ClientIP()),
+				logger.String("path", ctx.Request.URL.Path),
+				logger.String("method", ctx.Request.Method),
+				logger.String("headers", fmt.Sprintf("%v", ctx.Request.Header)),
+			)
 			return web.Response{Code: errs.ERROR_TYPE_ERROR_CODE, Msg: err.Error(), Data: nil}, http.StatusInternalServerError
 		}
-		lm.logCustomError(customError, ctx)
-		return web.Response{Code: customError.Code, Msg: customError.Msg, Data: nil}, customError.HttpCode
-	} else {
 
-		// 无错误则记录常规日志
-		lm.commonInfo(ctx)
-		res = ginx.GetResp[web.Response](ctx)
+		bizErr, ok := unwarpERR.(*b_errorx.CustomError)
+		if !ok {
+			lm.log.WithContext(ctx).Error("意外错误类型",
+				logger.Error(err),
+				logger.String("ip", ctx.ClientIP()),
+				logger.String("path", ctx.Request.URL.Path),
+				logger.String("method", ctx.Request.Method),
+				logger.String("headers", fmt.Sprintf("%v", ctx.Request.Header)),
+			)
+			return web.Response{Code: errs.ERROR_TYPE_ERROR_CODE, Msg: err.Error(), Data: nil}, http.StatusInternalServerError
+
+		}
+
+		lm.log.WithContext(ctx).Error("处理请求出错",
+			logger.Error(bizErr), // bizErr
+			logger.String("ip", ctx.ClientIP()),
+			logger.String("path", ctx.Request.URL.Path),
+			logger.String("method", ctx.Request.Method),
+			logger.String("headers", fmt.Sprintf("%v", ctx.Request.Header)),
+			logger.Int("httpCode", bizErr.HttpCode),
+			logger.Int("code", bizErr.Code),
+			logger.String("msg", bizErr.Message),
+		)
+		return web.Response{Code: bizErr.Code, Msg: bizErr.Message, Data: nil}, bizErr.HttpCode
 	}
+
+	// 无错误则记录常规日志
+	lm.log.WithContext(ctx).Info("请求正常",
+		logger.String("ip", ctx.ClientIP()),
+		logger.String("path", ctx.Request.URL.Path),
+		logger.String("method", ctx.Request.Method),
+		logger.String("headers", fmt.Sprintf("%v", ctx.Request.Header)),
+	)
+	res = ginx.GetResp[web.Response](ctx)
 
 	// 用来保证gin中间件实现404的时候也能有消息提示
 	if httpCode == http.StatusNotFound {

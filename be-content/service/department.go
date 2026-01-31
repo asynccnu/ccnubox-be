@@ -3,12 +3,22 @@ package service
 import (
 	"context"
 	"errors"
+
 	"github.com/asynccnu/ccnubox-be/be-content/domain"
-	"github.com/asynccnu/ccnubox-be/be-content/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/be-content/repository"
 	"github.com/asynccnu/ccnubox-be/be-content/repository/model"
+	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"gorm.io/gorm"
+)
+
+// 定义 Department 相关的 RPC 错误
+var (
+	GET_DEPARTMENTS_ERROR = errorx.FormatErrorFunc(contentv1.ErrorGetDepartmentError("获取部门列表失败"))
+
+	SAVE_DEPARTMENT_ERROR = errorx.FormatErrorFunc(contentv1.ErrorSaveDepartmentError("保存部门信息失败"))
+
+	DEL_DEPARTMENT_ERROR = errorx.FormatErrorFunc(contentv1.ErrorDelDepartmentError("删除部门失败"))
 )
 
 type DepartmentService interface {
@@ -33,8 +43,8 @@ func NewDepartmentService(repo repository.ContentRepo[model.Department], l logge
 func (s *departmentService) GetList(ctx context.Context) ([]domain.Department, error) {
 	ms, err := s.repo.GetList(ctx)
 	if err != nil {
-		// 包装错误，记录当前层级
-		return nil, errorx.Errorf("获取部门列表失败: %w", err)
+		// 使用 GET_DEPARTMENTS_ERROR 包装
+		return nil, GET_DEPARTMENTS_ERROR(err)
 	}
 	return s.toDomainList(ms), nil
 }
@@ -47,14 +57,14 @@ func (s *departmentService) Save(ctx context.Context, d *domain.Department) erro
 	// 1. 查找现有数据
 	if d.ID > 0 {
 		m, err = s.repo.Get(ctx, "id", d.ID)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return errorx.Errorf("保存前按 ID(%d) 查询部门失败: %w", d.ID, err)
+		if err != nil && !errors.Is(err, repository.ErrRecordNotFound) {
+			return SAVE_DEPARTMENT_ERROR(errorx.Errorf("保存前按 ID(%d) 查询部门失败: %w", d.ID, err))
 		}
 	} else {
-		// 如果没有 ID，按名称查重（业务逻辑：名称是唯一的）
+		// 如果没有 ID，按名称查重
 		m, err = s.repo.Get(ctx, "name", d.Name)
 		if err != nil && !errors.Is(err, repository.ErrRecordNotFound) {
-			return errorx.Errorf("保存前按名称(%s) 查询部门失败: %w", d.Name, err)
+			return SAVE_DEPARTMENT_ERROR(errorx.Errorf("保存前按名称(%s) 查询部门失败: %w", d.Name, err))
 		}
 	}
 
@@ -71,7 +81,7 @@ func (s *departmentService) Save(ctx context.Context, d *domain.Department) erro
 
 	// 4. 执行保存
 	if err := s.repo.Save(ctx, m); err != nil {
-		return errorx.Errorf("执行部门(%s)保存操作失败: %w", d.Name, err)
+		return SAVE_DEPARTMENT_ERROR(errorx.Errorf("执行部门(%s)保存操作失败: %w", d.Name, err))
 	}
 	return nil
 }
@@ -79,11 +89,11 @@ func (s *departmentService) Save(ctx context.Context, d *domain.Department) erro
 // Del 删除部门
 func (s *departmentService) Del(ctx context.Context, id int64) error {
 	if id <= 0 {
-		return errorx.Errorf("删除部门失败: ID %d 无效", id)
+		return DEL_DEPARTMENT_ERROR(errorx.Errorf("删除失败: 传入了无效的 ID (%d)", id))
 	}
 
 	if err := s.repo.Del(ctx, "id", id); err != nil {
-		return errorx.Errorf("删除部门(id=%d)失败: %w", id, err)
+		return DEL_DEPARTMENT_ERROR(errorx.Errorf("删除部门(id=%d)失败: %w", id, err))
 	}
 	return nil
 }

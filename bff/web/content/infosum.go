@@ -2,6 +2,7 @@ package content
 
 import (
 	"fmt"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
@@ -67,7 +68,7 @@ func (h *ContentHandler) SaveInfoSum(ctx *gin.Context, req SaveInfoSumRequest, u
 		},
 	})
 	if err != nil {
-		return web.Response{}, errs.Save_INFOSUM_ERROR(err)
+		return web.Response{}, errs.SAVE_INFOSUM_ERROR(err)
 	}
 
 	return web.Response{
@@ -91,7 +92,7 @@ func (h *ContentHandler) DelInfoSum(ctx *gin.Context, req DelInfoSumRequest, uc 
 
 	_, err := h.contentClient.DelInfoSum(ctx, &contentv1.DelInfoSumRequest{Id: req.Id})
 	if err != nil {
-		return web.Response{}, errs.Del_INFOSUM_ERROR(err)
+		return web.Response{}, errs.DEL_INFOSUM_ERROR(err)
 	}
 
 	return web.Response{

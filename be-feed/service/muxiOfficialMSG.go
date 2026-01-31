@@ -9,7 +9,16 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
-	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+)
+
+// 定义错误结构体
+var (
+	GET_MUXI_FEED_ERROR = errorx.FormatErrorFunc(feedv1.ErrorGetMuxiFeedError("获取木犀消息失败"))
+
+	INSERT_MUXI_FEED_ERROR = errorx.FormatErrorFunc(feedv1.ErrorInsertMuxiFeedError("插入木犀消息失败"))
+
+	REMOVE_MUXI_FEED_ERROR = errorx.FormatErrorFunc(feedv1.ErrorRemoveMuxiFeedError("删除木犀消息失败"))
 )
 
 const MUXI_EVENT_URL = ""
@@ -19,21 +28,6 @@ type MuxiOfficialMSGService interface {
 	PublicMuxiOfficialMSG(ctx context.Context, msg *domain.MuxiOfficialMSG) error
 	StopMuxiOfficialMSG(ctx context.Context, id string) error
 }
-
-// 定义错误结构体
-var (
-	GET_MUXI_FEED_ERROR = func(err error) error {
-		return errorx.New(feedv1.ErrorGetMuxiFeedError("获取木犀消息失败"), "cache", err)
-	}
-
-	INSERT_MUXI_FEED_ERROR = func(err error) error {
-		return errorx.New(feedv1.ErrorInsertMuxiFeedError("插入木犀消息失败"), "cache", err)
-	}
-
-	REMOVE_MUXI_FEED_ERROR = func(err error) error {
-		return errorx.New(feedv1.ErrorRemoveMuxiFeedError("删除木犀消息失败"), "cache", err)
-	}
-)
 
 type muxiOfficialMSGService struct {
 	feedEventDAO      dao.FeedEventDAO

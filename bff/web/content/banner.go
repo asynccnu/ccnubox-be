@@ -76,7 +76,7 @@ func (h *ContentHandler) SaveBanner(ctx *gin.Context, req SaveBannerRequest, uc 
 		WebLink:     req.WebLink,
 	})
 	if err != nil {
-		return web.Response{}, errs.Save_BANNER_ERROR(err)
+		return web.Response{}, errs.SAVE_BANNER_ERROR(err)
 	}
 
 	return web.Response{
@@ -100,7 +100,7 @@ func (h *ContentHandler) DelBanner(ctx *gin.Context, req DelBannerRequest, uc ij
 
 	_, err := h.contentClient.DelBanner(ctx, &contentv1.DelBannerRequest{Id: req.Id})
 	if err != nil {
-		return web.Response{}, errs.Del_BANNER_ERROR(err)
+		return web.Response{}, errs.DEL_BANNER_ERROR(err)
 	}
 
 	return web.Response{

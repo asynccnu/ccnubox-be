@@ -200,7 +200,6 @@ func (c *ccnuService) GetProxyAddr(ctx context.Context) (string, error) {
 	defer cancel()
 	res, err := c.p.GetProxyAddr(cctx, &proxyv1.GetProxyAddrRequest{})
 	if err != nil {
-		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
 		return "", err
 	}
 

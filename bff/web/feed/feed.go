@@ -13,6 +13,8 @@ import (
 	"github.com/jinzhu/copier"
 )
 
+const FEEDBACK_URL_PREFIX = "/feedback"
+
 type FeedHandler struct {
 	feedClient     feedv1.FeedServiceClient
 	Administrators map[string]struct{}
@@ -329,13 +331,14 @@ func (h *FeedHandler) GetToBePublicOfficialMSG(ctx *gin.Context, uc ijwt.UserCla
 // @Failure 500 {object} web.Response "系统异常"
 // @Router /feed/publicFeedbackEvent [post]
 func (h *FeedHandler) PublicFeedbackEvent(ctx *gin.Context, req PublicFeedbackEventReq) (web.Response, error) {
+	url := FEEDBACK_URL_PREFIX + "/" + req.RecordID
 	_, err := h.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 		StudentId: req.StudentId,
 		Event: &feedv1.FeedEvent{
-			Type:         feedv1.FeedEventType_FEEDBACK,
-			Title:        req.Title,
-			Content:      req.Content,
-			ExtendFields: map[string]string{"record_id": req.RecordID},
+			Type:    feedv1.FeedEventType_FEEDBACK,
+			Title:   req.Title,
+			Content: req.Content,
+			Url:     url,
 		},
 	})
 	if err != nil {

@@ -180,6 +180,7 @@ type FeedEvent struct {
 	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 	ExtendFields  map[string]string      `protobuf:"bytes,5,rep,name=ExtendFields,proto3" json:"ExtendFields,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CreatedAt     int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` //创建时间
+	Url           string                 `protobuf:"bytes,7,opt,name=url,proto3" json:"url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -256,6 +257,13 @@ func (x *FeedEvent) GetCreatedAt() int64 {
 	return 0
 }
 
+func (x *FeedEvent) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
 type FeedEventVO struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -265,7 +273,7 @@ type FeedEventVO struct {
 	Read          bool                   `protobuf:"varint,5,opt,name=read,proto3" json:"read,omitempty"`
 	ExtendFields  map[string]string      `protobuf:"bytes,6,rep,name=ExtendFields,proto3" json:"ExtendFields,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CreatedAt     int64                  `protobuf:"varint,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` //创建时间
-	Route         string                 `protobuf:"bytes,8,opt,name=route,proto3" json:"route,omitempty"`
+	Url           string                 `protobuf:"bytes,8,opt,name=url,proto3" json:"url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -349,9 +357,9 @@ func (x *FeedEventVO) GetCreatedAt() int64 {
 	return 0
 }
 
-func (x *FeedEventVO) GetRoute() string {
+func (x *FeedEventVO) GetUrl() string {
 	if x != nil {
-		return x.Route
+		return x.Url
 	}
 	return ""
 }
@@ -1373,7 +1381,7 @@ const file_feed_v1_feed_proto_rawDesc = "" +
 	"\tstudentId\x18\x01 \x01(\tR\tstudentId\x12\x14\n" +
 	"\x05isAll\x18\x02 \x01(\bR\x05isAll\x12(\n" +
 	"\x05event\x18\x03 \x01(\v2\x12.feed.v1.FeedEventR\x05event\"\x15\n" +
-	"\x13PublicFeedEventResp\"\xa1\x02\n" +
+	"\x13PublicFeedEventResp\"\xb3\x02\n" +
 	"\tFeedEvent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12*\n" +
 	"\x04type\x18\x02 \x01(\x0e2\x16.feed.v1.FeedEventTypeR\x04type\x12\x14\n" +
@@ -1381,10 +1389,11 @@ const file_feed_v1_feed_proto_rawDesc = "" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12H\n" +
 	"\fExtendFields\x18\x05 \x03(\v2$.feed.v1.FeedEvent.ExtendFieldsEntryR\fExtendFields\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x1a?\n" +
+	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x12\x10\n" +
+	"\x03url\x18\a \x01(\tR\x03url\x1a?\n" +
 	"\x11ExtendFieldsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb7\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb3\x02\n" +
 	"\vFeedEventVO\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x14\n" +
@@ -1393,8 +1402,8 @@ const file_feed_v1_feed_proto_rawDesc = "" +
 	"\x04read\x18\x05 \x01(\bR\x04read\x12J\n" +
 	"\fExtendFields\x18\x06 \x03(\v2&.feed.v1.FeedEventVO.ExtendFieldsEntryR\fExtendFields\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\a \x01(\x03R\tcreatedAt\x12\x14\n" +
-	"\x05route\x18\b \x01(\tR\x05route\x1a?\n" +
+	"created_at\x18\a \x01(\x03R\tcreatedAt\x12\x10\n" +
+	"\x03url\x18\b \x01(\tR\x03url\x1a?\n" +
 	"\x11ExtendFieldsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"0\n" +

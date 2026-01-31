@@ -10,5 +10,5 @@ type FeedEventVO struct {
 	ExtendFields map[string]string `json:"extend_fields"` // 拓展字段
 	CreatedAt    int64             `json:"created_at"`    // 创建时间，Unix 时间戳（int格式）
 	Read         bool              `json:"read"`
-	Route        string            `json:"route"`
+	Url          string            `json:"url"`
 }

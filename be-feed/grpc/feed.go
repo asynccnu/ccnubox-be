@@ -152,6 +152,7 @@ func (g *FeedServiceServer) PublicFeedEvent(ctx context.Context, req *feedv1.Pub
 			Type:         strings.ToLower(req.GetEvent().GetType().String()),
 			Title:        req.GetEvent().GetTitle(),
 			Content:      req.GetEvent().GetContent(),
+			Url:          req.GetEvent().GetUrl(),
 			ExtendFields: req.GetEvent().GetExtendFields(),
 		}
 

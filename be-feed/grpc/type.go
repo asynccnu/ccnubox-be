@@ -41,7 +41,7 @@ func convFeedEventsVOFromDomainToGRPC(feedEvents []domain.FeedEventVO) []*feedv1
 			ExtendFields: feedEvents[i].ExtendFields,
 			CreatedAt:    feedEvents[i].CreatedAt,
 			Read:         feedEvents[i].Read,
-			Route:        feedEvents[i].Route,
+			Url:          feedEvents[i].Url,
 		}
 	}
 	return result

@@ -2,9 +2,10 @@ package cron
 
 import (
 	"context"
-	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"strings"
 	"time"
+
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/conf"
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
+
+const HOLIDAY_EVENT_URL = "/calendar"
 
 type HolidayController struct {
 	svcFeed  service.FeedEventService
@@ -68,6 +71,7 @@ func (r *HolidayController) publishMSG() error {
 		Type:    strings.ToLower(feedv1.FeedEventType_HOLIDAY.String()),
 		Title:   "假期临近提醒",
 		Content: holiday + "假期临近,请及时查看放假通知及调休安排",
+		Url:     HOLIDAY_EVENT_URL,
 	})
 	if err != nil {
 		return nil

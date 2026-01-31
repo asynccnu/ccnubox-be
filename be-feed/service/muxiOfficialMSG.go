@@ -12,6 +12,8 @@ import (
 	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 )
 
+const MUXI_EVENT_URL = ""
+
 type MuxiOfficialMSGService interface {
 	GetToBePublicOfficialMSG(ctx context.Context, isToPublic bool) ([]domain.MuxiOfficialMSG, error)
 	PublicMuxiOfficialMSG(ctx context.Context, msg *domain.MuxiOfficialMSG) error
@@ -67,6 +69,7 @@ func (s *muxiOfficialMSGService) PublicMuxiOfficialMSG(ctx context.Context, msg 
 		MuxiMSGId:    s.feedEventCache.GetUniqueKey(),
 		Title:        msg.Title,
 		Content:      msg.Content,
+		Url:          MUXI_EVENT_URL,
 		ExtendFields: model.ExtendFields(msg.ExtendFields),
 	}
 

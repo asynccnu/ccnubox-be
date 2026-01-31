@@ -15,6 +15,8 @@ import (
 	"github.com/go-redsync/redsync/v4"
 )
 
+const GRADE_EVENT_URL = "/scoreInquiry"
+
 type GradeController struct {
 	counter      counterv1.CounterServiceClient
 	userClient   userv1.UserServiceClient
@@ -138,6 +140,7 @@ func (c *GradeController) publishMSG(label string) {
 					Type:    feedv1.FeedEventType_GRADE,
 					Title:   "成绩更新提醒",
 					Content: fmt.Sprintf("您的课程:%s分数更新了,请及时查看", grade.Kcmc),
+					Url:     GRADE_EVENT_URL,
 				},
 			})
 			if err != nil {

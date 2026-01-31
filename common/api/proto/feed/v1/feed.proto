@@ -41,6 +41,7 @@ message FeedEvent {
   string content = 4;
   map<string, string> ExtendFields=5;
   int64 created_at = 6;//创建时间
+  string url=7;
 }
 
 message FeedEventVO {
@@ -51,7 +52,7 @@ message FeedEventVO {
   bool read =5;
   map<string, string> ExtendFields=6;
   int64 created_at = 7;//创建时间
-  string route=8;
+  string url=8;
 }
 
 message GetFeedEventsReq {

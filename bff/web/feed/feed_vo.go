@@ -20,7 +20,7 @@ type FeedEventVO struct {
 	CreatedAt    int64             `json:"created_at"` //Unix时间戳
 	ExtendFields map[string]string `json:"extend_fields"`
 	Read         bool              `json:"read"`
-	Route        string            `json:"route"`
+	Url          string            `json:"url"`
 }
 type MuxiOfficialMSG struct {
 	Title        string            `json:"title"`

@@ -2,8 +2,9 @@ package errorx
 
 import (
 	"fmt"
-	"github.com/go-kratos/kratos/v2/errors"
 	"testing"
+
+	"github.com/go-kratos/kratos/v2/errors"
 )
 
 func TestError(t *testing.T) {
@@ -17,8 +18,12 @@ func TestError(t *testing.T) {
 	if !errors.Is(err2, err) {
 		t.Log("不相等")
 	}
-	err3 := Errorf("再测试一下: %w 测试两下: %d", err2, 1)
-	fmt.Println(err2.Error())
 
+	err3 := Errorf("再测试一下: %w 测试两下: %d", err2, 1)
+	fmt.Println()
+	fmt.Println(err2.Error())
+	fmt.Println()
 	fmt.Printf("%+v\n", err3)
+
+	// fmt.Sprintf("%+v", err3)
 }

@@ -8,27 +8,21 @@ import (
 	"time"
 
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 
 	"github.com/asynccnu/ccnubox-be/be-ccnu/crawler"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
-	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 // 定义错误,这里将kratos的error作为一个重要部分传入,此处的错误并不直接在service中去捕获,而是选择在更底层的爬虫去捕获,因为爬虫的错误处理非常复杂
 var (
-	CCNUSERVER_ERROR = func(err error) error {
-		return errorx.New(ccnuv1.ErrorCcnuserverError("ccnu服务器错误"), "ccnuServer", err)
-	}
+	CCNUSERVER_ERROR = errorx.FormatErrorFunc(ccnuv1.ErrorCcnuserverError("ccnu服务器错误"))
 
-	Invalid_SidOrPwd_ERROR = func(err error) error {
-		return errorx.New(ccnuv1.ErrorInvalidSidOrPwd("账号密码错误"), "user", err)
-	}
+	Invalid_SidOrPwd_ERROR = errorx.FormatErrorFunc(ccnuv1.ErrorInvalidSidOrPwd("账号密码错误"))
 
-	SYSTEM_ERROR = func(err error) error {
-		return errorx.New(ccnuv1.ErrorSystemError("系统内部错误"), "system", err)
-	}
+	SYSTEM_ERROR = errorx.FormatErrorFunc(ccnuv1.ErrorSystemError("系统内部错误"))
 )
 
 func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, password string, tpe ...string) (string, error) {

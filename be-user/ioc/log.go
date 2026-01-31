@@ -16,7 +16,7 @@ var passwordSQLReg = regexp.MustCompile(
 )
 
 func InitLogger(cfg *conf.ServerConf) logger.Logger {
-	res := log.InitLogger(cfg.Log)
+	res := log.InitLogger(cfg.Log, 4)
 	// 过滤敏感信息
 	return logger.NewFilterLogger(res, logger.FilterKey("password"), logger.FilterFunc(func(level logger.Level, key, val string) (string, bool) {
 		if level < logger.INFO || key != "request" {

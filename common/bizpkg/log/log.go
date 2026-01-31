@@ -3,13 +3,14 @@ package log
 import (
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func InitLogger(cfg *conf.LogConf) logger.Logger {
-	// 直接使用 zap 本身的配置结构体来处理
+func InitLogger(cfg *conf.LogConf, skip int) logger.Logger {
+	// 直接使用 zapx 本身的配置结构体来处理
 	// 配置Lumberjack以支持日志文件的滚动
 
 	lumberjackLogger := &lumberjack.Logger{
@@ -23,13 +24,15 @@ func InitLogger(cfg *conf.LogConf) logger.Logger {
 
 	// 创建zap日志核心
 	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(logger.ProdEncoderConfig()),
+		zapcore.NewJSONEncoder(zapx.ProdEncoderConfig()),
 		zapcore.AddSync(lumberjackLogger),
 		zapcore.DebugLevel, // 设置日志级别
 	)
 
-	l := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(1))
-	res := logger.NewZapLogger(l)
+	l := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel), zap.AddCallerSkip(skip))
+	res := zapx.NewZapLogger(l)
 
+	// 这里默认会用带链路的日志
+	res = logger.NewTraceLogger(res, logger.TraceLevel(logger.ERROR))
 	return res
 }

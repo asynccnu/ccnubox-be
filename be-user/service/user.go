@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 
 	"github.com/asynccnu/ccnubox-be/be-user/pkg/crypto"
@@ -14,39 +15,25 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
-	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"golang.org/x/sync/singleflight"
 )
 
 // 定义错误,这里将kratos的error作为一个重要部分传入
 var (
-	SAVE_USER_ERROR = func(err error) error {
-		return errorx.New(userv1.ErrorSaveUserError("保存用户失败"), "dao", err)
-	}
+	SAVE_USER_ERROR = errorx.FormatErrorFunc(userv1.ErrorSaveUserError("保存用户失败"))
 
-	DEFAULT_DAO_ERROR = func(err error) error {
-		return errorx.New(userv1.ErrorDefaultDaoError("数据库异常"), "dao", err)
-	}
+	DEFAULT_DAO_ERROR = errorx.FormatErrorFunc(userv1.ErrorDefaultDaoError("数据库异常"))
 
-	USER_NOT_FOUND_ERROR = func(err error) error {
-		return errorx.New(userv1.ErrorUserNotFoundError("无法找到该用户"), "dao", err)
-	}
+	USER_NOT_FOUND_ERROR = errorx.FormatErrorFunc(userv1.ErrorUserNotFoundError("无法找到该用户"))
 
-	CCNU_GETCOOKIE_ERROR = func(err error) error {
-		return errorx.New(userv1.ErrorCcnuGetcookieError("获取Cookie失败"), "ccnu", err)
-	}
+	CCNU_GETCOOKIE_ERROR = errorx.FormatErrorFunc(userv1.ErrorCcnuGetcookieError("获取Cookie失败"))
 
-	ENCRYPT_ERROR = func(err error) error {
-		return errorx.New(userv1.ErrorEncryptError("Password加密失败"), "crypt", err)
-	}
+	ENCRYPT_ERROR = errorx.FormatErrorFunc(userv1.ErrorEncryptError("Password加密失败"))
 
-	DECRYPT_ERROR = func(err error) error {
-		return errorx.New(userv1.ErrorDecryptError("Password解密失败"), "crypt", err)
-	}
-	InCorrectPassword = func(err error) error {
-		return errorx.New(userv1.ErrorIncorrectPasswordError("账号密码错误"), "user", err)
-	}
+	DECRYPT_ERROR = errorx.FormatErrorFunc(userv1.ErrorDecryptError("Password解密失败"))
+
+	InCorrectPassword = errorx.FormatErrorFunc(userv1.ErrorIncorrectPasswordError("账号密码错误"))
 )
 
 type UserService interface {

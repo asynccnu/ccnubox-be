@@ -1,7 +1,7 @@
 package log
 
 import (
-	kzap "github.com/go-kratos/kratos/contrib/log/zap/v2"
+	kzap "github.com/go-kratos/kratos/contrib/log/zapx/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

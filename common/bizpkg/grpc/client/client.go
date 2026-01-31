@@ -20,6 +20,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
 	b_grpc "github.com/asynccnu/ccnubox-be/common/bizpkg/grpc"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
+	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	k_grpc "github.com/go-kratos/kratos/v2/transport/grpc"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -34,6 +35,7 @@ func NewGrpcClient(ecli *clientv3.Client, cfg *conf.GrpcConf) *grpc.ClientConn {
 		k_grpc.WithEndpoint(fmt.Sprintf("discovery:///%s", cfg.Name)),
 		k_grpc.WithDiscovery(r),
 		k_grpc.WithTimeout(time.Duration(cfg.ClientTimeout)*time.Second),
+		k_grpc.WithMiddleware(tracing.Client()),
 	)
 	if err != nil {
 		panic(fmt.Sprintf("连接服务 %s 失败: %v", cfg.Name, err))

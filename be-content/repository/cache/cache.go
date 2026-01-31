@@ -3,10 +3,11 @@ package cache
 import (
 	"context"
 	"encoding/json"
-	"github.com/asynccnu/ccnubox-be/be-content/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/be-content/repository/model"
-	"github.com/redis/go-redis/v9"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-content/repository/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/redis/go-redis/v9"
 )
 
 // Cache 接口定义，包含获取、设置和清除数据的缓存方法

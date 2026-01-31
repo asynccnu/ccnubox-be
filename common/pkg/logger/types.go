@@ -26,7 +26,7 @@ func Any(key string, val any) Field {
 func Error(err error) Field {
 	return Field{
 		Key: "error",
-		Val: err,
+		Val: err.Error(),
 	}
 }
 

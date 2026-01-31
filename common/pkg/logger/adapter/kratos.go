@@ -15,7 +15,7 @@ type KratosLogger struct {
 
 func NewKratosLogger(l logger.Logger) klog.Logger {
 	return &KratosLogger{
-		l: l.With(logger.String("scope", "kratos")),
+		l: l.With(logger.String("scope", "kratos")).AddCallerSkip(3),
 	}
 }
 

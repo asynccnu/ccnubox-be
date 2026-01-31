@@ -19,7 +19,7 @@ type GormLogger struct {
 
 func NewGormLogger(l logger.Logger) *GormLogger {
 	return &GormLogger{
-		l:             l.With(logger.String("scope", "gorm")),
+		l:             l.With(logger.String("scope", "gorm")).AddCallerSkip(2),
 		SlowThreshold: 200 * time.Millisecond,
 		LogLevel:      glog.Warn,
 	}
@@ -66,7 +66,7 @@ func (g *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (stri
 	}
 
 	elapsed := time.Since(begin)
-	sql, rows := fc() 
+	sql, rows := fc()
 
 	// 构造通用字段
 	fields := []logger.Field{

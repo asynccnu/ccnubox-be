@@ -122,17 +122,25 @@ func ProdEncoderConfig() zapcore.EncoderConfig {
 }
 
 func (z *ZapLogger) Debugf(template string, args ...interface{}) {
-	z.Debug(fmt.Sprintf(template, args...))
+	z.AddCallerSkip(1).Debug(fmt.Sprintf(template, args...))
 }
 
 func (z *ZapLogger) Infof(template string, args ...interface{}) {
-	z.Info(fmt.Sprintf(template, args...))
+	z.AddCallerSkip(1).Info(fmt.Sprintf(template, args...))
 }
 
 func (z *ZapLogger) Warnf(template string, args ...interface{}) {
-	z.Warn(fmt.Sprintf(template, args...))
+	z.AddCallerSkip(1).Warn(fmt.Sprintf(template, args...))
 }
 
 func (z *ZapLogger) Errorf(template string, args ...interface{}) {
-	z.Error(fmt.Sprintf(template, args...))
+	z.AddCallerSkip(1).Error(fmt.Sprintf(template, args...))
+}
+
+func (z *ZapLogger) AddCallerSkip(skip int) Logger {
+	newZap := z.l.WithOptions(zap.AddCallerSkip(skip))
+	return &ZapLogger{
+		l:   newZap,
+		ctx: z.ctx,
+	}
 }

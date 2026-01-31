@@ -41,7 +41,7 @@ type FilterLogger struct {
 
 func NewFilterLogger(logger Logger, opts ...FilterOptions) Logger {
 	fl := &FilterLogger{
-		logger:     logger,
+		logger:     logger.AddCallerSkip(1),
 		filterKeys: make(map[string]struct{}),
 		filterVals: make(map[string]struct{}),
 	}
@@ -151,6 +151,15 @@ func (f *FilterLogger) With(args ...Field) Logger {
 
 	return &FilterLogger{
 		logger:          newBaseLogger,
+		filterKeys:      f.filterKeys,
+		filterVals:      f.filterVals,
+		filterFuncSlice: f.filterFuncSlice,
+	}
+}
+
+func (f *FilterLogger) AddCallerSkip(skip int) Logger {
+	return &FilterLogger{
+		logger:          f.logger.AddCallerSkip(skip),
 		filterKeys:      f.filterKeys,
 		filterVals:      f.filterVals,
 		filterFuncSlice: f.filterFuncSlice,

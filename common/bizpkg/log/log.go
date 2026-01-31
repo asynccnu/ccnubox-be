@@ -34,4 +34,3 @@ func InitLogger(cfg *conf.LogConf) logger.Logger {
 
 	return res
 }
-	

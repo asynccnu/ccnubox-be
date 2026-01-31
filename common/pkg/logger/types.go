@@ -17,6 +17,8 @@ type Logger interface {
 	Infof(template string, args ...interface{})
 	Warnf(template string, args ...interface{})
 	Errorf(template string, args ...interface{})
+
+	AddCallerSkip(skip int) Logger
 }
 
 type Field struct {

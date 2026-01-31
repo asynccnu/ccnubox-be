@@ -32,7 +32,7 @@ func NewClasserService(clu *biz.ClassUsecase, day *conf.SchoolDay, logger logger
 }
 
 func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest) (*pb.GetClassResponse, error) {
-	hlog := logger.GetLoggerFromCtx(ctx)
+	hlog := logger.GlobalLogger.WithContext(ctx)
 	hlog = hlog.With(
 		logger.String("stu_id", req.GetStuId()),
 		logger.String("year", req.GetYear()),

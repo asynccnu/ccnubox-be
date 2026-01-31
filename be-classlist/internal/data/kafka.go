@@ -102,22 +102,20 @@ func (c *delaySendHandler) Cleanup(sarama.ConsumerGroupSession) error {
 
 func (c *delaySendHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
+		ctx := otel.GetTextMapPropagator().Extract(context.Background(), otelsarama.NewConsumerMessageCarrier(message))
 
+		tracer := otel.Tracer("delay-queue-consume")
+		ctx, span := tracer.Start(ctx, "delay-queue-consume",
+			trace.WithSpanKind(trace.SpanKindConsumer),
+		)
+
+		tlog := c.log.WithContext(ctx)
 		dur := time.Now().Sub(message.Timestamp)
+
 		c.log.Debugf("Message claimed: key:%s, value:%s, time_sub:%v", string(message.Key), string(message.Value), dur)
 
 		// 当前是否超过延迟时间
 		if dur >= c.delayTime {
-			// 当消息能被开始处理的时候再去获取链路消息
-			ctx := otel.GetTextMapPropagator().Extract(context.Background(), otelsarama.NewConsumerMessageCarrier(message))
-
-			tracer := otel.Tracer("delay-queue-consume")
-			ctx, span := tracer.Start(ctx, "delay-queue-consume",
-				trace.WithSpanKind(trace.SpanKindConsumer),
-			)
-
-			tlog := c.log.WithContext(ctx)
-
 			// 如果当前时间已经超过20倍的延迟时间，不转发消息，提交偏移量
 			if c.delayTime > 0 && dur >= 20*c.delayTime {
 				session.MarkMessage(message, "")
@@ -139,6 +137,7 @@ func (c *delaySendHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 			continue
 		}
 
+		span.End()
 		// 如果当前时间没有超过延迟时间,睡觉1秒,return,重新轮询
 		time.Sleep(time.Second)
 		return nil

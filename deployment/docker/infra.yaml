@@ -41,7 +41,7 @@ services:
       - --initial-advertise-peer-urls=http://ccnubox-etcd:2380
       - --initial-cluster=s1=http://ccnubox-etcd:2380
       - --initial-cluster-state=new
-      - --logger=zapx
+      - --logger=zap
       - --log-outputs=stderr
     volumes:
       - etcd_data:/etcd-data

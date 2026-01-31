@@ -29,6 +29,9 @@ service ContentService {
   rpc GetWebsites(GetWebsitesRequest)returns(GetWebsitesResponse);
   rpc SaveWebsite(SaveWebsiteRequest)returns(SaveWebsiteResponse);
   rpc DelWebsite(DelWebsiteRequest)returns(DelWebsiteResponse);
+
+  // 热更新版本
+  rpc GetUpdateVersion(GetUpdateVersionRequest)returns(GetUpdateVersionResponse);
 }
 
 // =====日历=====
@@ -165,3 +168,10 @@ message DelWebsiteRequest {
 }
 
 message DelWebsiteResponse {}
+
+// version
+message GetUpdateVersionRequest{}
+
+message GetUpdateVersionResponse{
+  string version = 1;
+}

@@ -192,3 +192,15 @@ func IsSaveWebsiteError(err error) bool {
 func ErrorSaveWebsiteError(format string, args ...interface{}) *errors.Error {
 	return errors.New(543, CalendarErrorReason_SAVE_WEBSITE_ERROR.String(), fmt.Sprintf(format, args...))
 }
+
+func IsGetUpdateServiceError(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == CalendarErrorReason_GET_UPDATE_SERVICE_ERROR.String() && e.Code == 560
+}
+
+func ErrorGetUpdateServiceError(format string, args ...interface{}) *errors.Error {
+	return errors.New(560, CalendarErrorReason_GET_UPDATE_SERVICE_ERROR.String(), fmt.Sprintf(format, args...))
+}

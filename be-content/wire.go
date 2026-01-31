@@ -33,7 +33,9 @@ func InitApp() *App {
 		service.NewDepartmentService,
 		service.NewWebsiteService,
 		service.NewInfoSumService,
+		service.NewVersionService,
 		cron.NewCalendarController,
+		cron.NewUpdateVersionController,
 		cron.NewCron,
 		NewApp,
 	)

@@ -114,3 +114,8 @@ type DelWebsiteRequest struct {
 type GetWebsitesResponse struct {
 	Websites []*Website `json:"websites"`
 }
+
+// version
+type GetUpdateVersionResponse struct {
+	Version string `json:"version"`
+}

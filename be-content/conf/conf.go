@@ -16,6 +16,7 @@ type ServerConf struct {
 	conf.BaseServerConf `mapstructure:",squash"`
 	Qiniu               *QiniuConfig              `yaml:"qiniu"`
 	CalendarController  *CalendarControllerConfig `yaml:"calendarController"`
+	Version             *UpdateVersionConfig      `yaml:"version"`
 }
 
 type QiniuConfig struct {
@@ -28,6 +29,10 @@ type QiniuConfig struct {
 
 type CalendarControllerConfig struct {
 	DurationTime int `yaml:"durationTime"` // 单位：小时
+}
+
+type UpdateVersionConfig struct {
+	Version string `yaml:"version"`
 }
 
 func InitServerConf() *ServerConf {

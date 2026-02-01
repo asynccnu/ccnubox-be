@@ -50,7 +50,9 @@ type MysqlConf struct {
 
 // TODO 之后换成远程的,并加上账号密码校验
 type KafkaConf struct {
-	Addrs []string `yaml:"addrs"`
+	Addrs    []string `yaml:"addrs"`
+	Username string   `yaml:"username"`
+	Password string   `yaml:"password"`
 }
 
 type LogConf struct {

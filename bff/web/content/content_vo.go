@@ -119,3 +119,7 @@ type GetWebsitesResponse struct {
 type GetUpdateVersionResponse struct {
 	Version string `json:"version"`
 }
+
+type SaveVersionRequest struct {
+	Version string `json:"version" binding:"required"`
+}

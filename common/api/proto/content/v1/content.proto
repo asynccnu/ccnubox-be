@@ -32,6 +32,7 @@ service ContentService {
 
   // 热更新版本
   rpc GetUpdateVersion(GetUpdateVersionRequest)returns(GetUpdateVersionResponse);
+  rpc SaveUpdateVersion(SaveUpdateVersionRequest)returns(SaveUpdateVersionResponse);
 }
 
 // =====日历=====
@@ -175,3 +176,9 @@ message GetUpdateVersionRequest{}
 message GetUpdateVersionResponse{
   string version = 1;
 }
+
+message SaveUpdateVersionRequest{
+  string version = 1;
+}
+
+message SaveUpdateVersionResponse{}

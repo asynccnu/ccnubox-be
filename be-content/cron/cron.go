@@ -6,7 +6,6 @@ type Cron interface {
 
 func NewCron(
 	gradeController *CalendarController,
-	versionController *UpdateVersionController,
 ) []Cron {
-	return []Cron{gradeController, versionController}
+	return []Cron{gradeController}
 }

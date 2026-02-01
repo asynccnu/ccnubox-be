@@ -19,22 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ContentService_GetCalendars_FullMethodName     = "/content.v1.ContentService/GetCalendars"
-	ContentService_SaveCalendar_FullMethodName     = "/content.v1.ContentService/SaveCalendar"
-	ContentService_DelCalendar_FullMethodName      = "/content.v1.ContentService/DelCalendar"
-	ContentService_GetBanners_FullMethodName       = "/content.v1.ContentService/GetBanners"
-	ContentService_SaveBanner_FullMethodName       = "/content.v1.ContentService/SaveBanner"
-	ContentService_DelBanner_FullMethodName        = "/content.v1.ContentService/DelBanner"
-	ContentService_GetInfoSums_FullMethodName      = "/content.v1.ContentService/GetInfoSums"
-	ContentService_SaveInfoSum_FullMethodName      = "/content.v1.ContentService/SaveInfoSum"
-	ContentService_DelInfoSum_FullMethodName       = "/content.v1.ContentService/DelInfoSum"
-	ContentService_GetDepartments_FullMethodName   = "/content.v1.ContentService/GetDepartments"
-	ContentService_SaveDepartment_FullMethodName   = "/content.v1.ContentService/SaveDepartment"
-	ContentService_DelDepartment_FullMethodName    = "/content.v1.ContentService/DelDepartment"
-	ContentService_GetWebsites_FullMethodName      = "/content.v1.ContentService/GetWebsites"
-	ContentService_SaveWebsite_FullMethodName      = "/content.v1.ContentService/SaveWebsite"
-	ContentService_DelWebsite_FullMethodName       = "/content.v1.ContentService/DelWebsite"
-	ContentService_GetUpdateVersion_FullMethodName = "/content.v1.ContentService/GetUpdateVersion"
+	ContentService_GetCalendars_FullMethodName      = "/content.v1.ContentService/GetCalendars"
+	ContentService_SaveCalendar_FullMethodName      = "/content.v1.ContentService/SaveCalendar"
+	ContentService_DelCalendar_FullMethodName       = "/content.v1.ContentService/DelCalendar"
+	ContentService_GetBanners_FullMethodName        = "/content.v1.ContentService/GetBanners"
+	ContentService_SaveBanner_FullMethodName        = "/content.v1.ContentService/SaveBanner"
+	ContentService_DelBanner_FullMethodName         = "/content.v1.ContentService/DelBanner"
+	ContentService_GetInfoSums_FullMethodName       = "/content.v1.ContentService/GetInfoSums"
+	ContentService_SaveInfoSum_FullMethodName       = "/content.v1.ContentService/SaveInfoSum"
+	ContentService_DelInfoSum_FullMethodName        = "/content.v1.ContentService/DelInfoSum"
+	ContentService_GetDepartments_FullMethodName    = "/content.v1.ContentService/GetDepartments"
+	ContentService_SaveDepartment_FullMethodName    = "/content.v1.ContentService/SaveDepartment"
+	ContentService_DelDepartment_FullMethodName     = "/content.v1.ContentService/DelDepartment"
+	ContentService_GetWebsites_FullMethodName       = "/content.v1.ContentService/GetWebsites"
+	ContentService_SaveWebsite_FullMethodName       = "/content.v1.ContentService/SaveWebsite"
+	ContentService_DelWebsite_FullMethodName        = "/content.v1.ContentService/DelWebsite"
+	ContentService_GetUpdateVersion_FullMethodName  = "/content.v1.ContentService/GetUpdateVersion"
+	ContentService_SaveUpdateVersion_FullMethodName = "/content.v1.ContentService/SaveUpdateVersion"
 )
 
 // ContentServiceClient is the client API for ContentService service.
@@ -63,6 +64,7 @@ type ContentServiceClient interface {
 	DelWebsite(ctx context.Context, in *DelWebsiteRequest, opts ...grpc.CallOption) (*DelWebsiteResponse, error)
 	// 热更新版本
 	GetUpdateVersion(ctx context.Context, in *GetUpdateVersionRequest, opts ...grpc.CallOption) (*GetUpdateVersionResponse, error)
+	SaveUpdateVersion(ctx context.Context, in *SaveUpdateVersionRequest, opts ...grpc.CallOption) (*SaveUpdateVersionResponse, error)
 }
 
 type contentServiceClient struct {
@@ -233,6 +235,16 @@ func (c *contentServiceClient) GetUpdateVersion(ctx context.Context, in *GetUpda
 	return out, nil
 }
 
+func (c *contentServiceClient) SaveUpdateVersion(ctx context.Context, in *SaveUpdateVersionRequest, opts ...grpc.CallOption) (*SaveUpdateVersionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SaveUpdateVersionResponse)
+	err := c.cc.Invoke(ctx, ContentService_SaveUpdateVersion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ContentServiceServer is the server API for ContentService service.
 // All implementations must embed UnimplementedContentServiceServer
 // for forward compatibility.
@@ -259,6 +271,7 @@ type ContentServiceServer interface {
 	DelWebsite(context.Context, *DelWebsiteRequest) (*DelWebsiteResponse, error)
 	// 热更新版本
 	GetUpdateVersion(context.Context, *GetUpdateVersionRequest) (*GetUpdateVersionResponse, error)
+	SaveUpdateVersion(context.Context, *SaveUpdateVersionRequest) (*SaveUpdateVersionResponse, error)
 	mustEmbedUnimplementedContentServiceServer()
 }
 
@@ -316,6 +329,9 @@ func (UnimplementedContentServiceServer) DelWebsite(context.Context, *DelWebsite
 }
 func (UnimplementedContentServiceServer) GetUpdateVersion(context.Context, *GetUpdateVersionRequest) (*GetUpdateVersionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUpdateVersion not implemented")
+}
+func (UnimplementedContentServiceServer) SaveUpdateVersion(context.Context, *SaveUpdateVersionRequest) (*SaveUpdateVersionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SaveUpdateVersion not implemented")
 }
 func (UnimplementedContentServiceServer) mustEmbedUnimplementedContentServiceServer() {}
 func (UnimplementedContentServiceServer) testEmbeddedByValue()                        {}
@@ -626,6 +642,24 @@ func _ContentService_GetUpdateVersion_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ContentService_SaveUpdateVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaveUpdateVersionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContentServiceServer).SaveUpdateVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ContentService_SaveUpdateVersion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContentServiceServer).SaveUpdateVersion(ctx, req.(*SaveUpdateVersionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ContentService_ServiceDesc is the grpc.ServiceDesc for ContentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -696,6 +730,10 @@ var ContentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUpdateVersion",
 			Handler:    _ContentService_GetUpdateVersion_Handler,
+		},
+		{
+			MethodName: "SaveUpdateVersion",
+			Handler:    _ContentService_SaveUpdateVersion_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

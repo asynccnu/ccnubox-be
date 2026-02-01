@@ -204,3 +204,15 @@ func IsGetUpdateServiceError(err error) bool {
 func ErrorGetUpdateServiceError(format string, args ...interface{}) *errors.Error {
 	return errors.New(560, CalendarErrorReason_GET_UPDATE_SERVICE_ERROR.String(), fmt.Sprintf(format, args...))
 }
+
+func IsSaveUpdateServiceError(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == CalendarErrorReason_SAVE_UPDATE_SERVICE_ERROR.String() && e.Code == 561
+}
+
+func ErrorSaveUpdateServiceError(format string, args ...interface{}) *errors.Error {
+	return errors.New(561, CalendarErrorReason_SAVE_UPDATE_SERVICE_ERROR.String(), fmt.Sprintf(format, args...))
+}

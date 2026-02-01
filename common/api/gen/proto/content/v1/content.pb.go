@@ -1662,6 +1662,86 @@ func (x *GetUpdateVersionResponse) GetVersion() string {
 	return ""
 }
 
+type SaveUpdateVersionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Version       string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveUpdateVersionRequest) Reset() {
+	*x = SaveUpdateVersionRequest{}
+	mi := &file_content_v1_content_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveUpdateVersionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveUpdateVersionRequest) ProtoMessage() {}
+
+func (x *SaveUpdateVersionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_content_v1_content_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveUpdateVersionRequest.ProtoReflect.Descriptor instead.
+func (*SaveUpdateVersionRequest) Descriptor() ([]byte, []int) {
+	return file_content_v1_content_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *SaveUpdateVersionRequest) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+type SaveUpdateVersionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveUpdateVersionResponse) Reset() {
+	*x = SaveUpdateVersionResponse{}
+	mi := &file_content_v1_content_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveUpdateVersionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveUpdateVersionResponse) ProtoMessage() {}
+
+func (x *SaveUpdateVersionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_content_v1_content_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveUpdateVersionResponse.ProtoReflect.Descriptor instead.
+func (*SaveUpdateVersionResponse) Descriptor() ([]byte, []int) {
+	return file_content_v1_content_proto_rawDescGZIP(), []int{38}
+}
+
 var File_content_v1_content_proto protoreflect.FileDescriptor
 
 const file_content_v1_content_proto_rawDesc = "" +
@@ -1745,8 +1825,10 @@ const file_content_v1_content_proto_rawDesc = "" +
 	"\x12DelWebsiteResponse\"\x19\n" +
 	"\x17GetUpdateVersionRequest\"4\n" +
 	"\x18GetUpdateVersionResponse\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion2\xab\n" +
-	"\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\"4\n" +
+	"\x18SaveUpdateVersionRequest\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\"\x1b\n" +
+	"\x19SaveUpdateVersionResponse2\x8d\v\n" +
 	"\x0eContentService\x12Q\n" +
 	"\fGetCalendars\x12\x1f.content.v1.GetCalendarsRequest\x1a .content.v1.GetCalendarsResponse\x12Q\n" +
 	"\fSaveCalendar\x12\x1f.content.v1.SaveCalendarRequest\x1a .content.v1.SaveCalendarResponse\x12N\n" +
@@ -1767,7 +1849,8 @@ const file_content_v1_content_proto_rawDesc = "" +
 	"\vSaveWebsite\x12\x1e.content.v1.SaveWebsiteRequest\x1a\x1f.content.v1.SaveWebsiteResponse\x12K\n" +
 	"\n" +
 	"DelWebsite\x12\x1d.content.v1.DelWebsiteRequest\x1a\x1e.content.v1.DelWebsiteResponse\x12]\n" +
-	"\x10GetUpdateVersion\x12#.content.v1.GetUpdateVersionRequest\x1a$.content.v1.GetUpdateVersionResponseBJZHgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1;contentv1b\x06proto3"
+	"\x10GetUpdateVersion\x12#.content.v1.GetUpdateVersionRequest\x1a$.content.v1.GetUpdateVersionResponse\x12`\n" +
+	"\x11SaveUpdateVersion\x12$.content.v1.SaveUpdateVersionRequest\x1a%.content.v1.SaveUpdateVersionResponseBJZHgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1;contentv1b\x06proto3"
 
 var (
 	file_content_v1_content_proto_rawDescOnce sync.Once
@@ -1781,45 +1864,47 @@ func file_content_v1_content_proto_rawDescGZIP() []byte {
 	return file_content_v1_content_proto_rawDescData
 }
 
-var file_content_v1_content_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_content_v1_content_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_content_v1_content_proto_goTypes = []any{
-	(*Calendar)(nil),                 // 0: content.v1.Calendar
-	(*GetCalendarsRequest)(nil),      // 1: content.v1.GetCalendarsRequest
-	(*GetCalendarsResponse)(nil),     // 2: content.v1.GetCalendarsResponse
-	(*SaveCalendarRequest)(nil),      // 3: content.v1.SaveCalendarRequest
-	(*SaveCalendarResponse)(nil),     // 4: content.v1.SaveCalendarResponse
-	(*DelCalendarRequest)(nil),       // 5: content.v1.DelCalendarRequest
-	(*DelCalendarResponse)(nil),      // 6: content.v1.DelCalendarResponse
-	(*Banner)(nil),                   // 7: content.v1.Banner
-	(*GetBannersRequest)(nil),        // 8: content.v1.GetBannersRequest
-	(*GetBannersResponse)(nil),       // 9: content.v1.GetBannersResponse
-	(*SaveBannerRequest)(nil),        // 10: content.v1.SaveBannerRequest
-	(*SaveBannerResponse)(nil),       // 11: content.v1.SaveBannerResponse
-	(*DelBannerRequest)(nil),         // 12: content.v1.DelBannerRequest
-	(*DelBannerResponse)(nil),        // 13: content.v1.DelBannerResponse
-	(*InfoSum)(nil),                  // 14: content.v1.InfoSum
-	(*GetInfoSumsRequest)(nil),       // 15: content.v1.GetInfoSumsRequest
-	(*GetInfoSumsResponse)(nil),      // 16: content.v1.GetInfoSumsResponse
-	(*SaveInfoSumRequest)(nil),       // 17: content.v1.SaveInfoSumRequest
-	(*SaveInfoSumResponse)(nil),      // 18: content.v1.SaveInfoSumResponse
-	(*DelInfoSumRequest)(nil),        // 19: content.v1.DelInfoSumRequest
-	(*DelInfoSumResponse)(nil),       // 20: content.v1.DelInfoSumResponse
-	(*Department)(nil),               // 21: content.v1.Department
-	(*GetDepartmentsRequest)(nil),    // 22: content.v1.GetDepartmentsRequest
-	(*GetDepartmentsResponse)(nil),   // 23: content.v1.GetDepartmentsResponse
-	(*SaveDepartmentRequest)(nil),    // 24: content.v1.SaveDepartmentRequest
-	(*SaveDepartmentResponse)(nil),   // 25: content.v1.SaveDepartmentResponse
-	(*DelDepartmentRequest)(nil),     // 26: content.v1.DelDepartmentRequest
-	(*DelDepartmentResponse)(nil),    // 27: content.v1.DelDepartmentResponse
-	(*Website)(nil),                  // 28: content.v1.Website
-	(*GetWebsitesRequest)(nil),       // 29: content.v1.GetWebsitesRequest
-	(*GetWebsitesResponse)(nil),      // 30: content.v1.GetWebsitesResponse
-	(*SaveWebsiteRequest)(nil),       // 31: content.v1.SaveWebsiteRequest
-	(*SaveWebsiteResponse)(nil),      // 32: content.v1.SaveWebsiteResponse
-	(*DelWebsiteRequest)(nil),        // 33: content.v1.DelWebsiteRequest
-	(*DelWebsiteResponse)(nil),       // 34: content.v1.DelWebsiteResponse
-	(*GetUpdateVersionRequest)(nil),  // 35: content.v1.GetUpdateVersionRequest
-	(*GetUpdateVersionResponse)(nil), // 36: content.v1.GetUpdateVersionResponse
+	(*Calendar)(nil),                  // 0: content.v1.Calendar
+	(*GetCalendarsRequest)(nil),       // 1: content.v1.GetCalendarsRequest
+	(*GetCalendarsResponse)(nil),      // 2: content.v1.GetCalendarsResponse
+	(*SaveCalendarRequest)(nil),       // 3: content.v1.SaveCalendarRequest
+	(*SaveCalendarResponse)(nil),      // 4: content.v1.SaveCalendarResponse
+	(*DelCalendarRequest)(nil),        // 5: content.v1.DelCalendarRequest
+	(*DelCalendarResponse)(nil),       // 6: content.v1.DelCalendarResponse
+	(*Banner)(nil),                    // 7: content.v1.Banner
+	(*GetBannersRequest)(nil),         // 8: content.v1.GetBannersRequest
+	(*GetBannersResponse)(nil),        // 9: content.v1.GetBannersResponse
+	(*SaveBannerRequest)(nil),         // 10: content.v1.SaveBannerRequest
+	(*SaveBannerResponse)(nil),        // 11: content.v1.SaveBannerResponse
+	(*DelBannerRequest)(nil),          // 12: content.v1.DelBannerRequest
+	(*DelBannerResponse)(nil),         // 13: content.v1.DelBannerResponse
+	(*InfoSum)(nil),                   // 14: content.v1.InfoSum
+	(*GetInfoSumsRequest)(nil),        // 15: content.v1.GetInfoSumsRequest
+	(*GetInfoSumsResponse)(nil),       // 16: content.v1.GetInfoSumsResponse
+	(*SaveInfoSumRequest)(nil),        // 17: content.v1.SaveInfoSumRequest
+	(*SaveInfoSumResponse)(nil),       // 18: content.v1.SaveInfoSumResponse
+	(*DelInfoSumRequest)(nil),         // 19: content.v1.DelInfoSumRequest
+	(*DelInfoSumResponse)(nil),        // 20: content.v1.DelInfoSumResponse
+	(*Department)(nil),                // 21: content.v1.Department
+	(*GetDepartmentsRequest)(nil),     // 22: content.v1.GetDepartmentsRequest
+	(*GetDepartmentsResponse)(nil),    // 23: content.v1.GetDepartmentsResponse
+	(*SaveDepartmentRequest)(nil),     // 24: content.v1.SaveDepartmentRequest
+	(*SaveDepartmentResponse)(nil),    // 25: content.v1.SaveDepartmentResponse
+	(*DelDepartmentRequest)(nil),      // 26: content.v1.DelDepartmentRequest
+	(*DelDepartmentResponse)(nil),     // 27: content.v1.DelDepartmentResponse
+	(*Website)(nil),                   // 28: content.v1.Website
+	(*GetWebsitesRequest)(nil),        // 29: content.v1.GetWebsitesRequest
+	(*GetWebsitesResponse)(nil),       // 30: content.v1.GetWebsitesResponse
+	(*SaveWebsiteRequest)(nil),        // 31: content.v1.SaveWebsiteRequest
+	(*SaveWebsiteResponse)(nil),       // 32: content.v1.SaveWebsiteResponse
+	(*DelWebsiteRequest)(nil),         // 33: content.v1.DelWebsiteRequest
+	(*DelWebsiteResponse)(nil),        // 34: content.v1.DelWebsiteResponse
+	(*GetUpdateVersionRequest)(nil),   // 35: content.v1.GetUpdateVersionRequest
+	(*GetUpdateVersionResponse)(nil),  // 36: content.v1.GetUpdateVersionResponse
+	(*SaveUpdateVersionRequest)(nil),  // 37: content.v1.SaveUpdateVersionRequest
+	(*SaveUpdateVersionResponse)(nil), // 38: content.v1.SaveUpdateVersionResponse
 }
 var file_content_v1_content_proto_depIdxs = []int32{
 	0,  // 0: content.v1.GetCalendarsResponse.calendars:type_name -> content.v1.Calendar
@@ -1847,24 +1932,26 @@ var file_content_v1_content_proto_depIdxs = []int32{
 	31, // 22: content.v1.ContentService.SaveWebsite:input_type -> content.v1.SaveWebsiteRequest
 	33, // 23: content.v1.ContentService.DelWebsite:input_type -> content.v1.DelWebsiteRequest
 	35, // 24: content.v1.ContentService.GetUpdateVersion:input_type -> content.v1.GetUpdateVersionRequest
-	2,  // 25: content.v1.ContentService.GetCalendars:output_type -> content.v1.GetCalendarsResponse
-	4,  // 26: content.v1.ContentService.SaveCalendar:output_type -> content.v1.SaveCalendarResponse
-	6,  // 27: content.v1.ContentService.DelCalendar:output_type -> content.v1.DelCalendarResponse
-	9,  // 28: content.v1.ContentService.GetBanners:output_type -> content.v1.GetBannersResponse
-	11, // 29: content.v1.ContentService.SaveBanner:output_type -> content.v1.SaveBannerResponse
-	13, // 30: content.v1.ContentService.DelBanner:output_type -> content.v1.DelBannerResponse
-	16, // 31: content.v1.ContentService.GetInfoSums:output_type -> content.v1.GetInfoSumsResponse
-	18, // 32: content.v1.ContentService.SaveInfoSum:output_type -> content.v1.SaveInfoSumResponse
-	20, // 33: content.v1.ContentService.DelInfoSum:output_type -> content.v1.DelInfoSumResponse
-	23, // 34: content.v1.ContentService.GetDepartments:output_type -> content.v1.GetDepartmentsResponse
-	25, // 35: content.v1.ContentService.SaveDepartment:output_type -> content.v1.SaveDepartmentResponse
-	27, // 36: content.v1.ContentService.DelDepartment:output_type -> content.v1.DelDepartmentResponse
-	30, // 37: content.v1.ContentService.GetWebsites:output_type -> content.v1.GetWebsitesResponse
-	32, // 38: content.v1.ContentService.SaveWebsite:output_type -> content.v1.SaveWebsiteResponse
-	34, // 39: content.v1.ContentService.DelWebsite:output_type -> content.v1.DelWebsiteResponse
-	36, // 40: content.v1.ContentService.GetUpdateVersion:output_type -> content.v1.GetUpdateVersionResponse
-	25, // [25:41] is the sub-list for method output_type
-	9,  // [9:25] is the sub-list for method input_type
+	37, // 25: content.v1.ContentService.SaveUpdateVersion:input_type -> content.v1.SaveUpdateVersionRequest
+	2,  // 26: content.v1.ContentService.GetCalendars:output_type -> content.v1.GetCalendarsResponse
+	4,  // 27: content.v1.ContentService.SaveCalendar:output_type -> content.v1.SaveCalendarResponse
+	6,  // 28: content.v1.ContentService.DelCalendar:output_type -> content.v1.DelCalendarResponse
+	9,  // 29: content.v1.ContentService.GetBanners:output_type -> content.v1.GetBannersResponse
+	11, // 30: content.v1.ContentService.SaveBanner:output_type -> content.v1.SaveBannerResponse
+	13, // 31: content.v1.ContentService.DelBanner:output_type -> content.v1.DelBannerResponse
+	16, // 32: content.v1.ContentService.GetInfoSums:output_type -> content.v1.GetInfoSumsResponse
+	18, // 33: content.v1.ContentService.SaveInfoSum:output_type -> content.v1.SaveInfoSumResponse
+	20, // 34: content.v1.ContentService.DelInfoSum:output_type -> content.v1.DelInfoSumResponse
+	23, // 35: content.v1.ContentService.GetDepartments:output_type -> content.v1.GetDepartmentsResponse
+	25, // 36: content.v1.ContentService.SaveDepartment:output_type -> content.v1.SaveDepartmentResponse
+	27, // 37: content.v1.ContentService.DelDepartment:output_type -> content.v1.DelDepartmentResponse
+	30, // 38: content.v1.ContentService.GetWebsites:output_type -> content.v1.GetWebsitesResponse
+	32, // 39: content.v1.ContentService.SaveWebsite:output_type -> content.v1.SaveWebsiteResponse
+	34, // 40: content.v1.ContentService.DelWebsite:output_type -> content.v1.DelWebsiteResponse
+	36, // 41: content.v1.ContentService.GetUpdateVersion:output_type -> content.v1.GetUpdateVersionResponse
+	38, // 42: content.v1.ContentService.SaveUpdateVersion:output_type -> content.v1.SaveUpdateVersionResponse
+	26, // [26:43] is the sub-list for method output_type
+	9,  // [9:26] is the sub-list for method input_type
 	9,  // [9:9] is the sub-list for extension type_name
 	9,  // [9:9] is the sub-list for extension extendee
 	0,  // [0:9] is the sub-list for field type_name
@@ -1881,7 +1968,7 @@ func file_content_v1_content_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_content_v1_content_proto_rawDesc), len(file_content_v1_content_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   37,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -35,7 +35,6 @@ func InitApp() *App {
 		service.NewInfoSumService,
 		service.NewVersionService,
 		cron.NewCalendarController,
-		cron.NewUpdateVersionController,
 		cron.NewCron,
 		NewApp,
 	)

@@ -26,22 +26,23 @@ type CalendarErrorReason int32
 
 const (
 	// 每10组保证一定的可拓展性
-	CalendarErrorReason_GET_CALENDAR_ERROR       CalendarErrorReason = 0
-	CalendarErrorReason_DEL_CALENDAR_ERROR       CalendarErrorReason = 1
-	CalendarErrorReason_SAVE_CALENDAR_ERROR      CalendarErrorReason = 2
-	CalendarErrorReason_GET_BANNER_ERROR         CalendarErrorReason = 10
-	CalendarErrorReason_DEL_BANNER_ERROR         CalendarErrorReason = 11
-	CalendarErrorReason_SAVE_BANNER_ERROR        CalendarErrorReason = 12
-	CalendarErrorReason_GET_DEPARTMENT_ERROR     CalendarErrorReason = 20
-	CalendarErrorReason_DEL_DEPARTMENT_ERROR     CalendarErrorReason = 21
-	CalendarErrorReason_SAVE_DEPARTMENT_ERROR    CalendarErrorReason = 22
-	CalendarErrorReason_GET_INFOSUM_ERROR        CalendarErrorReason = 30
-	CalendarErrorReason_DEL_INFOSUM_ERROR        CalendarErrorReason = 31
-	CalendarErrorReason_SAVE_INFOSUM_ERROR       CalendarErrorReason = 32
-	CalendarErrorReason_GET_WEBSITE_ERROR        CalendarErrorReason = 41
-	CalendarErrorReason_DEL_WEBSITE_ERROR        CalendarErrorReason = 42
-	CalendarErrorReason_SAVE_WEBSITE_ERROR       CalendarErrorReason = 43
-	CalendarErrorReason_GET_UPDATE_SERVICE_ERROR CalendarErrorReason = 60
+	CalendarErrorReason_GET_CALENDAR_ERROR        CalendarErrorReason = 0
+	CalendarErrorReason_DEL_CALENDAR_ERROR        CalendarErrorReason = 1
+	CalendarErrorReason_SAVE_CALENDAR_ERROR       CalendarErrorReason = 2
+	CalendarErrorReason_GET_BANNER_ERROR          CalendarErrorReason = 10
+	CalendarErrorReason_DEL_BANNER_ERROR          CalendarErrorReason = 11
+	CalendarErrorReason_SAVE_BANNER_ERROR         CalendarErrorReason = 12
+	CalendarErrorReason_GET_DEPARTMENT_ERROR      CalendarErrorReason = 20
+	CalendarErrorReason_DEL_DEPARTMENT_ERROR      CalendarErrorReason = 21
+	CalendarErrorReason_SAVE_DEPARTMENT_ERROR     CalendarErrorReason = 22
+	CalendarErrorReason_GET_INFOSUM_ERROR         CalendarErrorReason = 30
+	CalendarErrorReason_DEL_INFOSUM_ERROR         CalendarErrorReason = 31
+	CalendarErrorReason_SAVE_INFOSUM_ERROR        CalendarErrorReason = 32
+	CalendarErrorReason_GET_WEBSITE_ERROR         CalendarErrorReason = 41
+	CalendarErrorReason_DEL_WEBSITE_ERROR         CalendarErrorReason = 42
+	CalendarErrorReason_SAVE_WEBSITE_ERROR        CalendarErrorReason = 43
+	CalendarErrorReason_GET_UPDATE_SERVICE_ERROR  CalendarErrorReason = 60
+	CalendarErrorReason_SAVE_UPDATE_SERVICE_ERROR CalendarErrorReason = 61
 )
 
 // Enum value maps for CalendarErrorReason.
@@ -63,24 +64,26 @@ var (
 		42: "DEL_WEBSITE_ERROR",
 		43: "SAVE_WEBSITE_ERROR",
 		60: "GET_UPDATE_SERVICE_ERROR",
+		61: "SAVE_UPDATE_SERVICE_ERROR",
 	}
 	CalendarErrorReason_value = map[string]int32{
-		"GET_CALENDAR_ERROR":       0,
-		"DEL_CALENDAR_ERROR":       1,
-		"SAVE_CALENDAR_ERROR":      2,
-		"GET_BANNER_ERROR":         10,
-		"DEL_BANNER_ERROR":         11,
-		"SAVE_BANNER_ERROR":        12,
-		"GET_DEPARTMENT_ERROR":     20,
-		"DEL_DEPARTMENT_ERROR":     21,
-		"SAVE_DEPARTMENT_ERROR":    22,
-		"GET_INFOSUM_ERROR":        30,
-		"DEL_INFOSUM_ERROR":        31,
-		"SAVE_INFOSUM_ERROR":       32,
-		"GET_WEBSITE_ERROR":        41,
-		"DEL_WEBSITE_ERROR":        42,
-		"SAVE_WEBSITE_ERROR":       43,
-		"GET_UPDATE_SERVICE_ERROR": 60,
+		"GET_CALENDAR_ERROR":        0,
+		"DEL_CALENDAR_ERROR":        1,
+		"SAVE_CALENDAR_ERROR":       2,
+		"GET_BANNER_ERROR":          10,
+		"DEL_BANNER_ERROR":          11,
+		"SAVE_BANNER_ERROR":         12,
+		"GET_DEPARTMENT_ERROR":      20,
+		"DEL_DEPARTMENT_ERROR":      21,
+		"SAVE_DEPARTMENT_ERROR":     22,
+		"GET_INFOSUM_ERROR":         30,
+		"DEL_INFOSUM_ERROR":         31,
+		"SAVE_INFOSUM_ERROR":        32,
+		"GET_WEBSITE_ERROR":         41,
+		"DEL_WEBSITE_ERROR":         42,
+		"SAVE_WEBSITE_ERROR":        43,
+		"GET_UPDATE_SERVICE_ERROR":  60,
+		"SAVE_UPDATE_SERVICE_ERROR": 61,
 	}
 )
 
@@ -115,7 +118,7 @@ var File_content_v1_content_error_proto protoreflect.FileDescriptor
 
 const file_content_v1_content_error_proto_rawDesc = "" +
 	"\n" +
-	"\x1econtent/v1/content_error.proto\x12\vcalendar.v1\x1a\x13errors/errors.proto*\x80\x04\n" +
+	"\x1econtent/v1/content_error.proto\x12\vcalendar.v1\x1a\x13errors/errors.proto*\xa5\x04\n" +
 	"\x13CalendarErrorReason\x12\x1c\n" +
 	"\x12GET_CALENDAR_ERROR\x10\x00\x1a\x04\xa8E\xf5\x03\x12\x1c\n" +
 	"\x12DEL_CALENDAR_ERROR\x10\x01\x1a\x04\xa8E\xf6\x03\x12\x1d\n" +
@@ -133,7 +136,8 @@ const file_content_v1_content_error_proto_rawDesc = "" +
 	"\x11GET_WEBSITE_ERROR\x10)\x1a\x04\xa8E\x9d\x04\x12\x1b\n" +
 	"\x11DEL_WEBSITE_ERROR\x10*\x1a\x04\xa8E\x9e\x04\x12\x1c\n" +
 	"\x12SAVE_WEBSITE_ERROR\x10+\x1a\x04\xa8E\x9f\x04\x12\"\n" +
-	"\x18GET_UPDATE_SERVICE_ERROR\x10<\x1a\x04\xa8E\xb0\x04\x1a\x04\xa0E\xf4\x03BJZHgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1;contentv1b\x06proto3"
+	"\x18GET_UPDATE_SERVICE_ERROR\x10<\x1a\x04\xa8E\xb0\x04\x12#\n" +
+	"\x19SAVE_UPDATE_SERVICE_ERROR\x10=\x1a\x04\xa8E\xb1\x04\x1a\x04\xa0E\xf4\x03BJZHgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1;contentv1b\x06proto3"
 
 var (
 	file_content_v1_content_error_proto_rawDescOnce sync.Once

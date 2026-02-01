@@ -46,7 +46,7 @@ func InitApp() *App {
 	classServiceClient := ioc.InitClassClient(client, infraConf)
 	classHandler := ioc.InitClassHandler(serverConf, classerClient, classServiceClient)
 	contentServiceClient := ioc.InitContentClient(client, infraConf)
-	contentHandler := ioc.InitContentHandler(contentServiceClient, userServiceClient, gradeServiceClient)
+	contentHandler := ioc.InitContentHandler(serverConf, contentServiceClient, userServiceClient, gradeServiceClient)
 	metricsHandler := ioc.InitMetricsHandel(logger, cmdable, prometheusCounter)
 	libraryClient := ioc.InitLibrary(client, infraConf)
 	libraryHandler := ioc.InitLibraryHandler(serverConf, libraryClient)

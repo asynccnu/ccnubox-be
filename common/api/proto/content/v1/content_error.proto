@@ -30,4 +30,7 @@ enum CalendarErrorReason {
   GET_WEBSITE_ERROR = 41 [(errors.code) = 541];
   DEL_WEBSITE_ERROR = 42 [(errors.code) = 542];
   SAVE_WEBSITE_ERROR = 43 [(errors.code) = 543];
+
+  GET_UPDATE_SERVICE_ERROR = 60 [(errors.code) = 560];
+  SAVE_UPDATE_SERVICE_ERROR = 61 [(errors.code) = 561];
 }

@@ -398,3 +398,13 @@ var (
 		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "生成swagger失败", "swag", err)
 	}
 )
+
+// version
+var (
+	GET_UPDATE_VERSION_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取热更新版本失败", "version", err)
+	}
+	SAVE_UPDATE_VERSION_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "保存热更新版本失败", "version", err)
+	}
+)

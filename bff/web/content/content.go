@@ -31,6 +31,7 @@ func (h *ContentHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 	h.RegisterDepartmentRoute(s, authMiddleware)
 	h.RegisterInfoSumRoute(s, authMiddleware)
 	h.RegisterWebsiteRoute(s, authMiddleware)
+	h.RegisterUpdateVersionRoute(s, authMiddleware)
 }
 
 func (h *ContentHandler) isAdmin(studentId string) bool {

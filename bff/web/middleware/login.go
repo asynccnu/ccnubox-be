@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	"errors"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+
 	"strings"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
@@ -30,7 +31,7 @@ func (m *LoginMiddleware) MiddlewareFunc() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		uc, err := m.extractUserClaimsFromAuthorizationHeader(ctx)
 		if err != nil {
-			ctx.Error(errs.UNAUTHORIED_ERROR(errors.New("身份验证失败!")))
+			ctx.Error(errs.UNAUTHORIED_ERROR(errorx.Errorf("身份验证失败: %w", err)))
 			return
 		}
 		// 设置claims并执行下一个
@@ -44,13 +45,13 @@ func (m *LoginMiddleware) extractUserClaimsFromAuthorizationHeader(ctx *gin.Cont
 
 	// 没token
 	if authCode == "" {
-		return ijwt.UserClaims{}, errors.New("authorization为空")
+		return ijwt.UserClaims{}, errorx.New("authorization为空")
 	}
 	// Bearer xxxx
 	segs := strings.Split(authCode, " ")
 
 	if len(segs) != 2 {
-		return ijwt.UserClaims{}, errors.New("authorization为空格式不合理")
+		return ijwt.UserClaims{}, errorx.New("authorization为空格式不合理")
 	}
 
 	tokenStr := segs[1]
@@ -65,7 +66,7 @@ func (m *LoginMiddleware) extractUserClaimsFromAuthorizationHeader(ctx *gin.Cont
 	}
 
 	if token == nil || !token.Valid {
-		return ijwt.UserClaims{}, errors.New("token无效")
+		return ijwt.UserClaims{}, errorx.New("token无效")
 	}
 
 	// token有效
@@ -78,11 +79,11 @@ func (m *LoginMiddleware) extractUserClaimsFromAuthorizationHeader(ctx *gin.Cont
 	ok, err := m.handler.CheckSession(ctx, uc.Ssid)
 	if err != nil || ok {
 		// err如果是redis崩溃导致，考虑进行降级，不再验证是否退出 refresh_token降级的话收益会很少，因为是低频接口
-		return ijwt.UserClaims{}, errors.New("session检验：失败")
+		return ijwt.UserClaims{}, errorx.New("session检验：失败")
 	}
 	password, err := m.handler.DecryptPasswordFromClaims(&uc)
 	if err != nil {
-		return ijwt.UserClaims{}, err
+		return ijwt.UserClaims{}, errorx.Errorf("解密失败:%w", err)
 	}
 	// TODO 临时逻辑,用于解决秘钥不统一的问题,后续需要删除
 	_, err = m.userClient.SaveUser(ctx, &userv1.SaveUserReq{

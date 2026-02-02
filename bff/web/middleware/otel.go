@@ -29,6 +29,14 @@ func (m *OtelMiddleware) AttributeMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Next()
 
+		span := trace.SpanFromContext(ctx)
+		sc := span.SpanContext()
+		if !sc.IsValid() {
+			return
+		}
+		// 添加trace_id到响应头中去
+		ctx.Header("X-Trace-Id", sc.TraceID().String())
+
 		// 判断 ctx 中有没有用户信息
 		_, exists := ctx.Get(ginx.UC_CTX)
 		if !exists {
@@ -42,7 +50,8 @@ func (m *OtelMiddleware) AttributeMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		span := trace.SpanFromContext(ctx)
+		// 添加学号到链路中去
 		span.SetAttributes(attribute.String("student_id", uc.StudentId))
+
 	}
 }

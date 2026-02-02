@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO 如果以后 go语言 出了泛型方法记得改下这里
 const RESP_CTX = "ginx_resp"
 const UC_CTX = "ginx_user"
 

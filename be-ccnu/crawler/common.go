@@ -1,16 +1,17 @@
 package crawler
 
 import (
-	"errors"
-	"github.com/go-kratos/kratos/v2/log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/go-kratos/kratos/v2/log"
 )
 
 var (
-	INCorrectPASSWORD = errors.New("账号密码错误")
+	INCorrectPASSWORD = errorx.New("账号密码错误")
 )
 
 func NewCrawlerClient(t time.Duration, proxyAddr string) *http.Client {

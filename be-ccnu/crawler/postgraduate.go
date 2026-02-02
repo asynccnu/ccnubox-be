@@ -8,13 +8,14 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 )
 
 const (
@@ -31,48 +32,63 @@ func NewPostGraduate(client *http.Client) *PostGraduate {
 	return &PostGraduate{client: client}
 }
 
-// FetchPublicKey 1. 获取账号密码的加密秘钥
+// 1. 获取 RSA 公钥
 func (c *PostGraduate) FetchPublicKey(ctx context.Context) (*rsa.PublicKey, error) {
-
 	req, err := http.NewRequestWithContext(ctx, "GET", publicKeyURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, errorx.Errorf("postgraduate: create public key request failed: %w", err)
 	}
+
 	req.Header.Set("User-Agent", "Mozilla/5.0")
 	req.Header.Set("Referer", postgraduateURL+"/yjsxt/")
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errorx.Errorf("postgraduate: send public key request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var data rsaPublicKeyResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, err
+		return nil, errorx.Errorf("postgraduate: decode public key response failed: %w", err)
 	}
 
-	return parseRSAPublicKey(data.Modulus, data.Exponent)
+	pubKey, err := parseRSAPublicKey(data.Modulus, data.Exponent)
+	if err != nil {
+		return nil, errorx.Errorf("postgraduate: parse public key failed: %w", err)
+	}
+
+	return pubKey, nil
 }
 
-// LoginPostgraduateSystem 2.登陆研究生院
-func (c *PostGraduate) LoginPostgraduateSystem(ctx context.Context, username, password string, pubKey *rsa.PublicKey) error {
+// 2. 登录研究生系统
+func (c *PostGraduate) LoginPostgraduateSystem(
+	ctx context.Context,
+	username,
+	password string,
+	pubKey *rsa.PublicKey,
+) error {
 
 	encPwd, err := encryptPasswordJSStyle(password, pubKey)
 	if err != nil {
-		return err
+		return errorx.Errorf("postgraduate: encrypt password failed: %w", err)
 	}
 
 	form := url.Values{}
 	form.Set("csrftoken", "")
 	form.Set("yhm", username)
 	form.Set("mm", encPwd)
-	//form.Set("hidMm", encPwd)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", loginPostgraduateURL, bytes.NewBufferString(form.Encode()))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"POST",
+		loginPostgraduateURL,
+		bytes.NewBufferString(form.Encode()),
+	)
 	if err != nil {
-		return err
+		return errorx.Errorf("postgraduate: create login request failed: %w", err)
 	}
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "Mozilla/5.0")
 	req.Header.Set("Referer", postgraduateURL+"/yjsxt/")
@@ -81,13 +97,13 @@ func (c *PostGraduate) LoginPostgraduateSystem(ctx context.Context, username, pa
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return err
+		return errorx.Errorf("postgraduate: send login request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return errorx.Errorf("postgraduate: read login response failed: %w", err)
 	}
 
 	if strings.Contains(string(body), "用户名或密码不正确") {
@@ -97,10 +113,17 @@ func (c *PostGraduate) LoginPostgraduateSystem(ctx context.Context, username, pa
 	return nil
 }
 
-func (c *PostGraduate) GetCookie(ctx context.Context, stuId, password string, pubKey *rsa.PublicKey) (string, error) {
+// 3. 登录并获取 Cookie
+func (c *PostGraduate) GetCookie(
+	ctx context.Context,
+	stuId,
+	password string,
+	pubKey *rsa.PublicKey,
+) (string, error) {
+
 	encPwd, err := encryptPasswordJSStyle(password, pubKey)
 	if err != nil {
-		return "", err
+		return "", errorx.Errorf("postgraduate: encrypt password failed: %w", err)
 	}
 
 	form := url.Values{}
@@ -108,10 +131,16 @@ func (c *PostGraduate) GetCookie(ctx context.Context, stuId, password string, pu
 	form.Set("yhm", stuId)
 	form.Set("mm", encPwd)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", loginPostgraduateURL, bytes.NewBufferString(form.Encode()))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"POST",
+		loginPostgraduateURL,
+		bytes.NewBufferString(form.Encode()),
+	)
 	if err != nil {
-		return "", err
+		return "", errorx.Errorf("postgraduate: create cookie request failed: %w", err)
 	}
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "Mozilla/5.0")
 	req.Header.Set("Referer", postgraduateURL+"/yjsxt/")
@@ -120,29 +149,28 @@ func (c *PostGraduate) GetCookie(ctx context.Context, stuId, password string, pu
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return "", err
+		return "", errorx.Errorf("postgraduate: send cookie request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return "", errors.New(resp.Status)
+	if resp.StatusCode != http.StatusOK {
+		return "", errorx.Errorf("postgraduate: unexpected status code %d", resp.StatusCode)
 	}
 
 	var JSESSIONID, route string
-
 	rootURL, _ := url.Parse("https://grd.ccnu.edu.cn/yjsxt")
 
 	for _, cookie := range c.client.Jar.Cookies(rootURL) {
-		if cookie.Name == "JSESSIONID" {
+		switch cookie.Name {
+		case "JSESSIONID":
 			JSESSIONID = cookie.Value
-		}
-		if cookie.Name == "route" {
+		case "route":
 			route = cookie.Value
 		}
 	}
 
-	if len(JSESSIONID) == 0 || len(route) == 0 {
-		return "", errors.New("cookie not found")
+	if JSESSIONID == "" || route == "" {
+		return "", errorx.Errorf("postgraduate: required cookie missing")
 	}
 
 	return fmt.Sprintf("JSESSIONID=%s;route=%s", JSESSIONID, route), nil
@@ -156,12 +184,14 @@ type rsaPublicKeyResponse struct {
 func parseRSAPublicKey(modBase64, expBase64 string) (*rsa.PublicKey, error) {
 	modBytes, err := base64.StdEncoding.DecodeString(modBase64)
 	if err != nil {
-		return nil, fmt.Errorf("modulus decode error: %v", err)
+		return nil, errorx.Errorf("rsa: decode modulus failed: %w", err)
 	}
+
 	expBytes, err := base64.StdEncoding.DecodeString(expBase64)
 	if err != nil {
-		return nil, fmt.Errorf("exponent decode error: %v", err)
+		return nil, errorx.Errorf("rsa: decode exponent failed: %w", err)
 	}
+
 	modulus := new(big.Int).SetBytes(modBytes)
 	exponent := new(big.Int).SetBytes(expBytes)
 
@@ -174,12 +204,14 @@ func parseRSAPublicKey(modBase64, expBase64 string) (*rsa.PublicKey, error) {
 func encryptPasswordJSStyle(password string, pubKey *rsa.PublicKey) (string, error) {
 	encrypted, err := rsa.EncryptPKCS1v15(rand.Reader, pubKey, []byte(password))
 	if err != nil {
-		return "", err
+		return "", errorx.Errorf("rsa: encrypt password failed: %w", err)
 	}
+
 	hexStr := hex.EncodeToString(encrypted)
 	hexBytes, err := hex.DecodeString(hexStr)
 	if err != nil {
-		return "", err
+		return "", errorx.Errorf("rsa: hex decode failed: %w", err)
 	}
+
 	return base64.StdEncoding.EncodeToString(hexBytes), nil
 }

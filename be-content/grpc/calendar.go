@@ -2,24 +2,15 @@ package grpc
 
 import (
 	"context"
+
 	"github.com/asynccnu/ccnubox-be/be-content/domain"
-	"github.com/asynccnu/ccnubox-be/be-content/pkg/errorx"
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
-)
-
-// 定义错误结构体
-var (
-	GET_CALENDAR_ERROR = errorx.FormatGRPCErrorFunc(contentv1.ErrorGetCalendarError("获取calendar失败"))
-
-	DEL_CALENDAR_ERROR = errorx.FormatGRPCErrorFunc(contentv1.ErrorDelCalendarError("删除calendar失败"))
-
-	SAVE_CALENDAR_ERROR = errorx.FormatGRPCErrorFunc(contentv1.ErrorSaveCalendarError("删除calendar失败"))
 )
 
 func (c *ContentServiceServer) GetCalendars(ctx context.Context, request *contentv1.GetCalendarsRequest) (*contentv1.GetCalendarsResponse, error) {
 	calendars, err := c.svcCalendar.GetList(ctx)
 	if err != nil {
-		return nil, GET_CALENDAR_ERROR(err)
+		return nil, err
 	}
 	return &contentv1.GetCalendarsResponse{
 		Calendars: calendarDomains2GRPC(calendars),
@@ -32,7 +23,7 @@ func (c *ContentServiceServer) SaveCalendar(ctx context.Context, request *conten
 		Link: request.Calendar.GetLink(),
 	})
 	if err != nil {
-		return nil, SAVE_CALENDAR_ERROR(err)
+		return nil, err
 	}
 	return &contentv1.SaveCalendarResponse{}, nil
 }
@@ -40,7 +31,7 @@ func (c *ContentServiceServer) SaveCalendar(ctx context.Context, request *conten
 func (c *ContentServiceServer) DelCalendar(ctx context.Context, request *contentv1.DelCalendarRequest) (*contentv1.DelCalendarResponse, error) {
 	err := c.svcCalendar.Del(ctx, request.GetYear())
 	if err != nil {
-		return nil, DEL_CALENDAR_ERROR(err)
+		return nil, err
 	}
 	return &contentv1.DelCalendarResponse{}, nil
 }

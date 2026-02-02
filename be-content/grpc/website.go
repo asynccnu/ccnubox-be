@@ -2,24 +2,16 @@ package grpc
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/asynccnu/ccnubox-be/be-content/domain"
-	"github.com/asynccnu/ccnubox-be/be-content/pkg/errorx"
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
-)
-
-// 定义 Website 相关的 RPC 错误映射
-var (
-	GET_WEBSITES_ERROR = errorx.FormatGRPCErrorFunc(contentv1.ErrorGetWebsiteError("获取常用网站列表失败"))
-
-	SAVE_WEBSITE_ERROR = errorx.FormatGRPCErrorFunc(contentv1.ErrorSaveWebsiteError("保存网站信息失败"))
-
-	DEL_WEBSITE_ERROR = errorx.FormatGRPCErrorFunc(contentv1.ErrorDelWebsiteError("删除网站失败"))
 )
 
 func (c *ContentServiceServer) GetWebsites(ctx context.Context, request *contentv1.GetWebsitesRequest) (*contentv1.GetWebsitesResponse, error) {
 	webs, err := c.svcWebsite.GetList(ctx)
 	if err != nil {
-		return nil, GET_WEBSITES_ERROR(err)
+		return nil, fmt.Errorf("获取常用网站列表失败: %w", err)
 	}
 	return &contentv1.GetWebsitesResponse{
 		Websites: websiteDomains2GRPC(webs),
@@ -36,7 +28,7 @@ func (c *ContentServiceServer) SaveWebsite(ctx context.Context, request *content
 		Description: request.Website.GetDescription(),
 	})
 	if err != nil {
-		return nil, SAVE_WEBSITE_ERROR(err)
+		return nil, fmt.Errorf("保存网站信息失败: %w", err)
 	}
 
 	return &contentv1.SaveWebsiteResponse{}, nil
@@ -46,7 +38,7 @@ func (c *ContentServiceServer) DelWebsite(ctx context.Context, request *contentv
 	// 1. 调用 Service 执行删除
 	err := c.svcWebsite.Del(ctx, request.GetId())
 	if err != nil {
-		return nil, DEL_WEBSITE_ERROR(err)
+		return nil, fmt.Errorf("删除网站失败: %w", err)
 	}
 
 	return &contentv1.DelWebsiteResponse{}, nil

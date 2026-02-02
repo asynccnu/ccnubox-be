@@ -3,8 +3,9 @@ package limiter
 import (
 	"context"
 	_ "embed"
-	"github.com/redis/go-redis/v9"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 //go:embed slide_window.lua

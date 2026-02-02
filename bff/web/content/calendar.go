@@ -2,6 +2,7 @@ package content
 
 import (
 	"fmt"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
@@ -69,7 +70,7 @@ func (h *ContentHandler) SaveCalendar(ctx *gin.Context, req SaveCalendarRequest,
 		},
 	})
 	if err != nil {
-		return web.Response{}, errs.Save_CALENDAR_ERROR(err)
+		return web.Response{}, errs.SAVE_CALENDAR_ERROR(err)
 	}
 
 	return web.Response{
@@ -97,7 +98,7 @@ func (h *ContentHandler) DelCalendar(ctx *gin.Context, req DelCalendarRequest, u
 		Year: req.Year,
 	})
 	if err != nil {
-		return web.Response{}, errs.Del_CALENDAR_ERROR(err)
+		return web.Response{}, errs.DEL_CALENDAR_ERROR(err)
 	}
 
 	return web.Response{

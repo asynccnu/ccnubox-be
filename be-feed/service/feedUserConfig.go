@@ -9,7 +9,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
-	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"golang.org/x/exp/slices"
 )
 
@@ -53,17 +53,10 @@ func NewFeedUserConfigService(
 
 // 定义错误结构体
 var (
-	FIND_CONFIG_OR_TOKEN_ERROR = func(err error) error {
-		return errorx.New(feedv1.ErrorFindConfigOrTokenError("获取推送配置失败"), "dao", err)
-	}
+	FIND_CONFIG_OR_TOKEN_ERROR = errorx.FormatErrorFunc(feedv1.ErrorFindConfigOrTokenError("获取推送配置失败"))
 
-	CHANGE_CONFIG_OR_TOKEN_ERROR = func(err error) error {
-		return errorx.New(feedv1.ErrorChangeConfigOrTokenError("更改推送配置失败"), "dao", err)
-	}
-
-	REMOVE_CONFIG_OR_TOKEN_ERROR = func(err error) error {
-		return errorx.New(feedv1.ErrorRemoveConfigOrTokenError("删除推送配置失败"), "dao", err)
-	}
+	CHANGE_CONFIG_OR_TOKEN_ERROR = errorx.FormatErrorFunc(feedv1.ErrorChangeConfigOrTokenError("更改推送配置失败"))
+	REMOVE_CONFIG_OR_TOKEN_ERROR = errorx.FormatErrorFunc(feedv1.ErrorRemoveConfigOrTokenError("删除推送配置失败"))
 )
 
 // ChangeAllowList 修改允许列表

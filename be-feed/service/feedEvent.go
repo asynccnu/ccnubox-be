@@ -10,7 +10,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
-	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
@@ -25,16 +25,10 @@ type FeedEventService interface {
 
 // 定义错误结构体
 var (
-	GET_FEED_EVENT_ERROR = func(err error) error {
-		return errorx.New(feedv1.ErrorGetFeedEventError("获取feed失败"), "dao", err)
-	}
+	GET_FEED_EVENT_ERROR = errorx.FormatErrorFunc(feedv1.ErrorGetFeedEventError("获取feed失败"))
 
-	CLEAR_FEED_EVENT_ERROR = func(err error) error {
-		return errorx.New(feedv1.ErrorClearFeedEventError("删除feed失败"), "dao", err)
-	}
-	PUBLIC_FEED_EVENT_ERROR = func(err error) error {
-		return errorx.New(feedv1.ErrorPublicFeedEventError("发布feed失败"), "dao", err)
-	}
+	CLEAR_FEED_EVENT_ERROR  = errorx.FormatErrorFunc(feedv1.ErrorGetFeedEventError("获取feed失败"))
+	PUBLIC_FEED_EVENT_ERROR = errorx.FormatErrorFunc(feedv1.ErrorPublicFeedEventError("发布feed失败"))
 )
 
 type feedEventService struct {

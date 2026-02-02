@@ -7,5 +7,5 @@ import (
 )
 
 func InitLogger(cfg *conf.ServerConf) logger.Logger {
-	return log.InitLogger(cfg.Log)
+	return log.InitLogger(cfg.Log, 3)
 }

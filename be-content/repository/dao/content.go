@@ -3,8 +3,9 @@ package dao
 import (
 	"context"
 	"errors"
-	"github.com/asynccnu/ccnubox-be/be-content/pkg/errorx"
+
 	"github.com/asynccnu/ccnubox-be/be-content/repository/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"gorm.io/gorm"
 )
 

@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+
 	"net/http"
 	"net/url"
 	"time"
@@ -23,14 +26,11 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
-	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 var (
-	ErrGetGrade = func(err error) error {
-		return errorx.New(gradev1.ErrorGetGradeError("获取成绩失败"), "data", err)
-	}
+	ErrGetGrade = errorx.FormatErrorFunc(gradev1.ErrorGetGradeError("获取成绩失败"))
 )
 
 // 创建一个全局client

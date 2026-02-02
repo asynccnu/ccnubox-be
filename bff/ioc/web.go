@@ -48,15 +48,21 @@ func InitGinServer(
 
 	// 使用中间件
 	api.Use(
-		// 跨域中间件
-		corsMiddleware.MiddlewareFunc(),
-		// 追踪中间件
-		otelMiddleware.Middleware(),
-		otelMiddleware.AttributeMiddleware(),
-		// 打点中间件
-		prometheusMiddleware.MiddlewareFunc(),
-		// 日志中间件
-		loggerMiddleware.MiddlewareFunc(),
+		// 跨域中间件(前置处理)
+		corsMiddleware.MiddlewareFunc(), //在最开始就会请求达到的中间件,如果不符合跨域规范会被直接强制返回
+
+		// 打点中间件(前后均处理)
+		prometheusMiddleware.MiddlewareFunc(), // 需要在所有包含业务逻辑的中间件开始之前记录最完整的耗时;最后记录完整的耗时
+
+		// 链路追踪注入中间件(前后均处理)
+		otelMiddleware.Middleware(), // 请求开始的时候就会生成链路 id到上下文; 结束的时候会上报整个链路的所有信息
+
+		// 日志中间件(后置处理)
+		loggerMiddleware.MiddlewareFunc(), // 对于日志中间件需要等待所有的下游逻辑都结束之后再记录,因为这里除了记录日志同时还集中处理了响应,否则会出现某些上下文丢失情况
+
+		// 链路追踪补充信息中间件(后置处理)
+		otelMiddleware.AttributeMiddleware(), // 请求处理完成后生成相关信息,包括添加trace_id到Header,添加学号到链路等
+
 	)
 
 	// 创建用户认证中间件

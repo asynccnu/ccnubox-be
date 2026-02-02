@@ -175,3 +175,13 @@ var (
 	OPEN_SWAG_ERROR = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "打开swagger失败"))
 	MAKE_SWAG_ERROR = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "生成swagger失败"))
 )
+
+// version
+var (
+	GET_UPDATE_VERSION_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取热更新版本失败", "version", err)
+	}
+	SAVE_UPDATE_VERSION_ERROR = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "保存热更新版本失败", "version", err)
+	}
+)

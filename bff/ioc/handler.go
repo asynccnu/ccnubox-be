@@ -32,12 +32,11 @@ import (
 
 // InitContentHandler 初始化 ContentHandler
 func InitContentHandler(
+	cfg *conf.ServerConf,
 	contentClient contentv1.ContentServiceClient,
 	userClient userv1.UserServiceClient,
 	gradeClient gradev1.GradeServiceClient,
-	cfg *conf.ServerConf,
 ) *content.ContentHandler {
-
 	return content.NewContentHandler(
 		contentClient,
 		userClient,

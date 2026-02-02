@@ -13,6 +13,7 @@ type ContentServiceServer struct {
 	svcDepartment service.DepartmentService
 	svcWebsite    service.WebsiteService
 	svcInfoSum    service.InfoSumService
+	svcVersion    service.VersionService
 }
 
 func NewCalendarServiceServer(
@@ -21,6 +22,7 @@ func NewCalendarServiceServer(
 	svcDepartment service.DepartmentService,
 	svcWebsite service.WebsiteService,
 	svcInfoSum service.InfoSumService,
+	svcVersion service.VersionService,
 ) *ContentServiceServer {
 	return &ContentServiceServer{
 		svcCalendar:   svcCalendar,
@@ -28,6 +30,7 @@ func NewCalendarServiceServer(
 		svcDepartment: svcDepartment,
 		svcWebsite:    svcWebsite,
 		svcInfoSum:    svcInfoSum,
+		svcVersion:    svcVersion,
 	}
 }
 

@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"testing"
 
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
@@ -36,7 +36,7 @@ func (t *TestLogger) WithContext(ctx context.Context) logger.Logger {
 type MockProxy struct{}
 
 func (m *MockProxy) GetProxyAddr(ctx context.Context, in *proxyv1.GetProxyAddrRequest, opts ...grpc.CallOption) (*proxyv1.GetProxyAddrResponse, error) {
-	return nil, errors.New("mock")
+	return nil, errorx.New("mock")
 }
 
 func Test_ccnuService_getGradCookie(t *testing.T) {

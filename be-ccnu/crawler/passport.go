@@ -2,13 +2,13 @@ package crawler
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 )
 
@@ -26,103 +26,84 @@ func NewPassport(client *http.Client) *Passport {
 	}
 }
 
-// 将放入crawler层，这里的组装属于行为级组装，不用移动至服务级
+// 将放入 crawler 层，这里的组装属于行为级组装
 func (c *Passport) LoginPassport(ctx context.Context, stuId string, password string) (bool, error) {
-	var (
-		isInCorrectPASSWORD = false //用于判断是否是账号密码错误
-	)
+	var isInCorrectPASSWORD bool
 
 	params, err := tool.Retry(func() (*accountRequestParams, error) {
 		return c.getParamsFromHtml(ctx)
 	})
 	if err != nil {
-		return false, err
+		return false, errorx.Errorf("passport: get login params failed: %w", err)
 	}
 
-	//此处比较特殊由于账号密码错误是必然无效的请求,应当直接返回
 	_, err = tool.Retry(func() (string, error) {
 		err := c.loginCCNUPassport(ctx, stuId, password, params)
-		if errors.Is(err, INCorrectPASSWORD) {
-			// 标识账号密码错误,强制结束
+		if errorx.Is(err, INCorrectPASSWORD) {
 			isInCorrectPASSWORD = true
 			return "", nil
 		}
 		return "", err
 	})
-	//如果密码有误
+
 	if isInCorrectPASSWORD {
 		return false, INCorrectPASSWORD
 	}
-	//如果存在错误
+
 	if err != nil {
-		return false, err
+		return false, errorx.Errorf("passport: login failed: %w", err)
 	}
+
 	return true, nil
 }
 
-// 1.前置请求，从html中提取相关参数
+// 1. 前置请求：从 HTML 中提取参数
 func (c *Passport) getParamsFromHtml(ctx context.Context) (*accountRequestParams, error) {
-	var JSESSIONID string
-	var lt string
-	var execution string
-	var _eventId string
-
 	params := &accountRequestParams{}
 
-	// 初始化 http request
-	request, err := http.NewRequestWithContext(ctx, "GET", loginCCNUPassPortURL, nil)
+	request, err := http.NewRequestWithContext(ctx, "GET", LoginCCNUPassPortURL, nil)
 	if err != nil {
-		return params, err
+		return params, errorx.Errorf("create login request failed: %w", err)
 	}
 
-	// 发起请求
 	resp, err := c.Client.Do(request)
 	if err != nil {
-		return params, err
+		return params, errorx.Errorf("send login request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// 读取 MsgContent
 	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return params, errorx.Errorf("read login html failed: %w", err)
+	}
+
+	var JSESSIONID string
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == "JSESSIONID" {
+			JSESSIONID = cookie.Value
+			break
+		}
+	}
+	if JSESSIONID == "" {
+		return params, errorx.Errorf("parse cookie failed: missing JSESSIONID")
+	}
+
+	bodyStr := string(body)
+
+	lt, err := extractField(bodyStr, `name="lt".+value="(.+)"`, "lt")
 	if err != nil {
 		return params, err
 	}
 
-	// 获取 Cookie 中的 JSESSIONID
-	for _, cookie := range resp.Cookies() {
-		if cookie.Name == "JSESSIONID" {
-			JSESSIONID = cookie.Value
-		}
+	execution, err := extractField(bodyStr, `name="execution".+value="(.+)"`, "execution")
+	if err != nil {
+		return params, err
 	}
 
-	if JSESSIONID == "" {
-		return params, errors.New("Can not get JSESSIONID")
+	_eventId, err := extractField(bodyStr, `name="_eventId".+value="(.+)"`, "_eventId")
+	if err != nil {
+		return params, err
 	}
-
-	// 正则匹配 HTML 返回的表单字段
-	ltReg := regexp.MustCompile("name=\"lt\".+value=\"(.+)\"")
-	executionReg := regexp.MustCompile("name=\"execution\".+value=\"(.+)\"")
-	_eventIdReg := regexp.MustCompile("name=\"_eventId\".+value=\"(.+)\"")
-
-	bodyStr := string(body)
-
-	ltArr := ltReg.FindStringSubmatch(bodyStr)
-	if len(ltArr) != 2 {
-		return params, errors.New("Can not get lt")
-	}
-	lt = ltArr[1]
-
-	execArr := executionReg.FindStringSubmatch(bodyStr)
-	if len(execArr) != 2 {
-		return params, errors.New("Can not get execution")
-	}
-	execution = execArr[1]
-
-	_eventIdArr := _eventIdReg.FindStringSubmatch(bodyStr)
-	if len(_eventIdArr) != 2 {
-		return params, errors.New("Can not get _eventId")
-	}
-	_eventId = _eventIdArr[1]
 
 	params.lt = lt
 	params.execution = execution
@@ -133,8 +114,14 @@ func (c *Passport) getParamsFromHtml(ctx context.Context) (*accountRequestParams
 	return params, nil
 }
 
-// 2.登陆ccnu通行证
-func (c *Passport) loginCCNUPassport(ctx context.Context, studentId string, password string, params *accountRequestParams) error {
+// 2. 登录 CCNU 通行证
+func (c *Passport) loginCCNUPassport(
+	ctx context.Context,
+	studentId string,
+	password string,
+	params *accountRequestParams,
+) error {
+
 	v := url.Values{}
 	v.Set("username", studentId)
 	v.Set("password", password)
@@ -143,35 +130,45 @@ func (c *Passport) loginCCNUPassport(ctx context.Context, studentId string, pass
 	v.Set("_eventId", params._eventId)
 	v.Set("submit", params.submit)
 
-	urlstr := loginCCNUPassPortURL + ";jsessionid=" + params.JSESSIONID
+	urlstr := LoginCCNUPassPortURL + ";jsessionid=" + params.JSESSIONID
 	request, err := http.NewRequestWithContext(ctx, "POST", urlstr, strings.NewReader(v.Encode()))
 	if err != nil {
-		return err
+		return errorx.Errorf("create login post request failed: %w", err)
 	}
 
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	request.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36")
+	request.Header.Set("User-Agent", "Mozilla/5.0")
 
 	resp, err := c.Client.Do(request)
 	if err != nil {
-		return err
+		return errorx.Errorf("send login post request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	res, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return errorx.Errorf("read login response failed: %w", err)
 	}
 
 	if strings.Contains(string(res), "您输入的用户名或密码有误") {
 		return INCorrectPASSWORD
 	}
 
-	if len(resp.Header.Get("Set-Cookie")) == 0 {
-		return errors.New("登录失败，未返回 Cookie")
+	if resp.Header.Get("Set-Cookie") == "" {
+		return errorx.Errorf("login failed: missing Set-Cookie")
 	}
 
 	return nil
+}
+
+// HTML 字段提取工具
+func extractField(body, pattern, name string) (string, error) {
+	reg := regexp.MustCompile(pattern)
+	arr := reg.FindStringSubmatch(body)
+	if len(arr) != 2 {
+		return "", errorx.Errorf("parse html failed: missing %s", name)
+	}
+	return arr[1], nil
 }
 
 type accountRequestParams struct {

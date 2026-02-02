@@ -2,10 +2,11 @@ package crawler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 )
 
 const (
@@ -26,15 +27,21 @@ func NewLibrary(client *http.Client) *Library {
 func (c *Library) LoginLibrary(ctx context.Context) error {
 	request, err := http.NewRequestWithContext(ctx, "GET", PG_URL_LIBRARY, nil)
 	if err != nil {
-		return err
+		// 添加上下文：创建请求失败
+		return errorx.Errorf("library: create login request failed: %w", err)
 	}
+
 	request.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36")
 
 	resp, err := c.Client.Do(request)
 	if err != nil {
-		return err
+		// 添加上下文：发送请求失败
+		return errorx.Errorf("library: send login request failed: %w", err)
 	}
 	defer resp.Body.Close()
+
+	// 可以在这里根据业务逻辑校验响应状态码或 Body 内容
+	// 比如：if resp.StatusCode != http.StatusOK { ... }
 
 	return nil
 }
@@ -43,10 +50,21 @@ func (c *Library) LoginLibrary(ctx context.Context) error {
 func (c *Library) GetCookieFromLibrarySystem() (string, error) {
 	parsedURL, err := url.Parse(PG_URL_LIBRARY)
 	if err != nil {
-		return "", fmt.Errorf("解析 URL 出错: %v", err)
+		// 统一使用英文前缀，保持风格一致
+		return "", errorx.Errorf("library: parse url failed: %w", err)
+	}
+
+	// 检查 Jar 是否为空，防止空指针异常
+	if c.Client.Jar == nil {
+		return "", errorx.Errorf("library: cookie jar is nil")
 	}
 
 	cookies := c.Client.Jar.Cookies(parsedURL)
+	if len(cookies) == 0 {
+		// 如果图书馆系统必须要求有 cookie，这里可以返回一个错误
+		return "", errorx.Errorf("library: no cookies found for %s", PG_URL_LIBRARY)
+	}
+
 	var cookieStr strings.Builder
 	for i, cookie := range cookies {
 		cookieStr.WriteString(cookie.Name)

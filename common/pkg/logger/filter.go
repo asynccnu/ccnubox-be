@@ -41,7 +41,7 @@ type FilterLogger struct {
 
 func NewFilterLogger(logger Logger, opts ...FilterOptions) Logger {
 	fl := &FilterLogger{
-		logger:     logger,
+		logger:     logger.AddCallerSkip(1),
 		filterKeys: make(map[string]struct{}),
 		filterVals: make(map[string]struct{}),
 	}
@@ -127,4 +127,41 @@ func (f *FilterLogger) Warn(msg string, args ...Field) {
 
 func (f *FilterLogger) Error(msg string, args ...Field) {
 	f.logger.Error(msg, f.filter(ERROR, args)...)
+}
+
+func (f *FilterLogger) Debugf(template string, args ...interface{}) {
+	f.Debug(fmt.Sprintf(template, args...))
+}
+
+func (f *FilterLogger) Infof(template string, args ...interface{}) {
+	f.Info(fmt.Sprintf(template, args...))
+}
+
+func (f *FilterLogger) Warnf(template string, args ...interface{}) {
+	f.Warn(fmt.Sprintf(template, args...))
+}
+
+func (f *FilterLogger) Errorf(template string, args ...interface{}) {
+	f.Error(fmt.Sprintf(template, args...))
+}
+
+func (f *FilterLogger) With(args ...Field) Logger {
+	filteredArgs := f.filter(INFO, args)
+	newBaseLogger := f.logger.With(filteredArgs...)
+
+	return &FilterLogger{
+		logger:          newBaseLogger,
+		filterKeys:      f.filterKeys,
+		filterVals:      f.filterVals,
+		filterFuncSlice: f.filterFuncSlice,
+	}
+}
+
+func (f *FilterLogger) AddCallerSkip(skip int) Logger {
+	return &FilterLogger{
+		logger:          f.logger.AddCallerSkip(skip),
+		filterKeys:      f.filterKeys,
+		filterVals:      f.filterVals,
+		filterFuncSlice: f.filterFuncSlice,
+	}
 }

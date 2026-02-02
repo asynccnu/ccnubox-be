@@ -7,18 +7,21 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/go-kratos/kratos/v2/log"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/otelx/otelsarama"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
-//使用kafka实现一个延迟消息队列
-
+// 使用kafka实现一个延迟消息队列
 type producer struct {
 	topic string
 	kp    sarama.SyncProducer
-	log   *log.Helper
+	log   logger.Logger
 }
 
-func newProducer(topic string, kpb *KafkaProducerBuilder, logger *log.Helper) (*producer, error) {
+func newProducer(topic string, kpb *KafkaProducerBuilder, logger logger.Logger) (*producer, error) {
 	kp, err := kpb.Build()
 	if err != nil {
 		return nil, err
@@ -30,7 +33,15 @@ func newProducer(topic string, kpb *KafkaProducerBuilder, logger *log.Helper) (*
 	}, nil
 }
 
-func (p *producer) SendMessage(key, value []byte) error {
+func (p *producer) SendMessage(ctx context.Context, key, value []byte) error {
+	tracer := otel.Tracer("delay-producer")
+	ctx, span := tracer.Start(ctx, "delay_produce_message",
+		trace.WithSpanKind(trace.SpanKindProducer),
+	)
+	defer span.End()
+
+	tlog := p.log.WithContext(ctx)
+
 	msg := &sarama.ProducerMessage{
 		Topic:     p.topic,
 		Key:       sarama.ByteEncoder(key),
@@ -42,7 +53,7 @@ func (p *producer) SendMessage(key, value []byte) error {
 	if err != nil {
 		return err
 	}
-	p.log.Debugf("Produced message with key:%s, value:%s", string(key), string(value))
+	tlog.Debugf("Produced message with key:%s, value:%s", string(key), string(value))
 	return nil
 }
 
@@ -58,11 +69,11 @@ type delaySendHandler struct {
 	topic     string
 	kp        sarama.SyncProducer
 	delayTime time.Duration
-	log       *log.Helper
+	log       logger.Logger
 	sync.Once
 }
 
-func newDelaySendHandler(topic string, kpb *KafkaProducerBuilder, delayTime time.Duration, logger *log.Helper) (*delaySendHandler, error) {
+func newDelaySendHandler(topic string, kpb *KafkaProducerBuilder, delayTime time.Duration, logger logger.Logger) (*delaySendHandler, error) {
 	kp, err := kpb.Build()
 	if err != nil {
 		return nil, err
@@ -91,24 +102,42 @@ func (c *delaySendHandler) Cleanup(sarama.ConsumerGroupSession) error {
 
 func (c *delaySendHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
+		ctx := otel.GetTextMapPropagator().Extract(context.Background(), otelsarama.NewConsumerMessageCarrier(message))
+
+		tracer := otel.Tracer("delay-queue-consume")
+		ctx, span := tracer.Start(ctx, "delay-queue-consume",
+			trace.WithSpanKind(trace.SpanKindConsumer),
+		)
+
+		tlog := c.log.WithContext(ctx)
 		dur := time.Now().Sub(message.Timestamp)
-		c.log.Debugf("Message claimed: key:%s, value:%s,time_sub:%v", string(message.Key), string(message.Value), dur)
+
+		c.log.Debugf("Message claimed: key:%s, value:%s, time_sub:%v", string(message.Key), string(message.Value), dur)
+
 		// 当前是否超过延迟时间
 		if dur >= c.delayTime {
 			// 如果当前时间已经超过20倍的延迟时间，不转发消息，提交偏移量
 			if c.delayTime > 0 && dur >= 20*c.delayTime {
 				session.MarkMessage(message, "")
+				span.End()
 				continue
 			}
 
-			err := c.forwardMessage(message)
+			// 转发 message
+			err := c.forwardMessage(ctx, message)
 			if err != nil {
-				c.log.Errorf("Error forwarding message: %s", string(message.Value))
+				tlog.Errorf("Error forwarding message: %s", string(message.Value))
+				span.End()
 				return nil
 			}
+
+			// 提交偏移量
 			session.MarkMessage(message, "")
+			span.End()
 			continue
 		}
+
+		span.End()
 		// 如果当前时间没有超过延迟时间,睡觉1秒,return,重新轮询
 		time.Sleep(time.Second)
 		return nil
@@ -117,43 +146,62 @@ func (c *delaySendHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 }
 
 // 转发消息到真实 topic
-func (c *delaySendHandler) forwardMessage(msg *sarama.ConsumerMessage) error {
+func (c *delaySendHandler) forwardMessage(ctx context.Context, msg *sarama.ConsumerMessage) error {
+	otel.GetTextMapPropagator().Inject(ctx, otelsarama.NewConsumerMessageCarrier(msg))
+
+	tlog := c.log.WithContext(ctx)
+
 	_, _, err := c.kp.SendMessage(&sarama.ProducerMessage{
 		Topic: c.topic,
 		Key:   sarama.ByteEncoder(msg.Key),
 		Value: sarama.ByteEncoder(msg.Value),
 	})
 	if err == nil {
-		c.log.Debugf("Forwarded message: key=%s,val=%s,timestamp=%v, current-time=%v", string(msg.Key), string(msg.Value), msg.Timestamp, time.Now())
+		tlog.Debugf("Forwarded message: key=%s,val=%s,timestamp=%v, current-time=%v", string(msg.Key), string(msg.Value), msg.Timestamp, time.Now())
 	}
 	return err
 }
 
 // funcConsumeHandler 是一个函数类型，用于处理 Kafka 消息
 type funcConsumeHandler struct {
-	f   func(key []byte, value []byte)
-	log *log.Helper
+	f   func(ctx context.Context, key []byte, value []byte)
+	log logger.Logger
 }
 
-func newFuncConsumeHandler(log *log.Helper, f func(key []byte, value []byte)) funcConsumeHandler {
+func newFuncConsumeHandler(log logger.Logger, f func(ctx context.Context, key []byte, value []byte)) funcConsumeHandler {
 	return funcConsumeHandler{
 		f:   f,
 		log: log,
 	}
 }
+
 func (fc funcConsumeHandler) Setup(sarama.ConsumerGroupSession) error {
 	fc.log.Info("Setting up func consume handler")
 	return nil
 }
+
 func (fc funcConsumeHandler) Cleanup(sarama.ConsumerGroupSession) error {
 	fc.log.Info("Cleaning up func consume handler")
 	return nil
 }
+
 func (fc funcConsumeHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
-		fc.log.Debugf("Message claimed: key:%s, value:%s", string(message.Key), string(message.Value))
-		fc.f(message.Key, message.Value)
+		// 获取链路数据
+		ctx := otel.GetTextMapPropagator().Extract(context.Background(), otelsarama.NewConsumerMessageCarrier(message))
+
+		tracer := otel.Tracer("real-topic")
+		ctx, span := tracer.Start(ctx, "real_topic_consumer",
+			trace.WithSpanKind(trace.SpanKindConsumer),
+		)
+
+		tlog := fc.log.WithContext(ctx)
+
+		tlog.Debugf("Message claimed: key:%s, value:%s", string(message.Key), string(message.Value))
+		fc.f(ctx, message.Key, message.Value)
 		session.MarkMessage(message, "")
+
+		span.End()
 	}
 	return nil
 }
@@ -163,10 +211,10 @@ type consumer struct {
 	cctx       context.Context
 	cancelFunc context.CancelFunc
 	kcb        *KafkaConsumerBuilder
-	log        *log.Helper
+	log        logger.Logger
 }
 
-func newConsumer(kcb *KafkaConsumerBuilder, logger *log.Helper) *consumer {
+func newConsumer(kcb *KafkaConsumerBuilder, logger logger.Logger) *consumer {
 	cctx, cancel := context.WithCancel(context.Background())
 	c := &consumer{
 		cctx:       cctx,
@@ -217,7 +265,7 @@ type DelayKafka struct {
 	delayTime  time.Duration
 
 	proxyGroupID string
-	log          *log.Helper
+	log          logger.Logger
 }
 
 type DelayKafkaConfig struct {
@@ -234,13 +282,13 @@ func NewDelayKafkaConfig() DelayKafkaConfig {
 	}
 }
 
-func NewDelayKafka(kpb *KafkaProducerBuilder, kcb *KafkaConsumerBuilder, cf DelayKafkaConfig, logger log.Logger) (*DelayKafka, func(), error) {
+func NewDelayKafka(kpb *KafkaProducerBuilder, kcb *KafkaConsumerBuilder, cf DelayKafkaConfig, logger logger.Logger) (biz.DelayQueue, func(), error) {
 	dk := &DelayKafka{
 		delayTopic:   cf.delayTopic,
 		realTopic:    cf.realTopic,
 		delayTime:    cf.delayTime,
 		proxyGroupID: "be-classlist-delay",
-		log:          log.NewHelper(logger),
+		log:          logger,
 	}
 	p, err := newProducer(dk.delayTopic, kpb, dk.log)
 	if err != nil {
@@ -267,8 +315,8 @@ func NewDelayKafka(kpb *KafkaProducerBuilder, kcb *KafkaConsumerBuilder, cf Dela
 }
 
 // Send 发送消息到延迟队列
-func (d *DelayKafka) Send(key, value []byte) error {
-	return d.p.SendMessage(key, value)
+func (d *DelayKafka) Send(ctx context.Context, key, value []byte) error {
+	return d.p.SendMessage(ctx, key, value)
 }
 
 func (d *DelayKafka) consumeDelay() error {
@@ -276,7 +324,7 @@ func (d *DelayKafka) consumeDelay() error {
 }
 
 // Consume 消费真实队列的消息
-func (d *DelayKafka) Consume(groupID string, f func(key, value []byte)) error {
+func (d *DelayKafka) Consume(groupID string, f func(ctx context.Context, key []byte, value []byte)) error {
 	if groupID == d.proxyGroupID {
 		return errors.New("the groupID is not allowed")
 	}

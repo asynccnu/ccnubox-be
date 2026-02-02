@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"os"
+	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/metrics"
 	b_conf "github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
 	b_grpc "github.com/asynccnu/ccnubox-be/common/bizpkg/grpc"
+	mlog "github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/joho/godotenv"
@@ -17,6 +21,7 @@ import (
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
 	"github.com/go-kratos/kratos/v2/log"
+
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	_ "go.uber.org/automaxprocs"
 )
@@ -73,17 +78,20 @@ func main() {
 		}
 	}
 
-	logger := log.With(classLog.Logger(bc.Zaplog), "service.name", bc.Server.Name)
-	classLog.InitGlobalLogger(logger)
+	logger := data.NewLogger(bc.Zaplog)
+	mlog.InitGlobalLogger(logger)
 
-	// gorm的日志文件
-	// 在main函数中声明,程序结束执行Close
-	// 防止只有连接数据库的时候，才会将sql语句写入
-	logfile := classLog.NewLumberjackLogger(bc.Data.Database.LogPath,
-		bc.Data.Database.LogFileName, 6, 5, 30, false)
-	defer logfile.Close()
+	// otel 注册
+	shutdown := data.InitOTel(bc.Otel)
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := shutdown(ctx); err != nil {
+			panic(fmt.Sprintln("OTel shutdown error:", err))
+		}
+	}()
 
-	app, cleanup, err := wireApp(bc.Env, bc.Server, bc.Data, bc.Registry, bc.Schoolday, bc.Defaults, logfile, logger)
+	app, cleanup, err := wireApp(bc.Env, bc.Server, bc.Data, bc.Registry, bc.Schoolday, bc.Defaults, bc.Zaplog)
 	if err != nil {
 		panic(err)
 	}
@@ -93,5 +101,4 @@ func main() {
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
-
 }

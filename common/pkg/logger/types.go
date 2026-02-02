@@ -1,14 +1,24 @@
 package logger
 
-import "context"
+import (
+	"context"
+)
 
 type Logger interface {
 	WithContext(ctx context.Context) Logger
+	With(args ...Field) Logger
 
 	Debug(msg string, args ...Field)
 	Info(msg string, args ...Field)
 	Warn(msg string, args ...Field)
 	Error(msg string, args ...Field)
+
+	Debugf(template string, args ...interface{})
+	Infof(template string, args ...interface{})
+	Warnf(template string, args ...interface{})
+	Errorf(template string, args ...interface{})
+
+	AddCallerSkip(skip int) Logger
 }
 
 type Field struct {

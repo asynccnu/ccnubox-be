@@ -12,9 +12,9 @@ import (
 var ProviderSet = wire.NewSet(NewClassUsecase)
 
 type ClassCrawler interface {
-	//获取本科生的课表
+	// 获取本科生的课表
 	GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*ClassInfo, []*StudentCourse, int, error)
-	//获取研究生的课表(未实现)
+	// 获取研究生的课表(未实现)
 	GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*ClassInfo, []*StudentCourse, int, error)
 }
 
@@ -40,13 +40,13 @@ type ClassRepo interface {
 }
 
 type JxbRepo interface {
-	//保存教学班
+	// 保存教学班
 	SaveJxb(ctx context.Context, stuID string, jxbID []string) error
-	//根据教学班ID查询stuID
+	// 根据教学班ID查询stuID
 	FindStuIdsByJxbId(ctx context.Context, jxbId string) ([]string, error)
 }
 type CCNUServiceProxy interface {
-	//从其他服务获取cookie
+	// 从其他服务获取cookie
 	GetCookie(ctx context.Context, stuID string) (string, error)
 }
 
@@ -60,7 +60,7 @@ type RefreshLogRepo interface {
 }
 
 type DelayQueue interface {
-	Send(key, value []byte) error
-	Consume(groupID string, f func(key, value []byte)) error
+	Send(ctx context.Context, key, value []byte) error
+	Consume(groupID string, f func(ctx context.Context, key []byte, value []byte)) error
 	Close()
 }

@@ -4,11 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
-	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
 	"net/url"
@@ -18,6 +13,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/valyala/fastjson"
 )
 
 var (
@@ -80,7 +81,7 @@ func (c *Crawler3) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	client := c.clientPool.Get().(*http.Client)
 	defer c.clientPool.Put(client)
 
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 
 	// 构造请求URL
 	base, _ := url.Parse("https://bkzhjw.ccnu.edu.cn/jsxsd/xskb/xskb_list.do")
@@ -365,7 +366,7 @@ func (c *Crawler3) GetClassInfoForGraduateStudent(ctx context.Context, stuID, ye
 	client := c.clientPool.Get().(*http.Client)
 	defer c.clientPool.Put(client)
 
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	xnm, xqm := year, semester
 
 	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])

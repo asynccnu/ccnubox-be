@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/valyala/fastjson"
 )
 
@@ -77,11 +77,11 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	client := c.clientPool.Get().(*http.Client)
 	defer c.clientPool.Put(client)
 
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	xnm, xqm := year, semester
 
 	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])
-	var data = strings.NewReader(param)
+	data := strings.NewReader(param)
 
 	req, err := http.NewRequestWithContext(reqCtx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
 	if err != nil {
@@ -141,12 +141,12 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	client := c.clientPool.Get().(*http.Client)
 	defer c.clientPool.Put(client)
 
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	xnm, xqm := year, semester
 
 	formdata := fmt.Sprintf("xnm=%s&xqm=%s&kzlx=ck&xsdm=", xnm, semesterMap[xqm])
 
-	var data = strings.NewReader(formdata)
+	data := strings.NewReader(formdata)
 
 	req, err := http.NewRequestWithContext(reqCtx, "POST", "https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151", data)
 	if err != nil {
@@ -213,24 +213,24 @@ func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.Cl
 		if string(kb.GetStringBytes("sxbj")) != "1" {
 			continue
 		}
-		//课程信息
-		var info = &biz.ClassInfo{}
-		info.Day, _ = strconv.ParseInt(string(kb.GetStringBytes("xqj")), 10, 64) //星期几
+		// 课程信息
+		info := &biz.ClassInfo{}
+		info.Day, _ = strconv.ParseInt(string(kb.GetStringBytes("xqj")), 10, 64) // 星期几
 		info.Teacher = string(kb.GetStringBytes("xm"))
-		info.Where = string(kb.GetStringBytes("cdmc"))                           //上课地点
-		info.ClassWhen = string(kb.GetStringBytes("jcs"))                        //上课是第几节
-		info.WeekDuration = string(kb.GetStringBytes("zcd"))                     //上课的周数
-		info.Classname = string(kb.GetStringBytes("kcmc"))                       //课程名称
-		info.Credit, _ = strconv.ParseFloat(string(kb.GetStringBytes("xf")), 64) //学分
-		info.Semester = xqm                                                      //学期
-		info.Year = xnm                                                          //学年
-		//添加周数
+		info.Where = string(kb.GetStringBytes("cdmc"))                           // 上课地点
+		info.ClassWhen = string(kb.GetStringBytes("jcs"))                        // 上课是第几节
+		info.WeekDuration = string(kb.GetStringBytes("zcd"))                     // 上课的周数
+		info.Classname = string(kb.GetStringBytes("kcmc"))                       // 课程名称
+		info.Credit, _ = strconv.ParseFloat(string(kb.GetStringBytes("xf")), 64) // 学分
+		info.Semester = xqm                                                      // 学期
+		info.Year = xnm                                                          // 学年
+		// 添加周数
 		info.Weeks, _ = strconv.ParseInt(string(kb.GetStringBytes("oldzc")), 10, 64)
-		info.JxbId = string(kb.GetStringBytes("jxb_id")) //教学班ID
-		info.UpdateID()                                  //课程ID
+		info.JxbId = string(kb.GetStringBytes("jxb_id")) // 教学班ID
+		info.UpdateID()                                  // 课程ID
 
-		//为防止其时间过于紧凑
-		//选择在这里直接给时间赋值
+		// 为防止其时间过于紧凑
+		// 选择在这里直接给时间赋值
 		info.CreatedAt, info.UpdatedAt = time.Now(), time.Now()
 
 		//-----------------------------------------------------
@@ -242,8 +242,8 @@ func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.Cl
 			Semester:        xqm,
 			IsManuallyAdded: false,
 		}
-		infos = append(infos, info) //添加课程
-		Scs = append(Scs, Sc)       //添加"学生与课程的映射关系"
+		infos = append(infos, info) // 添加课程
+		Scs = append(Scs, Sc)       // 添加"学生与课程的映射关系"
 	}
 	return infos, Scs, sum, nil
 }

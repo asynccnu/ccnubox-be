@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"gorm.io/gorm/clause"
 )
 
@@ -22,7 +21,7 @@ func NewStudentAndCourseDBRepo(data *Data) *StudentAndCourseDBRepo {
 }
 
 func (s StudentAndCourseDBRepo) SaveManyStudentAndCourseToDB(ctx context.Context, scs []*do.StudentCourse) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	if len(scs) == 0 {
 		logh.Warn("insert student_course 0 data")
 		return nil
@@ -38,7 +37,7 @@ func (s StudentAndCourseDBRepo) SaveManyStudentAndCourseToDB(ctx context.Context
 }
 
 func (s StudentAndCourseDBRepo) SaveStudentAndCourseToDB(ctx context.Context, sc *do.StudentCourse) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	if sc == nil {
 		logh.Warn("insert student_course 0 data")
 		return nil
@@ -53,7 +52,7 @@ func (s StudentAndCourseDBRepo) SaveStudentAndCourseToDB(ctx context.Context, sc
 }
 
 func (s StudentAndCourseDBRepo) DeleteStudentAndCourseInDB(ctx context.Context, stuID, year, semester string, claID []string) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	if len(claID) == 0 {
 		logh.Warn("delete student_course 0 data")
 		return errors.New("mysql can't delete zero data")
@@ -66,6 +65,7 @@ func (s StudentAndCourseDBRepo) DeleteStudentAndCourseInDB(ctx context.Context, 
 	}
 	return nil
 }
+
 func (s StudentAndCourseDBRepo) CheckExists(ctx context.Context, xnm, xqm, stuId, classId string) bool {
 	db := s.data.Mysql.Table(do.StudentCourseTableName).WithContext(ctx)
 	var cnt int64
@@ -86,12 +86,12 @@ func (s StudentAndCourseDBRepo) GetClassNum(ctx context.Context, stuID, year, se
 }
 
 func (s StudentAndCourseDBRepo) DeleteStudentAndCourseByTimeFromDB(ctx context.Context, stuID, year, semester string) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	db := s.data.DB(ctx).Table(do.StudentCourseTableName).WithContext(ctx)
-	//注意:只删除非手动添加的课程，即官方课程
+	// 注意:只删除非手动添加的课程，即官方课程
 	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND is_manually_added = false", year, semester, stuID).Delete(&do.StudentCourse{}).Error
 	if err != nil {
-		logh.Error("Mysql:delete student_course by time from db failed: %v", err)
+		logh.Errorf("Mysql:delete student_course by time from db failed: %v", err)
 		return errcode.ErrClassDelete
 	}
 	return nil
@@ -111,7 +111,7 @@ func (s StudentAndCourseDBRepo) CheckManualCourseStatus(ctx context.Context, stu
 }
 
 func (s StudentAndCourseDBRepo) GetCourseNote(ctx context.Context, stuID, year, semester, classID string) string {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	db := s.data.DB(ctx).Table(do.StudentCourseTableName).WithContext(ctx)
 
 	var note string

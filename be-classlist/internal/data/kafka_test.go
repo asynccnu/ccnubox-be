@@ -9,8 +9,9 @@ import (
 	"time"
 )
 
+
 func TestDelayKafka(t *testing.T) {
-	brokers := []string{"localhost:9094"}
+	brokers := []string{"localhost:9092"}
 	kpb := NewKafkaProducerBuilder(&conf.Data{
 		Kafka: &conf.Data_Kafka{
 			Brokers: brokers,

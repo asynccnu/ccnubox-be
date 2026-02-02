@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
-	"github.com/redis/go-redis/v9"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/redis/go-redis/v9"
 )
 
 type StudentAndCourseCacheRepo struct {
@@ -34,13 +35,13 @@ func NewStudentAndCourseCacheRepo(rdb *redis.Client, cf *conf.Server) *StudentAn
 }
 
 func (s StudentAndCourseCacheRepo) GetRecycledClassIds(ctx context.Context, key string) ([]string, error) {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	members, err := s.rdb.SMembers(ctx, key).Result()
 	if err != nil {
 		logh.Errorf("redis: getrecycledClassIds key = %v failed: %v", key, err)
 		return nil, err
 	}
-	var ids = make([]string, 0, len(members))
+	ids := make([]string, 0, len(members))
 	for _, member := range members {
 		var recycledClass RecycleClassInfo
 		err = json.Unmarshal([]byte(member), &recycledClass)
@@ -52,8 +53,9 @@ func (s StudentAndCourseCacheRepo) GetRecycledClassIds(ctx context.Context, key 
 	}
 	return ids, nil
 }
+
 func (s StudentAndCourseCacheRepo) CheckRecycleIdIsExist(ctx context.Context, RecycledBinKey, classId string) bool {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	members, err := s.rdb.SMembers(ctx, RecycledBinKey).Result()
 	if err != nil {
 		logh.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
@@ -75,7 +77,7 @@ func (s StudentAndCourseCacheRepo) CheckRecycleIdIsExist(ctx context.Context, Re
 }
 
 func (s StudentAndCourseCacheRepo) IsRecycledCourseManual(ctx context.Context, RecycledBinKey, classId string) bool {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	members, err := s.rdb.SMembers(ctx, RecycledBinKey).Result()
 	if err != nil {
 		logh.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
@@ -96,7 +98,7 @@ func (s StudentAndCourseCacheRepo) IsRecycledCourseManual(ctx context.Context, R
 }
 
 func (s StudentAndCourseCacheRepo) RemoveClassFromRecycledBin(ctx context.Context, RecycledBinKey, classId string) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	members, err := s.rdb.SMembers(ctx, RecycledBinKey).Result()
 	if err != nil {
 		logh.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
@@ -122,7 +124,7 @@ func (s StudentAndCourseCacheRepo) RemoveClassFromRecycledBin(ctx context.Contex
 }
 
 func (s StudentAndCourseCacheRepo) RecycleClassId(ctx context.Context, recycleBinKey string, classId string, isAdded bool) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	val := RecycleClassInfo{ClassId: classId, IsAdded: isAdded}
 
 	jsonVal, err := json.Marshal(val)

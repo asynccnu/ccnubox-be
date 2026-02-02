@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -84,7 +84,7 @@ func (p *proxyGetter) doFetchProxy(ctx context.Context) (*url.URL, error) {
 	}
 	p.proxyMutex.RUnlock()
 
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()

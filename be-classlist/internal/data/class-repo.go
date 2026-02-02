@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/jinzhu/copier"
 )
 
@@ -57,8 +56,8 @@ func NewClassRepo(ClaRepo *ClassInfoRepo, TxCtrl Transaction, Sac *StudentAndCou
 
 // GetClassesFromLocal 从本地获取课程
 func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*biz.ClassInfo, error) {
-	logh := classLog.GetLogHelperFromCtx(ctx)
-	noExpireCtx := classLog.WithLogger(context.Background(), logh.Logger())
+	logh := logger.GetLoggerFromCtx(ctx)
+	noExpireCtx := context.WithoutCancel(ctx)
 
 	var (
 		cacheGet = true
@@ -118,7 +117,7 @@ func (cla ClassRepo) GetSpecificClassInfo(ctx context.Context, classID string) (
 
 // AddClass 添加课程信息
 func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string, classInfo *biz.ClassInfo, sc *biz.StudentCourse) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
 	if err != nil {
 		return err
@@ -162,7 +161,7 @@ func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string,
 
 // DeleteClass 删除课程信息
 func (cla ClassRepo) DeleteClass(ctx context.Context, stuID, year, semester string, classID []string) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	//先删除缓存信息
 	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
 	if err != nil {
@@ -228,8 +227,8 @@ func (cla ClassRepo) RemoveClassFromRecycledBin(ctx context.Context, stuID, year
 func (cla ClassRepo) UpdateClass(ctx context.Context, stuID, year, semester, oldClassID string,
 	newClassInfo *biz.ClassInfo, newSc *biz.StudentCourse) error {
 
-	logh := classLog.GetLogHelperFromCtx(ctx)
-	noExpireCtx := classLog.WithLogger(context.Background(), logh.Logger())
+	logh := logger.GetLoggerFromCtx(ctx)
+	noExpireCtx := context.WithoutCancel(ctx)
 
 	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
 	if err != nil {
@@ -277,7 +276,7 @@ func (cla ClassRepo) UpdateClass(ctx context.Context, stuID, year, semester, old
 
 // SaveClass 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
 func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*biz.ClassInfo, scs []*biz.StudentCourse) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	if len(classInfos) == 0 || len(scs) == 0 {
 		return errors.New("classInfos or scs is empty")
 	}
@@ -371,7 +370,7 @@ func (cla ClassRepo) GetClassNote(ctx context.Context, stuID, year, semester, cl
 
 // UpdateClassNote 插入课程备注
 func (cla ClassRepo) UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
 	if err != nil {
 		return err

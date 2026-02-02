@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
-
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -23,8 +22,9 @@ func NewClassInfoDBRepo(data *Data) *ClassInfoDBRepo {
 		data: data,
 	}
 }
+
 func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*do.ClassInfo) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	if len(classInfos) == 0 {
 		return nil
 	}
@@ -47,7 +47,7 @@ func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*d
 }
 
 func (c ClassInfoDBRepo) AddClassInfoToDB(ctx context.Context, classInfo *do.ClassInfo) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	if classInfo == nil {
 		return nil
 	}
@@ -65,7 +65,7 @@ func (c ClassInfoDBRepo) AddClassInfoToDB(ctx context.Context, classInfo *do.Cla
 }
 
 func (c ClassInfoDBRepo) GetClassInfoFromDB(ctx context.Context, ID string) (*do.ClassInfo, error) {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	db := c.data.Mysql.Table(do.ClassInfoTableName).WithContext(ctx)
 	cla := &do.ClassInfo{}
 	err := db.Where("id =?", ID).First(cla).Error
@@ -80,11 +80,9 @@ func (c ClassInfoDBRepo) GetClassInfoFromDB(ctx context.Context, ID string) (*do
 }
 
 func (c ClassInfoDBRepo) GetClassInfos(ctx context.Context, stuId, xnm, xqm string) ([]*do.ClassInfo, error) {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	db := c.data.Mysql.WithContext(ctx)
-	var (
-		cla = make([]*do.ClassInfo, 0)
-	)
+	cla := make([]*do.ClassInfo, 0)
 
 	err := db.Table(do.ClassInfoTableName).Select(fmt.Sprintf("%s.*,%s.note", do.ClassInfoTableName, do.StudentCourseTableName)).
 		Joins(fmt.Sprintf(
@@ -108,18 +106,15 @@ func (c ClassInfoDBRepo) GetClassInfos(ctx context.Context, stuId, xnm, xqm stri
 }
 
 func (c ClassInfoDBRepo) GetAllClassInfos(ctx context.Context, xnm, xqm string, cursor time.Time) ([]*do.ClassInfo, error) {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	db := c.data.Mysql.WithContext(ctx)
-	var (
-		cla = make([]*do.ClassInfo, 0)
-	)
+	cla := make([]*do.ClassInfo, 0)
 	err := db.Table(do.ClassInfoTableName).
 		Where("created_at > ? and id in (select distinct cla_id from student_course where year = ? and semester = ? and is_manually_added = ?)",
 			cursor, xnm, xqm, false).
 		Order("created_at ASC").
-		Limit(100). //最多100个
+		Limit(100). // 最多100个
 		Find(&cla).Error
-
 	if err != nil {
 		logh.Errorf("Mysql:find classinfos  where (is_manually_added = %v,year = %s,semester = %s) failed:%v",
 			false, xnm, xqm, err)
@@ -129,11 +124,9 @@ func (c ClassInfoDBRepo) GetAllClassInfos(ctx context.Context, xnm, xqm string, 
 }
 
 func (c ClassInfoDBRepo) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm string) ([]*do.ClassInfo, error) {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	db := c.data.Mysql.WithContext(ctx)
-	var (
-		cla = make([]*do.ClassInfo, 0)
-	)
+	cla := make([]*do.ClassInfo, 0)
 	err := db.Table(do.ClassInfoTableName).Select(fmt.Sprintf("%s.*", do.ClassInfoTableName)).
 		Joins(fmt.Sprintf(
 			`LEFT JOIN %s ON %s.id = %s.cla_id`, do.StudentCourseTableName, do.ClassInfoTableName, do.StudentCourseTableName,
@@ -150,7 +143,7 @@ func (c ClassInfoDBRepo) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm
 }
 
 func (c ClassInfoDBRepo) GetClassNaturesFromDB(ctx context.Context, stuID string) ([]string, error) {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	db := c.data.Mysql.WithContext(ctx)
 
 	var natures []string

@@ -27,7 +27,6 @@ func NewLibrary(client *http.Client) *Library {
 func (c *Library) LoginLibrary(ctx context.Context) error {
 	request, err := http.NewRequestWithContext(ctx, "GET", PG_URL_LIBRARY, nil)
 	if err != nil {
-		// 添加上下文：创建请求失败
 		return errorx.Errorf("library: create login request failed: %w", err)
 	}
 
@@ -35,13 +34,9 @@ func (c *Library) LoginLibrary(ctx context.Context) error {
 
 	resp, err := c.Client.Do(request)
 	if err != nil {
-		// 添加上下文：发送请求失败
 		return errorx.Errorf("library: send login request failed: %w", err)
 	}
 	defer resp.Body.Close()
-
-	// 可以在这里根据业务逻辑校验响应状态码或 Body 内容
-	// 比如：if resp.StatusCode != http.StatusOK { ... }
 
 	return nil
 }
@@ -50,7 +45,6 @@ func (c *Library) LoginLibrary(ctx context.Context) error {
 func (c *Library) GetCookieFromLibrarySystem() (string, error) {
 	parsedURL, err := url.Parse(PG_URL_LIBRARY)
 	if err != nil {
-		// 统一使用英文前缀，保持风格一致
 		return "", errorx.Errorf("library: parse url failed: %w", err)
 	}
 
@@ -61,7 +55,6 @@ func (c *Library) GetCookieFromLibrarySystem() (string, error) {
 
 	cookies := c.Client.Jar.Cookies(parsedURL)
 	if len(cookies) == 0 {
-		// 如果图书馆系统必须要求有 cookie，这里可以返回一个错误
 		return "", errorx.Errorf("library: no cookies found for %s", PG_URL_LIBRARY)
 	}
 

@@ -178,10 +178,6 @@ var (
 
 // version
 var (
-	GET_UPDATE_VERSION_ERROR = func(err error) error {
-		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取热更新版本失败", "version", err)
-	}
-	SAVE_UPDATE_VERSION_ERROR = func(err error) error {
-		return errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "保存热更新版本失败", "version", err)
-	}
+	GET_UPDATE_VERSION_ERROR  = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取热更新版本失败"))
+	SAVE_UPDATE_VERSION_ERROR = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "保存热更新版本失败"))
 )

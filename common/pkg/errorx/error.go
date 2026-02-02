@@ -1,6 +1,7 @@
 package errorx
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"runtime"
@@ -75,6 +76,10 @@ func Wrap(err error, message string) error {
 		funcN: fn,
 		cause: err,
 	}
+}
+
+func Unwrap(err error) error {
+	return errors.Unwrap(err)
 }
 
 // Errorf 格式化并识别 %w

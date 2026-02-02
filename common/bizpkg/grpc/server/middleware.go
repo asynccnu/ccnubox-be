@@ -2,10 +2,10 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
@@ -46,7 +46,7 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 					logger.String("duration", duration.String()),
 				)
 				//这里会解包获取到存储的grpc的error,这样可以保证服务内的链路不会向外暴露
-				err = errors.Unwrap(err)
+				err = errorx.Unwrap(err)
 
 			} else {
 				// 记录常规日志

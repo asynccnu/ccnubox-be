@@ -82,6 +82,14 @@ func Unwrap(err error) error {
 	return errors.Unwrap(err)
 }
 
+func Is(err, target error) bool {
+	return errors.Is(err, target)
+}
+
+func As(err error, target any) bool {
+	return errors.As(err, target)
+}
+
 // Errorf 格式化并识别 %w
 // 优化：msg 字段只保留当前层的格式化结果，不合并子错误文本
 func Errorf(format string, args ...any) error {

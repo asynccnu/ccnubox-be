@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 
-	"github.com/asynccnu/ccnubox-be/be-content/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/be-content/repository"
 	"github.com/asynccnu/ccnubox-be/be-content/repository/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 

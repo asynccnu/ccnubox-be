@@ -3,12 +3,12 @@ package grpc
 import (
 	"context"
 
-	"github.com/asynccnu/ccnubox-be/be-content/pkg/errorx"
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 )
 
 var (
-	SAVE_UPDATE_VERSION_ERROR = errorx.FormatGRPCErrorFunc(contentv1.ErrorGetUpdateServiceError("保存热更新版本失败"))
+	SAVE_UPDATE_VERSION_ERROR = errorx.FormatErrorFunc(contentv1.ErrorGetUpdateServiceError("保存热更新版本失败"))
 )
 
 func (c *ContentServiceServer) GetUpdateVersion(ctx context.Context, request *contentv1.GetUpdateVersionRequest) (*contentv1.GetUpdateVersionResponse, error) {

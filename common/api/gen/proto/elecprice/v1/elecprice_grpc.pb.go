@@ -19,12 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ElecpriceService_GetArchitecture_FullMethodName = "/elecprice.v1.ElecpriceService/GetArchitecture"
-	ElecpriceService_GetRoomInfo_FullMethodName     = "/elecprice.v1.ElecpriceService/GetRoomInfo"
-	ElecpriceService_GetPrice_FullMethodName        = "/elecprice.v1.ElecpriceService/GetPrice"
-	ElecpriceService_SetStandard_FullMethodName     = "/elecprice.v1.ElecpriceService/SetStandard"
-	ElecpriceService_GetStandardList_FullMethodName = "/elecprice.v1.ElecpriceService/GetStandardList"
-	ElecpriceService_CancelStandard_FullMethodName  = "/elecprice.v1.ElecpriceService/CancelStandard"
+	ElecpriceService_GetArchitecture_FullMethodName   = "/elecprice.v1.ElecpriceService/GetArchitecture"
+	ElecpriceService_GetRoomInfo_FullMethodName       = "/elecprice.v1.ElecpriceService/GetRoomInfo"
+	ElecpriceService_GetPrice_FullMethodName          = "/elecprice.v1.ElecpriceService/GetPrice"
+	ElecpriceService_GetBillingBalance_FullMethodName = "/elecprice.v1.ElecpriceService/GetBillingBalance"
+	ElecpriceService_SetStandard_FullMethodName       = "/elecprice.v1.ElecpriceService/SetStandard"
+	ElecpriceService_GetStandardList_FullMethodName   = "/elecprice.v1.ElecpriceService/GetStandardList"
+	ElecpriceService_CancelStandard_FullMethodName    = "/elecprice.v1.ElecpriceService/CancelStandard"
 )
 
 // ElecpriceServiceClient is the client API for ElecpriceService service.
@@ -36,6 +37,7 @@ type ElecpriceServiceClient interface {
 	GetArchitecture(ctx context.Context, in *GetArchitectureRequest, opts ...grpc.CallOption) (*GetArchitectureResponse, error)
 	GetRoomInfo(ctx context.Context, in *GetRoomInfoRequest, opts ...grpc.CallOption) (*GetRoomInfoResponse, error)
 	GetPrice(ctx context.Context, in *GetPriceRequest, opts ...grpc.CallOption) (*GetPriceResponse, error)
+	GetBillingBalance(ctx context.Context, in *GetBillingBalanceRequest, opts ...grpc.CallOption) (*GetBillingBalanceResponse, error)
 	SetStandard(ctx context.Context, in *SetStandardRequest, opts ...grpc.CallOption) (*SetStandardResponse, error)
 	GetStandardList(ctx context.Context, in *GetStandardListRequest, opts ...grpc.CallOption) (*GetStandardListResponse, error)
 	CancelStandard(ctx context.Context, in *CancelStandardRequest, opts ...grpc.CallOption) (*CancelStandardResponse, error)
@@ -73,6 +75,16 @@ func (c *elecpriceServiceClient) GetPrice(ctx context.Context, in *GetPriceReque
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPriceResponse)
 	err := c.cc.Invoke(ctx, ElecpriceService_GetPrice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *elecpriceServiceClient) GetBillingBalance(ctx context.Context, in *GetBillingBalanceRequest, opts ...grpc.CallOption) (*GetBillingBalanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBillingBalanceResponse)
+	err := c.cc.Invoke(ctx, ElecpriceService_GetBillingBalance_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +130,7 @@ type ElecpriceServiceServer interface {
 	GetArchitecture(context.Context, *GetArchitectureRequest) (*GetArchitectureResponse, error)
 	GetRoomInfo(context.Context, *GetRoomInfoRequest) (*GetRoomInfoResponse, error)
 	GetPrice(context.Context, *GetPriceRequest) (*GetPriceResponse, error)
+	GetBillingBalance(context.Context, *GetBillingBalanceRequest) (*GetBillingBalanceResponse, error)
 	SetStandard(context.Context, *SetStandardRequest) (*SetStandardResponse, error)
 	GetStandardList(context.Context, *GetStandardListRequest) (*GetStandardListResponse, error)
 	CancelStandard(context.Context, *CancelStandardRequest) (*CancelStandardResponse, error)
@@ -139,6 +152,9 @@ func (UnimplementedElecpriceServiceServer) GetRoomInfo(context.Context, *GetRoom
 }
 func (UnimplementedElecpriceServiceServer) GetPrice(context.Context, *GetPriceRequest) (*GetPriceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPrice not implemented")
+}
+func (UnimplementedElecpriceServiceServer) GetBillingBalance(context.Context, *GetBillingBalanceRequest) (*GetBillingBalanceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBillingBalance not implemented")
 }
 func (UnimplementedElecpriceServiceServer) SetStandard(context.Context, *SetStandardRequest) (*SetStandardResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetStandard not implemented")
@@ -224,6 +240,24 @@ func _ElecpriceService_GetPrice_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ElecpriceService_GetBillingBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBillingBalanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ElecpriceServiceServer).GetBillingBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ElecpriceService_GetBillingBalance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ElecpriceServiceServer).GetBillingBalance(ctx, req.(*GetBillingBalanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ElecpriceService_SetStandard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetStandardRequest)
 	if err := dec(in); err != nil {
@@ -296,6 +330,10 @@ var ElecpriceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPrice",
 			Handler:    _ElecpriceService_GetPrice_Handler,
+		},
+		{
+			MethodName: "GetBillingBalance",
+			Handler:    _ElecpriceService_GetBillingBalance_Handler,
 		},
 		{
 			MethodName: "SetStandard",

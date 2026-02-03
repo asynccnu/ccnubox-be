@@ -8,6 +8,7 @@ service ElecpriceService {
   rpc GetArchitecture (GetArchitectureRequest) returns (GetArchitectureResponse);
   rpc GetRoomInfo (GetRoomInfoRequest) returns (GetRoomInfoResponse);
   rpc GetPrice (GetPriceRequest) returns (GetPriceResponse);
+  rpc GetBillingBalance ( GetBillingBalanceRequest) returns ( GetBillingBalanceResponse);
 
   rpc SetStandard (SetStandardRequest) returns (SetStandardResponse);
   rpc GetStandardList (GetStandardListRequest) returns (GetStandardListResponse);
@@ -47,12 +48,13 @@ message GetPriceRequest {
   string room_name = 1;
 }
 
+message Price {
+  string RemainMoney = 1; // 剩余电费
+  string YesterdayUseValue = 2; // 昨日花费电量
+  string YesterdayUseMoney = 3; // 昨日花费电费
+}
+
 message GetPriceResponse {
-  message Price {
-    string RemainMoney = 1; // 剩余电费
-    string YesterdayUseValue = 2; // 昨日花费电量
-    string YesterdayUseMoney = 3; // 昨日花费电费
-  }
   Price ac = 1;
   Price light = 2;
   Price union = 3;
@@ -86,3 +88,11 @@ message CancelStandardRequest {
 }
 
 message CancelStandardResponse{}
+
+message GetBillingBalanceRequest {
+  string room_id = 1;
+}
+
+message GetBillingBalanceResponse {
+  Price price = 1;
+}

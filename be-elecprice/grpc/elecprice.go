@@ -114,3 +114,14 @@ func (s *ElecpriceServiceServer) CancelStandard(ctx context.Context, req *v1.Can
 
 	return &v1.CancelStandardResponse{}, err
 }
+
+func (s *ElecpriceServiceServer) GetBillingBalance(ctx context.Context, req *v1.GetBillingBalanceRequest) (*v1.GetBillingBalanceResponse, error) {
+	res, err := s.ser.GetPriceById(ctx, req.RoomId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1.GetBillingBalanceResponse{
+		Price: res.ToProto(),
+	}, nil
+}

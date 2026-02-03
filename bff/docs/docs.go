@@ -1187,6 +1187,72 @@ const docTemplate = `{
                 }
             }
         },
+        "/elecprice/electricityBillinBalance": {
+            "get": {
+                "description": "电费信息详情跳转",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "elecprice"
+                ],
+                "summary": "获取房间电费余额",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "房间设备id",
+                        "name": "room_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功的返回信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "$ref": "#/definitions/elecprice.GetBillingBalanceResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/elecprice/getArchitecture": {
             "get": {
                 "description": "通过区域获取楼栋信息",
@@ -3225,6 +3291,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/version/getVersion": {
+            "get": {
+                "description": "获取热更新版本",
+                "tags": [
+                    "version"
+                ],
+                "summary": "获取热更新版本",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/content.GetUpdateVersionResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/version/saveVersion": {
+            "post": {
+                "description": "更新热更新版本",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "version"
+                ],
+                "summary": "更新热更新版本",
+                "parameters": [
+                    {
+                        "description": "保存版本号请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/content.SaveVersionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/website/delWebsite": {
             "post": {
                 "description": "删除网站信息",
@@ -3942,6 +4071,14 @@ const docTemplate = `{
                 }
             }
         },
+        "content.GetUpdateVersionResponse": {
+            "type": "object",
+            "properties": {
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
         "content.GetWebsitesResponse": {
             "type": "object",
             "properties": {
@@ -4055,6 +4192,17 @@ const docTemplate = `{
                 }
             }
         },
+        "content.SaveVersionRequest": {
+            "type": "object",
+            "required": [
+                "version"
+            ],
+            "properties": {
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
         "content.SaveWebsiteRequest": {
             "type": "object",
             "required": [
@@ -4147,6 +4295,14 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/elecprice.Architecture"
                     }
+                }
+            }
+        },
+        "elecprice.GetBillingBalanceResponse": {
+            "type": "object",
+            "properties": {
+                "price": {
+                    "$ref": "#/definitions/elecprice.Price"
                 }
             }
         },

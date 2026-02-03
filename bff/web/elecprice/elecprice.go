@@ -31,6 +31,7 @@ func (h *ElecPriceHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin
 		sg.PUT("/setStandard", authMiddleware, ginx.WrapClaimsAndReq(h.SetStandard))
 		sg.GET("/getStandardList", authMiddleware, ginx.WrapClaimsAndReq(h.GetStandardList))
 		sg.POST("/cancelStandard", authMiddleware, ginx.WrapClaimsAndReq(h.CancelStandard))
+		sg.GET("/electricityBillinBalance", authMiddleware, ginx.WrapReq(h.GetBillingBalance))
 	}
 }
 
@@ -126,7 +127,7 @@ func (h *ElecPriceHandler) GetPrice(ctx *gin.Context, req GetPriceRequest, uc ij
 		RoomName: req.RoomName,
 	})
 	if err != nil {
-		return web.Response{}, errs.ELECPRICE_SET_STANDARD_ERROR(err)
+		return web.Response{}, errs.ELECPRICE_CHECK_ERROR(err)
 	}
 	return web.Response{
 		Data: GetPriceResponse{
@@ -220,5 +221,31 @@ func (h *ElecPriceHandler) CancelStandard(ctx *gin.Context, req CancelStandardRe
 
 	return web.Response{
 		Msg: "取消电费提醒标准成功!",
+	}, nil
+}
+
+// GetBillingBalance
+// @Summary 获取房间电费余额
+// @Description 电费信息详情跳转
+// @Tags elecprice
+// @Produce json
+// @Param Authorization header string true "Bearer Token"
+// @Param room_id query string true "房间设备id"
+// @Success 200 {object} web.Response{msg=elecprice.GetBillingBalanceResponse} "获取成功的返回信息"
+// @Failure 500 {object} web.Response{msg=string} "系统异常"
+// @Router /elecprice/electricityBillinBalance [get]
+func (h *ElecPriceHandler) GetBillingBalance(ctx *gin.Context, req GetBillingBalanceRequest) (web.Response, error) {
+	res, err := h.ElecPriceClient.GetBillingBalance(ctx, &elecpricev1.GetBillingBalanceRequest{
+		RoomId: req.RoomId,
+	})
+
+	if err != nil {
+		return web.Response{}, errs.ELECPRICE_CHECK_ERROR(err)
+	}
+
+	return web.Response{
+		Data: GetBillingBalanceResponse{
+			Price: priceToVo(res.Price),
+		},
 	}, nil
 }

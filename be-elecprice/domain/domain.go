@@ -57,8 +57,8 @@ type PriceInfo struct {
 	YesterdayUseMoney string
 }
 
-func (pi *PriceInfo) ToProto() *elecpricev1.GetPriceResponse_Price {
-	return &elecpricev1.GetPriceResponse_Price{
+func (pi *PriceInfo) ToProto() *elecpricev1.Price {
+	return &elecpricev1.Price{
 		RemainMoney:       pi.RemainMoney,
 		YesterdayUseValue: pi.YesterdayUseValue,
 		YesterdayUseMoney: pi.YesterdayUseMoney,

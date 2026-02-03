@@ -15,7 +15,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
-const HOLIDAY_EVENT_URL = "/calendar"
+const HOLIDAY_EVENT_URL = "ccnubox://calendar"
 
 type HolidayController struct {
 	svcFeed  service.FeedEventService

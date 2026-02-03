@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+
 	elecpricev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/elecprice/v1"
 )
 
@@ -10,6 +11,7 @@ type ElectricMSG struct {
 	StudentId string // 学号
 	Remain    *string
 	Limit     *int64
+	RoomID    *string
 }
 
 type ResultInfo struct {

@@ -40,6 +40,10 @@ func NewCalendarRepo(db *gorm.DB, cmd redis.Cmdable, l logger.Logger) ContentRep
 	return NewRepo[model.Calendar](db, cmd, l)
 }
 
+func NewVersionRepo(db *gorm.DB, cmd redis.Cmdable, l logger.Logger) ContentRepo[model.Version] {
+	return NewRepo[model.Version](db, cmd, l)
+}
+
 // ProviderSet 现在包含的是具象的函数名
 var ProviderSet = wire.NewSet(
 	NewBannerRepo,
@@ -47,4 +51,5 @@ var ProviderSet = wire.NewSet(
 	NewWebsiteRepo,
 	NewDepartmentRepo,
 	NewCalendarRepo,
+	NewVersionRepo,
 )

@@ -17,20 +17,14 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/model"
 	elecpricev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/elecprice/v1"
-	errorx "github.com/asynccnu/ccnubox-be/common/pkg/errorx/rpcerr"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 var (
-	INTERNET_ERROR = func(err error) error {
-		return errorx.New(elecpricev1.ErrorInternetError("网络错误"), "net", err)
-	}
-	FIND_CONFIG_ERROR = func(err error) error {
-		return errorx.New(elecpricev1.ErrorFindConfigError("获取配置失败"), "dao", err)
-	}
-	SAVE_CONFIG_ERROR = func(err error) error {
-		return errorx.New(elecpricev1.ErrorSaveConfigError("保存配置失败"), "dao", err)
-	}
+	INTERNET_ERROR    = errorx.FormatErrorFunc(elecpricev1.ErrorInternetError("网络错误"))
+	FIND_CONFIG_ERROR = errorx.FormatErrorFunc(elecpricev1.ErrorFindConfigError("获取配置失败"))
+	SAVE_CONFIG_ERROR = errorx.FormatErrorFunc(elecpricev1.ErrorSaveConfigError("保存配置失败"))
 )
 
 type ElecpriceService interface {

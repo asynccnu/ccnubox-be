@@ -3,7 +3,7 @@ package model
 import "gorm.io/gorm"
 
 type Content interface {
-	Calendar | Banner | Department | InfoSum | Website
+	Calendar | Banner | Department | InfoSum | Website | Version
 	Type() string
 }
 
@@ -61,4 +61,13 @@ type Website struct {
 
 func (Website) Type() string {
 	return "website"
+}
+
+type Version struct {
+	Version string `gorm:"column:version;type:VARCHAR(50);not null"`
+	gorm.Model
+}
+
+func (Version) Type() string {
+	return "version"
 }

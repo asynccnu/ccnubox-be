@@ -691,6 +691,8 @@ definitions:
         type: integer
       read:
         type: boolean
+      route:
+        type: string
       title:
         type: string
       type:
@@ -700,7 +702,7 @@ definitions:
     properties:
       energy:
         type: boolean
-      feed_back:
+      feedback:
         type: boolean
       grade:
         type: boolean
@@ -740,21 +742,21 @@ definitions:
       title:
         type: string
     type: object
-  feed.PublicFeedEventReq:
+  feed.PublicFeedbackEventReq:
     properties:
       content:
+        type: string
+      recordID:
         type: string
       student_id:
         type: string
       title:
         type: string
-      type:
-        type: string
     required:
     - content
+    - recordID
     - student_id
     - title
-    - type
     type: object
   feed.PublicMuxiOfficialMSGReq:
     properties:
@@ -2392,18 +2394,18 @@ paths:
       summary: 获取待发布的官方消息
       tags:
       - feed
-  /feed/publicFeedEvent:
+  /feed/publicFeedbackEvent:
     post:
       consumes:
       - application/json
-      description: 发布消息
+      description: 发布反馈消息
       parameters:
       - description: 消息
         in: body
         name: data
         required: true
         schema:
-          $ref: '#/definitions/feed.PublicFeedEventReq'
+          $ref: '#/definitions/feed.PublicFeedbackEventReq'
       produces:
       - application/json
       responses:
@@ -2421,7 +2423,7 @@ paths:
             $ref: '#/definitions/web.Response'
       security:
       - BasicAuth: []
-      summary: 发布消息
+      summary: 发布反馈消息
       tags:
       - feed
   /feed/publicMuxiOfficialMSG:

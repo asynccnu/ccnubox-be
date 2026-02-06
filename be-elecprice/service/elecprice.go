@@ -5,12 +5,13 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/cache"
-	"golang.org/x/sync/errgroup"
 	"net/url"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/cache"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/asynccnu/ccnubox-be/be-elecprice/domain"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/repository/dao"
@@ -152,6 +153,7 @@ func (s *elecpriceService) GetTobePushMSG(ctx context.Context) ([]*domain.Electr
 						StudentId: cfg.StudentID,
 						Remain:    &elecPrice.RemainMoney,
 						Limit:     &cfg.Limit,
+						RoomID:    &cfg.TargetID,
 					}
 
 					// 并发安全地添加结果

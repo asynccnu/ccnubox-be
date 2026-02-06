@@ -7,6 +7,7 @@ type FeedEvent struct {
 	Type         string            `json:"type"`          // 类型
 	Title        string            `json:"title"`         // 提示用的字段
 	Content      string            `json:"content"`       // 正式文本
+	Url          string            `json:"url"`           //消息详情跳转路由
 	ExtendFields map[string]string `json:"extend_fields"` // 拓展字段
 	CreatedAt    int64             `json:"created_at"`    // 创建时间，Unix 时间戳（int格式）
 }

@@ -15,6 +15,14 @@ import (
 	"github.com/go-redsync/redsync/v4"
 )
 
+func getGradeEventUrl(semester string, courseType string) string {
+	return fmt.Sprintf("ccnubox://scoreCalculation?semester=%s&courseType=%s", semester, courseType)
+}
+
+func formatSemester(xnm int64, xqm int64) string {
+	return fmt.Sprintf("%d-%d-%d", xnm, xnm+1, xqm)
+}
+
 type GradeController struct {
 	counter      counterv1.CounterServiceClient
 	userClient   userv1.UserServiceClient
@@ -130,7 +138,7 @@ func (c *GradeController) publishMSG(label string) {
 				c.l.Error("更改优先级发生错误", logger.Error(err))
 				continue
 			}
-
+			semester := formatSemester(grade.Xnm, grade.Xqm)
 			//推送
 			_, err = c.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 				StudentId: studentId,
@@ -138,6 +146,7 @@ func (c *GradeController) publishMSG(label string) {
 					Type:    feedv1.FeedEventType_GRADE,
 					Title:   "成绩更新提醒",
 					Content: fmt.Sprintf("您的课程:%s分数更新了,请及时查看", grade.Kcmc),
+					Url:     getGradeEventUrl(semester, grade.Kclbmc),
 				},
 			})
 			if err != nil {

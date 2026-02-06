@@ -162,6 +162,7 @@ type MuxiOfficialMSG struct {
 	MuxiMSGId          string //使用获取的uniqueId作为Id,防止误删
 	Title              string
 	Content            string
+	Url                string
 	model.ExtendFields //拓展字段如果要发额外的东西的话
 	//PublicTime         int64 //正式发布的时间
 }

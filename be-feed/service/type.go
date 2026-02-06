@@ -15,6 +15,7 @@ func convFeedEventsFromModelToDomain(feedEvents []model.FeedEvent) []domain.Feed
 			Type:         feedEvents[i].Type,
 			Title:        feedEvents[i].Title,
 			Content:      feedEvents[i].Content,
+			Url:          feedEvents[i].Url,
 			ExtendFields: feedEvents[i].ExtendFields,
 			CreatedAt:    feedEvents[i].CreatedAt,
 		}
@@ -28,6 +29,7 @@ func convFeedEventFromDomainToModel(feedEvent *domain.FeedEvent) *model.FeedEven
 		Type:         feedEvent.Type,
 		Title:        feedEvent.Title,
 		Content:      feedEvent.Content,
+		Url:          feedEvent.Url,
 		ExtendFields: feedEvent.ExtendFields,
 	}
 }
@@ -40,6 +42,7 @@ func convFeedEventsFromDomainToModel(feedEvents []domain.FeedEvent) []model.Feed
 			Type:         feedEvents[i].Type,
 			Title:        feedEvents[i].Title,
 			Content:      feedEvents[i].Content,
+			Url:          feedEvents[i].Url,
 			ExtendFields: feedEvents[i].ExtendFields,
 		}
 	}
@@ -55,6 +58,7 @@ func convFeedEventFromModelToDomainVO(feedEvents []model.FeedEvent) []domain.Fee
 			Type:         feedEvents[i].Type,
 			Title:        feedEvents[i].Title,
 			Content:      feedEvents[i].Content,
+			Url:          feedEvents[i].Url,
 			ExtendFields: feedEvents[i].ExtendFields,
 			CreatedAt:    feedEvents[i].CreatedAt,
 			Read:         feedEvents[i].Read,
@@ -71,6 +75,7 @@ func convFeedFailEventFromModelToDomain(feedEvents []model.FeedFailEvent) []doma
 			Type:         feedEvents[i].Type,
 			Title:        feedEvents[i].Title,
 			Content:      feedEvents[i].Content,
+			Url:          feedEvents[i].Url,
 			ExtendFields: feedEvents[i].ExtendFields,
 			CreatedAt:    feedEvents[i].CreatedAt,
 		}
@@ -85,6 +90,7 @@ func convFeedFailEventFromDomainToModel(feedEvents []domain.FeedEvent) []model.F
 			Type:         feedEvents[i].Type,
 			Title:        feedEvents[i].Title,
 			Content:      feedEvents[i].Content,
+			Url:          feedEvents[i].Url,
 			ExtendFields: feedEvents[i].ExtendFields,
 		}
 	}

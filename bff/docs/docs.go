@@ -1831,14 +1831,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/feed/publicFeedEvent": {
+        "/feed/publicFeedbackEvent": {
             "post": {
                 "security": [
                     {
                         "BasicAuth": []
                     }
                 ],
-                "description": "发布消息",
+                "description": "发布反馈消息",
                 "consumes": [
                     "application/json"
                 ],
@@ -1848,7 +1848,7 @@ const docTemplate = `{
                 "tags": [
                     "feed"
                 ],
-                "summary": "发布消息",
+                "summary": "发布反馈消息",
                 "parameters": [
                     {
                         "description": "消息",
@@ -1856,7 +1856,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/feed.PublicFeedEventReq"
+                            "$ref": "#/definitions/feed.PublicFeedbackEventReq"
                         }
                     }
                 ],
@@ -4478,6 +4478,9 @@ const docTemplate = `{
                 "read": {
                     "type": "boolean"
                 },
+                "route": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -4492,7 +4495,7 @@ const docTemplate = `{
                 "energy": {
                     "type": "boolean"
                 },
-                "feed_back": {
+                "feedback": {
                     "type": "boolean"
                 },
                 "grade": {
@@ -4553,25 +4556,25 @@ const docTemplate = `{
                 }
             }
         },
-        "feed.PublicFeedEventReq": {
+        "feed.PublicFeedbackEventReq": {
             "type": "object",
             "required": [
                 "content",
+                "recordID",
                 "student_id",
-                "title",
-                "type"
+                "title"
             ],
             "properties": {
                 "content": {
+                    "type": "string"
+                },
+                "recordID": {
                     "type": "string"
                 },
                 "student_id": {
                     "type": "string"
                 },
                 "title": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }

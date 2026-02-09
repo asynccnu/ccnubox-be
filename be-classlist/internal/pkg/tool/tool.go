@@ -117,12 +117,6 @@ func CheckIfThisYear(xnm, xqm string) bool {
 	return false
 }
 
-// CheckIsUndergraduate 检查该学号是否是本科生
-func CheckIsUndergraduate(stuId string) bool {
-	return stuId[4] == '2'
-	//区分是学号第五位，本科是2，硕士是1，博士是0，工号是6或9
-}
-
 func RandomBool(p float64) bool {
 	// 生成 0 到 1 之间的随机浮点数
 	const n int = 100000

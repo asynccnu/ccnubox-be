@@ -19,6 +19,7 @@ import (
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/sync/singleflight"
 )
@@ -218,18 +219,23 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		defer cancel()
 
 		var stu Student
-		if isUndergraduate(studentId) {
+
+		sType := tool.ParseStudentType(studentId)
+		switch sType {
+		case tool.UnderGraduate:
 			ug, err := s.newUGWithCookie(ctx, studentId)
 			if err != nil {
 				return nil, errorx.Errorf("service: init undergraduate crawler failed, err: %w", err)
 			}
 			stu = &UndergraduateStudent{ug: ug}
-		} else {
+		case tool.PostGraduate:
 			gc, err := crawler.NewGraduate(crawler.NewCrawlerClientWithCookieJar(30*time.Second, nil))
 			if err != nil {
 				return nil, errorx.Errorf("service: init graduate crawler failed, err: %w", err)
 			}
 			stu = &GraduateStudent{gc: gc}
+		default:
+			return nil, errorx.New("service: invalid student type")
 		}
 
 		cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
@@ -375,11 +381,4 @@ func (g *GraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm
 	}
 
 	return ConvertGraduateGrade(grade), nil
-}
-
-func isUndergraduate(stuID string) bool {
-	if len(stuID) < 5 {
-		return false
-	}
-	return stuID[4] == '2'
 }

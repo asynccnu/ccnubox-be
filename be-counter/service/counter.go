@@ -2,11 +2,11 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/be-counter/conf"
 	"github.com/asynccnu/ccnubox-be/be-counter/domain"
 	"github.com/asynccnu/ccnubox-be/be-counter/repository/cache"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
@@ -18,13 +18,12 @@ type CounterService interface {
 }
 
 type CachedCounterService struct {
-	cache  cache.CounterCache //此处不做任何持久化,所有的数据都存到Redis中
+	cache  cache.CounterCache
 	l      logger.Logger
 	config *conf.CountLevelConfig
 }
 
 func NewCachedCounterService(cache cache.CounterCache, l logger.Logger, cfg *conf.ServerConf) CounterService {
-
 	return &CachedCounterService{
 		cache:  cache,
 		l:      l,
@@ -32,72 +31,71 @@ func NewCachedCounterService(cache cache.CounterCache, l logger.Logger, cfg *con
 	}
 }
 
-func (repo *CachedCounterService) AddCounter(ctx context.Context, StudentId string) error {
-	var count int64
-	count, err := repo.cache.GetCounterByStudentId(ctx, StudentId)
+func (s *CachedCounterService) AddCounter(ctx context.Context, StudentId string) error {
+	// 获取当前计数
+	count, err := s.cache.GetCounterByStudentId(ctx, StudentId)
 	if err != nil {
-		count = 0
+		// 注意：如果 cache 层处理了 redis.Nil 并返回 0, nil，则这里不会报错
+		// 如果 cache 层报错，说明是 Redis 连接等问题
+		return errorx.Errorf("service: failed to get current counter for student %s: %w", StudentId, err)
 	}
 
-	err = repo.cache.SetCounterByStudentId(ctx, StudentId, count+1)
+	// 增加计数
+	err = s.cache.SetCounterByStudentId(ctx, StudentId, count+1)
 	if err != nil {
-		return err
+		return errorx.Errorf("service: failed to increment counter for student %s: %w", StudentId, err)
 	}
 
 	return nil
 }
 
-// 建议优化 TODO 使用数值的方式过于magic不太适合微服务通信
-func (repo *CachedCounterService) GetCounterLevels(ctx context.Context, label string) ([]string, error) {
-	// 获取所有 Counter
-	counts, err := repo.cache.GetAllCounter(ctx)
+func (s *CachedCounterService) GetCounterLevels(ctx context.Context, label string) ([]string, error) {
+	counts, err := s.cache.GetAllCounter(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errorx.Errorf("service: failed to fetch all counters from cache: %w", err)
 	}
 
-	// 预先计算阈值
-	lowThreshold := repo.config.Low
-	middleThreshold := repo.config.Middle
-	highThreshold := repo.config.High
+	lowThreshold := s.config.Low
+	middleThreshold := s.config.Middle
+	highThreshold := s.config.High
 
-	// 预先分配一个大致的容量，避免多次扩容
 	StudentIds := make([]string, 0, len(counts))
 
-	// 判断 label 的合法性
 	switch label {
 	case "low":
-		for _, count := range counts {
-			if count.Count >= lowThreshold && count.Count < middleThreshold {
-				StudentIds = append(StudentIds, count.StudentId)
+		for _, c := range counts {
+			if c.Count >= lowThreshold && c.Count < middleThreshold {
+				StudentIds = append(StudentIds, c.StudentId)
 			}
 		}
 	case "middle":
-		for _, count := range counts {
-			if count.Count >= middleThreshold && count.Count < highThreshold {
-				StudentIds = append(StudentIds, count.StudentId)
+		for _, c := range counts {
+			if c.Count >= middleThreshold && c.Count < highThreshold {
+				StudentIds = append(StudentIds, c.StudentId)
 			}
 		}
 	case "high":
-		for _, count := range counts {
-			if count.Count >= highThreshold {
-				StudentIds = append(StudentIds, count.StudentId)
+		for _, c := range counts {
+			if c.Count >= highThreshold {
+				StudentIds = append(StudentIds, c.StudentId)
 			}
 		}
 	default:
-		return nil, fmt.Errorf("invalid label: %s", label)
+		// 参数校验错误，使用 errorx 封装
+		return nil, errorx.Errorf("service: invalid level label: %s", label)
 	}
 
 	return StudentIds, nil
 }
 
-func (repo *CachedCounterService) ChangeCounterLevels(ctx context.Context, req domain.ChangeCounterLevels) error {
-	counts, err := repo.cache.GetCounters(ctx, req.StudentIds)
+func (s *CachedCounterService) ChangeCounterLevels(ctx context.Context, req domain.ChangeCounterLevels) error {
+	counts, err := s.cache.GetCounters(ctx, req.StudentIds)
 	if err != nil {
-		return err
+		return errorx.Errorf("service: failed to get counters for batch update: %w", err)
 	}
-	//设定长度乘上轮询的步数
-	step := repo.config.Step * req.Steps
-	//根据是否是降低来进行不同的操作
+
+	step := s.config.Step * req.Steps
+
 	if req.IsReduce {
 		for i := range counts {
 			if counts[i].Count >= step {
@@ -112,13 +110,17 @@ func (repo *CachedCounterService) ChangeCounterLevels(ctx context.Context, req d
 		}
 	}
 
-	err = repo.cache.SetCounters(ctx, counts)
+	err = s.cache.SetCounters(ctx, counts)
 	if err != nil {
-		return err
+		return errorx.Errorf("service: failed to save updated counters: %w", err)
 	}
 	return nil
 }
 
-func (repo *CachedCounterService) ClearCounterLevels(ctx context.Context) error {
-	return repo.cache.CleanZeroCounter(ctx)
+func (s *CachedCounterService) ClearCounterLevels(ctx context.Context) error {
+	err := s.cache.CleanZeroCounter(ctx)
+	if err != nil {
+		return errorx.Errorf("service: failed to clear zero counters: %w", err)
+	}
+	return nil
 }

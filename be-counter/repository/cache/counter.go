@@ -2,12 +2,14 @@ package cache
 
 import (
 	"context"
-	"github.com/redis/go-redis/v9"
 	"strconv"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/redis/go-redis/v9"
 )
 
-const REDISKEY = "CCNUBOX:FUC:"
+const REDISKEY = "ccnubox:FUC:"
 
 type CounterCache interface {
 	GetCounterByStudentId(ctx context.Context, StudentId string) (count int64, err error)
@@ -28,55 +30,62 @@ func NewRedisCounterCache(cmd redis.Cmdable) CounterCache {
 
 func (cache *RedisCounterCache) GetCounterByStudentId(ctx context.Context, StudentId string) (count int64, err error) {
 	key := cache.getKey(StudentId)
-	return cache.cmd.Get(ctx, key).Int64()
+	val, err := cache.cmd.Get(ctx, key).Int64()
+	if err != nil {
+		if errorx.Is(err, redis.Nil) {
+			return 0, nil
+		}
+		return 0, errorx.Errorf("cache: get counter failed, studentId: %s, err: %w", StudentId, err)
+	}
+	return val, nil
 }
 
 func (cache *RedisCounterCache) SetCounterByStudentId(ctx context.Context, StudentId string, count int64) error {
 	key := cache.getKey(StudentId)
 	expiration := time.Hour * 24 * 7 // 一周的过期时间
-	return cache.cmd.Set(ctx, key, count, expiration).Err()
+	err := cache.cmd.Set(ctx, key, count, expiration).Err()
+	if err != nil {
+		return errorx.Errorf("cache: set counter failed, studentId: %s, err: %w", StudentId, err)
+	}
+	return nil
 }
 
 // 获取所有 Counter
 func (cache *RedisCounterCache) GetAllCounter(ctx context.Context) (Counters []*Counter, err error) {
 	var cursor uint64
 	var keys []string
-	var countPerScan int64 = 100 // 每次 scan 获取的键数量
+	var countPerScan int64 = 100
 
 	for {
-		// 使用 SCAN 获取一批键
 		keys, cursor, err = cache.cmd.Scan(ctx, cursor, REDISKEY+"*", countPerScan).Result()
 		if err != nil {
-			return nil, err
+			return nil, errorx.Errorf("cache: scan keys failed: %w", err)
 		}
 
 		if len(keys) > 0 {
-			// 使用 MGET 一次性获取多个键的值
 			values, err := cache.cmd.MGet(ctx, keys...).Result()
 			if err != nil {
-				return nil, err
+				return nil, errorx.Errorf("cache: mget keys failed: %w", err)
 			}
 
-			// 遍历获取的键值对，将其转换为 Counter 对象
 			for i, value := range values {
 				if value != nil {
-					StudentId := keys[i][4:]
+					// 假设前缀长度固定，这里可以做更健壮的处理
+					studentId := keys[i][len(REDISKEY):]
 
-					// 将值转换为 int64
 					count, err := strconv.ParseInt(value.(string), 10, 64)
 					if err != nil {
-						return nil, err
+						return nil, errorx.Errorf("cache: parse count failed, key: %s, err: %w", keys[i], err)
 					}
 
 					Counters = append(Counters, &Counter{
-						StudentId: StudentId,
+						StudentId: studentId,
 						Count:     count,
 					})
 				}
 			}
 		}
 
-		// 如果 cursor 为 0，表示扫描完成
 		if cursor == 0 {
 			break
 		}
@@ -88,42 +97,37 @@ func (cache *RedisCounterCache) GetAllCounter(ctx context.Context) (Counters []*
 // 删除所有计数为 0 的 Counter
 func (cache *RedisCounterCache) CleanZeroCounter(ctx context.Context) error {
 	var cursor uint64
-	var countPerScan int64 = 100 // 每次 scan 获取的键数量
+	var countPerScan int64 = 100
 
 	for {
-		// 使用 SCAN 获取一批键
 		keys, cursor, err := cache.cmd.Scan(ctx, cursor, REDISKEY+"*", countPerScan).Result()
 		if err != nil {
-			return err
+			return errorx.Errorf("cache: clean scan failed: %w", err)
 		}
 
 		if len(keys) > 0 {
-			// 使用 MGET 一次性获取多个键的值
 			values, err := cache.cmd.MGet(ctx, keys...).Result()
 			if err != nil {
-				return err
+				return errorx.Errorf("cache: clean mget failed: %w", err)
 			}
 
-			// 遍历获取的键值对，将其转换为 Counter 对象
 			for i, value := range values {
 				if value != nil {
-					// 将值转换为 int64
 					count, err := strconv.ParseInt(value.(string), 10, 64)
 					if err != nil {
-						return err
+						return errorx.Errorf("cache: clean parse failed, key: %s, err: %w", keys[i], err)
 					}
 
 					if count == 0 {
 						err := cache.cmd.Del(ctx, keys[i]).Err()
 						if err != nil {
-							return err
+							return errorx.Errorf("cache: clean delete failed, key: %s, err: %w", keys[i], err)
 						}
 					}
 				}
 			}
 		}
 
-		// 如果 cursor 为 0，表示扫描完成
 		if cursor == 0 {
 			break
 		}
@@ -133,17 +137,17 @@ func (cache *RedisCounterCache) CleanZeroCounter(ctx context.Context) error {
 
 // 批量设置多个 Counter
 func (cache *RedisCounterCache) SetCounters(ctx context.Context, Counters []*Counter) error {
-	pipe := cache.cmd.Pipeline()     // 使用 Pipeline 批量执行命令
-	expiration := time.Hour * 24 * 7 // 设置每个键的过期时间为一周
+	pipe := cache.cmd.Pipeline()
+	expiration := time.Hour * 24 * 7
 
-	for _, Counter := range Counters {
-		key := cache.getKey(Counter.StudentId)
-		pipe.Set(ctx, key, Counter.Count, expiration) // 批量设置 Counter
+	for _, c := range Counters {
+		key := cache.getKey(c.StudentId)
+		pipe.Set(ctx, key, c.Count, expiration)
 	}
 
-	_, err := pipe.Exec(ctx) // 执行批量命令
+	_, err := pipe.Exec(ctx)
 	if err != nil {
-		return err
+		return errorx.Errorf("cache: pipeline set counters failed: %w", err)
 	}
 
 	return nil
@@ -151,23 +155,21 @@ func (cache *RedisCounterCache) SetCounters(ctx context.Context, Counters []*Cou
 
 // 批量获取多个 Counter
 func (cache *RedisCounterCache) GetCounters(ctx context.Context, StudentIds []string) (Counters []*Counter, err error) {
-	// 构造 Redis 键
 	keys := make([]string, len(StudentIds))
-	for i, StudentId := range StudentIds {
-		keys[i] = cache.getKey(StudentId)
-	}
-	// 使用 MGET 获取多个键对应的值
-	values, err := cache.cmd.MGet(ctx, keys...).Result()
-	if err != nil {
-		return nil, err
+	for i, sid := range StudentIds {
+		keys[i] = cache.getKey(sid)
 	}
 
-	// 遍历获取的值，并转换为 Counter 对象
+	values, err := cache.cmd.MGet(ctx, keys...).Result()
+	if err != nil {
+		return nil, errorx.Errorf("cache: batch get counters failed: %w", err)
+	}
+
 	for i, value := range values {
 		if value != nil {
 			count, err := strconv.ParseInt(value.(string), 10, 64)
 			if err != nil {
-				return nil, err
+				return nil, errorx.Errorf("cache: parse batch count failed, studentId: %s, err: %w", StudentIds[i], err)
 			}
 
 			Counters = append(Counters, &Counter{
@@ -181,7 +183,6 @@ func (cache *RedisCounterCache) GetCounters(ctx context.Context, StudentIds []st
 }
 
 func (cache *RedisCounterCache) getKey(StudentId string) string {
-	// fuc的意思是Counter,这里减少键的长度来降低存储的键占用的内存
 	return REDISKEY + StudentId
 }
 

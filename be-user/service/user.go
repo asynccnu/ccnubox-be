@@ -230,11 +230,13 @@ func (s *userService) getNewLibraryCookie(ctx context.Context, studentId string)
 	return resp.Cookie, nil
 }
 
+// TODO 目前只有新版本教务系统的本科生院部分做了如下的检验，同时应该放到ccnu服务里面而不是在这里
+// TODO 未来整个cookie系统应该逐步重构保证整个的完整性和高可用性，例如对cookie获取方式进行抽象，提供GetCookie方法并通过参数+策略工厂的方式实现获取cookie高度解耦，对于具体决定是爬取哪个系统应当由上游决定，下游无感化，只作为函数调用。
 // 辅助检测函数：试探性请求教务系统，验证 Cookie 存活
 func (s *userService) checkCookie(ctx context.Context, cookie string) bool {
-	req, _ := http.NewRequestWithContext(ctx, "GET", "https://xk.ccnu.edu.cn/jwglxt/dlflgl/flzyqr_cxFlzyqrxx.html", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "https://bkzhjw.ccnu.edu.cn/jsxsd/framework/xsMainV.htmlx", nil)
 	req.Header.Set("Cookie", cookie)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (CCNUBox-Validator)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0")
 
 	proxyAddr, _ := s.getProxyAddr(ctx)
 	client := s.newClient(ctx, proxyAddr)

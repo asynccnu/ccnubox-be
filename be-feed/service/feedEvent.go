@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/producer"
@@ -25,9 +24,8 @@ type FeedEventService interface {
 
 // 定义错误结构体
 var (
-	GET_FEED_EVENT_ERROR = errorx.FormatErrorFunc(feedv1.ErrorGetFeedEventError("获取feed失败"))
-
-	CLEAR_FEED_EVENT_ERROR  = errorx.FormatErrorFunc(feedv1.ErrorGetFeedEventError("获取feed失败"))
+	GET_FEED_EVENT_ERROR    = errorx.FormatErrorFunc(feedv1.ErrorGetFeedEventError("获取feed失败"))
+	CLEAR_FEED_EVENT_ERROR  = errorx.FormatErrorFunc(feedv1.ErrorGetFeedEventError("清除feed失败")) // 修正了文案
 	PUBLIC_FEED_EVENT_ERROR = errorx.FormatErrorFunc(feedv1.ErrorPublicFeedEventError("发布feed失败"))
 )
 
@@ -58,65 +56,64 @@ func NewFeedEventService(
 	}
 }
 
-// FindPushFeedEvents 根据查询条件查找 Feed 事件
+// GetFeedEvents 根据查询条件查找 Feed 事件
 func (s *feedEventService) GetFeedEvents(ctx context.Context, studentId string) (
 	feedEvents []domain.FeedEventVO, fail []domain.FeedEvent, err error) {
+	l := s.l.WithContext(ctx)
+
 	events, err := s.feedEventDAO.GetFeedEventsByStudentId(ctx, studentId)
 	if err != nil {
-		return []domain.FeedEventVO{}, []domain.FeedEvent{}, GET_FEED_EVENT_ERROR(err)
+		return []domain.FeedEventVO{}, []domain.FeedEvent{}, GET_FEED_EVENT_ERROR(errorx.Errorf("service: dao get feed events failed, studentId: %s, err: %w", studentId, err))
 	}
+	// 转换 Model 为 VO
+	feedEvents = convFeedEventFromModelToDomainVO(events)
 
-	for i := 0; i < len(events); i++ {
-		feedEvents = convFeedEventFromModelToDomainVO(events)
-	}
-
-	//取出失败消息
+	// 取出失败消息 (此处错误非致命，记录日志并跳过)
 	failEvents, err := s.feedFailEventDAO.GetFeedFailEventsByStudentId(ctx, studentId)
 	if err != nil {
+		l.Warn("service: get feed fail events ignored", logger.String("studentId", studentId), logger.Error(err))
 		return feedEvents, []domain.FeedEvent{}, nil
 	}
 
 	err = s.feedFailEventDAO.DelFeedFailEventsByStudentId(ctx, studentId)
 	if err != nil {
+		l.Warn("service: delete feed fail events ignored", logger.String("studentId", studentId), logger.Error(err))
 		return feedEvents, []domain.FeedEvent{}, nil
 	}
 
-	//如果有失败数据则更新
 	if len(failEvents) > 0 {
 		fail = convFeedFailEventFromModelToDomain(failEvents)
 	}
 
-	// 调用 DAO 层的查找方法，返回数据
 	return feedEvents, fail, nil
 }
 
 func (s *feedEventService) ReadFeedEvent(ctx context.Context, id int64) error {
 	feedEvent, err := s.feedEventDAO.GetFeedEventById(ctx, id)
 	if err != nil {
-		return err
+		return errorx.Errorf("service: get feed event by id failed, id: %d, err: %w", id, err)
 	}
-	//更新读取状态
+
+	// 更新读取状态
 	feedEvent.Read = true
 	err = s.feedEventDAO.SaveFeedEvent(ctx, *feedEvent)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return errorx.Errorf("service: save feed event read status failed, id: %d, err: %w", id, err)
 	}
 	return nil
 }
 
-// ClearEvents 清除指定用户的所有 Feed 事件
+// ClearFeedEvent 清除指定用户的所有 Feed 事件
 func (s *feedEventService) ClearFeedEvent(ctx context.Context, studentId string, feedEventId int64, status string) error {
-	// 调用 DAO 层的清除方法，删除用户的 Feed 事件
+	l := s.l.WithContext(ctx)
 	if feedEventId == 0 && status == "" {
-		s.l.Info("意外的清除规则", logger.String("studentId", "参数不足"))
+		l.Info("service: clear feed event skip, missing params", logger.String("studentId", studentId))
 		return nil
 	}
 
 	err := s.feedEventDAO.RemoveFeedEvent(ctx, studentId, feedEventId, status)
 	if err != nil {
-		fmt.Println(err)
-		return CLEAR_FEED_EVENT_ERROR(err)
+		return CLEAR_FEED_EVENT_ERROR(errorx.Errorf("service: dao remove feed event failed, studentId: %s, feedId: %d, status: %s, err: %w", studentId, feedEventId, status, err))
 	}
 
 	return nil
@@ -124,19 +121,17 @@ func (s *feedEventService) ClearFeedEvent(ctx context.Context, studentId string,
 
 func (s *feedEventService) InsertEventList(ctx context.Context, feedEvents []domain.FeedEvent) []error {
 	var errs []error
-	// 开始事务，通过 DAO 层进行
+	l := s.l.WithContext(ctx)
 
 	_, err := s.feedEventDAO.InsertFeedEventList(ctx, convFeedEventsFromDomainToModel(feedEvents))
 	if err != nil {
-		s.l.Error("批量插入feedEvent失败", logger.Error(err))
+		l.Error("service: batch insert feedEvent failed, trying fallback to individual insert", logger.Error(err))
 		for i := range feedEvents {
 			_, err = s.feedEventDAO.InsertFeedEvent(ctx, convFeedEventFromDomainToModel(&feedEvents[i]))
 			if err != nil {
-				s.l.Error("插入feedEvent失败",
-					logger.Error(err),
-					logger.String("feedData", fmt.Sprintf("%v", feedEvents[i])),
-				)
-				errs = append(errs, err)
+				wrappedErr := errorx.Errorf("service: individual insert failed, studentId: %s, err: %w", feedEvents[i].StudentId, err)
+				l.Error("插入feedEvent失败", logger.Error(wrappedErr))
+				errs = append(errs, wrappedErr)
 			}
 		}
 	}
@@ -144,42 +139,40 @@ func (s *feedEventService) InsertEventList(ctx context.Context, feedEvents []dom
 }
 
 func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, event domain.FeedEvent) error {
+	l := s.l.WithContext(ctx)
 
 	if isAll {
-
-		const batchSize = 50 // 每批次处理的用户数(为什么一次只推送50条呢?主要是怕推送限流有点严重)
-		var lastId int64 = 0 // 游标初始值
+		const batchSize = 50
+		var lastId int64 = 0
 
 		for {
-			// 获取一批 studentIds
 			studentIds, newLastId, err := s.feedUserConfigDAO.GetStudentIdsByCursor(ctx, lastId, batchSize)
 			if err != nil {
-				s.l.Error("获取用户studentIds错误", logger.Error(err), logger.Int64("当前索引:", lastId))
+				return PUBLIC_FEED_EVENT_ERROR(errorx.Errorf("service: get student ids by cursor failed, lastId: %d, err: %w", lastId, err))
 			}
 
-			// 如果没有更多数据，结束循环
 			if len(studentIds) == 0 {
 				return nil
 			}
 
-			// 遍历每个学生的 tokens
 			for i := range studentIds {
-				//更改id并推送
 				event.StudentId = studentIds[i]
 				err := s.feedProducer.SendMessage(topic.FeedEvent, event)
 				if err != nil {
-					s.l.Error("发送消息发生失败", logger.Error(err), logger.String("当前学号:", studentIds[i]))
+					// 批量推送中的单个失败记录日志，不中断循环
+					l.Error("service: batch send message failed",
+						logger.Error(err),
+						logger.String("studentId", studentIds[i]))
 				}
 			}
 
-			// 更新游标为最新值
 			lastId = newLastId
 		}
 	}
 
 	err := s.feedProducer.SendMessage(topic.FeedEvent, event)
 	if err != nil {
-		return PUBLIC_FEED_EVENT_ERROR(fmt.Errorf("%v,当前学号:%s", err, event.StudentId))
+		return PUBLIC_FEED_EVENT_ERROR(errorx.Errorf("service: send single message failed, studentId: %s, err: %w", event.StudentId, err))
 	}
 	return nil
 }

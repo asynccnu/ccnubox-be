@@ -31,21 +31,18 @@ var configMap = map[string]int{
 }
 
 type feedUserConfigService struct {
-	feedEventDAO      dao.FeedEventDAO
 	feedEventCache    cache.FeedEventCache
 	userFeedConfigDAO dao.FeedUserConfigDAO
 	feedTokenDAO      dao.FeedTokenDAO
 }
 
 func NewFeedUserConfigService(
-	feedEventDAO dao.FeedEventDAO,
 	feedEventCache cache.FeedEventCache,
 	feedAllowListEventDAO dao.FeedUserConfigDAO,
 	tokenFeedDAO dao.FeedTokenDAO,
 ) FeedUserConfigService {
 	return &feedUserConfigService{
 		feedEventCache:    feedEventCache,
-		feedEventDAO:      feedEventDAO,
 		userFeedConfigDAO: feedAllowListEventDAO,
 		feedTokenDAO:      tokenFeedDAO,
 	}
@@ -53,8 +50,7 @@ func NewFeedUserConfigService(
 
 // 定义错误结构体
 var (
-	FIND_CONFIG_OR_TOKEN_ERROR = errorx.FormatErrorFunc(feedv1.ErrorFindConfigOrTokenError("获取推送配置失败"))
-
+	FIND_CONFIG_OR_TOKEN_ERROR   = errorx.FormatErrorFunc(feedv1.ErrorFindConfigOrTokenError("获取推送配置失败"))
 	CHANGE_CONFIG_OR_TOKEN_ERROR = errorx.FormatErrorFunc(feedv1.ErrorChangeConfigOrTokenError("更改推送配置失败"))
 	REMOVE_CONFIG_OR_TOKEN_ERROR = errorx.FormatErrorFunc(feedv1.ErrorRemoveConfigOrTokenError("删除推送配置失败"))
 )
@@ -63,7 +59,7 @@ var (
 func (s *feedUserConfigService) ChangeAllowList(ctx context.Context, req domain.AllowList) error {
 	list, err := s.userFeedConfigDAO.FindOrCreateUserFeedConfig(ctx, req.StudentId)
 	if err != nil {
-		return FIND_CONFIG_OR_TOKEN_ERROR(err)
+		return FIND_CONFIG_OR_TOKEN_ERROR(errorx.Errorf("service: find or create user config failed, sid: %s, err: %w", req.StudentId, err))
 	}
 
 	// 定义映射关系：字段名 -> 对应的 bit 位
@@ -88,20 +84,19 @@ func (s *feedUserConfigService) ChangeAllowList(ctx context.Context, req domain.
 		}
 	}
 
-	//更新配置
+	// 更新配置
 	err = s.userFeedConfigDAO.SaveUserFeedConfig(ctx, list)
 	if err != nil {
-		return CHANGE_CONFIG_OR_TOKEN_ERROR(err)
+		return CHANGE_CONFIG_OR_TOKEN_ERROR(errorx.Errorf("service: save user feed config failed, sid: %s, err: %w", req.StudentId, err))
 	}
 
-	// 调用 DAO 层的修改方法，更新允许列表
 	return nil
 }
 
 func (s *feedUserConfigService) FindOrCreateAllowList(ctx context.Context, studentId string) (domain.AllowList, error) {
 	list, err := s.userFeedConfigDAO.FindOrCreateUserFeedConfig(ctx, studentId)
 	if err != nil {
-		return domain.AllowList{}, FIND_CONFIG_OR_TOKEN_ERROR(err)
+		return domain.AllowList{}, FIND_CONFIG_OR_TOKEN_ERROR(errorx.Errorf("service: find or create allow list failed, sid: %s, err: %w", studentId, err))
 	}
 	return domain.AllowList{
 		StudentId: list.StudentId,
@@ -116,24 +111,22 @@ func (s *feedUserConfigService) FindOrCreateAllowList(ctx context.Context, stude
 func (s *feedUserConfigService) SaveFeedToken(ctx context.Context, studentId string, token string) error {
 	tokens, err := s.feedTokenDAO.GetTokens(ctx, studentId)
 	if err != nil {
-		return FIND_CONFIG_OR_TOKEN_ERROR(err)
+		return FIND_CONFIG_OR_TOKEN_ERROR(errorx.Errorf("service: get current tokens failed before saving, sid: %s, err: %w", studentId, err))
 	}
 
 	if token != "" && !slices.Contains(tokens, token) {
 		err = s.feedTokenDAO.AddToken(ctx, studentId, token)
 		if err != nil {
-			return CHANGE_CONFIG_OR_TOKEN_ERROR(err)
+			return CHANGE_CONFIG_OR_TOKEN_ERROR(errorx.Errorf("service: add new token failed, sid: %s, token: %s, err: %w", studentId, token, err))
 		}
-		return nil
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (s *feedUserConfigService) GetFeedTokens(ctx context.Context, studentId string) (tokens []string, err error) {
 	tokens, err = s.feedTokenDAO.GetTokens(ctx, studentId)
 	if err != nil {
-		return []string{}, FIND_CONFIG_OR_TOKEN_ERROR(err)
+		return []string{}, FIND_CONFIG_OR_TOKEN_ERROR(errorx.Errorf("service: get feed tokens failed, sid: %s, err: %w", studentId, err))
 	}
 	return tokens, nil
 }
@@ -141,7 +134,7 @@ func (s *feedUserConfigService) GetFeedTokens(ctx context.Context, studentId str
 func (s *feedUserConfigService) RemoveFeedToken(ctx context.Context, studentId string, token string) error {
 	err := s.feedTokenDAO.RemoveToken(ctx, studentId, token)
 	if err != nil {
-		return REMOVE_CONFIG_OR_TOKEN_ERROR(err)
+		return REMOVE_CONFIG_OR_TOKEN_ERROR(errorx.Errorf("service: remove token failed, sid: %s, token: %s, err: %w", studentId, token, err))
 	}
 	return nil
 }

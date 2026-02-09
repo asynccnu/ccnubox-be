@@ -179,7 +179,7 @@ func (s *gradeService) UpdateDetailScore(ctx context.Context, need domain.NeedDe
 	grades := need.Grades
 	for i, grade := range grades {
 		detail, err := ug.GetDetail(ctx, grade.StudentId, grade.JxbId, grade.KcId, grade.Cj)
-		if errors.Is(err, crawler.COOKIE_TIMEOUT) {
+		if errors.Is(err, crawler.ErrCookieTimeout) {
 			ug, err = s.newUGWithCookie(ctx, need.StudentID)
 			if err != nil {
 				return errorx.Errorf("service: refresh cookie for detail failed, sid: %s, err: %w", need.StudentID, err)
@@ -238,7 +238,7 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		}
 
 		remote, err := stu.GetGrades(ctx, cookieResp.Cookie, 0, 0, 300)
-		if errors.Is(err, crawler.COOKIE_TIMEOUT) {
+		if errors.Is(err, crawler.ErrCookieTimeout) {
 			cookieResp, err = s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
 			if err != nil {
 				return nil, errorx.Errorf("service: retry rpc get cookie failed, sid: %s, err: %w", studentId, err)

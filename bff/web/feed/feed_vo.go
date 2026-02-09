@@ -1,7 +1,5 @@
 package feed
 
-import feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
-
 type GetFeedEventsResp struct {
 	FeedEvents []FeedEventVO `json:"feed_events"`
 }
@@ -22,6 +20,7 @@ type FeedEventVO struct {
 	CreatedAt    int64             `json:"created_at"` //Unix时间戳
 	ExtendFields map[string]string `json:"extend_fields"`
 	Read         bool              `json:"read"`
+	Url          string            `json:"url"`
 }
 type MuxiOfficialMSG struct {
 	Title        string            `json:"title"`
@@ -54,7 +53,7 @@ type GetFeedAllowListResp struct {
 	Muxi     bool `json:"muxi"`
 	Holiday  bool `json:"holiday"`
 	Energy   bool `json:"energy"`
-	FeedBack bool `json:"feed_back"`
+	FeedBack bool `json:"feedback"`
 }
 
 type ChangeElectricityStandardReq struct {
@@ -92,17 +91,9 @@ type GetToBePublicMuxiOfficialMSGResp struct {
 	MSGList []MuxiOfficialMSG `json:"msg_list"`
 }
 
-type PublicFeedEventReq struct {
+type PublicFeedbackEventReq struct {
 	StudentId string `json:"student_id" binding:"required"`
-	Type      string `json:"type" binding:"required"`
 	Title     string `json:"title" binding:"required"`
 	Content   string `json:"content" binding:"required"`
-}
-
-var feedEventTypeMapper = map[string]feedv1.FeedEventType{
-	"grade":     feedv1.FeedEventType_GRADE,
-	"muxi":      feedv1.FeedEventType_MUXI,
-	"holiday":   feedv1.FeedEventType_HOLIDAY,
-	"energy":    feedv1.FeedEventType_ENERGY,
-	"feed_back": feedv1.FeedEventType_FEED_BACK,
+	RecordID  string `json:"recordID" binding:"required"`
 }

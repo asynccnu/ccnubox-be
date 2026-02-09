@@ -60,6 +60,9 @@ definitions:
       is_official:
         description: 是否为官方课程
         type: boolean
+      nature:
+        description: 课程性质
+        type: string
       note:
         description: 备注
         type: string
@@ -90,6 +93,7 @@ definitions:
     - day
     - id
     - is_official
+    - nature
     - note
     - semester
     - teacher
@@ -415,6 +419,11 @@ definitions:
           $ref: '#/definitions/content.InfoSum'
         type: array
     type: object
+  content.GetUpdateVersionResponse:
+    properties:
+      version:
+        type: string
+    type: object
   content.GetWebsitesResponse:
     properties:
       websites:
@@ -491,6 +500,13 @@ definitions:
     - link
     - name
     type: object
+  content.SaveVersionRequest:
+    properties:
+      version:
+        type: string
+    required:
+    - version
+    type: object
   content.SaveWebsiteRequest:
     properties:
       description:
@@ -555,6 +571,11 @@ definitions:
     required:
     - architecture_list
     type: object
+  elecprice.GetBillingBalanceResponse:
+    properties:
+      price:
+        $ref: '#/definitions/elecprice.Price'
+    type: object
   elecprice.GetPriceResponse:
     properties:
       ac_price:
@@ -563,10 +584,6 @@ definitions:
         $ref: '#/definitions/elecprice.Price'
       union_price:
         $ref: '#/definitions/elecprice.Price'
-    required:
-    - ac_price
-    - light_price
-    - union_price
     type: object
   elecprice.GetRoomInfoResponse:
     properties:
@@ -594,10 +611,6 @@ definitions:
         type: string
       yesterday_use_value:
         type: string
-    required:
-    - remain_money
-    - yesterday_use_money
-    - yesterday_use_value
     type: object
   elecprice.Room:
     properties:
@@ -610,10 +623,7 @@ definitions:
       union:
         type: string
     required:
-    - ac
-    - light
     - room_name
-    - union
     type: object
   elecprice.SetStandardRequest:
     properties:
@@ -681,6 +691,8 @@ definitions:
         type: integer
       read:
         type: boolean
+      route:
+        type: string
       title:
         type: string
       type:
@@ -690,7 +702,7 @@ definitions:
     properties:
       energy:
         type: boolean
-      feed_back:
+      feedback:
         type: boolean
       grade:
         type: boolean
@@ -730,21 +742,21 @@ definitions:
       title:
         type: string
     type: object
-  feed.PublicFeedEventReq:
+  feed.PublicFeedbackEventReq:
     properties:
       content:
+        type: string
+      recordID:
         type: string
       student_id:
         type: string
       title:
         type: string
-      type:
-        type: string
     required:
     - content
+    - recordID
     - student_id
     - title
-    - type
     type: object
   feed.PublicMuxiOfficialMSGReq:
     properties:
@@ -2001,6 +2013,44 @@ paths:
       summary: 取消电费提醒标准
       tags:
       - elecprice
+  /elecprice/electricityBillinBalance:
+    get:
+      description: 电费信息详情跳转
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 房间设备id
+        in: query
+        name: room_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功的返回信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  $ref: '#/definitions/elecprice.GetBillingBalanceResponse'
+              type: object
+        "500":
+          description: 系统异常
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+      summary: 获取房间电费余额
+      tags:
+      - elecprice
   /elecprice/getArchitecture:
     get:
       description: 通过区域获取楼栋信息
@@ -2344,18 +2394,18 @@ paths:
       summary: 获取待发布的官方消息
       tags:
       - feed
-  /feed/publicFeedEvent:
+  /feed/publicFeedbackEvent:
     post:
       consumes:
       - application/json
-      description: 发布消息
+      description: 发布反馈消息
       parameters:
       - description: 消息
         in: body
         name: data
         required: true
         schema:
-          $ref: '#/definitions/feed.PublicFeedEventReq'
+          $ref: '#/definitions/feed.PublicFeedbackEventReq'
       produces:
       - application/json
       responses:
@@ -2373,7 +2423,7 @@ paths:
             $ref: '#/definitions/web.Response'
       security:
       - BasicAuth: []
-      summary: 发布消息
+      summary: 发布反馈消息
       tags:
       - feed
   /feed/publicMuxiOfficialMSG:
@@ -3253,6 +3303,44 @@ paths:
       summary: 刷新短token
       tags:
       - user
+  /version/getVersion:
+    get:
+      description: 获取热更新版本
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/content.GetUpdateVersionResponse'
+              type: object
+      summary: 获取热更新版本
+      tags:
+      - version
+  /version/saveVersion:
+    post:
+      consumes:
+      - application/json
+      description: 更新热更新版本
+      parameters:
+      - description: 保存版本号请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/content.SaveVersionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: 更新热更新版本
+      tags:
+      - version
   /website/delWebsite:
     post:
       consumes:

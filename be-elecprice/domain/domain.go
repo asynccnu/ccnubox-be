@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+
 	elecpricev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/elecprice/v1"
 )
 
@@ -10,6 +11,7 @@ type ElectricMSG struct {
 	StudentId string // 学号
 	Remain    *string
 	Limit     *int64
+	RoomID    *string
 }
 
 type ResultInfo struct {
@@ -57,8 +59,8 @@ type PriceInfo struct {
 	YesterdayUseMoney string
 }
 
-func (pi *PriceInfo) ToProto() *elecpricev1.GetPriceResponse_Price {
-	return &elecpricev1.GetPriceResponse_Price{
+func (pi *PriceInfo) ToProto() *elecpricev1.Price {
+	return &elecpricev1.Price{
 		RemainMoney:       pi.RemainMoney,
 		YesterdayUseValue: pi.YesterdayUseValue,
 		YesterdayUseMoney: pi.YesterdayUseMoney,

@@ -11,6 +11,10 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
+func getElecpriceEventUrl(roomID string) string {
+	return fmt.Sprintf("ccnubox://electricityBillinBalance?room_id=%s", roomID)
+}
+
 type ElecpriceController struct {
 	feedClient      feedv1.FeedServiceClient
 	elecpriceSerice service.ElecpriceService
@@ -70,6 +74,7 @@ func (r *ElecpriceController) publishMSG() error {
 					Type:    feedv1.FeedEventType_ENERGY,
 					Title:   "电费不足提醒",
 					Content: fmt.Sprintf("房间%s剩余 %s 元，已低于设定阈值 %d 元，请及时充值。", *(msgs[i].RoomName), *(msgs[i].Remain), *(msgs[i].Limit)),
+					Url:     getElecpriceEventUrl(*msgs[i].RoomID),
 				},
 			})
 		}

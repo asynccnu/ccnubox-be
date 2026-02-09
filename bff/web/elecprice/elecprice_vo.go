@@ -14,7 +14,7 @@ type Price struct {
 	YesterdayUseMoney string `json:"yesterday_use_money,omitempty"`
 }
 
-func priceToVo(p *elecpricev1.GetPriceResponse_Price) Price {
+func priceToVo(p *elecpricev1.Price) Price {
 	return Price{
 		RemainMoney:       p.RemainMoney,
 		YesterdayUseValue: p.YesterdayUseValue,
@@ -83,4 +83,12 @@ type GetStandardListResponse struct {
 
 type CancelStandardRequest struct {
 	RoomId string `json:"room_id" binding:"required"`
+}
+
+type GetBillingBalanceRequest struct {
+	RoomId string `uri:"room_id" form:"room_id" binding:"required"`
+}
+
+type GetBillingBalanceResponse struct {
+	Price Price `json:"price"`
 }

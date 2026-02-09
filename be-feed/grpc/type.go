@@ -1,9 +1,10 @@
 package grpc
 
 import (
+	"strings"
+
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
-	"strings"
 )
 
 // 好长的函数名称
@@ -40,6 +41,7 @@ func convFeedEventsVOFromDomainToGRPC(feedEvents []domain.FeedEventVO) []*feedv1
 			ExtendFields: feedEvents[i].ExtendFields,
 			CreatedAt:    feedEvents[i].CreatedAt,
 			Read:         feedEvents[i].Read,
+			Url:          feedEvents[i].Url,
 		}
 	}
 	return result

@@ -23,7 +23,7 @@ func (h *ContentHandler) RegisterUpdateVersionRoute(group *gin.RouterGroup, auth
 // @Description 获取热更新版本
 // @Tags version
 // @Success 200 {object} web.Response{data=GetUpdateVersionResponse} "成功"
-// @Router /version/GetUpdateVersion [get]
+// @Router /version/getVersion [get]
 func (h *ContentHandler) GetUpdateVersion(ctx *gin.Context) (web.Response, error) {
 	resp, err := h.contentClient.GetUpdateVersion(ctx, &contentv1.GetUpdateVersionRequest{})
 	if err != nil {

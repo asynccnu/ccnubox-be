@@ -8,7 +8,7 @@ enum FeedEventType{
   HOLIDAY=1;
   MUXI=2;
   ENERGY=3;
-  FEED_BACK=4;
+  FEEDBACK=4;
 }
 
 service FeedService {
@@ -41,6 +41,7 @@ message FeedEvent {
   string content = 4;
   map<string, string> ExtendFields=5;
   int64 created_at = 6;//创建时间
+  string url=7;
 }
 
 message FeedEventVO {
@@ -51,6 +52,7 @@ message FeedEventVO {
   bool read =5;
   map<string, string> ExtendFields=6;
   int64 created_at = 7;//创建时间
+  string url=8;
 }
 
 message GetFeedEventsReq {

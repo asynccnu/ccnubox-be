@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 )
 
 const (
@@ -57,15 +58,15 @@ func generateTimestamp() string {
 func SendReqUpdateRank(cookie, xmnBegin, xmnEnd string) (*domain.GetRankByTermResp, error) {
 	data, err := Send(cookie, xmnBegin, xmnEnd)
 	if err != nil {
-		return nil, err
+		return nil, errorx.Errorf("crawler: update rank failed, xmnBegin: %s, xmnEnd: %s, err: %w", xmnBegin, xmnEnd, err)
 	}
 	return data, nil
 }
 
 func Send(cookie, ksxq, jsxq string) (*domain.GetRankByTermResp, error) {
 	formData := url.Values{}
-	formData.Set("ksxq", ksxq) //开始
-	formData.Set("jsxq", jsxq) //结束
+	formData.Set("ksxq", ksxq) // 开始学期
+	formData.Set("jsxq", jsxq) // 结束学期
 	formData.Set("_search", "false")
 	formData.Set("nd", generateTimestamp())
 	formData.Set("queryModel.showCount", "1000")
@@ -76,9 +77,10 @@ func Send(cookie, ksxq, jsxq string) (*domain.GetRankByTermResp, error) {
 
 	req, err := http.NewRequest("POST", addr, strings.NewReader(formData.Encode()))
 	if err != nil {
-		return nil, err
+		return nil, errorx.Errorf("crawler: create http request failed, err: %w", err)
 	}
 
+	// 模拟浏览器 Header
 	req.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
 	req.Header.Set("Accept-Encoding", "gzip, deflate, br, zstd")
 	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6")
@@ -100,31 +102,56 @@ func Send(cookie, ksxq, jsxq string) (*domain.GetRankByTermResp, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errorx.Errorf("crawler: http post failed, err: %w", err)
 	}
 	defer resp.Body.Close()
 
-	gzipReader, err := gzip.NewReader(resp.Body)
-	if err != nil {
-		return nil, err
+	// 增加状态码校验
+	if resp.StatusCode != http.StatusOK {
+		return nil, errorx.Errorf("crawler: school system status exception, code: %d", resp.StatusCode)
 	}
-	defer gzipReader.Close()
 
-	body, err := io.ReadAll(gzipReader)
+	// 动态处理 Gzip 解压
+	var reader io.ReadCloser
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		gzipReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, errorx.Errorf("crawler: init gzip reader failed, err: %w", err)
+		}
+		defer gzipReader.Close()
+		reader = gzipReader
+	} else {
+		reader = resp.Body
+	}
+
+	body, err := io.ReadAll(reader)
 	if err != nil {
-		return nil, err
+		return nil, errorx.Errorf("crawler: read response body failed, err: %w", err)
 	}
 
 	var r Response
 	err = json.Unmarshal(body, &r)
 	if err != nil {
-		return nil, err
+		// 解析失败时，在错误中附带 body 片段以便排查是否为 HTML 错误页
+		bodyPreview := string(body)
+		if len(bodyPreview) > 200 {
+			bodyPreview = bodyPreview[:200]
+		}
+		return nil, errorx.Errorf("crawler: unmarshal json failed, body: %s, err: %w", bodyPreview, err)
 	}
 
 	var score, rank string
-	if len(r.Items) >= 2 {
-		score, rank = GetRankAndScore(r.Items[0].Tiptitle)
+	if len(r.Items) > 0 {
+		var getErr error
+		score, rank, getErr = GetRankAndScore(r.Items[0].Tiptitle)
+		if getErr != nil {
+			return nil, errorx.Errorf("crawler: parse rank info failed, tiptitle: %s, err: %w", r.Items[0].Tiptitle, getErr)
+		}
+	} else {
+		// 处理教务系统返回空 Item 的情况（可能是该时间段无成绩）
+		return nil, errorx.Errorf("crawler: items in response is empty")
 	}
+
 	include := GetSubject(r.Items)
 
 	return &domain.GetRankByTermResp{
@@ -134,22 +161,26 @@ func Send(cookie, ksxq, jsxq string) (*domain.GetRankByTermResp, error) {
 	}, nil
 }
 
-// 提取排名和学分
-func GetRankAndScore(text string) (string, string) {
+// GetRankAndScore 提取排名和学分，增加了安全性校验
+func GetRankAndScore(text string) (string, string, error) {
 	pattern := `<span class='red'>(\d+\.?\d*)</?span>`
 	re := regexp.MustCompile(pattern)
 	matches := re.FindAllStringSubmatch(text, -1)
 
-	return matches[0][1], matches[1][1]
+	// 教务系统的 Tiptitle 通常包含两个红色高亮：学分绩和排名
+	if len(matches) < 2 {
+		return "", "", errorx.Errorf("regex match count insufficient, text: %s", text)
+	}
+
+	// matches[0][1] 为学分绩, matches[1][1] 为排名
+	return matches[0][1], matches[1][1], nil
 }
 
-// 提取统计排名包含的科目
+// GetSubject 提取统计排名包含的科目
 func GetSubject(data []Item) []string {
 	var include []string
-
 	for _, v := range data {
 		include = append(include, v.Kcmc)
 	}
-
 	return include
 }

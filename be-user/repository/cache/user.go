@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/redis/go-redis/v9"
 )
 
-var ErrKeyNotExists = redis.Nil
+var (
+	// ErrKeyNotFound 定义为 redis.Nil 的别名，方便 Service 层做语义判断
+	ErrKeyNotFound = redis.Nil
+)
 
 type UserCache interface {
 	GetCookie(ctx context.Context, sid string) (string, error)
@@ -21,75 +25,62 @@ type RedisUserCache struct {
 	cmd redis.Cmdable
 }
 
-// GetCookie 从 Redis 获取指定 sid 对应的 cookie。
+// NewRedisUserCache 创建一个新的 RedisUserCache 实例
+func NewRedisUserCache(cmd redis.Cmdable) UserCache {
+	return &RedisUserCache{cmd: cmd}
+}
+
+// GetCookie 从 Redis 获取指定 sid 对应的教务系统 cookie
 func (cache *RedisUserCache) GetCookie(ctx context.Context, sid string) (string, error) {
-	// 生成缓存键
 	key := cache.key(sid)
-	// 获取缓存
 	val, err := cache.cmd.Get(ctx, key).Result()
-	if err == redis.Nil {
-		// 如果缓存未命中，返回一个特定的错误
-		return "", ErrKeyNotExists
-	} else if err != nil {
-		// 其他 Redis 错误
-		return "", fmt.Errorf("failed to get value from Redis: %w", err)
+	if err != nil {
+		if err == redis.Nil {
+			return "", ErrKeyNotFound
+		}
+		return "", errorx.Errorf("cache: redis get cookie failed, key: %s, err: %w", key, err)
 	}
 	return val, nil
 }
 
-// SetCookie 将 sid 和对应的 cookie 存入 Redis。
+// SetCookie 将 sid 和对应的 cookie 存入 Redis，过期时间 5 分钟
 func (cache *RedisUserCache) SetCookie(ctx context.Context, sid string, cookie string) error {
-	// 生成缓存键
 	key := cache.key(sid)
-	// 设置缓存，过期时间 5分钟 ,学校的cookie过期时间是随着访问量的变化而变化的,做一个简单的单例模式
-	err := cache.cmd.Set(ctx, key, cookie, time.Minute*5).Err()
+	// 过期时间设为 5 分钟，教务系统 Session 较短，不宜设置过长
+	err := cache.cmd.Set(ctx, key, cookie, 5*time.Minute).Err()
 	if err != nil {
-		// Redis 设置缓存失败
-		return fmt.Errorf("failed to set value in Redis: %w", err)
+		return errorx.Errorf("cache: redis set cookie failed, key: %s, err: %w", key, err)
 	}
 	return nil
 }
 
-// key 生成 Redis 缓存键，格式为 "ccnubox:users:{sid}"。
-func (cache *RedisUserCache) key(sid string) string {
-	return fmt.Sprintf("ccnubox:users:%s", sid)
-}
-
 // GetLibraryCookie 从 Redis 获取指定 sid 对应的图书馆 cookie
 func (cache *RedisUserCache) GetLibraryCookie(ctx context.Context, sid string) (string, error) {
-	// 生成缓存键
 	key := cache.libraryKey(sid)
-	// 获取缓存
 	val, err := cache.cmd.Get(ctx, key).Result()
-	if err == redis.Nil {
-		// 如果缓存未命中，返回一个特定的错误
-		return "", ErrKeyNotExists
-	} else if err != nil {
-		// 其他 Redis 错误
-		return "", fmt.Errorf("failed to get library cookie from Redis: %w", err)
+	if err != nil {
+		if err == redis.Nil {
+			return "", ErrKeyNotFound
+		}
+		return "", errorx.Errorf("cache: redis get library cookie failed, key: %s, err: %w", key, err)
 	}
 	return val, nil
 }
 
 // SetLibraryCookie 将 sid 和对应的图书馆 cookie 存入 Redis
 func (cache *RedisUserCache) SetLibraryCookie(ctx context.Context, sid string, cookie string) error {
-	// 生成缓存键
 	key := cache.libraryKey(sid)
-	// 设置缓存，过期时间 5分钟
-	err := cache.cmd.Set(ctx, key, cookie, time.Minute*5).Err()
+	err := cache.cmd.Set(ctx, key, cookie, 5*time.Minute).Err()
 	if err != nil {
-		// Redis 设置缓存失败
-		return fmt.Errorf("failed to set library cookie in Redis: %w", err)
+		return errorx.Errorf("cache: redis set library cookie failed, key: %s, err: %w", key, err)
 	}
 	return nil
 }
 
-// libraryKey 生成图书馆 Redis 缓存键，格式为 "ccnubox:library:{sid}"
-func (cache *RedisUserCache) libraryKey(sid string) string {
-	return fmt.Sprintf("ccnubox:library:%s", sid)
+func (cache *RedisUserCache) key(sid string) string {
+	return fmt.Sprintf("ccnubox:users:xk:%s", sid) // 增加 xk 标识区分业务
 }
 
-// NewRedisUserCache 创建一个新的 RedisUserCache 实例
-func NewRedisUserCache(cmd redis.Cmdable) UserCache {
-	return &RedisUserCache{cmd: cmd}
+func (cache *RedisUserCache) libraryKey(sid string) string {
+	return fmt.Sprintf("ccnubox:users:lib:%s", sid) // 统一命名层级
 }

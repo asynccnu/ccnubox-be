@@ -3,30 +3,25 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
-
-	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
-
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/crawler"
+	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/topic"
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
-
-	"golang.org/x/sync/singleflight"
-
-	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
+	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/tool"
+	"github.com/robfig/cron/v3"
+	"golang.org/x/sync/singleflight"
 )
 
 var (
@@ -88,19 +83,22 @@ func beginCron(s *gradeService) {
 func (s *gradeService) pullProxyAddr() {
 	res, err := s.proxyClient.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
 	if err != nil {
-		log.Warn("get proxy addr err: ", err)
+		s.l.Warn("service: get proxy addr failed", logger.Error(err))
 		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
+	}
+
+	if res.Addr == "" {
+		return
 	}
 
 	proxy, err := url.Parse(res.Addr)
 	if err != nil {
-		log.Warn("parse proxy addr err: ", err)
+		s.l.Warn("service: parse proxy addr failed", logger.String("addr", res.Addr), logger.Error(err))
+		return
 	}
 
 	p := http.ProxyURL(proxy)
-
 	client.Transport.(*http.Transport).Proxy = p
-	log.Debug("update client proxy addr, now: ", time.Now())
 }
 
 func (s *gradeService) GetGradeByTerm(ctx context.Context, req *domain.GetGradeByTermReq) ([]domain.Grade, error) {
@@ -109,46 +107,38 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, req *domain.GetGradeB
 		fetchdata FetchGrades
 		err       error
 	)
-
+	l := s.l.WithContext(ctx)
 	if req.Refresh {
-
-		//如果要求强制更新的话就需要去拉取远程数据
+		// 强制更新：拉取远程
 		fetchdata, err = s.fetchGradesWithSingleFlight(ctx, req.StudentID)
 		if err != nil || len(fetchdata.final) == 0 {
-			s.l.Warn("从ccnu获取成绩失败!", logger.Error(err))
-			//拉取失败本地作为兜底
+			l.Warn("service: force refresh failed, using local fallback", logger.String("sid", req.StudentID), logger.Error(err))
+			// 拉取失败本地作为兜底
 			grades, err = s.gradeDAO.FindGrades(ctx, req.StudentID, 0, 0)
 			if err != nil {
-				return nil, err
+				return nil, errorx.Errorf("service: fallback dao find failed, sid: %s, err: %w", req.StudentID, err)
 			}
 			return modelConvDomainAndFilter(grades, req.Terms, req.Kcxzmcs), nil
 		}
-
 		grades = fetchdata.final
 		return modelConvDomainAndFilter(grades, req.Terms, req.Kcxzmcs), nil
 
 	} else {
-
-		//如果成功直接返回结果
+		// 优先查本地缓存
 		grades, err = s.gradeDAO.FindGrades(ctx, req.StudentID, 0, 0)
 		if err != nil || len(grades) == 0 {
-			//失败尝试从远程拉取
+			// 本地无数据，从远程拉取
 			fetchdata, err = s.fetchGradesWithSingleFlight(ctx, req.StudentID)
 			if err != nil {
-				s.l.Warn("从ccnu获取成绩失败!", logger.Error(err))
-				return nil, ErrGetGrade(err)
+				return nil, ErrGetGrade(errorx.Errorf("service: cache miss and fetch failed, sid: %s, err: %w", req.StudentID, err))
 			}
 			grades = fetchdata.final
-
 			return modelConvDomainAndFilter(grades, req.Terms, req.Kcxzmcs), nil
 		}
 
-		//异步更新结果
+		// 本地有数据，异步触发一次更新
 		go func() {
-			fetchdata, err = s.fetchGradesWithSingleFlight(context.Background(), req.StudentID)
-			if err != nil {
-				s.l.Warn("从ccnu获取成绩失败!", logger.Error(err))
-			}
+			_, _ = s.fetchGradesWithSingleFlight(context.Background(), req.StudentID)
 		}()
 
 		return modelConvDomainAndFilter(grades, req.Terms, req.Kcxzmcs), nil
@@ -156,24 +146,17 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, req *domain.GetGradeB
 }
 
 func (s *gradeService) GetGradeScore(ctx context.Context, studentId string) ([]domain.TypeOfGradeScore, error) {
-	//如果成功直接返回结果
 	grades, err := s.gradeDAO.FindGrades(ctx, studentId, 0, 0)
 	if err != nil || len(grades) == 0 {
-		//失败尝试从远程拉取
 		fetchdata, err := s.fetchGradesWithSingleFlight(ctx, studentId)
 		if err != nil || len(fetchdata.final) == 0 {
-			s.l.Warn("从ccnu获取成绩失败!", logger.Error(err))
-			return nil, ErrGetGrade(err)
+			return nil, ErrGetGrade(errorx.Errorf("service: get grade score fetch failed, sid: %s, err: %w", studentId, err))
 		}
 		return aggregateGradeScore(fetchdata.final), nil
 	}
 
-	//异步更新结果
 	go func() {
-		fetchdata, err := s.fetchGradesWithSingleFlight(context.Background(), studentId)
-		if err != nil || len(fetchdata.final) == 0 {
-			s.l.Warn("从ccnu获取成绩失败!", logger.Error(err))
-		}
+		_, _ = s.fetchGradesWithSingleFlight(context.Background(), studentId)
 	}()
 
 	return aggregateGradeScore(grades), nil
@@ -182,36 +165,35 @@ func (s *gradeService) GetGradeScore(ctx context.Context, studentId string) ([]d
 func (s *gradeService) GetUpdateScore(ctx context.Context, studentId string) ([]domain.Grade, error) {
 	grades, err := s.fetchGradesWithSingleFlight(ctx, studentId)
 	if err != nil || len(grades.update) == 0 {
-		return nil, ErrGetGrade(err)
+		return nil, ErrGetGrade(errorx.Errorf("service: get update score failed, sid: %s, err: %w", studentId, err))
 	}
 	return modelConvDomain(grades.update), nil
 }
 
 func (s *gradeService) UpdateDetailScore(ctx context.Context, need domain.NeedDetailGrade) error {
+	l := s.l.WithContext(ctx)
 	ug, err := s.newUGWithCookie(ctx, need.StudentID)
 	if err != nil {
-		return err
+		return errorx.Errorf("service: init ug for detail failed, sid: %s, err: %w", need.StudentID, err)
 	}
 
 	grades := need.Grades
 	for i, grade := range grades {
 		detail, err := ug.GetDetail(ctx, grade.StudentId, grade.JxbId, grade.KcId, grade.Cj)
-		if errors.Is(err, crawler.COOKIE_TIMEOUT) {
+		if errors.Is(err, crawler.ErrCookieTimeout) {
 			ug, err = s.newUGWithCookie(ctx, need.StudentID)
 			if err != nil {
-				return err
+				return errorx.Errorf("service: refresh cookie for detail failed, sid: %s, err: %w", need.StudentID, err)
 			}
 			detail, err = ug.GetDetail(ctx, grade.StudentId, grade.JxbId, grade.KcId, grade.Cj)
 		}
 
 		if err != nil {
-			s.l.Warn(fmt.Sprintf("获取详细分数失败! 学号:%s,教学班id:%s,课程id:%s,总分:%f", grade.StudentId, grade.JxbId, grade.KcId, grade.Cj), logger.Error(err))
+			l.Warn("service: fetch partial detail failed", logger.String("sid", grade.StudentId), logger.String("kc", grade.Kcmc), logger.Error(err))
 			continue
 		}
 
-		// TODO 这里的判定规则是平时和期末成绩占比是存在的,但是不存在成绩,这里认为其是属于非法数据,可能还需要更多的明确,后续可以考虑继续优化
 		if detail.Cjxm3 == 0 && detail.Cjxm1 == 0 && detail.Cjxm3bl != "" && detail.Cjxm1bl != "" {
-			s.l.Warn(fmt.Sprintf("学校出现错误数据! 学号:%s,教学班id:%s,课程id:%s,总分:%f,错误数据详情: %v", grade.StudentId, grade.JxbId, grade.KcId, grade.Cj, detail))
 			continue
 		}
 
@@ -224,77 +206,67 @@ func (s *gradeService) UpdateDetailScore(ctx context.Context, need domain.NeedDe
 
 	_, err = s.gradeDAO.BatchInsertOrUpdate(ctx, grades, true)
 	if err != nil {
-		return err
+		return errorx.Errorf("service: batch save details failed, sid: %s, err: %w", need.StudentID, err)
 	}
 
 	return nil
 }
 
 func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentId string) (FetchGrades, error) {
-	key := studentId
-
-	result, err, _ := s.sf.Do(key, func() (interface{}, error) {
+	l := s.l.WithContext(ctx)
+	result, err, _ := s.sf.Do(studentId, func() (interface{}, error) {
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 
-		start := time.Now()
-		// 按学号选择对应爬虫
 		var stu Student
-		if isUndergraduate(studentId) {
+
+		sType := tool.ParseStudentType(studentId)
+		switch sType {
+		case tool.UnderGraduate:
 			ug, err := s.newUGWithCookie(ctx, studentId)
 			if err != nil {
-				return nil, fmt.Errorf("创建带cookie的本科爬虫失败:%w", err)
+				return nil, errorx.Errorf("service: init undergraduate crawler failed, err: %w", err)
 			}
 			stu = &UndergraduateStudent{ug: ug}
-		} else {
+		case tool.PostGraduate:
 			gc, err := crawler.NewGraduate(crawler.NewCrawlerClientWithCookieJar(30*time.Second, nil))
 			if err != nil {
-				return nil, fmt.Errorf("创建研究生爬虫实例失败:%w", err)
+				return nil, errorx.Errorf("service: init graduate crawler failed, err: %w", err)
 			}
 			stu = &GraduateStudent{gc: gc}
+		default:
+			return nil, errorx.New("service: invalid student type")
 		}
 
 		cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
 		if err != nil {
-			return nil, fmt.Errorf("获取 cookie 失败:%w", err)
+			return nil, errorx.Errorf("service: rpc get cookie failed, sid: %s, err: %w", studentId, err)
 		}
 
 		remote, err := stu.GetGrades(ctx, cookieResp.Cookie, 0, 0, 300)
-		if errors.Is(err, crawler.COOKIE_TIMEOUT) {
-			if _, ok := stu.(*UndergraduateStudent); ok {
-				ug, err := s.newUGWithCookie(ctx, studentId)
-				if err != nil {
-					return nil, fmt.Errorf("创建带cookie的本科爬虫失败:%w", err)
-				}
-				stu = &UndergraduateStudent{ug: ug}
-			}
+		if errors.Is(err, crawler.ErrCookieTimeout) {
 			cookieResp, err = s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
 			if err != nil {
-				return nil, fmt.Errorf("获取 cookie 失败:%w", err)
+				return nil, errorx.Errorf("service: retry rpc get cookie failed, sid: %s, err: %w", studentId, err)
 			}
 			remote, err = stu.GetGrades(ctx, cookieResp.Cookie, 0, 0, 300)
-			if err != nil {
-				return nil, err
-			}
 		}
 
-		s.l.Info("获取成绩耗时", logger.String("耗时", time.Since(start).String()))
-		grades := remote
-		update, err := s.gradeDAO.BatchInsertOrUpdate(ctx, grades, false)
 		if err != nil {
-			return nil, err
+			return nil, errorx.Errorf("service: crawler fetch failed, sid: %s, err: %w", studentId, err)
 		}
 
-		for _, g := range update {
-			s.l.Info("更新成绩成功", logger.String("studentId", g.StudentId), logger.String("课程", g.Kcmc))
+		update, err := s.gradeDAO.BatchInsertOrUpdate(ctx, remote, false)
+		if err != nil {
+			return nil, errorx.Errorf("service: dao batch sync failed, sid: %s, err: %w", studentId, err)
 		}
 
-		// 读取数据库,已经有的数据要使用已经存在的(因为平时成绩已经获取到了)
 		final, err := s.gradeDAO.FindGrades(ctx, studentId, 0, 0)
 		if err != nil {
-			return nil, err
+			return nil, errorx.Errorf("service: dao find final failed, sid: %s, err: %w", studentId, err)
 		}
 
+		// 异步获取详情的 MQ 触发
 		var needDetailgrades []model.Grade
 		for _, g := range final {
 			if g.RegularGradePercent == RegularGradePercentMSG && g.FinalGradePercent == FinalGradePercentMAG {
@@ -302,25 +274,22 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 			}
 		}
 
-		err = s.producer.SendMessage(topic.GradeDetailEvent, domain.NeedDetailGrade{
-			StudentID: studentId,
-			Grades:    needDetailgrades,
-		})
-		if err != nil {
-			return nil, err
+		if len(needDetailgrades) > 0 {
+			err = s.producer.SendMessage(topic.GradeDetailEvent, domain.NeedDetailGrade{
+				StudentID: studentId,
+				Grades:    needDetailgrades,
+			})
+			if err != nil {
+				l.Error("service: send detail event failed", logger.String("sid", studentId), logger.Error(err))
+			}
 		}
 
-		fetchGrades := FetchGrades{
-			update: update,
-			final:  final,
-		}
-
-		return fetchGrades, err
+		return FetchGrades{update: update, final: final}, nil
 	})
 
 	fetchGrades, ok := result.(FetchGrades)
-	if !ok {
-		s.l.Warn("类型断言失败", logger.Error(err))
+	if !ok && err == nil {
+		err = errorx.Errorf("service: fetch result type assertion failed")
 	}
 
 	return fetchGrades, err
@@ -329,7 +298,7 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 func (s *gradeService) newUGWithCookie(ctx context.Context, studentId string) (*crawler.UnderGrad, error) {
 	cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
 	if err != nil {
-		return &crawler.UnderGrad{}, err
+		return nil, errorx.Errorf("service: newUG rpc cookie failed, sid: %s, err: %w", studentId, err)
 	}
 
 	grad, err := crawler.NewUnderGrad(
@@ -339,30 +308,29 @@ func (s *gradeService) newUGWithCookie(ctx context.Context, studentId string) (*
 		),
 	)
 	if err != nil {
-		return &crawler.UnderGrad{}, fmt.Errorf("创建ug爬虫实例失败:%w", err)
+		return nil, errorx.Errorf("service: newUnderGrad crawler init failed, err: %w", err)
 	}
 	return grad, nil
 }
 
 func (s *gradeService) GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error) {
+	l := s.l.WithContext(ctx)
 	var res []string
-	// 从课表服务获取课程性质
 	resp, err := s.classlistClient.GetClassNatures(ctx, &classlistv1.GetClassNaturesReq{StuId: stuID})
 	if err != nil {
-		s.l.Warn("从课表服务获取课程性质列表失败", logger.Error(err))
-		// 注意不用return
-	}
-	// 从本地获取课程性质
-	localNatures, err := s.gradeDAO.GetDistinctGradeType(ctx, stuID)
-	if err != nil {
-		s.l.Warn("获取课程性质列表失败", logger.Error(err))
-		return nil, err
+		l.Warn("service: rpc get class natures failed", logger.String("sid", stuID), logger.Error(err))
 	}
 
-	// 取并集
+	localNatures, err := s.gradeDAO.GetDistinctGradeType(ctx, stuID)
+	if err != nil {
+		return nil, errorx.Errorf("service: dao get distinct grade type failed, sid: %s, err: %w", stuID, err)
+	}
+
 	natureSet := make(map[string]struct{})
-	for _, nature := range resp.ClassNatures {
-		natureSet[nature] = struct{}{}
+	if resp != nil {
+		for _, nature := range resp.ClassNatures {
+			natureSet[nature] = struct{}{}
+		}
 	}
 	for _, nature := range localNatures {
 		natureSet[nature] = struct{}{}
@@ -374,6 +342,7 @@ func (s *gradeService) GetDistinctGradeType(ctx context.Context, stuID string) (
 	return res, nil
 }
 
+// Student 接口及实现
 type Student interface {
 	GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]model.Grade, error)
 }
@@ -385,14 +354,14 @@ type UndergraduateStudent struct {
 func (u *UndergraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]model.Grade, error) {
 	grade, err := u.ug.GetGrade(ctx, xnm, xqm, int(showCount))
 	if err != nil {
-		return []model.Grade{}, err
+		return nil, errorx.Errorf("crawler: ug get grade failed, err: %w", err)
 	}
 
 	details := make(map[string]crawler.Score)
 	for _, g := range grade {
 		detail, err := u.ug.GetDetail(ctx, g.XS0101ID, g.JX0404ID, g.KCH, g.ZCJ)
 		if err != nil {
-			return []model.Grade{}, err
+			return nil, errorx.Errorf("crawler: ug get detail failed, jxb: %s, err: %w", g.JX0404ID, err)
 		}
 		key := g.XS0101ID + g.JX0404ID
 		details[key] = detail
@@ -408,15 +377,8 @@ type GraduateStudent struct {
 func (g *GraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]model.Grade, error) {
 	grade, err := g.gc.GetGraduateGrades(ctx, cookie, xnm, xqm, showCount)
 	if err != nil {
-		return []model.Grade{}, err
+		return nil, errorx.Errorf("crawler: graduate get grade failed, err: %w", err)
 	}
 
 	return ConvertGraduateGrade(grade), nil
-}
-
-func isUndergraduate(stuID string) bool {
-	if len(stuID) < 5 {
-		return false
-	}
-	return stuID[4] == '2'
 }

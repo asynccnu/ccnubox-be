@@ -34,7 +34,7 @@ func InitApp() *App {
 	logger := ioc.InitLogger(serverConf)
 	feedEventService := service.NewFeedEventService(feedEventDAO, feedEventCache, feedUserConfigDAO, feedFailEventDAO, producerProducer, logger)
 	feedTokenDAO := dao.NewUserFeedTokenDAO(db)
-	feedUserConfigService := service.NewFeedUserConfigService(feedEventDAO, feedEventCache, feedUserConfigDAO, feedTokenDAO)
+	feedUserConfigService := service.NewFeedUserConfigService(feedEventCache, feedUserConfigDAO, feedTokenDAO)
 	muxiOfficialMSGService := service.NewMuxiOfficialMSGService(feedEventDAO, feedEventCache, feedUserConfigDAO)
 	pushClient := ioc.InitJPushClient(serverConf)
 	pushService := service.NewPushService(pushClient, feedUserConfigDAO, feedTokenDAO, feedFailEventDAO, logger)

@@ -8,7 +8,7 @@ const (
 	UnderGraduate             // 本科生 (2)
 )
 
-// ParseStudentType 根据学号规则解析学生类型
+// ParseStudentType 根据学号规则解析学生类型 区分是学号第五位，本科是2，硕士是1，博士是0，工号是6或9
 func ParseStudentType(studentId string) StudentType {
 	if len(studentId) <= 4 {
 		return Unknown

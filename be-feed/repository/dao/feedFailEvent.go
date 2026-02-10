@@ -3,10 +3,11 @@ package dao
 import (
 	"context"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"gorm.io/gorm"
 )
 
-// feedEvent由于使用了表名进行查询,gorm的自动处理时间的作用将失效
+// FeedFailEventDAO 接口定义
 type FeedFailEventDAO interface {
 	GetFeedFailEventsByStudentId(ctx context.Context, studentId string) ([]model.FeedFailEvent, error)
 	DelFeedFailEventsByStudentId(ctx context.Context, studentId string) error
@@ -21,24 +22,38 @@ func NewFeedFailEventDAO(db *gorm.DB) FeedFailEventDAO {
 	return &feedFailEventDAO{gorm: db}
 }
 
-// GetFeedEventsByStudentId 获取指定 StudentId 的 FeedEvent 列表
+// GetFeedFailEventsByStudentId 获取指定 StudentId 的失败 FeedEvent 列表
 func (dao *feedFailEventDAO) GetFeedFailEventsByStudentId(ctx context.Context, studentId string) ([]model.FeedFailEvent, error) {
 	var resp []model.FeedFailEvent
 	err := dao.gorm.WithContext(ctx).
 		Where("student_id = ?", studentId).
 		Find(&resp).Error
-	return resp, err
+	if err != nil {
+		return nil, errorx.Errorf("dao: get feed fail events failed, sid: %s, err: %w", studentId, err)
+	}
+	return resp, nil
 }
 
-// DelFeedEventsByStudentId 软删除指定 StudentId 的 FeedEvent
+// DelFeedFailEventsByStudentId 删除指定 StudentId 的失败 FeedEvent
 func (dao *feedFailEventDAO) DelFeedFailEventsByStudentId(ctx context.Context, studentId string) error {
-	return dao.gorm.WithContext(ctx).
+	err := dao.gorm.WithContext(ctx).
 		Where("student_id = ?", studentId).
 		Delete(&model.FeedFailEvent{}).
 		Error
+	if err != nil {
+		return errorx.Errorf("dao: delete feed fail events failed, sid: %s, err: %w", studentId, err)
+	}
+	return nil
 }
 
-// InsertFeedEventList 批量插入 FeedEvent，最多一次插入 1000 条
+// InsertFeedFailEventList 批量插入失败的 FeedEvent
 func (dao *feedFailEventDAO) InsertFeedFailEventList(ctx context.Context, events []model.FeedFailEvent) error {
-	return dao.gorm.WithContext(ctx).Create(events).Error
+	if len(events) == 0 {
+		return nil
+	}
+	err := dao.gorm.WithContext(ctx).Create(events).Error
+	if err != nil {
+		return errorx.Errorf("dao: batch insert feed fail events failed, count: %d, err: %w", len(events), err)
+	}
+	return nil
 }

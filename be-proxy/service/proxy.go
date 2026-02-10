@@ -51,7 +51,7 @@ func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, string, error) 
 
 func NewProxyService(l logger.Logger, cfg *conf.ServerConf) ProxyService {
 	if cfg.ShenLongConf.API == "" {
-		l.Warn("proxy: using default client because API is empty", logger.String("time", time.Now().Format(time.DateTime)))
+		l.Warn("proxy: fail to new client because API is empty", logger.String("time", time.Now().Format(time.DateTime)))
 		panic(ErrEmptyConfig)
 	}
 

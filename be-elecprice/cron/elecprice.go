@@ -44,8 +44,13 @@ func (r *ElecpriceController) StartCronTask() {
 		for {
 			select {
 			case <-ticker.C:
-				err := r.publishMSG()
-				r.l.Error("推送消息失败!:", logger.Error(err))
+				ctx := context.Background()
+				err := r.publishMSG(ctx)
+				l := r.l.WithContext(ctx)
+				if err != nil {
+					l.Error("推送消息失败!:", logger.Error(err))
+
+				}
 
 			case <-r.stopChan:
 				ticker.Stop()
@@ -56,10 +61,9 @@ func (r *ElecpriceController) StartCronTask() {
 
 }
 
-func (r *ElecpriceController) publishMSG() error {
+func (r *ElecpriceController) publishMSG(ctx context.Context) error {
 	//由于没有使用注册为路由这里手动写的上下文,每次提前四天进行提醒
 
-	ctx := context.Background()
 	msgs, err := r.elecpriceSerice.GetTobePushMSG(ctx)
 	if err != nil {
 		return err

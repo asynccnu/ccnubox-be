@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,8 +10,8 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-proxy/conf"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/go-kratos/kratos/v2/log"
 	"github.com/robfig/cron/v3"
 )
 
@@ -25,33 +24,34 @@ type ShenLongProxy struct {
 	PollInterval int
 	RetryCount   int
 
-	mu sync.RWMutex // 异步写+并发读
+	mu sync.RWMutex // 保护 Addr 和 AddrBackup 的并发读写
 	l  logger.Logger
 }
 
 var (
-	ErrEmptyConfig = errors.New("empty config")
+	ErrEmptyConfig = errorx.New("proxy: empty configuration")
 )
 
 func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, string, error) {
-	// 未配置代理时使用
+	// 未配置代理时返回错误
 	if s.Api == "" {
-		log.Warnf("empty proxy setting")
 		return "", "", ErrEmptyConfig
 	}
 
-	// 获取代理addr
 	s.mu.RLock()
-	proxyAddr := s.Addr
-	proxyAddrBackup := s.AddrBackup
-	s.mu.RUnlock()
+	defer s.mu.RUnlock()
 
-	return proxyAddr, proxyAddrBackup, nil
+	// 如果当前地址为空，说明 fetchIp 尚未成功执行过
+	if s.Addr == "" {
+		return "", "", errorx.New("proxy: no available proxy address currently")
+	}
+
+	return s.Addr, s.AddrBackup, nil
 }
 
 func NewProxyService(l logger.Logger, cfg *conf.ServerConf) ProxyService {
 	if cfg.ShenLongConf.API == "" {
-		log.Warnf("use DefualtClient due to the empty of proxy setting (time:%s)", time.Now())
+		l.Warn("proxy: fail to new client because API is empty", logger.String("time", time.Now().Format(time.DateTime)))
 		panic(ErrEmptyConfig)
 	}
 
@@ -61,66 +61,89 @@ func NewProxyService(l logger.Logger, cfg *conf.ServerConf) ProxyService {
 		RetryCount:   cfg.ShenLongConf.Retry,
 		Username:     cfg.ShenLongConf.Username,
 		Password:     cfg.ShenLongConf.Password,
-
-		l: l,
+		l:            l,
 	}
-	// 初始化之后就要马上更新一次ip, 保证不是空的
+
+	// 初始化后同步执行一次更新，确保启动时就有 IP 可用
 	s.fetchIp()
 
-	c := cron.New()
-	_, _ = c.AddFunc(fmt.Sprintf("@every %ds", s.PollInterval), s.fetchIp)
+	// 注册定时更新任务
+	c := cron.New(cron.WithSeconds())
+	spec := fmt.Sprintf("@every %ds", s.PollInterval)
+	_, err := c.AddFunc(spec, s.fetchIp)
+	if err != nil {
+		l.Error("proxy: failed to add cron task", logger.Error(err))
+		// 如果定时任务注册失败，应根据业务严重性决定是否 panic
+	}
 	c.Start()
 
 	return s
 }
 
 func (s *ShenLongProxy) fetchIp() {
+	client := &http.Client{Timeout: 10 * time.Second}
+
 	for i := 0; i < s.RetryCount; i++ {
-
-		resp, err := http.Get(s.Api)
+		resp, err := client.Get(s.Api)
 		if err != nil {
-			s.l.Error("fetch ip fail",
+			s.l.Error("proxy: fetch ip request failed",
 				logger.Error(err),
 				logger.Int("attempt", i+1),
 			)
+			time.Sleep(2 * time.Second)
 			continue
 		}
+
 		body, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close() // 及时关闭资源，防止 for 循环内泄露
+
 		if err != nil {
-			s.l.Error("read resp when fetching ip fail",
+			s.l.Error("proxy: read response body failed",
 				logger.Error(err),
 				logger.Int("attempt", i+1),
 			)
+			time.Sleep(2 * time.Second)
 			continue
 		}
-		_ = resp.Body.Close() // 读取完就关闭, for里面defer有资源泄漏问题
 
-		// 如果不能正常获取ip会是{code: xx, msg: xx}的json
-		if !strings.Contains(string(body), "code") {
-			s.l.Info("fetch ip success",
-				logger.String("time", time.Now().Format(time.RFC3339)),
-			)
-			addrs := strings.Split(string(body), "\r\n")
+		bodyStr := string(body)
+		// 校验返回内容是否为正常的 IP 列表（通常代理商报错会返回包含 "code" 的 JSON）
+		if !strings.Contains(bodyStr, "code") && strings.Contains(bodyStr, ".") {
+			// 处理 Windows 风格的换行符
+			bodyStr = strings.ReplaceAll(bodyStr, "\r\n", "\n")
+			addrs := strings.Split(strings.TrimSpace(bodyStr), "\n")
 
-			s.mu.Lock()
-			s.Addr = s.wrapRes(addrs[0])
-			s.AddrBackup = s.wrapRes(addrs[1])
-			s.mu.Unlock()
+			if len(addrs) > 0 {
+				s.mu.Lock()
+				s.Addr = s.wrapRes(addrs[0])
+				// 容错处理：如果只返回了一个 IP，则备份 IP 与主 IP 一致
+				if len(addrs) > 1 {
+					s.AddrBackup = s.wrapRes(addrs[1])
+				} else {
+					s.AddrBackup = s.Addr
+				}
+				s.mu.Unlock()
 
-			break
-		} else {
-			s.l.Error("fetch ip fail, invalid resp",
-				logger.String("resp", string(body)),
-				logger.Int("attempt", i+1),
-			)
+				s.l.Info("proxy: fetch ip success", logger.String("primary", addrs[0]))
+				return // 成功后直接退出重试循环
+			}
 		}
 
-		time.Sleep(time.Second * 2)
+		s.l.Error("proxy: invalid response from api",
+			logger.String("resp", bodyStr),
+			logger.Int("attempt", i+1),
+		)
+		time.Sleep(2 * time.Second)
 	}
 
+	s.l.Error("proxy: all attempts failed to fetch new ip", logger.Int("max_retries", s.RetryCount))
 }
 
 func (s *ShenLongProxy) wrapRes(res string) string {
-	// 会返回\t\n, 提供方那边去不了
-	return fmt.Sprintf("http://%s:%s@%s", s.Username, s.Password, strings.TrimSpace(res))
+	// 代理商返回的 IP 经常带有不可见字符或空白符，需要彻底清理
+	cleanRes := strings.TrimSpace(res)
+	if cleanRes == "" {
+		return ""
+	}
+	return fmt.Sprintf("http://%s:%s@%s", s.Username, s.Password, cleanRes)
 }

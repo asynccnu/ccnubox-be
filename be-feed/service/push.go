@@ -7,6 +7,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/pkg/jpush"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
@@ -30,8 +31,8 @@ type ErrWithData struct {
 	Err       error             `json:"err"`
 }
 
-func NewPushService(pushClient jpush.PushClient,
-
+func NewPushService(
+	pushClient jpush.PushClient,
 	userFeedConfigDAO dao.FeedUserConfigDAO,
 	feedTokenDAO dao.FeedTokenDAO,
 	feedFailEventDAO dao.FeedFailEventDAO,
@@ -51,48 +52,55 @@ func (s *pushService) PushMSGS(ctx context.Context, pushDatas []domain.FeedEvent
 	concurrencyLimit := 10
 	semaphore := make(chan struct{}, concurrencyLimit)
 	var wg sync.WaitGroup
+	var mu sync.Mutex // 保护 errs 切片的并发安全
+
 	for _, pushData := range pushDatas {
 		wg.Add(1)
 		semaphore <- struct{}{}
 
-		go func(data *domain.FeedEvent) {
+		go func(data domain.FeedEvent) {
 			defer wg.Done()
-			defer func() { <-semaphore }() // 释放槽位
-			err := s.PushMSG(ctx, data)
+			defer func() { <-semaphore }()
+
+			err := s.PushMSG(ctx, &data)
 			if err != nil {
+				mu.Lock()
 				errs = append(errs, ErrWithData{
-					FeedEvent: data,
+					FeedEvent: &data,
 					Err:       err,
 				})
+				mu.Unlock()
 			}
-		}(&pushData)
+		}(pushData)
 	}
 	wg.Wait()
 
 	return errs
-
 }
 
 // 此处返回errors但是不做错误处理,如果还是失败选择放任着条消息丢失
 func (s *pushService) InsertFailFeedEvents(ctx context.Context, failEvents []domain.FeedEvent) error {
-	// 插入 FeedEvent 并获取插入后的 ID
-	return s.feedFailEventDAO.InsertFeedFailEventList(ctx, convFeedFailEventFromDomainToModel(failEvents))
+	err := s.feedFailEventDAO.InsertFeedFailEventList(ctx, convFeedFailEventFromDomainToModel(failEvents))
+	if err != nil {
+		return errorx.Errorf("service: insert fail feed events failed, count: %d, err: %w", len(failEvents), err)
+	}
+	return nil
 }
 
 // 推送单条消息
 func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) error {
 	tokens, err := s.feedTokenDAO.GetTokens(ctx, pushData.StudentId)
 	if err != nil {
-		return err
+		return errorx.Errorf("service: get tokens failed for push, sid: %s, err: %w", pushData.StudentId, err)
 	}
 	if len(tokens) == 0 {
 		return nil
 	}
 
-	//权限检测
+	// 权限检测
 	allowed, err := s.checkIfAllow(ctx, pushData.Type, pushData.StudentId)
 	if err != nil {
-		return err
+		return errorx.Errorf("service: check push permission failed, sid: %s, type: %s, err: %w", pushData.StudentId, pushData.Type, err)
 	}
 	if !allowed {
 		return nil
@@ -106,7 +114,7 @@ func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) e
 	})
 
 	if err != nil {
-		return err
+		return errorx.Errorf("service: jpush client call failed, sid: %s, tokens_count: %d, err: %w", pushData.StudentId, len(tokens), err)
 	}
 
 	return nil
@@ -114,62 +122,47 @@ func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) e
 
 // 推送消息给所有人[弃用]:推送成本太高,而且事务难以实现,一致性难
 func (s *pushService) PushToAll(ctx context.Context, pushData *domain.FeedEvent) error {
-	const batchSize = 50 // 每批次处理的用户数(为什么一次只推送50条呢?主要是怕推送限流有点严重)
-	var lastId int64 = 0 // 游标初始值
+	const batchSize = 50
+	var lastId int64 = 0
 
 	for {
-
-		// 获取一批 studentIds 和 tokens
 		studentIdsAndTokens, newLastId, err := s.feedTokenDAO.GetStudentIdAndTokensByCursor(ctx, lastId, batchSize)
 		if err != nil {
-			s.l.Error("获取用户studentId和tokens错误", logger.Error(err))
+			s.l.Error("service: push to all get cursor data error", logger.Int64("lastId", lastId), logger.Error(err))
+			break // 游标查询失败属于严重错误，退出循环
 		}
 
-		// 如果没有更多数据，结束循环
 		if len(studentIdsAndTokens) == 0 {
 			break
 		}
 
 		var filteredTokens []string
 
-		// 遍历每个学生的 tokens
 		for studentId, tokens := range studentIdsAndTokens {
-			// 权限检测
 			allowed, err := s.checkIfAllow(ctx, pushData.Type, studentId)
 			if err != nil {
-				s.l.Error("检查权限出错", logger.Error(err))
-				// 日志记录错误，但不终止流程
+				s.l.Error("service: push to all check allow error ignored", logger.String("sid", studentId), logger.Error(err))
 				continue
 			}
 
-			if !allowed {
-				// 如果不允许，跳过当前 studentId
-				continue
+			if allowed {
+				filteredTokens = append(filteredTokens, tokens...)
 			}
-
-			// 收集 tokens
-			filteredTokens = append(filteredTokens, tokens...)
 		}
 
-		// 如果没有需要推送的 tokens，跳过本批次
-		if len(filteredTokens) == 0 {
-			lastId = newLastId
-			continue
+		if len(filteredTokens) > 0 {
+			err = s.pushClient.Push(filteredTokens, jpush.PushData{
+				ContentType: pushData.Type,
+				Extras:      pushData.ExtendFields,
+				MsgContent:  pushData.Content,
+				Title:       pushData.Title,
+			})
+
+			if err != nil {
+				s.l.Error("service: push to all batch jpush error", logger.Int("tokens_count", len(filteredTokens)), logger.Error(err))
+			}
 		}
 
-		// 批量推送
-		err = s.pushClient.Push(filteredTokens, jpush.PushData{
-			ContentType: pushData.Type,
-			Extras:      pushData.ExtendFields,
-			MsgContent:  pushData.Content,
-			Title:       pushData.Title,
-		})
-
-		if err != nil {
-			s.l.Error("批量推送出错", logger.Error(err))
-		}
-
-		// 更新游标为最新值
 		lastId = newLastId
 	}
 
@@ -177,19 +170,15 @@ func (s *pushService) PushToAll(ctx context.Context, pushData *domain.FeedEvent)
 }
 
 func (s *pushService) checkIfAllow(ctx context.Context, label string, studentId string) (bool, error) {
-	// 提前获取用户的配置
 	list, err := s.userFeedConfigDAO.FindOrCreateUserFeedConfig(ctx, studentId)
 	if err != nil {
-		return false, err
+		return false, errorx.Errorf("service: find/create config failed in allow check, sid: %s, err: %w", studentId, err)
 	}
 
-	// 根据 label 获取对应的位位置
 	pos, exists := configMap[label]
 	if !exists {
 		return false, nil
 	}
-	ok := s.userFeedConfigDAO.GetConfigBit(list.PushConfig, pos)
 
-	// 根据位位置检查对应的配置是否允许
-	return ok, nil
+	return s.userFeedConfigDAO.GetConfigBit(list.PushConfig, pos), nil
 }

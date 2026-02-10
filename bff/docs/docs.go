@@ -4478,13 +4478,13 @@ const docTemplate = `{
                 "read": {
                     "type": "boolean"
                 },
-                "route": {
-                    "type": "string"
-                },
                 "title": {
                     "type": "string"
                 },
                 "type": {
+                    "type": "string"
+                },
+                "url": {
                     "type": "string"
                 }
             }

@@ -47,7 +47,10 @@ func (r *ElecpriceController) StartCronTask() {
 				ctx := context.Background()
 				err := r.publishMSG(ctx)
 				l := r.l.WithContext(ctx)
-				l.Error("推送消息失败!:", logger.Error(err))
+				if err != nil {
+					l.Error("推送消息失败!:", logger.Error(err))
+
+				}
 
 			case <-r.stopChan:
 				ticker.Stop()

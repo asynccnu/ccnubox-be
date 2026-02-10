@@ -9,6 +9,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-user/pkg/crypto"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
+	"github.com/asynccnu/ccnubox-be/be-user/repository/model"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
@@ -63,12 +64,13 @@ func (s *userService) Save(ctx context.Context, studentId string, password strin
 	case err == nil:
 		if user.Password != encryptedPwd {
 			user.Password = encryptedPwd
-		} else {
-			return nil
 		}
+		return nil
 	case errors.Is(err, dao.UserNotFound):
-		user.StudentId = studentId
-		user.Password = encryptedPwd
+		user = &model.User{
+			StudentId: studentId,
+			Password:  encryptedPwd,
+		}
 	default:
 		return DEFAULT_DAO_ERROR(errorx.Errorf("service: find user failed, sid: %s, err: %w", studentId, err))
 	}

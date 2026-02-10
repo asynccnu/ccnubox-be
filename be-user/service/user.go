@@ -62,10 +62,12 @@ func (s *userService) Save(ctx context.Context, studentId string, password strin
 	user, err := s.dao.FindByStudentId(ctx, studentId)
 	switch {
 	case err == nil:
+		//如果需要更新则更新,否则直接返回
 		if user.Password != encryptedPwd {
 			user.Password = encryptedPwd
+		} else {
+			return nil
 		}
-		return nil
 	case errors.Is(err, dao.UserNotFound):
 		user = &model.User{
 			StudentId: studentId,

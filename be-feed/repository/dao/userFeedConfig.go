@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"gorm.io/gorm"
 )
 
-// 用来对用户的feed数据进行处理
-
+// FeedUserConfigDAO 用来对用户的feed数据进行处理
 type FeedUserConfigDAO interface {
 	FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.FeedUserConfig, error)
 	SaveUserFeedConfig(ctx context.Context, req *model.FeedUserConfig) error
@@ -27,19 +27,25 @@ func NewFeedUserConfigDAO(db *gorm.DB) FeedUserConfigDAO {
 	return &feedUserConfigDAO{gorm: db}
 }
 
-// FindOrCreateFeedAllowList 查找或创建 FeedUserConfig
+// FindOrCreateUserFeedConfig 查找或创建 FeedUserConfig
 func (dao *feedUserConfigDAO) FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.FeedUserConfig, error) {
 	allowList := model.FeedUserConfig{StudentId: studentId}
-	err := dao.gorm.WithContext(ctx).Model(model.FeedUserConfig{}).Where("student_id = ?", studentId).FirstOrCreate(&allowList).Error
+	err := dao.gorm.WithContext(ctx).Model(model.FeedUserConfig{}).
+		Where("student_id = ?", studentId).
+		FirstOrCreate(&allowList).Error
 	if err != nil {
-		return nil, err
+		return nil, errorx.Errorf("dao: find or create user feed config failed, sid: %s, err: %w", studentId, err)
 	}
 	return &allowList, nil
 }
 
-// SaveFeedAllowList 保存 FeedUserConfig
+// SaveUserFeedConfig 保存 FeedUserConfig
 func (dao *feedUserConfigDAO) SaveUserFeedConfig(ctx context.Context, req *model.FeedUserConfig) error {
-	return dao.gorm.WithContext(ctx).Save(req).Error
+	err := dao.gorm.WithContext(ctx).Save(req).Error
+	if err != nil {
+		return errorx.Errorf("dao: save user feed config failed, sid: %s, err: %w", req.StudentId, err)
+	}
+	return nil
 }
 
 // 设置指定位置的配置为 1
@@ -58,33 +64,29 @@ func (dao *feedUserConfigDAO) GetConfigBit(config uint16, position int) bool {
 }
 
 func (dao *feedUserConfigDAO) GetStudentIdsByCursor(ctx context.Context, lastID int64, limit int) ([]string, int64, error) {
-	// 创建查询条件：从 lastID 开始，限制数量为 limit
 	var students []struct {
 		ID        int64  `gorm:"column:id"`
 		StudentId string `gorm:"column:student_id"`
 	}
 
-	// 查询数据库，假设有一个学生表，按 ID 排序
-	query := dao.gorm.WithContext(ctx).Model(model.FeedUserConfig{}).Where("id > ?", lastID).Order("id ASC").Limit(limit)
+	query := dao.gorm.WithContext(ctx).Model(model.FeedUserConfig{}).
+		Where("id > ?", lastID).
+		Order("id ASC").
+		Limit(limit)
 
-	// 执行查询
 	if err := query.Find(&students).Error; err != nil {
-		// 查询失败，返回错误
-		return nil, 0, err
+		return nil, 0, errorx.Errorf("dao: get student ids by cursor failed, lastID: %d, limit: %d, err: %w", lastID, limit, err)
 	}
 
-	// 如果没有找到数据，返回空切片
 	if len(students) == 0 {
 		return nil, 0, nil
 	}
 
-	// 提取学生 ID 列表
 	var studentIds []string
 	for _, student := range students {
 		studentIds = append(studentIds, student.StudentId)
 	}
 
-	// 设置新的 lastID，表示下一次查询的起始 ID
 	newLastID := students[len(students)-1].ID
 
 	return studentIds, newLastID, nil

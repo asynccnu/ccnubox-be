@@ -13,7 +13,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/panjf2000/ants/v2"
 )
@@ -463,11 +463,15 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 	}
 
 	var stu Student
-	//针对是否是本科生，进行分类
-	if tool.CheckIsUndergraduate(stuID) {
+
+	sType := tool.ParseStudentType(stuID)
+	switch sType {
+	case tool.UnderGraduate:
 		stu = &Undergraduate{}
-	} else {
+	case tool.PostGraduate:
 		stu = &GraduateStudent{}
+	default:
+		return nil, nil, -1, fmt.Errorf("the type of student isn't undergraduate")
 	}
 
 	ci, sc, sum, err := func() ([]*ClassInfo, []*StudentCourse, int, error) {

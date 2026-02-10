@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -51,23 +52,29 @@ func (cache *RedisElecPriceCache) SetRoomInfos(ctx context.Context, archId, floo
 	}
 	key := cache.roomInfosPrefix(archId, floor)
 
-	return cache.cmd.Set(ctx, key, rooms, RoomInfosTTL).Err()
+	err := cache.cmd.Set(ctx, key, rooms, RoomInfosTTL).Err()
+	if err != nil {
+		return errorx.Errorf("cache: set room infos failed, archId: %s, floor: %s, err: %w", archId, floor, err)
+	}
+	return nil
 }
 
 func (cache *RedisElecPriceCache) GetRoomInfos(ctx context.Context, archId, floor string) (string, error) {
 	key := cache.roomInfosPrefix(archId, floor)
 
 	val, err := cache.cmd.Get(ctx, key).Result()
-	if !cache.checkEmptyOrNil(val) && err == nil {
-		// 缓存命中且不为空
-		return val, nil
+	if err == nil {
+		if !cache.checkEmptyOrNil(val) {
+			return val, nil
+		}
+		return "", ErrValeEmptyOrNil
 	}
+
 	if errors.Is(err, ErrKeyNotExists) {
-		// 缓存未命中
 		return "", ErrKeyNotExists
-	} else {
-		return "", err
 	}
+
+	return "", errorx.Errorf("cache: get room infos failed, archId: %s, floor: %s, err: %w", archId, floor, err)
 }
 
 func (cache *RedisElecPriceCache) SetArchitectureInfos(ctx context.Context, area, arch string) error {
@@ -76,39 +83,47 @@ func (cache *RedisElecPriceCache) SetArchitectureInfos(ctx context.Context, area
 	}
 	key := cache.architectureInfosPrefix(area)
 
-	return cache.cmd.Set(ctx, key, arch, ArchitectureInfosTTL).Err()
+	err := cache.cmd.Set(ctx, key, arch, ArchitectureInfosTTL).Err()
+	if err != nil {
+		return errorx.Errorf("cache: set architecture infos failed, area: %s, err: %w", area, err)
+	}
+	return nil
 }
 
 func (cache *RedisElecPriceCache) GetArchitectureInfos(ctx context.Context, area string) (string, error) {
 	key := cache.architectureInfosPrefix(area)
 
 	val, err := cache.cmd.Get(ctx, key).Result()
-	if !cache.checkEmptyOrNil(val) && err == nil {
-		// 缓存命中且不为空
-		return val, nil
+	if err == nil {
+		if !cache.checkEmptyOrNil(val) {
+			return val, nil
+		}
+		return "", ErrValeEmptyOrNil
 	}
+
 	if errors.Is(err, ErrKeyNotExists) {
-		// 缓存未命中
 		return "", ErrKeyNotExists
-	} else {
-		return "", err
 	}
+
+	return "", errorx.Errorf("cache: get architecture infos failed, area: %s, err: %w", area, err)
 }
 
 func (cache *RedisElecPriceCache) GetRoomDetail(ctx context.Context, roomName string) (string, error) {
 	key := cache.roomDetailPrefix(roomName)
 
 	val, err := cache.cmd.Get(ctx, key).Result()
-	if !cache.checkEmptyOrNil(val) && err == nil {
-		// 缓存命中且不为空
-		return val, nil
+	if err == nil {
+		if !cache.checkEmptyOrNil(val) {
+			return val, nil
+		}
+		return "", ErrValeEmptyOrNil
 	}
+
 	if errors.Is(err, ErrKeyNotExists) {
-		// 缓存未命中
 		return "", ErrKeyNotExists
-	} else {
-		return "", err
 	}
+
+	return "", errorx.Errorf("cache: get room detail failed, roomName: %s, err: %w", roomName, err)
 }
 
 func (cache *RedisElecPriceCache) SetRoomDetail(ctx context.Context, roomName string, detail string) error {
@@ -117,7 +132,11 @@ func (cache *RedisElecPriceCache) SetRoomDetail(ctx context.Context, roomName st
 	}
 	key := cache.roomDetailPrefix(roomName)
 
-	return cache.cmd.Set(ctx, key, detail, RoomDetailTTL).Err()
+	err := cache.cmd.Set(ctx, key, detail, RoomDetailTTL).Err()
+	if err != nil {
+		return errorx.Errorf("cache: set room detail failed, roomName: %s, err: %w", roomName, err)
+	}
+	return nil
 }
 
 func (cache *RedisElecPriceCache) roomInfosPrefix(archId, floor string) string {

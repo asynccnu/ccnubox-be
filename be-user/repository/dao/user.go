@@ -6,7 +6,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-user/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 var (
@@ -30,15 +29,11 @@ func NewGORMUserDAO(db *gorm.DB) UserDAO {
 
 // Save 实现更新或创建逻辑
 func (dao *GORMUserDAO) Save(ctx context.Context, u *model.User) error {
-	// 使用 OnConflict 处理并发写入冲突，确保 student_id 唯一性下的正确保存
-	err := dao.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "student_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"password", "updated_at"}),
-	}).Create(u).Error
-
+	err := dao.db.WithContext(ctx).Model(&model.User{}).Where("student_id = ?", u.StudentId).Save(u).Error
 	if err != nil {
-		return errorx.Errorf("dao: save user failed, sid: %s, err: %w", u.StudentId, err)
+		return errorx.Errorf("dao: save user failed, student_id: %s, err: %w", u.StudentId, err)
 	}
+
 	return nil
 }
 

@@ -1,0 +1,86 @@
+env: "prod"
+
+mysql:
+  dsn: "root:12345678@tcp(localhost:3306)/ccnubox"
+
+redis:
+  addr: "localhost:6379"
+  password: "12345678"
+
+etcd:
+  endpoints:
+    - "localhost:2379"
+  username:
+  password: ""
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+grpc:
+  ccnu:
+    name: "ccnu"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20000"
+  class:
+    name: "class"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20001"
+  classlist:
+    name: "classlist"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20002"
+  content:
+    name: "content"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20003"
+  counter:
+    name: "counter"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20004"
+  elecprice:
+    name: "elecprice"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20005"
+  feed:
+    name: "feed"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20006"
+  grade:
+    name: "grade"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20007"
+  library:
+    name: "library"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20008"
+  proxy:
+    name: "proxy"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20009"
+  user:
+    name: "user"
+    weight: 100
+    etcdTTL: 60
+    clientTimeout: 60
+    addr: ":20010"

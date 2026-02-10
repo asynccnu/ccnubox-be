@@ -139,14 +139,16 @@ func (c *GradeController) publishMSG(label string) {
 				continue
 			}
 			semester := formatSemester(grade.Xnm, grade.Xqm)
+			url := getGradeEventUrl(semester, grade.Kclbmc)
 			//推送
 			_, err = c.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 				StudentId: studentId,
 				Event: &feedv1.FeedEvent{
-					Type:    feedv1.FeedEventType_GRADE,
-					Title:   "成绩更新提醒",
-					Content: fmt.Sprintf("您的课程:%s分数更新了,请及时查看", grade.Kcmc),
-					Url:     getGradeEventUrl(semester, grade.Kclbmc),
+					Type:         feedv1.FeedEventType_GRADE,
+					Title:        "成绩更新提醒",
+					Content:      fmt.Sprintf("您的课程:%s分数更新了,请及时查看", grade.Kcmc),
+					Url:          url,
+					ExtendFields: map[string]string{"url": url},
 				},
 			})
 			if err != nil {

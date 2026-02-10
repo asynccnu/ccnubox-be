@@ -52,7 +52,7 @@ func (dao *GORMUserDAO) FindByStudentId(ctx context.Context, sid string) (*model
 	if err != nil {
 		if errorx.Is(err, gorm.ErrRecordNotFound) {
 			// 包装业务错误，并保留底层 gorm 错误链
-			return nil, errorx.Errorf("%w: student_id %s", UserNotFound, sid)
+			return nil, UserNotFound
 		}
 		return nil, errorx.Errorf("dao: find user failed, sid: %s, err: %w", sid, err)
 	}

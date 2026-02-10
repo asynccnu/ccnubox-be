@@ -691,11 +691,11 @@ definitions:
         type: integer
       read:
         type: boolean
-      route:
-        type: string
       title:
         type: string
       type:
+        type: string
+      url:
         type: string
     type: object
   feed.GetFeedAllowListResp:

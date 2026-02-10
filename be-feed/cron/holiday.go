@@ -68,10 +68,11 @@ func (r *HolidayController) publishMSG() error {
 	ctx := context.Background()
 	//发送给全体成员
 	err := r.svcFeed.PublicFeedEvent(ctx, true, domain.FeedEvent{
-		Type:    strings.ToLower(feedv1.FeedEventType_HOLIDAY.String()),
-		Title:   "假期临近提醒",
-		Content: holiday + "假期临近,请及时查看放假通知及调休安排",
-		Url:     HOLIDAY_EVENT_URL,
+		Type:         strings.ToLower(feedv1.FeedEventType_HOLIDAY.String()),
+		Title:        "假期临近提醒",
+		Content:      holiday + "假期临近,请及时查看放假通知及调休安排",
+		Url:          HOLIDAY_EVENT_URL,
+		ExtendFields: map[string]string{"url": HOLIDAY_EVENT_URL},
 	})
 	if err != nil {
 		return nil

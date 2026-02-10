@@ -66,15 +66,16 @@ func (r *ElecpriceController) publishMSG() error {
 	}
 	for i := range msgs {
 		if msgs[i].Remain != nil {
-
+			url := getElecpriceEventUrl(*msgs[i].RoomID)
 			//发送给全体成员
 			_, err = r.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 				StudentId: msgs[i].StudentId,
 				Event: &feedv1.FeedEvent{
-					Type:    feedv1.FeedEventType_ENERGY,
-					Title:   "电费不足提醒",
-					Content: fmt.Sprintf("房间%s剩余 %s 元，已低于设定阈值 %d 元，请及时充值。", *(msgs[i].RoomName), *(msgs[i].Remain), *(msgs[i].Limit)),
-					Url:     getElecpriceEventUrl(*msgs[i].RoomID),
+					Type:         feedv1.FeedEventType_ENERGY,
+					Title:        "电费不足提醒",
+					Content:      fmt.Sprintf("房间%s剩余 %s 元，已低于设定阈值 %d 元，请及时充值。", *(msgs[i].RoomName), *(msgs[i].Remain), *(msgs[i].Limit)),
+					Url:          url,
+					ExtendFields: map[string]string{"url": url},
 				},
 			})
 		}

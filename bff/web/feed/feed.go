@@ -337,10 +337,11 @@ func (h *FeedHandler) PublicFeedbackEvent(ctx *gin.Context, req PublicFeedbackEv
 	_, err := h.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 		StudentId: req.StudentId,
 		Event: &feedv1.FeedEvent{
-			Type:    feedv1.FeedEventType_FEEDBACK,
-			Title:   req.Title,
-			Content: req.Content,
-			Url:     url,
+			Type:         feedv1.FeedEventType_FEEDBACK,
+			Title:        req.Title,
+			Content:      req.Content,
+			Url:          url,
+			ExtendFields: map[string]string{"url": url},
 		},
 	})
 	if err != nil {

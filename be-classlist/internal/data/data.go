@@ -122,8 +122,13 @@ func NewRedisDB(c *conf.Data, logger log.Logger) *redis.Client {
 	return rdb
 }
 
-func initProducerConfig() *sarama.Config {
+func initProducerConfig(username, password string) *sarama.Config {
 	producerConfig := sarama.NewConfig()
+	producerConfig.Net.SASL.Enable = true
+	producerConfig.Net.SASL.User = username
+	producerConfig.Net.SASL.Password = password
+	producerConfig.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+
 	producerConfig.Producer.Return.Errors = true
 	producerConfig.Producer.Return.Successes = true
 	producerConfig.Producer.Partitioner = sarama.NewHashPartitioner
@@ -136,8 +141,13 @@ func initProducerConfig() *sarama.Config {
 	return producerConfig
 }
 
-func initConsumerConfig() *sarama.Config {
+func initConsumerConfig(username, password string) *sarama.Config {
 	consumerConfig := sarama.NewConfig()
+	consumerConfig.Net.SASL.Enable = true
+	consumerConfig.Net.SASL.User = username
+	consumerConfig.Net.SASL.Password = password
+	consumerConfig.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+
 	consumerConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
 	consumerConfig.Consumer.Group.Session.Timeout = 10 * time.Second
 	consumerConfig.Consumer.Group.Heartbeat.Interval = 3 * time.Second
@@ -145,17 +155,21 @@ func initConsumerConfig() *sarama.Config {
 }
 
 type KafkaProducerBuilder struct {
-	brokers []string
+	brokers  []string
+	username string
+	password string
 }
 
 func NewKafkaProducerBuilder(c *conf.Data) *KafkaProducerBuilder {
 	return &KafkaProducerBuilder{
-		brokers: c.Kafka.Brokers,
+		brokers:  c.Kafka.Brokers,
+		username: c.Kafka.Username,
+		password: c.Kafka.Password,
 	}
 }
 
 func (pb KafkaProducerBuilder) Build() (sarama.SyncProducer, error) {
-	producerConfig := initProducerConfig()
+	producerConfig := initProducerConfig(pb.username, pb.password)
 	p, err := sarama.NewSyncProducer(pb.brokers, producerConfig)
 	if err != nil {
 		return nil, fmt.Errorf("kafka producer connect failed: %w", err)
@@ -164,17 +178,21 @@ func (pb KafkaProducerBuilder) Build() (sarama.SyncProducer, error) {
 }
 
 type KafkaConsumerBuilder struct {
-	brokers []string
+	brokers  []string
+	username string
+	password string
 }
 
 func NewKafkaConsumerBuilder(c *conf.Data) *KafkaConsumerBuilder {
 	return &KafkaConsumerBuilder{
-		brokers: c.Kafka.Brokers,
+		brokers:  c.Kafka.Brokers,
+		username: c.Kafka.Username,
+		password: c.Kafka.Password,
 	}
 }
 
 func (cb KafkaConsumerBuilder) Build(groupID string) (sarama.ConsumerGroup, error) {
-	consumerConfig := initConsumerConfig()
+	consumerConfig := initConsumerConfig(cb.username, cb.password)
 	consumerGroup, err := sarama.NewConsumerGroup(cb.brokers, groupID, consumerConfig)
 	if err != nil {
 		return nil, fmt.Errorf("kafka consumer connect failed: %w", err)

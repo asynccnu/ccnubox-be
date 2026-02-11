@@ -45,6 +45,8 @@ message Data {
   }
   message Kafka {
     repeated string brokers = 1; // kafka broker地址
+    string username=2;
+    string password =3;
   }
   Database database = 1;
   Redis redis = 2;

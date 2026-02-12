@@ -11,6 +11,7 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -21,17 +22,17 @@ const (
 )
 
 type Bootstrap struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Server        *Server                `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	Data          *Data                  `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Registry      *Registry              `protobuf:"bytes,3,opt,name=registry,proto3" json:"registry,omitempty"`
+	Zaplog        *ZapLogConfigs         `protobuf:"bytes,4,opt,name=zaplog,proto3" json:"zaplog,omitempty"`
+	Schoolday     *SchoolDay             `protobuf:"bytes,5,opt,name=schoolday,proto3" json:"schoolday,omitempty"`
+	Defaults      *Defaults              `protobuf:"bytes,6,opt,name=defaults,proto3" json:"defaults,omitempty"`
+	Env           string                 `protobuf:"bytes,7,opt,name=env,proto3" json:"env,omitempty"` // 开发环境
+	Otel          *OtelConfig            `protobuf:"bytes,8,opt,name=otel,proto3" json:"otel,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Server    *Server        `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
-	Data      *Data          `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	Registry  *Registry      `protobuf:"bytes,3,opt,name=registry,proto3" json:"registry,omitempty"`
-	Zaplog    *ZapLogConfigs `protobuf:"bytes,4,opt,name=zaplog,proto3" json:"zaplog,omitempty"`
-	Schoolday *SchoolDay     `protobuf:"bytes,5,opt,name=schoolday,proto3" json:"schoolday,omitempty"`
-	Defaults  *Defaults      `protobuf:"bytes,6,opt,name=defaults,proto3" json:"defaults,omitempty"`
-	Env       string         `protobuf:"bytes,7,opt,name=env,proto3" json:"env,omitempty"` // 开发环境
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Bootstrap) Reset() {
@@ -115,19 +116,25 @@ func (x *Bootstrap) GetEnv() string {
 	return ""
 }
 
-type Server struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
+func (x *Bootstrap) GetOtel() *OtelConfig {
+	if x != nil {
+		return x.Otel
+	}
+	return nil
+}
 
-	Name                string       `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Grpc                *Server_GRPC `protobuf:"bytes,2,opt,name=grpc,proto3" json:"grpc,omitempty"`
-	WaitCrawTime        int32        `protobuf:"varint,3,opt,name=waitCrawTime,proto3" json:"waitCrawTime,omitempty"`               // 等待爬虫抓取数据的时间,单位ms
-	ClassExpiration     int32        `protobuf:"varint,4,opt,name=classExpiration,proto3" json:"classExpiration,omitempty"`         // 课程过期时间,单位s
-	RecycleExpiration   int32        `protobuf:"varint,5,opt,name=recycleExpiration,proto3" json:"recycleExpiration,omitempty"`     // 回收站课程过期时间,单位s
-	BlackListExpiration int32        `protobuf:"varint,6,opt,name=blackListExpiration,proto3" json:"blackListExpiration,omitempty"` // 黑名单过期时间,如果要查询的课程在数据库不存在,列入黑名单,单位s
-	WaitUserSvcTime     int32        `protobuf:"varint,7,opt,name=waitUserSvcTime,proto3" json:"waitUserSvcTime,omitempty"`         // 等待用户服务的时间,单位ms
-	RefreshInterval     int32        `protobuf:"varint,8,opt,name=refreshInterval,proto3" json:"refreshInterval,omitempty"`         // 刷新间隔时间,单位s
+type Server struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Name                string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Grpc                *Server_GRPC           `protobuf:"bytes,2,opt,name=grpc,proto3" json:"grpc,omitempty"`
+	WaitCrawTime        int32                  `protobuf:"varint,3,opt,name=waitCrawTime,proto3" json:"waitCrawTime,omitempty"`               // 等待爬虫抓取数据的时间,单位ms
+	ClassExpiration     int32                  `protobuf:"varint,4,opt,name=classExpiration,proto3" json:"classExpiration,omitempty"`         // 课程过期时间,单位s
+	RecycleExpiration   int32                  `protobuf:"varint,5,opt,name=recycleExpiration,proto3" json:"recycleExpiration,omitempty"`     // 回收站课程过期时间,单位s
+	BlackListExpiration int32                  `protobuf:"varint,6,opt,name=blackListExpiration,proto3" json:"blackListExpiration,omitempty"` // 黑名单过期时间,如果要查询的课程在数据库不存在,列入黑名单,单位s
+	WaitUserSvcTime     int32                  `protobuf:"varint,7,opt,name=waitUserSvcTime,proto3" json:"waitUserSvcTime,omitempty"`         // 等待用户服务的时间,单位ms
+	RefreshInterval     int32                  `protobuf:"varint,8,opt,name=refreshInterval,proto3" json:"refreshInterval,omitempty"`         // 刷新间隔时间,单位s
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Server) Reset() {
@@ -219,13 +226,12 @@ func (x *Server) GetRefreshInterval() int32 {
 }
 
 type Data struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Database      *Data_Database         `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
+	Redis         *Data_Redis            `protobuf:"bytes,2,opt,name=redis,proto3" json:"redis,omitempty"`
+	Kafka         *Data_Kafka            `protobuf:"bytes,3,opt,name=kafka,proto3" json:"kafka,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Database *Data_Database `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
-	Redis    *Data_Redis    `protobuf:"bytes,2,opt,name=redis,proto3" json:"redis,omitempty"`
-	Kafka    *Data_Kafka    `protobuf:"bytes,3,opt,name=kafka,proto3" json:"kafka,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Data) Reset() {
@@ -282,13 +288,12 @@ func (x *Data) GetKafka() *Data_Kafka {
 }
 
 type Etcd struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Addr          string                 `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
+	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	Password      string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Addr     string `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
-	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
-	Password string `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Etcd) Reset() {
@@ -345,13 +350,12 @@ func (x *Etcd) GetPassword() string {
 }
 
 type Registry struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Etcd          *Etcd                  `protobuf:"bytes,1,opt,name=etcd,proto3" json:"etcd,omitempty"`
+	Usersvc       string                 `protobuf:"bytes,2,opt,name=usersvc,proto3" json:"usersvc,omitempty"`
+	Proxysvc      string                 `protobuf:"bytes,3,opt,name=proxysvc,proto3" json:"proxysvc,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Etcd     *Etcd  `protobuf:"bytes,1,opt,name=etcd,proto3" json:"etcd,omitempty"`
-	Usersvc  string `protobuf:"bytes,2,opt,name=usersvc,proto3" json:"usersvc,omitempty"`
-	Proxysvc string `protobuf:"bytes,3,opt,name=proxysvc,proto3" json:"proxysvc,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Registry) Reset() {
@@ -408,19 +412,18 @@ func (x *Registry) GetProxysvc() string {
 }
 
 type ZapLogConfigs struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	LogLevel          string `protobuf:"bytes,1,opt,name=log_level,json=logLevel,proto3" json:"log_level,omitempty"`                                 // 日志打印级别 debug, info, warning, error
-	LogFormat         string `protobuf:"bytes,2,opt,name=log_format,json=logFormat,proto3" json:"log_format,omitempty"`                              // 输出日志格式 logfmt, json
-	LogPath           string `protobuf:"bytes,3,opt,name=log_path,json=logPath,proto3" json:"log_path,omitempty"`                                    // 输出日志文件路径
-	LogFileName       string `protobuf:"bytes,4,opt,name=log_file_name,json=logFileName,proto3" json:"log_file_name,omitempty"`                      // 输出日志文件名称
-	LogFileMaxSize    int32  `protobuf:"varint,5,opt,name=log_file_max_size,json=logFileMaxSize,proto3" json:"log_file_max_size,omitempty"`          // 【日志分割】单个日志文件最多存储量 单位(mb)
-	LogFileMaxBackups int32  `protobuf:"varint,6,opt,name=log_file_max_backups,json=logFileMaxBackups,proto3" json:"log_file_max_backups,omitempty"` // 【日志分割】日志备份文件最多数量
-	LogMaxAge         int32  `protobuf:"varint,7,opt,name=log_max_age,json=logMaxAge,proto3" json:"log_max_age,omitempty"`                           // 日志保留时间，单位: 天 (day)
-	LogCompress       bool   `protobuf:"varint,8,opt,name=log_compress,json=logCompress,proto3" json:"log_compress,omitempty"`                       // 是否压缩日志
-	LogStdout         bool   `protobuf:"varint,9,opt,name=log_stdout,json=logStdout,proto3" json:"log_stdout,omitempty"`                             // 是否输出到控制台
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	LogLevel          string                 `protobuf:"bytes,1,opt,name=log_level,json=logLevel,proto3" json:"log_level,omitempty"`                                 // 日志打印级别 debug, info, warning, error
+	LogFormat         string                 `protobuf:"bytes,2,opt,name=log_format,json=logFormat,proto3" json:"log_format,omitempty"`                              // 输出日志格式 logfmt, json
+	LogPath           string                 `protobuf:"bytes,3,opt,name=log_path,json=logPath,proto3" json:"log_path,omitempty"`                                    // 输出日志文件路径
+	LogFileName       string                 `protobuf:"bytes,4,opt,name=log_file_name,json=logFileName,proto3" json:"log_file_name,omitempty"`                      // 输出日志文件名称
+	LogFileMaxSize    int32                  `protobuf:"varint,5,opt,name=log_file_max_size,json=logFileMaxSize,proto3" json:"log_file_max_size,omitempty"`          // 【日志分割】单个日志文件最多存储量 单位(mb)
+	LogFileMaxBackups int32                  `protobuf:"varint,6,opt,name=log_file_max_backups,json=logFileMaxBackups,proto3" json:"log_file_max_backups,omitempty"` // 【日志分割】日志备份文件最多数量
+	LogMaxAge         int32                  `protobuf:"varint,7,opt,name=log_max_age,json=logMaxAge,proto3" json:"log_max_age,omitempty"`                           // 日志保留时间，单位: 天 (day)
+	LogCompress       bool                   `protobuf:"varint,8,opt,name=log_compress,json=logCompress,proto3" json:"log_compress,omitempty"`                       // 是否压缩日志
+	LogStdout         bool                   `protobuf:"varint,9,opt,name=log_stdout,json=logStdout,proto3" json:"log_stdout,omitempty"`                             // 是否输出到控制台
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ZapLogConfigs) Reset() {
@@ -519,12 +522,11 @@ func (x *ZapLogConfigs) GetLogStdout() bool {
 }
 
 type SchoolDay struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HolidayTime   string                 `protobuf:"bytes,1,opt,name=holidayTime,proto3" json:"holidayTime,omitempty"` //放假日期(正式放假的第一天)
+	SchoolTime    string                 `protobuf:"bytes,2,opt,name=schoolTime,proto3" json:"schoolTime,omitempty"`   //上学日期(正式上学的第一天)
 	unknownFields protoimpl.UnknownFields
-
-	HolidayTime string `protobuf:"bytes,1,opt,name=holidayTime,proto3" json:"holidayTime,omitempty"` //放假日期(正式放假的第一天)
-	SchoolTime  string `protobuf:"bytes,2,opt,name=schoolTime,proto3" json:"schoolTime,omitempty"`   //上学日期(正式上学的第一天)
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SchoolDay) Reset() {
@@ -575,12 +577,11 @@ func (x *SchoolDay) GetSchoolTime() string {
 
 // 前端不传参时使用的默认值
 type Defaults struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Year          string                 `protobuf:"bytes,1,opt,name=year,proto3" json:"year,omitempty"`
+	Semester      string                 `protobuf:"bytes,2,opt,name=semester,proto3" json:"semester,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Year     string `protobuf:"bytes,1,opt,name=year,proto3" json:"year,omitempty"`
-	Semester string `protobuf:"bytes,2,opt,name=semester,proto3" json:"semester,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Defaults) Reset() {
@@ -629,14 +630,73 @@ func (x *Defaults) GetSemester() string {
 	return ""
 }
 
-type Server_GRPC struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
+type OtelConfig struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName    string                 `protobuf:"bytes,1,opt,name=ServiceName,proto3" json:"ServiceName,omitempty"`
+	ServiceVersion string                 `protobuf:"bytes,2,opt,name=ServiceVersion,proto3" json:"ServiceVersion,omitempty"`
+	Endpoint       string                 `protobuf:"bytes,3,opt,name=Endpoint,proto3" json:"Endpoint,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
 
-	Network string `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
-	Addr    string `protobuf:"bytes,2,opt,name=addr,proto3" json:"addr,omitempty"`
-	Timeout int32  `protobuf:"varint,3,opt,name=timeout,proto3" json:"timeout,omitempty"` // 超时时间,单位s
+func (x *OtelConfig) Reset() {
+	*x = OtelConfig{}
+	mi := &file_conf_conf_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OtelConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OtelConfig) ProtoMessage() {}
+
+func (x *OtelConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_conf_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OtelConfig.ProtoReflect.Descriptor instead.
+func (*OtelConfig) Descriptor() ([]byte, []int) {
+	return file_conf_conf_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *OtelConfig) GetServiceName() string {
+	if x != nil {
+		return x.ServiceName
+	}
+	return ""
+}
+
+func (x *OtelConfig) GetServiceVersion() string {
+	if x != nil {
+		return x.ServiceVersion
+	}
+	return ""
+}
+
+func (x *OtelConfig) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+type Server_GRPC struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Network       string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
+	Addr          string                 `protobuf:"bytes,2,opt,name=addr,proto3" json:"addr,omitempty"`
+	Timeout       int32                  `protobuf:"varint,3,opt,name=timeout,proto3" json:"timeout,omitempty"` // 超时时间,单位s
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Server_GRPC) Reset() {
@@ -693,14 +753,13 @@ func (x *Server_GRPC) GetTimeout() int32 {
 }
 
 type Data_Database struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Source        string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	LogPath       string                 `protobuf:"bytes,2,opt,name=log_path,json=logPath,proto3" json:"log_path,omitempty"`               //gorm日志文件路径
+	LogFileName   string                 `protobuf:"bytes,3,opt,name=log_file_name,json=logFileName,proto3" json:"log_file_name,omitempty"` //gorm日志文件名称
+	LogLevel      string                 `protobuf:"bytes,4,opt,name=log_level,json=logLevel,proto3" json:"log_level,omitempty"`            //gorm日志打印级别  info, warn, error
 	unknownFields protoimpl.UnknownFields
-
-	Source      string `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
-	LogPath     string `protobuf:"bytes,2,opt,name=log_path,json=logPath,proto3" json:"log_path,omitempty"`               //gorm日志文件路径
-	LogFileName string `protobuf:"bytes,3,opt,name=log_file_name,json=logFileName,proto3" json:"log_file_name,omitempty"` //gorm日志文件名称
-	LogLevel    string `protobuf:"bytes,4,opt,name=log_level,json=logLevel,proto3" json:"log_level,omitempty"`            //gorm日志打印级别  info, warn, error
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Data_Database) Reset() {
@@ -764,14 +823,13 @@ func (x *Data_Database) GetLogLevel() string {
 }
 
 type Data_Redis struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Addr          string                 `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
+	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	ReadTimeout   int32                  `protobuf:"varint,3,opt,name=read_timeout,json=readTimeout,proto3" json:"read_timeout,omitempty"`    //单位ms
+	WriteTimeout  int32                  `protobuf:"varint,4,opt,name=write_timeout,json=writeTimeout,proto3" json:"write_timeout,omitempty"` //单位ms
 	unknownFields protoimpl.UnknownFields
-
-	Addr         string `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
-	Password     string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	ReadTimeout  int32  `protobuf:"varint,3,opt,name=read_timeout,json=readTimeout,proto3" json:"read_timeout,omitempty"`    //单位ms
-	WriteTimeout int32  `protobuf:"varint,4,opt,name=write_timeout,json=writeTimeout,proto3" json:"write_timeout,omitempty"` //单位ms
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Data_Redis) Reset() {
@@ -835,8 +893,8 @@ func (x *Data_Redis) GetWriteTimeout() int32 {
 }
 
 type Data_Kafka struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Brokers       []string               `protobuf:"bytes,1,rep,name=brokers,proto3" json:"brokers,omitempty"` // kafka broker地址
 	unknownFields protoimpl.UnknownFields
 
 	Brokers  []string `protobuf:"bytes,1,rep,name=brokers,proto3" json:"brokers,omitempty"` // kafka broker地址
@@ -1047,10 +1105,11 @@ var file_conf_conf_proto_goTypes = []interface{}{
 	(*ZapLogConfigs)(nil), // 5: kratos.api.ZapLogConfigs
 	(*SchoolDay)(nil),     // 6: kratos.api.SchoolDay
 	(*Defaults)(nil),      // 7: kratos.api.Defaults
-	(*Server_GRPC)(nil),   // 8: kratos.api.Server.GRPC
-	(*Data_Database)(nil), // 9: kratos.api.Data.Database
-	(*Data_Redis)(nil),    // 10: kratos.api.Data.Redis
-	(*Data_Kafka)(nil),    // 11: kratos.api.Data.Kafka
+	(*OtelConfig)(nil),    // 8: kratos.api.OtelConfig
+	(*Server_GRPC)(nil),   // 9: kratos.api.Server.GRPC
+	(*Data_Database)(nil), // 10: kratos.api.Data.Database
+	(*Data_Redis)(nil),    // 11: kratos.api.Data.Redis
+	(*Data_Kafka)(nil),    // 12: kratos.api.Data.Kafka
 }
 var file_conf_conf_proto_depIdxs = []int32{
 	1,  // 0: kratos.api.Bootstrap.server:type_name -> kratos.api.Server
@@ -1059,16 +1118,17 @@ var file_conf_conf_proto_depIdxs = []int32{
 	5,  // 3: kratos.api.Bootstrap.zaplog:type_name -> kratos.api.ZapLogConfigs
 	6,  // 4: kratos.api.Bootstrap.schoolday:type_name -> kratos.api.SchoolDay
 	7,  // 5: kratos.api.Bootstrap.defaults:type_name -> kratos.api.Defaults
-	8,  // 6: kratos.api.Server.grpc:type_name -> kratos.api.Server.GRPC
-	9,  // 7: kratos.api.Data.database:type_name -> kratos.api.Data.Database
-	10, // 8: kratos.api.Data.redis:type_name -> kratos.api.Data.Redis
-	11, // 9: kratos.api.Data.kafka:type_name -> kratos.api.Data.Kafka
-	3,  // 10: kratos.api.Registry.etcd:type_name -> kratos.api.Etcd
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	8,  // 6: kratos.api.Bootstrap.otel:type_name -> kratos.api.OtelConfig
+	9,  // 7: kratos.api.Server.grpc:type_name -> kratos.api.Server.GRPC
+	10, // 8: kratos.api.Data.database:type_name -> kratos.api.Data.Database
+	11, // 9: kratos.api.Data.redis:type_name -> kratos.api.Data.Redis
+	12, // 10: kratos.api.Data.kafka:type_name -> kratos.api.Data.Kafka
+	3,  // 11: kratos.api.Registry.etcd:type_name -> kratos.api.Etcd
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_conf_conf_proto_init() }
@@ -1228,7 +1288,7 @@ func file_conf_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_conf_conf_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

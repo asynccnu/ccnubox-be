@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/asynccnu/ccnubox-be/be-user/conf"
+	"github.com/asynccnu/ccnubox-be/be-ccnu/conf"
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/log"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )

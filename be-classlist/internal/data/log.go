@@ -21,7 +21,7 @@ func NewLogger(cfg *conf.ZapLogConfigs) logger.Logger {
 		Compress:   cfg.LogCompress,
 	}
 
-	return bizlog.InitLogger(commonCfg)
+	return bizlog.InitLogger(commonCfg, 3)
 }
 
 func NewKratosLogger(l logger.Logger) klog.Logger {

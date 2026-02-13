@@ -34,5 +34,6 @@ func InitLogger(cfg *conf.LogConf, skip int) logger.Logger {
 
 	// 这里默认会用带链路的日志
 	res = logger.NewTraceLogger(res, logger.TraceLevel(logger.ERROR))
+	logger.InitGlobalLogger(res)
 	return res
 }

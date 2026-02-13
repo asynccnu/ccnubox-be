@@ -50,3 +50,4 @@ test.sh
 test.yaml
 
 config-local.yaml
+.editorconfig

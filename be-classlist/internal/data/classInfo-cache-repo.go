@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/classLog"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/redis/go-redis/v9"
-	"time"
 )
 
 const RedisNull = "redis_Null"
@@ -41,10 +42,10 @@ func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, key string, 
 	var (
 		val    string
 		expire time.Duration
-		//根据是否为空指针，来决定过期时间
+		// 根据是否为空指针，来决定过期时间
 	)
-	logh := classLog.GetLogHelperFromCtx(ctx)
-	//检查classInfos是否为空指针
+	logh := logger.GetLoggerFromCtx(ctx)
+	// 检查classInfos是否为空指针
 	if classInfos == nil {
 		val = RedisNull
 		expire = c.blackListExpiration
@@ -65,10 +66,11 @@ func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, key string, 
 	}
 	return nil
 }
-func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, key string) ([]*do.ClassInfo, error) {
-	logh := classLog.GetLogHelperFromCtx(ctx)
 
-	var classInfos = make([]*do.ClassInfo, 0)
+func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, key string) ([]*do.ClassInfo, error) {
+	logh := logger.GetLoggerFromCtx(ctx)
+
+	classInfos := make([]*do.ClassInfo, 0)
 	val, err := c.rdb.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
@@ -89,7 +91,7 @@ func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, key stri
 }
 
 func (c ClassInfoCacheRepo) DeleteClassInfoFromCache(ctx context.Context, classInfosKey ...string) error {
-	logh := classLog.GetLogHelperFromCtx(ctx)
+	logh := logger.GetLoggerFromCtx(ctx)
 	if err := c.rdb.Del(ctx, classInfosKey...).Err(); err != nil {
 		logh.Errorf("redis delete key{%v} failed: %v", classInfosKey, err)
 	}

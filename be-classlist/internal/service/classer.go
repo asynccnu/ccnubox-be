@@ -11,6 +11,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
 	pb "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1" // 此处改成了api中的,方便其他服务调用.
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	ctool "github.com/asynccnu/ccnubox-be/common/tool"
 	"github.com/jinzhu/copier"
 )
 
@@ -19,15 +20,13 @@ type ClassListService struct {
 	clu       *biz.ClassUsecase
 	schoolday *conf.SchoolDay
 	logger    logger.Logger
-	defaults  *conf.Defaults
 }
 
-func NewClasserService(clu *biz.ClassUsecase, day *conf.SchoolDay, logger logger.Logger, defaults *conf.Defaults) *ClassListService {
+func NewClasserService(clu *biz.ClassUsecase, day *conf.SchoolDay, logger logger.Logger) *ClassListService {
 	return &ClassListService{
 		clu:       clu,
 		logger:    logger,
 		schoolday: day,
-		defaults:  defaults,
 	}
 }
 
@@ -40,17 +39,15 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 	)
 	ctx = logger.WithLogger(ctx, hlog)
 
-	if s.defaults == nil {
-		hlog.Warn("default 参数未在配置文件中配置")
-	}
+	defaultYear, defaultSemester := ctool.GetCurrentAcademicYearAndSemesterStr(time.Now())
 
 	if req.GetYear() == "" {
-		req.Year = s.defaults.Year
+		req.Year = defaultYear
 		hlog.Warn(fmt.Sprintf("获取 Year 参数为空，使用默认值 %s", req.Year))
 	}
 
 	if req.GetSemester() == "" {
-		req.Semester = s.defaults.Semester
+		req.Semester = defaultSemester
 		hlog.Warn(fmt.Sprintf("获取 Semester 参数为空，使用默认值 %s", req.Semester))
 	}
 

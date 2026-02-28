@@ -25,7 +25,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, defaults *conf.Defaults, zapLogConfigs *conf.ZapLogConfigs) (*kratos.App, func(), error) {
+func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, zapLogConfigs *conf.ZapLogConfigs) (*kratos.App, func(), error) {
 	env := client.NewEnv(string2)
 	logger := data.NewLogger(zapLogConfigs)
 	logLogger := data.NewKratosLogger(logger)
@@ -68,7 +68,7 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 	refreshLogRepo := data.NewRefreshLogRepo(db, confServer)
 	cronTaskExecute := biz.NewCronTaskExecute(logger, studentAndCourseDBRepo, crawler3, userSvc, classRepo)
 	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawler3, jxbDBRepo, userSvc, delayQueue, refreshLogRepo, confServer, cronTaskExecute)
-	classListService := service.NewClasserService(classUsecase, schoolDay, logger, defaults)
+	classListService := service.NewClasserService(classUsecase, schoolDay, logger)
 	grpcServer := server.NewGRPCServer(confServer, classListService, logLogger)
 	app := newApp(env, logLogger, grpcServer, etcdRegistry, confServer)
 	return app, func() {

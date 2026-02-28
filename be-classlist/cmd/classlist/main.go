@@ -91,7 +91,7 @@ func main() {
 		}
 	}()
 
-	app, cleanup, err := wireApp(bc.Env, bc.Server, bc.Data, bc.Registry, bc.Schoolday, bc.Defaults, bc.Zaplog)
+	app, cleanup, err := wireApp(bc.Env, bc.Server, bc.Data, bc.Registry, bc.Schoolday, bc.Zaplog)
 	if err != nil {
 		panic(err)
 	}

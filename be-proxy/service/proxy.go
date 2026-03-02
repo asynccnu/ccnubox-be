@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
@@ -44,6 +45,13 @@ func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, string, error) 
 	// 如果当前地址为空，说明 fetchIp 尚未成功执行过
 	if s.Addr == "" {
 		return "", "", errorx.New("proxy: no available proxy address currently")
+	}
+
+	// 50% 概率使用当前代理，50% 概率返回空字符串让本机直接访问目标站点
+	n := rand.Intn(100)
+	if n >= 50 {
+		s.l.Debug("proxy: using nil proxy for this request")
+		return "", "", nil
 	}
 
 	return s.Addr, s.AddrBackup, nil

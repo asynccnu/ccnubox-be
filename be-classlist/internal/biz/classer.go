@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/tool"
@@ -185,7 +184,7 @@ func (cluc *ClassUsecase) pullClassListTask(
 	log.Infof("Finished PullClassListTask processed=%d lastStuID=%s", total, lastStuID)
 }
 
-func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*ClassInfo, *time.Time, error) {
+func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*ClassInfoBO, *time.Time, error) {
 	startTime := time.Now() // 函数入口时间
 
 	currentTime := time.Now() // 当前时间
@@ -199,8 +198,8 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 	waitCrawTime := cluc.waitCrawTime // 等待爬虫的时间
 
 	// 1. 本地查询阶段
-	lastRefreshTime := cluc.refreshLogRepo.GetLastRefreshTime(noExpireCtx, stuID, year, semester, currentTime) // 获取上次刷新成功的时间
-	localClassInfo, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)                      // 获取本地课表
+	lastRefreshTime := cluc.refreshLogRepo.GetLastRefreshTime(noExpireCtx, stuID, year, semester, Ready, currentTime) // 获取上次刷新成功的时间
+	localClassInfo, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)                             // 获取本地课表
 
 	fmt.Printf("[STEP 1] Local Fetch Done | Count: %d | Total Cost: %v\n", len(localClassInfo), time.Since(startTime))
 
@@ -269,7 +268,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 	v, err, _ := cluc.sfGroup.Do(requestKey, func() (interface{}, error) {
 		crawStart := time.Now()
 
-		resChan := make(chan []*ClassInfo, 1)
+		resChan := make(chan []*ClassInfoBO, 1)
 		go func() {
 			result := cluc.crawClass(noExpireCtx, stuID, year, semester, currentTime, localClassInfo, true)
 			resChan <- result
@@ -293,7 +292,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 
 	// 如果 SingleFlight 成功获取结果
 	if err == nil {
-		if res, ok := v.([]*ClassInfo); ok {
+		if res, ok := v.([]*ClassInfoBO); ok {
 			fmt.Printf("[FINISH] Success | Total Cost: %v\n", time.Since(startTime))
 			return res, &currentTime, nil
 		}
@@ -306,18 +305,16 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 }
 
 // 爬取课表并保存
-func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester string, logTime time.Time, localClassInfo []*ClassInfo, mergeAdd bool) []*ClassInfo {
+func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester string, logTime time.Time, localClassInfo []*ClassInfoBO, mergeAdd bool) []*ClassInfoBO {
 	logh := logger.GetLoggerFromCtx(ctx)
 
-	metaMap := make(map[string]ClassMetaData, len(localClassInfo))
-	if len(localClassInfo) > 0 {
-		// 构建本地课程 ID -> MetaData 的映射，避免 O(n^2) 比较
-		for _, lc := range localClassInfo {
-			metaMap[lc.ID] = lc.MetaData
-		}
+	metaMap := make(map[string]ClassMetaDataBO, len(localClassInfo))
+	// 构建本地课程 ID -> MetaData 的映射，避免 O(n^2) 比较
+	for _, lc := range localClassInfo {
+		metaMap[lc.ID] = lc.MetaData
 	}
 
-	logID, err := cluc.refreshLogRepo.InsertRefreshLog(ctx, stuID, year, semester, logTime)
+	logID, err := cluc.refreshLogRepo.InsertRefreshLog(ctx, stuID, year, semester, Pending, logTime)
 	if err != nil {
 		logh.Errorf("failed to insert refresh log,param(%v,%v,%v)", stuID, year, semester)
 		return nil
@@ -325,38 +322,34 @@ func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester s
 
 	crawClassInfos, crawScs, _, err := cluc.getCourseFromCrawler(ctx, stuID, year, semester)
 	if err != nil {
-		_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, do.Failed)
+		_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, Failed)
 		_ = cluc.sendRetryMsg(ctx, stuID, year, semester)
 		return nil
 	}
 
 	// 爬取课表的note继承本地课表
-	if len(crawClassInfos) > 0 {
-		// 将本地备注合并到爬虫结果中
-		for _, ci := range crawClassInfos {
-			if ci == nil {
-				continue
-			}
+	// 将本地备注合并到爬虫结果中
+	for _, ci := range crawClassInfos {
+		if ci == nil {
+			continue
+		}
 
-			// 设置这个meta，是为了返回的结果的数据完整性
-			ci.MetaData.IsOfficial = true
-			if meta, ok := metaMap[ci.ID]; ok {
-				ci.MetaData.Note = meta.Note
-			}
+		// 设置这个meta，是为了返回的结果的数据完整性
+		ci.MetaData.IsOfficial = true
+		if meta, ok := metaMap[ci.ID]; ok {
+			ci.MetaData.Note = meta.Note
 		}
 	}
 
-	if len(crawScs) > 0 {
-		// 将本地备注合并到学生课程信息中
-		for _, sc := range crawScs {
-			if sc == nil {
-				continue
-			}
-			// sc.IsManuallyAdded这个在爬虫时已经设置了，这里不用动
-			// 只需要把丢失的note设置即可
-			if meta, ok := metaMap[sc.ClaID]; ok {
-				sc.Note = meta.Note
-			}
+	// 将本地备注合并到学生课程信息中
+	for _, sc := range crawScs {
+		if sc == nil {
+			continue
+		}
+		// sc.IsManuallyAdded这个在爬虫时已经设置了，这里不用动
+		// 只需要把丢失的note设置即可
+		if meta, ok := metaMap[sc.ClaID]; ok {
+			sc.Note = meta.Note
 		}
 	}
 
@@ -366,10 +359,10 @@ func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester s
 	err = cluc.classRepo.SaveClass(ctx, stuID, year, semester, crawClassInfos, crawScs)
 	// 更新log状态
 	if err != nil {
-		_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, do.Failed)
+		_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, Failed)
 		_ = cluc.sendRetryMsg(ctx, stuID, year, semester)
 	} else {
-		_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, do.Ready)
+		_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, Ready)
 	}
 	_ = cluc.jxbRepo.SaveJxb(ctx, stuID, jxbIDs)
 
@@ -386,7 +379,7 @@ func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester s
 	return crawClassInfos
 }
 
-func (cluc *ClassUsecase) AddClass(ctx context.Context, stuID string, info *ClassInfo) error {
+func (cluc *ClassUsecase) AddClass(ctx context.Context, stuID string, info *ClassInfoBO) error {
 	return cluc.addClass(ctx, stuID, info)
 }
 
@@ -410,7 +403,7 @@ func (cluc *ClassUsecase) DeleteClass(ctx context.Context, stuID, year, semester
 	return nil
 }
 
-func (cluc *ClassUsecase) GetRecycledClassInfos(ctx context.Context, stuID, year, semester string) ([]*ClassInfo, error) {
+func (cluc *ClassUsecase) GetRecycledClassInfos(ctx context.Context, stuID, year, semester string) ([]*ClassInfoBO, error) {
 	// 获取回收站的课程ID
 	classInfos, err := cluc.classRepo.GetAllRecycleClassInfos(ctx, stuID, year, semester)
 	if err != nil {
@@ -439,7 +432,7 @@ func (cluc *ClassUsecase) RecoverClassInfo(ctx context.Context, stuID, year, sem
 	return nil
 }
 
-func (cluc *ClassUsecase) GetSpecificClassInfo(ctx context.Context, stuID, year, semester, classId string) (*ClassInfo, error) {
+func (cluc *ClassUsecase) GetSpecificClassInfo(ctx context.Context, stuID, year, semester, classId string) (*ClassInfoBO, error) {
 	info, err := cluc.classRepo.GetSpecificClassInfo(ctx, stuID, year, semester, classId)
 	if err != nil {
 		return nil, err
@@ -447,7 +440,7 @@ func (cluc *ClassUsecase) GetSpecificClassInfo(ctx context.Context, stuID, year,
 	return info, nil
 }
 
-func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester string, newClassInfo *ClassInfo, newSc *StudentCourse, oldClassId string) error {
+func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester string, newClassInfo *ClassInfoBO, newSc *StudentCourse, oldClassId string) error {
 	logh := logger.GetLoggerFromCtx(ctx).WithContext(ctx)
 	// 检查下要更新的课程是否是官方课程，如果是，不让更新
 	newSc.IsManuallyAdded = true
@@ -472,7 +465,7 @@ func (cluc *ClassUsecase) CheckSCIdsExist(ctx context.Context, stuID, year, seme
 	return cluc.classRepo.CheckSCIdsExist(ctx, stuID, year, semester, classId)
 }
 
-func (cluc *ClassUsecase) GetAllSchoolClassInfosToOtherService(ctx context.Context, year, semester string, cursor time.Time) []*ClassInfo {
+func (cluc *ClassUsecase) GetAllSchoolClassInfosToOtherService(ctx context.Context, year, semester string, cursor time.Time) []*ClassInfoBO {
 	return cluc.classRepo.GetAllSchoolClassInfos(ctx, year, semester, cursor)
 }
 
@@ -485,7 +478,7 @@ func (cluc *ClassUsecase) GetStuIdsByJxbId(ctx context.Context, jxbId string) ([
 	return res, nil
 }
 
-func (cluc *ClassUsecase) addClass(ctx context.Context, stuID string, info *ClassInfo) error {
+func (cluc *ClassUsecase) addClass(ctx context.Context, stuID string, info *ClassInfoBO) error {
 	logh := logger.GetLoggerFromCtx(ctx)
 	sc := &StudentCourse{
 		StuID:           stuID,
@@ -508,7 +501,7 @@ func (cluc *ClassUsecase) addClass(ctx context.Context, stuID string, info *Clas
 	return nil
 }
 
-func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string, year string, semester string) ([]*ClassInfo, []*StudentCourse, int, error) {
+func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string, year string, semester string) ([]*ClassInfoBO, []*StudentCourse, int, error) {
 	logh := logger.GetLoggerFromCtx(ctx)
 	crawSuccess := true
 	defer func(currentTime time.Time) {
@@ -551,7 +544,7 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 		return nil, nil, -1, fmt.Errorf("the type of student isn't undergraduate")
 	}
 
-	ci, sc, sum, err := func() ([]*ClassInfo, []*StudentCourse, int, error) {
+	ci, sc, sum, err := func() ([]*ClassInfoBO, []*StudentCourse, int, error) {
 		defer func(currentTime time.Time) {
 			logh.Info(fmt.Sprintf("craw class [%v,%v,%v] cost %v", stuID, year, semester, time.Since(currentTime)))
 		}(time.Now())
@@ -573,7 +566,7 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 	return ci, sc, sum, nil
 }
 
-func (cluc *ClassUsecase) GetClassMetaData(ctx context.Context, stuID, year, semester, classID string) map[string]ClassMetaData {
+func (cluc *ClassUsecase) GetClassMetaData(ctx context.Context, stuID, year, semester, classID string) map[string]ClassMetaDataBO {
 	return cluc.classRepo.GetClassMetaData(ctx, stuID, year, semester, classID)
 }
 
@@ -581,7 +574,7 @@ func (cluc *ClassUsecase) GetClassNatures(ctx context.Context, stuID string) []s
 	return cluc.classRepo.GetClassNatures(ctx, stuID)
 }
 
-func extractJxb(infos []*ClassInfo) []string {
+func extractJxb(infos []*ClassInfoBO) []string {
 	if len(infos) == 0 {
 		return nil
 	}
@@ -653,28 +646,8 @@ func (cluc *ClassUsecase) handleRetryMsg(ctx context.Context, key, val []byte) {
 	)
 	ctx = logger.WithLogger(ctx, valLogger)
 
-	// 爬取课程信息
-	crawClassInfos_, crawScs, _, crawErr := cluc.getCourseFromCrawler(ctx, stuID, year, semester)
-	if crawErr != nil {
-		logger.GlobalLogger.Error(fmt.Sprintf("Error retry getting class info from crawler: %v", crawErr))
-		return
-	}
-
-	// 保存课程信息
-	saveErr := cluc.classRepo.SaveClass(ctx, stuID, year, semester, crawClassInfos_, crawScs)
-	if saveErr != nil {
-		logger.GlobalLogger.Error(fmt.Sprintf("Error after retry getting class,but saving class info to database: %v", saveErr))
-		return
-	}
-
-	// 插入一条log
-	logID, insertLogErr := cluc.refreshLogRepo.InsertRefreshLog(ctx, stuID, year, semester, time.Now())
-	if insertLogErr != nil {
-		logger.GlobalLogger.Error(fmt.Sprintf("Error after retry getting class, but inserting refresh log: %v", insertLogErr))
-		return
-	}
-	// 更新日志状态
-	_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, do.Ready)
+	localClassInfo, _ := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+	_ = cluc.crawClass(ctx, stuID, year, semester, time.Now(), localClassInfo, false)
 }
 
 func (cluc *ClassUsecase) UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error {

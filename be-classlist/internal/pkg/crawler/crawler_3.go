@@ -67,7 +67,7 @@ func NewClassCrawler3(pg ProxyGetter) *Crawler3 {
 	return c2
 }
 
-func (c *Crawler3) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+func (c *Crawler3) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
 	// 获取代理并将其存入请求的上下文
 	proxyURL := c.pg.GetProxy(ctx)
 
@@ -167,7 +167,7 @@ func (c *Crawler3) getys(year, semester string) string {
 	return fmt.Sprintf("%d-%d-%s", y, y+1, semester)
 }
 
-func (c *Crawler3) extractCourses(ctx context.Context, year, semester string, res []byte) ([]*biz.ClassInfo, error) {
+func (c *Crawler3) extractCourses(ctx context.Context, year, semester string, res []byte) ([]*biz.ClassInfoBO, error) {
 	var p fastjson.Parser
 	v, err := p.ParseBytes(res)
 	if err != nil {
@@ -187,7 +187,7 @@ func (c *Crawler3) extractCourses(ctx context.Context, year, semester string, re
 	}
 
 	list := data.GetArray()
-	infos := make([]*biz.ClassInfo, 0, len(list))
+	infos := make([]*biz.ClassInfoBO, 0, len(list))
 
 	for _, item := range list {
 		where := string(item.GetStringBytes("skddmc"))                // 上课地点
@@ -198,7 +198,7 @@ func (c *Crawler3) extractCourses(ctx context.Context, year, semester string, re
 			return nil, fmt.Errorf("failed to parse where and class time description: %w", err)
 		}
 		for _, basic := range basics {
-			info := &biz.ClassInfo{}
+			info := &biz.ClassInfoBO{}
 
 			info.Classname = string(item.GetStringBytes("kc_mc"))  // 课程名
 			info.Teacher = string(item.GetStringBytes("jg0101mc")) // 教师
@@ -352,7 +352,7 @@ func (c *Crawler3) parseTimeDesc(s string) (day string, sections []int, weeks []
 	return
 }
 
-func (c *Crawler3) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+func (c *Crawler3) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
 	// 获取代理并将其存入请求的上下文
 	proxyURL := c.pg.GetProxy(ctx)
 

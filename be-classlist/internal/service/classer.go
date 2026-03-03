@@ -54,23 +54,20 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 	if !tool.CheckSY(req.Semester, req.Year) {
 		return &pb.GetClassResponse{}, errcode.ErrParam
 	}
-	pclasses := make([]*pb.Class, 0)
+
 	classInfos, lastTime, err := s.clu.GetClasses(ctx, req.StuId, req.Year, req.Semester, req.Refresh)
 	if err != nil {
 		return &pb.GetClassResponse{}, err
 	}
+
+	pbClassInfos := make([]*pb.Class, 0, len(classInfos))
 	for _, classInfo := range classInfos {
-		pinfo := new(pb.ClassInfo)
-
-		_ = copier.Copy(&pinfo, &classInfo)
-		pinfo.IsOfficial = classInfo.MetaData.IsOfficial
-		pinfo.Note = classInfo.MetaData.Note
-
-		pclass := &pb.Class{
-			Info: pinfo,
-		}
-		pclasses = append(pclasses, pclass)
+		pbClassInfo := classInfoBOToPb(classInfo)
+		pbClassInfos = append(pbClassInfos, &pb.Class{
+			Info: pbClassInfo,
+		})
 	}
+
 	var lastTimeStamp int64
 
 	if lastTime != nil {
@@ -79,7 +76,7 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		lastTimeStamp = time.Date(1949, 10, 1, 0, 0, 0, 0, time.Local).Unix()
 	}
 	return &pb.GetClassResponse{
-		Classes:  pclasses,
+		Classes:  pbClassInfos,
 		LastTime: lastTimeStamp,
 	}, nil
 }
@@ -97,7 +94,7 @@ func (s *ClassListService) AddClass(ctx context.Context, req *pb.AddClassRequest
 		return &pb.AddClassResponse{}, errcode.ErrParam
 	}
 	weekDur := tool.FormatWeeks(tool.ParseWeeks(req.Weeks))
-	classInfo := &biz.ClassInfo{
+	classInfo := &biz.ClassInfoBO{
 		Day:          req.GetDay(),
 		Teacher:      req.GetTeacher(),
 		Where:        req.GetWhere(),
@@ -242,12 +239,9 @@ func (s *ClassListService) GetRecycleBinClassInfos(ctx context.Context, req *pb.
 	if err != nil {
 		return &pb.GetRecycleBinClassResponse{}, err
 	}
-	pbClassInfos := make([]*pb.ClassInfo, 0)
+	pbClassInfos := make([]*pb.ClassInfo, 0, len(classInfos))
 	for _, classInfo := range classInfos {
-		pbClassInfo := new(pb.ClassInfo)
-		_ = copier.Copy(&pbClassInfo, &classInfo)
-		pbClassInfo.IsOfficial = classInfo.MetaData.IsOfficial
-		pbClassInfo.Note = classInfo.MetaData.Note
+		pbClassInfo := classInfoBOToPb(classInfo)
 		pbClassInfos = append(pbClassInfos, pbClassInfo)
 	}
 	return &pb.GetRecycleBinClassResponse{

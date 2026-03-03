@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
@@ -38,7 +37,7 @@ func NewClassInfoCacheRepo(rdb *redis.Client, cf *conf.Server) *ClassInfoCacheRe
 }
 
 // AddClaInfosToCache 将整个课表转换成json格式，然后存到缓存中去
-func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, key string, classInfos []*do.ClassInfo) error {
+func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, key string, classInfos []*ClassInfo) error {
 	var (
 		val    string
 		expire time.Duration
@@ -67,10 +66,10 @@ func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, key string, 
 	return nil
 }
 
-func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, key string) ([]*do.ClassInfo, error) {
+func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, key string) ([]*ClassInfo, error) {
 	logh := logger.GetLoggerFromCtx(ctx)
 
-	classInfos := make([]*do.ClassInfo, 0)
+	classInfos := make([]*ClassInfo, 0)
 	val, err := c.rdb.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {

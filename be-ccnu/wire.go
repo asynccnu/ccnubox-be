@@ -19,6 +19,7 @@ func InitApp() *App {
 		service.NewCCNUService,
 		ioc.InitOTel,
 		ioc.InitProxyClient,
+		ioc.InitHttpProxyClient,
 		ioc.InitLogger,
 		ioc.InitEtcdClient,
 		NewApp,

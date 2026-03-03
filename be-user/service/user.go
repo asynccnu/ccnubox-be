@@ -3,20 +3,18 @@ package service
 import (
 	"context"
 	"errors"
-	"net/http"
-	"net/url"
-
 	"github.com/asynccnu/ccnubox-be/be-user/pkg/crypto"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/model"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 	"golang.org/x/sync/singleflight"
+	"net/http"
 )
 
 // 定义基于业务错误码的错误构造函数
@@ -44,11 +42,11 @@ type userService struct {
 	ccnu         ccnuv1.CCNUServiceClient
 	sfGroup      singleflight.Group
 	l            logger.Logger
-	pClient      proxyv1.ProxyClient
+	pClient      proxy.Client
 }
 
 func NewUserService(dao dao.UserDAO, cache cache.UserCache, cryptoClient *crypto.Crypto, ccnu ccnuv1.CCNUServiceClient, l logger.Logger,
-	pClient proxyv1.ProxyClient) UserService {
+	pClient proxy.Client) UserService {
 	return &userService{dao: dao, cache: cache, cryptoClient: cryptoClient, ccnu: ccnu, l: l, pClient: pClient}
 }
 
@@ -242,8 +240,7 @@ func (s *userService) checkCookie(ctx context.Context, cookie string) bool {
 	req.Header.Set("Cookie", cookie)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0")
 
-	proxyAddr, _ := s.getProxyAddr(ctx)
-	client := s.newClient(ctx, proxyAddr)
+	client := s.pClient.NewProxyClient(proxy.WithProxyTransport(false))
 	resp, err := client.Do(req)
 	if err != nil {
 		return false
@@ -256,35 +253,11 @@ func (s *userService) checkLibraryCookie(ctx context.Context, cookie string) boo
 	req, _ := http.NewRequestWithContext(ctx, "GET", "http://kjyy.ccnu.edu.cn/", nil)
 	req.Header.Set("Cookie", cookie)
 
-	proxyAddr, _ := s.getProxyAddr(ctx)
-	client := s.newClient(ctx, proxyAddr)
+	client := s.pClient.NewProxyClient(proxy.WithProxyTransport(false))
 	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode == http.StatusOK
-}
-
-func (s *userService) newClient(ctx context.Context, proxyAddr string) *http.Client {
-	cli := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
-
-	if proxyAddr != "" {
-		if proxy, err := url.Parse(proxyAddr); err == nil {
-			cli.Transport = &http.Transport{Proxy: http.ProxyURL(proxy)}
-		}
-	}
-	return cli
-}
-
-func (s *userService) getProxyAddr(ctx context.Context) (string, error) {
-	res, err := s.pClient.GetProxyAddr(ctx, &proxyv1.GetProxyAddrRequest{})
-	if err != nil {
-		return "", errorx.Errorf("proxy rpc error: %w", err)
-	}
-	return res.Addr, nil
 }

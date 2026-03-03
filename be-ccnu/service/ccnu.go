@@ -3,16 +3,14 @@ package service
 import (
 	"context"
 	"crypto/rsa"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"net/http"
-	"time"
 
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 
 	"github.com/asynccnu/ccnubox-be/be-ccnu/crawler"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 var (
@@ -43,17 +41,11 @@ func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, passwor
 }
 
 func (c *ccnuService) LoginCCNU(ctx context.Context, studentId string, password string) (bool, error) {
-	tlog := c.l.WithContext(ctx)
 	stuType := tool.ParseStudentType(studentId)
 
 	switch stuType {
 	case tool.PostGraduate:
-		addr, err := c.GetProxyAddr(ctx)
-		if err != nil {
-			tlog.Warn("LoginCCNU GetProxyAddr err", logger.Error(err))
-		}
-
-		pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.timeout, addr))
+		pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.timeout))
 		ok, err := c.loginGrad(ctx, pg, studentId, password)
 		if err != nil {
 			return false, err
@@ -101,13 +93,7 @@ func (c *ccnuService) loginGrad(ctx context.Context, pg *crawler.PostGraduate, s
 }
 
 func (c *ccnuService) loginUnderGrad(ctx context.Context, studentId string, password string) (*http.Client, bool, error) {
-	tlog := c.l.WithContext(ctx)
-	addr, err := c.GetProxyAddr(ctx)
-	if err != nil {
-		tlog.Warn("loginUnderGrad GetProxyAddr err", logger.Error(err))
-	}
-
-	ps := crawler.NewPassport(crawler.NewCrawlerClient(c.timeout, addr))
+	ps := crawler.NewPassport(crawler.NewCrawlerClient(c.timeout))
 	flag, err := ps.LoginPassport(ctx, studentId, password)
 	if err != nil {
 		if errorx.Is(err, crawler.INCorrectPASSWORD) {
@@ -119,13 +105,7 @@ func (c *ccnuService) loginUnderGrad(ctx context.Context, studentId string, pass
 }
 
 func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password string, tpe ...string) (string, error) {
-	tlog := c.l.WithContext(ctx)
-	addr, err := c.GetProxyAddr(ctx)
-	if err != nil {
-		tlog.Warn("getUnderGradCookie GetProxyAddr err", logger.Error(err))
-	}
-
-	ug := crawler.NewUnderGrad(crawler.NewCrawlerClient(c.timeout, addr))
+	ug := crawler.NewUnderGrad(crawler.NewCrawlerClient(c.timeout))
 	client, ok, err := c.loginUnderGrad(ctx, stuId, password)
 	if err != nil {
 		return "", errorx.Errorf("getUnderGradCookie loginUnderGrad error: %w", err)
@@ -156,13 +136,7 @@ func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password st
 }
 
 func (c *ccnuService) getGradCookie(ctx context.Context, stuId, password string) (string, error) {
-	tlog := c.l.WithContext(ctx)
-	addr, err := c.GetProxyAddr(ctx)
-	if err != nil {
-		tlog.Warn("getGradCookie GetProxyAddr err", logger.Error(err))
-	}
-
-	pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.timeout, addr))
+	pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.timeout))
 	pubkey, err := tool.Retry(func() (*rsa.PublicKey, error) {
 		return pg.FetchPublicKey(ctx)
 	})
@@ -178,7 +152,7 @@ func (c *ccnuService) getGradCookie(ctx context.Context, stuId, password string)
 }
 
 func (c *ccnuService) GetLibraryCookie(ctx context.Context, studentId, password string) (string, error) {
-	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout, "")) // 这里简化了，实际可按需加 Proxy
+	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout, proxy.WithoutProxy())) // 这里简化了，实际可按需加 Proxy
 	client, ok, err := c.loginUnderGrad(ctx, studentId, password)
 	if err != nil {
 		return "", errorx.Errorf("GetLibraryCookie loginUnderGrad error: %w", err)
@@ -199,16 +173,4 @@ func (c *ccnuService) GetLibraryCookie(ctx context.Context, studentId, password 
 	}
 
 	return cookie, nil
-}
-
-// TODO,许多逻辑用到,可以考虑抽象到pkg
-func (c *ccnuService) GetProxyAddr(ctx context.Context) (string, error) {
-	cctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
-	res, err := c.p.GetProxyAddr(cctx, &proxyv1.GetProxyAddrRequest{})
-	if err != nil {
-		return "", SYSTEM_ERROR(errorx.Errorf("GetProxyAddr rpc call error: %w", err))
-	}
-
-	return res.Addr, nil
 }

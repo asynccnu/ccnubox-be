@@ -3,8 +3,7 @@ package service
 import (
 	"context"
 	"errors"
-	"net/http"
-	"net/url"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/crawler"
@@ -15,30 +14,16 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/tool"
-	"github.com/robfig/cron/v3"
 	"golang.org/x/sync/singleflight"
 )
 
 var (
 	ErrGetGrade = errorx.FormatErrorFunc(gradev1.ErrorGetGradeError("获取成绩失败"))
 )
-
-// 创建一个全局client
-var client = &http.Client{
-	CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse // 禁止自动跳转，返回原始响应
-	},
-	Transport: &http.Transport{
-		MaxIdleConns:        100, // 最大空闲连接数
-		MaxIdleConnsPerHost: 10,  // 每个主机最大空闲连接数
-		MaxConnsPerHost:     100, // 每个主机最大连接数
-	},
-}
 
 type GradeService interface {
 	GetGradeByTerm(ctx context.Context, req *domain.GetGradeByTermReq) ([]domain.Grade, error)
@@ -50,7 +35,7 @@ type GradeService interface {
 
 type gradeService struct {
 	userClient      userv1.UserServiceClient
-	proxyClient     proxyv1.ProxyClient
+	proxyClient     proxy.Client
 	classlistClient classlistv1.ClasserClient
 	gradeDAO        dao.GradeDAO
 	l               logger.Logger
@@ -58,7 +43,7 @@ type gradeService struct {
 	producer        producer.Producer
 }
 
-func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.UserServiceClient, classlistClient classlistv1.ClasserClient, proxyClient proxyv1.ProxyClient, producer producer.Producer) GradeService {
+func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.UserServiceClient, classlistClient classlistv1.ClasserClient, proxyClient proxy.Client, producer producer.Producer) GradeService {
 	g := &gradeService{
 		gradeDAO:        gradeDAO,
 		l:               l,
@@ -68,37 +53,7 @@ func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.U
 		classlistClient: classlistClient,
 	}
 
-	g.pullProxyAddr()
-	beginCron(g)
-
 	return g
-}
-
-func beginCron(s *gradeService) {
-	cr := cron.New()
-	_, _ = cr.AddFunc("@every 160s", s.pullProxyAddr)
-	cr.Start()
-}
-
-func (s *gradeService) pullProxyAddr() {
-	res, err := s.proxyClient.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
-	if err != nil {
-		s.l.Warn("service: get proxy addr failed", logger.Error(err))
-		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
-	}
-
-	if res.Addr == "" {
-		return
-	}
-
-	proxy, err := url.Parse(res.Addr)
-	if err != nil {
-		s.l.Warn("service: parse proxy addr failed", logger.String("addr", res.Addr), logger.Error(err))
-		return
-	}
-
-	p := http.ProxyURL(proxy)
-	client.Transport.(*http.Transport).Proxy = p
 }
 
 func (s *gradeService) GetGradeByTerm(ctx context.Context, req *domain.GetGradeByTermReq) ([]domain.Grade, error) {

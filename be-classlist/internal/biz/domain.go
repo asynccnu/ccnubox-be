@@ -20,9 +20,13 @@ type ClassInfo struct {
 	Weeks        int64   //哪些周
 	Semester     string  //学期
 	Year         string  //学年
-	Note         string  //备注
 	Nature       string  //课程性质
-	IsOfficial   bool    // 是否为官方课程
+	MetaData     ClassMetaData
+}
+
+type ClassMetaData struct {
+	IsOfficial bool   // 是否为官方课程
+	Note       string //备注
 }
 
 func (ci *ClassInfo) UpdateID() {

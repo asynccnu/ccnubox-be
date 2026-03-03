@@ -65,9 +65,8 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 		cleanup()
 		return nil, nil, err
 	}
-	refreshLogRepo := data.NewRefreshLogRepo(db, confServer)
-	cronTaskExecute := biz.NewCronTaskExecute(logger, studentAndCourseDBRepo, crawler3, userSvc, classRepo)
-	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawler3, jxbDBRepo, userSvc, delayQueue, refreshLogRepo, confServer, cronTaskExecute)
+	refreshLogRepo := data.NewRefreshLogRepo(db)
+	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawler3, jxbDBRepo, userSvc, delayQueue, refreshLogRepo, confServer, logger)
 	classListService := service.NewClasserService(classUsecase, schoolDay, logger)
 	grpcServer := server.NewGRPCServer(confServer, classListService, logLogger)
 	app := newApp(env, logLogger, grpcServer, etcdRegistry, confServer)

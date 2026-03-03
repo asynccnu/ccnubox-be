@@ -228,6 +228,11 @@ func (c *ClassHandler) GetRecycleBinClassInfos(ctx *gin.Context, req GetRecycleB
 	if err != nil {
 		return web.Response{}, errs.TYPE_CHANGE_ERROR(err)
 	}
+
+	for i := 0; i < len(resp.ClassInfos); i++ {
+		resp.ClassInfos[i].Weeks = convertWeekFromIntToArray(classes.ClassInfos[i].Weeks)
+	}
+
 	return web.Response{
 		Msg:  "Success",
 		Data: resp,

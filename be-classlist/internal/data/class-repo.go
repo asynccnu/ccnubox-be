@@ -99,11 +99,31 @@ func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semes
 	classInfosBiz := make([]*biz.ClassInfo, len(classInfos))
 	_ = copier.Copy(&classInfosBiz, &classInfos)
 
+	// 设置metaData
+	cla.fillClassMetaData(ctx, stuID, year, semester, classInfosBiz)
 	return classInfosBiz, nil
 }
 
+// fillClassMetaData 填充课程元数据
+func (cla ClassRepo) fillClassMetaData(ctx context.Context, stuID, year, semester string, classInfosBiz []*biz.ClassInfo) {
+	if len(classInfosBiz) == 0 {
+		return
+	}
+	// 设置metaData
+	claIds := make([]string, len(classInfosBiz))
+	for i, classInfo := range classInfosBiz {
+		claIds[i] = classInfo.ID
+	}
+	metaDatas := cla.GetClassMetaData(ctx, stuID, year, semester, claIds...)
+	for i, _ := range classInfosBiz {
+		if metaData, ok := metaDatas[classInfosBiz[i].ID]; ok {
+			classInfosBiz[i].MetaData = metaData
+		}
+	}
+}
+
 // GetSpecificClassInfo 获取特定课程信息
-func (cla ClassRepo) GetSpecificClassInfo(ctx context.Context, classID string) (*biz.ClassInfo, error) {
+func (cla ClassRepo) GetSpecificClassInfo(ctx context.Context, stuID, year, semester, classID string) (*biz.ClassInfo, error) {
 	classInfo, err := cla.ClaRepo.DB.GetClassInfoFromDB(ctx, classID)
 	if err != nil || classInfo == nil {
 		return nil, errcode.ErrClassNotFound
@@ -112,6 +132,7 @@ func (cla ClassRepo) GetSpecificClassInfo(ctx context.Context, classID string) (
 	//将do.ClassInfo转换为biz.ClassInfo
 	classInfoBiz := new(biz.ClassInfo)
 	_ = copier.Copy(&classInfoBiz, &classInfo)
+	cla.fillClassMetaData(ctx, stuID, year, semester, []*biz.ClassInfo{classInfoBiz})
 	return classInfoBiz, nil
 }
 
@@ -160,66 +181,87 @@ func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string,
 }
 
 // DeleteClass 删除课程信息
-func (cla ClassRepo) DeleteClass(ctx context.Context, stuID, year, semester string, classID []string) error {
+func (cla ClassRepo) DeleteClass(ctx context.Context, stuID, year, semester string, classInfo *biz.ClassInfo) error {
 	logh := logger.GetLoggerFromCtx(ctx)
+	if classInfo == nil {
+		return errcode.ErrClassNotFound
+	}
+
 	//先删除缓存信息
 	err := cla.ClaRepo.Cache.DeleteClassInfoFromCache(ctx, cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester))
 	if err != nil {
-		logh.Errorf("Delete Class [%v,%v,%v,%v] from Cache failed:%v", stuID, year, semester, classID, err)
+		logh.Errorf("Delete Class [%v,%v,%v,%v] from Cache failed:%v", stuID, year, semester, classInfo, err)
 		return err
 	}
-	// 获取删除课程手动添加的信息
-	isManuallyAddedCourse := cla.Sac.DB.CheckManualCourseStatus(ctx, stuID, year, semester, classID[0])
-
 	//删除并添加进回收站
-	recycleSetName := cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester)
+	recycleSetName := cla.Sac.Cache.GenerateRecycleSetName(stuID, year, semester)
 
-	err = cla.Sac.Cache.RecycleClassId(ctx, recycleSetName, classID[0], isManuallyAddedCourse)
+	classInfoDo := do.ClassInfo{}
+	//将biz.ClassInfo转换为do.ClassInfo
+	_ = copier.Copy(&classInfoDo, &classInfo)
+
+	err = cla.Sac.Cache.RecycleClass(ctx, recycleSetName, RecycleClassInfo{
+		Info:     classInfoDo,
+		MetaData: cla.transformMetaDataFromBizToDo(classInfo.MetaData),
+	})
 	if err != nil {
-		logh.Errorf("Add Class [%v,%v,%v,%v] To RecycleBin failed:%v", stuID, year, semester, classID, err)
+		logh.Errorf("Add Class [%v,%v,%v,%v] To RecycleBin failed:%v", stuID, year, semester, classInfo, err)
 		return err
 	}
 
 	//从数据库中删除对应的关系
 	errTx := cla.TxCtrl.InTx(ctx, func(ctx context.Context) error {
-		err := cla.Sac.DB.DeleteStudentAndCourseInDB(ctx, stuID, year, semester, classID)
+		err := cla.Sac.DB.DeleteStudentAndCourseInDB(ctx, stuID, year, semester, classInfo.ID)
 		if err != nil {
 			return fmt.Errorf("error deleting student: %w", err)
 		}
 		return nil
 	})
 	if errTx != nil {
-		logh.Errorf("Delete Class [%v,%v,%v,%v] In DB failed:%v", stuID, year, semester, classID, errTx)
+		logh.Errorf("Delete Class [%v,%v,%v,%v] In DB failed:%v", stuID, year, semester, classInfo.ID, errTx)
 		return errTx
 	}
 	return nil
 }
 
-// GetRecycledIds 获取回收站中的课程ID
-func (cla ClassRepo) GetRecycledIds(ctx context.Context, stuID, year, semester string) ([]string, error) {
-	recycleKey := cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester)
-	classIds, err := cla.Sac.Cache.GetRecycledClassIds(ctx, recycleKey)
+func (cla ClassRepo) GetAllRecycleClassInfos(ctx context.Context, stuID, year, semester string) ([]*biz.ClassInfo, error) {
+	recycleKey := cla.Sac.Cache.GenerateRecycleSetName(stuID, year, semester)
+	recycleClassInfos, err := cla.Sac.Cache.GetRecycledClassInfo(ctx, recycleKey)
 	if err != nil {
 		return nil, err
 	}
-	return classIds, nil
+	classInfosBiz := make([]*biz.ClassInfo, 0, len(recycleClassInfos))
+
+	for i := 0; i < len(recycleClassInfos); i++ {
+		classInfoBiz := &biz.ClassInfo{}
+		_ = copier.Copy(classInfoBiz, recycleClassInfos[i].Info)
+		classInfoBiz.MetaData = cla.transformMetaDataFromDoToBiz(recycleClassInfos[i].MetaData)
+		classInfosBiz = append(classInfosBiz, classInfoBiz)
+	}
+	return classInfosBiz, nil
 }
 
-// IsRecycledCourseManual 检查课程是否为手动添加的回收课程
-func (cla ClassRepo) IsRecycledCourseManual(ctx context.Context, stuID, year, semester, classID string) bool {
-	recycleKey := cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester)
-	return cla.Sac.Cache.IsRecycledCourseManual(ctx, recycleKey, classID)
+func (cla ClassRepo) GetRecycleClassInfo(ctx context.Context, stuID, year, semester, classID string) (*biz.ClassInfo, bool) {
+	recycleKey := cla.Sac.Cache.GenerateRecycleSetName(stuID, year, semester)
+	recycleClass, ok := cla.Sac.Cache.GetRecycleClass(ctx, recycleKey, classID)
+	if !ok {
+		return nil, false
+	}
+	classInfoBiz := &biz.ClassInfo{}
+	_ = copier.Copy(classInfoBiz, &recycleClass.Info)
+	classInfoBiz.MetaData = cla.transformMetaDataFromDoToBiz(recycleClass.MetaData)
+	return classInfoBiz, true
 }
 
 // CheckClassIdIsInRecycledBin 检查课程ID是否在回收站中
 func (cla ClassRepo) CheckClassIdIsInRecycledBin(ctx context.Context, stuID, year, semester, classID string) bool {
-	RecycledBinKey := cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester)
+	RecycledBinKey := cla.Sac.Cache.GenerateRecycleSetName(stuID, year, semester)
 	return cla.Sac.Cache.CheckRecycleIdIsExist(ctx, RecycledBinKey, classID)
 }
 
 // RemoveClassFromRecycledBin 从回收站中删除课程
 func (cla ClassRepo) RemoveClassFromRecycledBin(ctx context.Context, stuID, year, semester, classID string) error {
-	RecycledBinKey := cla.Sac.Cache.GenerateClassInfosKey(stuID, year, semester)
+	RecycledBinKey := cla.Sac.Cache.GenerateRecycleSetName(stuID, year, semester)
 	return cla.Sac.Cache.RemoveClassFromRecycledBin(ctx, RecycledBinKey, classID)
 }
 
@@ -248,7 +290,7 @@ func (cla ClassRepo) UpdateClass(ctx context.Context, stuID, year, semester, old
 			return errcode.ErrClassUpdate
 		}
 		//删除原本的学生与课程的对应关系
-		err = cla.Sac.DB.DeleteStudentAndCourseInDB(ctx, stuID, year, semester, []string{oldClassID})
+		err = cla.Sac.DB.DeleteStudentAndCourseInDB(ctx, stuID, year, semester, oldClassID)
 		if err != nil {
 			return errcode.ErrClassUpdate
 		}
@@ -303,7 +345,7 @@ func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string
 	_ = copier.Copy(&scsdo, &scs)
 
 	err = cla.TxCtrl.InTx(ctx, func(ctx context.Context) error {
-		//删除对应的所有关系[只删除非手动添加的]
+		//删除对应的所有关系[只删除官方课程]
 		err = cla.Sac.DB.DeleteStudentAndCourseByTimeFromDB(ctx, stuID, year, semester)
 		if err != nil {
 			return err
@@ -340,7 +382,6 @@ func (cla ClassRepo) GetAllSchoolClassInfos(ctx context.Context, year, semester 
 
 	classInfosBiz := make([]*biz.ClassInfo, len(classInfos))
 	_ = copier.Copy(&classInfosBiz, &classInfos)
-
 	return classInfosBiz
 }
 
@@ -353,19 +394,35 @@ func (cla ClassRepo) GetAddedClasses(ctx context.Context, stuID, year, semester 
 
 	classInfosBiz := make([]*biz.ClassInfo, len(classInfos))
 	_ = copier.Copy(&classInfosBiz, &classInfos)
-
+	cla.fillClassMetaData(ctx, stuID, year, semester, classInfosBiz)
 	return classInfosBiz, nil
 }
 
-// IsClassOfficial 检查课程是否为官方课程
-func (cla ClassRepo) IsClassOfficial(ctx context.Context, stuID, year, semester, classID string) bool {
-	isManuallyAddedCourse := cla.Sac.DB.CheckManualCourseStatus(ctx, stuID, year, semester, classID)
-	return !isManuallyAddedCourse
+func (cla ClassRepo) transformMetaDataFromDoToBiz(meta do.ClassMetaData) biz.ClassMetaData {
+	return biz.ClassMetaData{
+		IsOfficial: !meta.IsManuallyAdded,
+		Note:       meta.Note,
+	}
 }
 
-func (cla ClassRepo) GetClassNote(ctx context.Context, stuID, year, semester, classID string) string {
-	note := cla.Sac.DB.GetCourseNote(ctx, stuID, year, semester, classID)
-	return note
+func (cla ClassRepo) transformMetaDataFromBizToDo(meta biz.ClassMetaData) do.ClassMetaData {
+	return do.ClassMetaData{
+		IsManuallyAdded: !meta.IsOfficial,
+		Note:            meta.Note,
+	}
+}
+
+// GetClassMetaData 获取课程元信息
+func (cla ClassRepo) GetClassMetaData(ctx context.Context, stuID, year, semester string, classID ...string) map[string]biz.ClassMetaData {
+	metaData := cla.Sac.DB.GetClassMetaData(ctx, stuID, year, semester, classID)
+	if len(metaData) == 0 {
+		return map[string]biz.ClassMetaData{}
+	}
+	res := make(map[string]biz.ClassMetaData)
+	for k, v := range metaData {
+		res[k] = cla.transformMetaDataFromDoToBiz(v)
+	}
+	return res
 }
 
 // UpdateClassNote 插入课程备注
@@ -414,4 +471,8 @@ func (cla ClassRepo) GetClassNatures(ctx context.Context, stuID string) []string
 		}
 	}
 	return filteredNatures
+}
+
+func (cla ClassRepo) GetStudentIDs(ctx context.Context, lastStuID string, size int) ([]string, error) {
+	return cla.Sac.DB.GetStudentIDs(ctx, lastStuID, size)
 }

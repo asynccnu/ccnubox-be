@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
@@ -17,8 +18,8 @@ type StudentAndCourseCacheRepo struct {
 }
 
 type RecycleClassInfo struct {
-	ClassId string `json:"classId"`
-	IsAdded bool   `json:"isAdded"`
+	Info     do.ClassInfo     `json:"info"`
+	MetaData do.ClassMetaData `json:"metaData"`
 }
 
 func NewStudentAndCourseCacheRepo(rdb *redis.Client, cf *conf.Server) *StudentAndCourseCacheRepo {
@@ -34,14 +35,15 @@ func NewStudentAndCourseCacheRepo(rdb *redis.Client, cf *conf.Server) *StudentAn
 	}
 }
 
-func (s StudentAndCourseCacheRepo) GetRecycledClassIds(ctx context.Context, key string) ([]string, error) {
+func (s StudentAndCourseCacheRepo) GetRecycledClassInfo(ctx context.Context, key string) ([]RecycleClassInfo, error) {
 	logh := logger.GetLoggerFromCtx(ctx)
 	members, err := s.rdb.SMembers(ctx, key).Result()
 	if err != nil {
 		logh.Errorf("redis: getrecycledClassIds key = %v failed: %v", key, err)
 		return nil, err
 	}
-	ids := make([]string, 0, len(members))
+
+	res := make([]RecycleClassInfo, 0, len(members))
 	for _, member := range members {
 		var recycledClass RecycleClassInfo
 		err = json.Unmarshal([]byte(member), &recycledClass)
@@ -49,9 +51,9 @@ func (s StudentAndCourseCacheRepo) GetRecycledClassIds(ctx context.Context, key 
 			logh.Errorf("redis: getrecycledClassIds key = %v failed: %v", key, err)
 			return nil, err
 		}
-		ids = append(ids, recycledClass.ClassId)
+		res = append(res, recycledClass)
 	}
-	return ids, nil
+	return res, nil
 }
 
 func (s StudentAndCourseCacheRepo) CheckRecycleIdIsExist(ctx context.Context, RecycledBinKey, classId string) bool {
@@ -69,19 +71,19 @@ func (s StudentAndCourseCacheRepo) CheckRecycleIdIsExist(ctx context.Context, Re
 			logh.Errorf("redis: get member(%s) failed: %v", member, err)
 			continue
 		}
-		if recycledClass.ClassId == classId {
+		if recycledClass.Info.ID == classId {
 			return true
 		}
 	}
 	return false
 }
 
-func (s StudentAndCourseCacheRepo) IsRecycledCourseManual(ctx context.Context, RecycledBinKey, classId string) bool {
+func (s StudentAndCourseCacheRepo) GetRecycleClass(ctx context.Context, RecycledBinKey, classId string) (RecycleClassInfo, bool) {
 	logh := logger.GetLoggerFromCtx(ctx)
 	members, err := s.rdb.SMembers(ctx, RecycledBinKey).Result()
 	if err != nil {
 		logh.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
-		return false
+		return RecycleClassInfo{}, false
 	}
 	for _, member := range members {
 		var recycledClass RecycleClassInfo
@@ -90,11 +92,11 @@ func (s StudentAndCourseCacheRepo) IsRecycledCourseManual(ctx context.Context, R
 			logh.Errorf("redis: get member(%s) failed: %v", member, err)
 			continue
 		}
-		if recycledClass.ClassId == classId {
-			return recycledClass.IsAdded
+		if recycledClass.Info.ID == classId {
+			return recycledClass, true
 		}
 	}
-	return false
+	return RecycleClassInfo{}, false
 }
 
 func (s StudentAndCourseCacheRepo) RemoveClassFromRecycledBin(ctx context.Context, RecycledBinKey, classId string) error {
@@ -111,7 +113,7 @@ func (s StudentAndCourseCacheRepo) RemoveClassFromRecycledBin(ctx context.Contex
 			logh.Errorf("redis: unmarshal recycleInfo(%s) failed: %v", member, err)
 			continue
 		}
-		if recycleInfo.ClassId == classId {
+		if recycleInfo.Info.ID == classId {
 			if err := s.rdb.SRem(ctx, RecycledBinKey, member).Err(); err != nil {
 				logh.Errorf("redis: remove recycleInfo(%s) failed: %v", member, err)
 				return err
@@ -123,21 +125,18 @@ func (s StudentAndCourseCacheRepo) RemoveClassFromRecycledBin(ctx context.Contex
 	return nil
 }
 
-func (s StudentAndCourseCacheRepo) RecycleClassId(ctx context.Context, recycleBinKey string, classId string, isAdded bool) error {
+func (s StudentAndCourseCacheRepo) RecycleClass(ctx context.Context, recycleBinKey string, info RecycleClassInfo) error {
 	logh := logger.GetLoggerFromCtx(ctx)
-	val := RecycleClassInfo{ClassId: classId, IsAdded: isAdded}
 
-	jsonVal, err := json.Marshal(val)
+	jsonVal, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
-
 	// 将 ClassId 放入回收站
 	if err := s.rdb.SAdd(ctx, recycleBinKey, jsonVal).Err(); err != nil {
-		logh.Errorf("redis: add classId(%s) to set(%s) failed: %v", classId, recycleBinKey, err)
+		logh.Errorf("redis: add class(%v) to set(%s) failed: %v", info, recycleBinKey, err)
 		return err
 	}
-
 	// 设置回收站的过期时间
 	if err := s.rdb.Expire(ctx, recycleBinKey, s.recycleExpiration).Err(); err != nil {
 		logh.Errorf("redis: set expiration for key(%s) failed: %v", recycleBinKey, err)

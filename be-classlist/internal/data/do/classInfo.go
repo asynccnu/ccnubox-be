@@ -15,7 +15,6 @@ const (
 type ClassInfo struct {
 	ID           string    `gorm:"type:varchar(255);primaryKey;column:id" json:"id"` //集合了课程信息的字符串，便于标识（课程ID）
 	CreatedAt    time.Time `json:"-" gorm:"index:idx_time,priority:3"`
-	UpdatedAt    time.Time `json:"-"`
 	JxbId        string    `gorm:"type:varchar(100);column:jxb_id" json:"jxb_id"`                                      //教学班ID
 	Day          int64     `gorm:"column:day;not null" json:"day"`                                                     //星期几
 	Teacher      string    `gorm:"type:varchar(255);column:teacher;not null" json:"teacher"`                           //任课教师
@@ -27,8 +26,15 @@ type ClassInfo struct {
 	Weeks        int64     `gorm:"column:weeks;not null" json:"weeks"`                                                 //哪些周
 	Semester     string    `gorm:"type:varchar(1);column:semester;not null;index:idx_time,priority:2" json:"semester"` //学期
 	Year         string    `gorm:"type:varchar(5);column:year;not null;index:idx_time,priority:1" json:"year"`         //学年
-	Note         string    `json:"note"`                                                                               //备注，用于和学生课程表联合查询，数据库中不存储
 	Nature       string    `gorm:"type:varchar(255);column:nature" json:"nature"`                                      // 课程性质
+
+	//Note         string    `json:"note"`                                                                               //备注，用于和学生课程表联合查询，数据库中不存储
+	UpdatedAt time.Time `json:"-"`
+}
+
+type ClassMetaData struct {
+	Note            string `json:"note"`
+	IsManuallyAdded bool   `json:"is_manually_added"`
 }
 
 func (ci *ClassInfo) TableName() string {

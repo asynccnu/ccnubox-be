@@ -380,10 +380,6 @@ func extractGraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassIn
 	sum := v.GetInt("xsxx", "KCMS")
 
 	for _, kb := range kbList.GetArray() {
-		// 过滤掉没确定被选上的课程
-		if string(kb.GetStringBytes("sxbj")) != "1" {
-			continue
-		}
 		// 课程信息
 		info := &biz.ClassInfo{}
 		info.Day, _ = strconv.ParseInt(string(kb.GetStringBytes("xqj")), 10, 64) // 星期几

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/asynccnu/ccnubox-be/be-elecprice/domain"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"io"
 	"net/http"
 	"regexp"
@@ -13,13 +14,8 @@ import (
 	"strings"
 )
 
-var (
-	client       = http.DefaultClient // 主要使用这个
-	clientBackup = http.DefaultClient // 避免单client导致服务器407, 从而请求失败
-)
-
 // 通用 HTTP 请求函数
-func sendRequest(ctx context.Context, url string, useBackupProxy bool) (string, error) {
+func sendRequest(url string, useBackupProxy bool) (string, error) {
 	var (
 		resp *http.Response
 		err  error
@@ -35,9 +31,17 @@ func sendRequest(ctx context.Context, url string, useBackupProxy bool) (string, 
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0")
 
 	if useBackupProxy {
-		resp, err = clientBackup.Do(req)
+		resp, err = proxy.NewHttpProxyClient(
+			proxy.WithProxyTransport(
+				useBackupProxy,
+			),
+		).Do(req)
 	} else {
-		resp, err = client.Do(req)
+		resp, err = proxy.NewHttpProxyClient(
+			proxy.WithProxyTransport(
+				false,
+			),
+		).Do(req)
 	}
 	if err != nil {
 		return "", fmt.Errorf("发送请求失败: %w", err)
@@ -232,7 +236,7 @@ func removeDong23(res *domain.ResultArchitectureInfo) {
 }
 
 func addDong23(ctx context.Context, res *domain.ResultArchitectureInfo) {
-	body, err := sendRequest(ctx, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", ConstantMap[YuanBaoShan]), false)
+	body, err := sendRequest(fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", ConstantMap[YuanBaoShan]), false)
 	if err != nil {
 		return
 	}

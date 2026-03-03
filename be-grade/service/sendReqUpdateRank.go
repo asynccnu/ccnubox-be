@@ -3,6 +3,7 @@ package service
 import (
 	"compress/gzip"
 	"encoding/json"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"io"
 	"net/http"
 	"net/url"
@@ -100,7 +101,7 @@ func Send(cookie, ksxq, jsxq string) (*domain.GetRankByTermResp, error) {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0")
 	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 
-	resp, err := client.Do(req)
+	resp, err := proxy.NewHttpProxyClient(proxy.WithProxyTransport(false)).Do(req)
 	if err != nil {
 		return nil, errorx.Errorf("crawler: http post failed, err: %w", err)
 	}

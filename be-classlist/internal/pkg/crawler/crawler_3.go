@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"io"
 	"net/http"
 	"net/url"
@@ -30,12 +31,12 @@ var (
 // Crawler3 爬取的是对于智慧教务的“培养服务/我的课表/学期课表/有课表课程”那个列表
 // 注意：Crawler3开始才有课程性质这个字段
 type Crawler3 struct {
-	pg ProxyGetter
-
-	clientPool sync.Pool
+	pg          ProxyGetter
+	proxyClient proxy.Client
+	clientPool  sync.Pool
 }
 
-func NewClassCrawler3(pg ProxyGetter) *Crawler3 {
+func NewClassCrawler3(pg ProxyGetter, pc proxy.Client) *Crawler3 {
 	newClient := func() interface{} {
 		return &http.Client{
 			Transport: &http.Transport{
@@ -61,7 +62,8 @@ func NewClassCrawler3(pg ProxyGetter) *Crawler3 {
 		clientPool: sync.Pool{
 			New: newClient,
 		},
-		pg: pg,
+		pg:          pg,
+		proxyClient: pc,
 	}
 
 	return c2
@@ -78,8 +80,17 @@ func (c *Crawler3) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	}
 
 	// 使用连接池获取 HTTP 客户端
-	client := c.clientPool.Get().(*http.Client)
-	defer c.clientPool.Put(client)
+	//client := c.clientPool.Get().(*http.Client)
+	//defer c.clientPool.Put(client)
+
+	client := c.proxyClient.NewProxyClient(
+		proxy.WithProxyTransport(
+			false,
+			proxy.WithMaxIdleConns(10),
+			proxy.WithIdleConnTimeout(90*time.Second),
+			proxy.WithTLSHandshakeTimeout(10*time.Second),
+		),
+	)
 
 	logh := logger.GetLoggerFromCtx(ctx)
 

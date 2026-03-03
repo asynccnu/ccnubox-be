@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -14,9 +14,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/model"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/service"
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 )
 
@@ -81,54 +79,21 @@ type CultivateStrategyData interface {
 }
 
 type CultivateStrategyBiz struct {
-	proxyCli  proxyv1.ProxyClient
-	httpCli   *http.Client
+	proxyCli  proxy.Client
 	cookieCli CookieClient
 	csData    CultivateStrategyData
 	cache     Cache
 }
 
-func NewCultivateStrategyBiz(cookieCli CookieClient, cache Cache, csData CultivateStrategyData, proxyCli proxyv1.ProxyClient) service.CultivateStrategy {
-	httpCli := &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:        100,              // 最大空闲连接
-			IdleConnTimeout:     90 * time.Second, // 空闲连接超时
-			MaxIdleConnsPerHost: 20,               // 每个主机最大空闲连接
-		},
-	}
-
+func NewCultivateStrategyBiz(cookieCli CookieClient, cache Cache, csData CultivateStrategyData, proxyCli proxy.Client) service.CultivateStrategy {
 	c := &CultivateStrategyBiz{
 		cookieCli: cookieCli,
-		httpCli:   httpCli,
 		cache:     cache,
 		csData:    csData,
 		proxyCli:  proxyCli,
 	}
 
-	c.pullProxy()
-	beginCultivateStrategyBizCronTask(c)
 	return c
-}
-
-func (c *CultivateStrategyBiz) pullProxy() {
-	res, err := c.proxyCli.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
-	if err != nil {
-		log.Error("GetProxyAddr in pull proxy err:", err)
-		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
-	}
-	proxy, err := url.Parse(res.Addr)
-	if err != nil {
-		log.Error("parse proxy in pull proxy addr err:", err)
-	}
-
-	c.httpCli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxy)
-	log.Debug("pull proxy addr success, now: ", time.Now())
-}
-
-func beginCultivateStrategyBizCronTask(c *CultivateStrategyBiz) {
-	cr := cron.New()
-	_, _ = cr.AddFunc("@every 160s", c.pullProxy)
-	cr.Start()
 }
 
 func (c *CultivateStrategyBiz) GetToBeStudiedClass(ctx context.Context, stuId, status string) (service.ToBeStudiedClasses, error) {
@@ -281,7 +246,7 @@ func (c *CultivateStrategyBiz) GetCultivateStrategyFromCCNU(ctx context.Context,
 		"Content-Type": []string{"application/x-www-form-urlencoded;charset=UTF-8"},
 	}
 
-	resp, err := c.httpCli.Do(req)
+	resp, err := c.proxyCli.NewProxyClient(proxy.WithProxyTransport(false)).Do(req)
 	if err != nil {
 		return service.ToBeStudiedClasses{}, err
 	}

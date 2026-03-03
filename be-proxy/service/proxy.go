@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
@@ -16,7 +15,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-type ShenLongProxy struct {
+type HttpProxy struct {
 	Api          string
 	Addr         string
 	AddrBackup   string
@@ -33,7 +32,7 @@ var (
 	ErrEmptyConfig = errorx.New("proxy: empty configuration")
 )
 
-func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, string, error) {
+func (s *HttpProxy) GetProxyAddr(_ context.Context) (string, string, error) {
 	// 未配置代理时返回错误
 	if s.Api == "" {
 		return "", "", ErrEmptyConfig
@@ -47,13 +46,6 @@ func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, string, error) 
 		return "", "", errorx.New("proxy: no available proxy address currently")
 	}
 
-	// 50% 概率使用当前代理，50% 概率返回空字符串让本机直接访问目标站点
-	n := rand.Intn(100)
-	if n >= 50 {
-		s.l.Debug("proxy: using nil proxy for this request")
-		return "", "", nil
-	}
-
 	return s.Addr, s.AddrBackup, nil
 }
 
@@ -63,7 +55,7 @@ func NewProxyService(l logger.Logger, cfg *conf.ServerConf) ProxyService {
 		panic(ErrEmptyConfig)
 	}
 
-	s := &ShenLongProxy{
+	s := &HttpProxy{
 		Api:          cfg.ShenLongConf.API,
 		PollInterval: cfg.ShenLongConf.Interval,
 		RetryCount:   cfg.ShenLongConf.Retry,
@@ -88,7 +80,7 @@ func NewProxyService(l logger.Logger, cfg *conf.ServerConf) ProxyService {
 	return s
 }
 
-func (s *ShenLongProxy) fetchIp() {
+func (s *HttpProxy) fetchIp() {
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	var lastErr error
@@ -164,7 +156,7 @@ func (s *ShenLongProxy) fetchIp() {
 	}
 }
 
-func (s *ShenLongProxy) wrapRes(res string) string {
+func (s *HttpProxy) wrapRes(res string) string {
 	// 代理商返回的 IP 经常带有不可见字符或空白符，需要彻底清理
 	cleanRes := strings.TrimSpace(res)
 	if cleanRes == "" {

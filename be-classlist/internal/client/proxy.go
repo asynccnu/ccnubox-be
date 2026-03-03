@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
@@ -17,4 +18,8 @@ func InitProxyClient(r *etcd.Registry, cf *conf.Registry, logger log.Logger, env
 		return nil, err
 	}
 	return proxyv1.NewProxyClient(conn), nil
+}
+
+func InitHttpProxyClient(proxyClient proxyv1.ProxyClient) proxy.Client {
+	return proxy.NewHttpProxy(proxyClient)
 }

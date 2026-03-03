@@ -21,9 +21,6 @@ type ClassHandler struct {
 	Administrators     map[string]struct{} // 这里注入的是管理员权限验证配置
 }
 
-const TmpYear = "2025"
-const TmpSemester = "2"
-
 func NewClassListHandler(
 	ClassListClient classlistv1.ClasserClient,
 	ClassServiceClient cs.ClassServiceClient,
@@ -68,8 +65,8 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 	}
 	getResp, err := c.ClassListClient.GetClass(ctx, &classlistv1.GetClassRequest{
 		StuId:    uc.StudentId,
-		Semester: TmpSemester,
-		Year:     TmpYear,
+		Semester: req.Semester,
+		Year:     req.Year,
 		Refresh:  *req.Refresh,
 	})
 	if err != nil {
@@ -128,8 +125,8 @@ func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.U
 		Where:    req.Where,
 		Teacher:  req.Teacher,
 		Weeks:    weeks,
-		Semester: TmpSemester,
-		Year:     TmpYear,
+		Semester: req.Semester,
+		Year:     req.Year,
 		Day:      req.Day,
 		Credit:   req.Credit,
 	}
@@ -157,8 +154,8 @@ func (c *ClassHandler) DeleteClass(ctx *gin.Context, req DeleteClassRequest, uc 
 	_, err := c.ClassListClient.DeleteClass(ctx, &classlistv1.DeleteClassRequest{
 		Id:       req.Id,
 		StuId:    uc.StudentId,
-		Year:     TmpYear,
-		Semester: TmpSemester,
+		Year:     req.Year,
+		Semester: req.Semester,
 	})
 	if err != nil {
 		return web.Response{}, errs.DELETE_CLASS_ERROR(err)
@@ -193,8 +190,8 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 		Where:    req.Where,
 		Teacher:  req.Teacher,
 		Weeks:    weeks,
-		Semester: TmpSemester,
-		Year:     TmpYear,
+		Semester: req.Semester,
+		Year:     req.Year,
 		Day:      req.Day,
 		Credit:   req.Credit,
 	}
@@ -220,8 +217,8 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 func (c *ClassHandler) GetRecycleBinClassInfos(ctx *gin.Context, req GetRecycleBinClassInfosReq, uc ijwt.UserClaims) (web.Response, error) {
 	classes, err := c.ClassListClient.GetRecycleBinClassInfos(ctx, &classlistv1.GetRecycleBinClassRequest{
 		StuId:    uc.StudentId,
-		Year:     TmpYear,
-		Semester: TmpSemester,
+		Semester: req.Semester,
+		Year:     req.Year,
 	})
 	if err != nil {
 		return web.Response{}, errs.GET_RECYCLE_CLASS_ERROR(err)
@@ -250,8 +247,8 @@ func (c *ClassHandler) GetRecycleBinClassInfos(ctx *gin.Context, req GetRecycleB
 func (c *ClassHandler) RecoverClass(ctx *gin.Context, req RecoverClassRequest, uc ijwt.UserClaims) (web.Response, error) {
 	_, err := c.ClassListClient.RecoverClass(ctx, &classlistv1.RecoverClassRequest{
 		StuId:    uc.StudentId,
-		Year:     TmpYear,
-		Semester: TmpSemester,
+		Semester: req.Semester,
+		Year:     req.Year,
 		ClassId:  req.ClassId,
 	})
 	if err != nil {
@@ -364,8 +361,8 @@ func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
 func (c *ClassHandler) InsertClassNote(ctx *gin.Context, req UpdateClassNoteReq, uc ijwt.UserClaims) (web.Response, error) {
 	resp, err := c.ClassListClient.UpdateClassNote(ctx, &classlistv1.UpdateClassNoteReq{
 		StuId:    uc.StudentId,
-		Year:     TmpYear,
-		Semester: TmpSemester,
+		Year:     req.Year,
+		Semester: req.Semester,
 		ClassId:  req.ClassId,
 		Note:     req.Note,
 	})
@@ -390,8 +387,8 @@ func (c *ClassHandler) InsertClassNote(ctx *gin.Context, req UpdateClassNoteReq,
 func (c *ClassHandler) DeleteClassNote(ctx *gin.Context, req DeleteClassNoteReq, uc ijwt.UserClaims) (web.Response, error) {
 	resp, err := c.ClassListClient.DeleteClassNote(ctx, &classlistv1.DeleteClassNoteReq{
 		StuId:    uc.StudentId,
-		Year:     TmpYear,
-		Semester: TmpSemester,
+		Year:     req.Year,
+		Semester: req.Semester,
 		ClassId:  req.ClassId,
 	})
 	if err != nil {

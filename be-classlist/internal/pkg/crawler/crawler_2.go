@@ -67,7 +67,7 @@ func NewClassCrawler2(pg ProxyGetter) *Crawler2 {
 	return c2
 }
 
-func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
 	// 获取代理并将其存入请求的上下文
 	proxyURL := c.pg.GetProxy(ctx)
 
@@ -145,7 +145,7 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	return infos, scs, sum, nil
 }
 
-func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
 	// 获取代理并将其存入请求的上下文
 	proxyURL := c.pg.GetProxy(ctx)
 
@@ -204,17 +204,17 @@ func (c *Crawler2) getys(year, semester string) string {
 	return fmt.Sprintf("%d-%d-%s", y, y+1, semester)
 }
 
-func (c *Crawler2) extractCourses(ctx context.Context, year, semester string, html []byte) ([]*biz.ClassInfo, error) {
+func (c *Crawler2) extractCourses(ctx context.Context, year, semester string, html []byte) ([]*biz.ClassInfoBO, error) {
 	logh := logger.GetLoggerFromCtx(ctx)
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
 	if err != nil {
 		return nil, fmt.Errorf("NewDocumentFromReader err: %v", err)
 	}
 
-	var classInfos []*biz.ClassInfo
+	var classInfos []*biz.ClassInfoBO
 
 	doc.Find("li.qz-toolitiplists").Each(func(i int, selection *goquery.Selection) {
-		var classInfo biz.ClassInfo
+		var classInfo biz.ClassInfoBO
 
 		classInfo.Year, classInfo.Semester = year, semester
 		classInfo.Classname = selection.Find(".qz-tooltipContent-title").Text()
@@ -363,7 +363,7 @@ func (c *Crawler2) parseClassRoom(s string) string {
 	return match
 }
 
-func extractGraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+func extractGraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
 	var p fastjson.Parser
 	v, err := p.ParseBytes(rawJson)
 	if err != nil {
@@ -375,13 +375,13 @@ func extractGraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassIn
 	}
 	length := len(kbList.GetArray())
 
-	infos := make([]*biz.ClassInfo, 0, length)
+	infos := make([]*biz.ClassInfoBO, 0, length)
 	Scs := make([]*biz.StudentCourse, 0, length)
 	sum := v.GetInt("xsxx", "KCMS")
 
 	for _, kb := range kbList.GetArray() {
 		// 课程信息
-		info := &biz.ClassInfo{}
+		info := &biz.ClassInfoBO{}
 		info.Day, _ = strconv.ParseInt(string(kb.GetStringBytes("xqj")), 10, 64) // 星期几
 		info.Teacher = string(kb.GetStringBytes("xm"))
 		info.Where = string(kb.GetStringBytes("cdmc"))                           // 上课地点

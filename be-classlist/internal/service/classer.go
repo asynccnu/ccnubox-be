@@ -55,7 +55,7 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		return &pb.GetClassResponse{}, errcode.ErrParam
 	}
 	pclasses := make([]*pb.Class, 0)
-	classInfos, lastTime, err := s.clu.GetClasses(ctx, req.GetStuId(), req.Year, req.Semester, req.GetRefresh())
+	classInfos, lastTime, err := s.clu.GetClasses(ctx, req.StuId, req.Year, req.Semester, req.Refresh)
 	if err != nil {
 		return &pb.GetClassResponse{}, err
 	}
@@ -63,12 +63,8 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		pinfo := new(pb.ClassInfo)
 
 		_ = copier.Copy(&pinfo, &classInfo)
-		// 优先使用 biz 层设置的 IsOfficial
-		pinfo.IsOfficial = classInfo.IsOfficial
-		// 当 IsOfficial 为 false 时，可能是默认值或手动添加课程，回退到数据库判断以确保本地读取的正确性
-		if !pinfo.IsOfficial {
-			pinfo.IsOfficial = s.clu.IsClassOfficial(ctx, req.GetStuId(), req.GetYear(), req.GetSemester(), classInfo.ID)
-		}
+		pinfo.IsOfficial = classInfo.MetaData.IsOfficial
+		pinfo.Note = classInfo.MetaData.Note
 
 		pclass := &pb.Class{
 			Info: pinfo,
@@ -180,7 +176,7 @@ func (s *ClassListService) UpdateClass(ctx context.Context, req *pb.UpdateClassR
 		return &pb.UpdateClassResponse{}, errcode.ErrParam
 	}
 
-	oldclassInfo, err := s.clu.SearchClass(ctx, req.GetClassId())
+	oldclassInfo, err := s.clu.GetSpecificClassInfo(ctx, req.StuId, req.Year, req.Semester, req.ClassId)
 	if err != nil {
 		return &pb.UpdateClassResponse{
 			Msg: "修改失败",
@@ -242,7 +238,7 @@ func (s *ClassListService) GetRecycleBinClassInfos(ctx context.Context, req *pb.
 	if !tool.CheckSY(req.Semester, req.Year) {
 		return &pb.GetRecycleBinClassResponse{}, errcode.ErrParam
 	}
-	classInfos, err := s.clu.GetRecycledClassInfos(ctx, req.GetStuId(), req.GetYear(), req.GetSemester())
+	classInfos, err := s.clu.GetRecycledClassInfos(ctx, req.StuId, req.Year, req.Semester)
 	if err != nil {
 		return &pb.GetRecycleBinClassResponse{}, err
 	}
@@ -250,7 +246,8 @@ func (s *ClassListService) GetRecycleBinClassInfos(ctx context.Context, req *pb.
 	for _, classInfo := range classInfos {
 		pbClassInfo := new(pb.ClassInfo)
 		_ = copier.Copy(&pbClassInfo, &classInfo)
-		pbClassInfo.Note = s.clu.GetClassNote(ctx, req.GetStuId(), req.GetYear(), req.GetSemester(), classInfo.ID)
+		pbClassInfo.IsOfficial = classInfo.MetaData.IsOfficial
+		pbClassInfo.Note = classInfo.MetaData.Note
 		pbClassInfos = append(pbClassInfos, pbClassInfo)
 	}
 	return &pb.GetRecycleBinClassResponse{

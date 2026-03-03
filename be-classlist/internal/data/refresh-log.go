@@ -2,73 +2,32 @@ package data
 
 import (
 	"context"
-	"errors"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"gorm.io/gorm"
 )
 
 type RefreshLogRepo struct {
-	db              *gorm.DB
-	refreshInterval time.Duration // 刷新间隔,当前时间距离上次刷新时间超过该值时,需要重新刷新
+	db *gorm.DB
 }
 
-func NewRefreshLogRepo(db *gorm.DB, cf *conf.Server) *RefreshLogRepo {
-	refreshInterval := time.Minute
-	if cf.RefreshInterval > 0 {
-		refreshInterval = time.Duration(cf.RefreshInterval) * time.Second
-	}
+func NewRefreshLogRepo(db *gorm.DB) *RefreshLogRepo {
 	return &RefreshLogRepo{
-		db:              db,
-		refreshInterval: refreshInterval,
+		db: db,
 	}
 }
 
 // InsertRefreshLog 插入一条刷新记录
-func (r *RefreshLogRepo) InsertRefreshLog(ctx context.Context, stuID, year, semester string) (uint64, error) {
-
+func (r *RefreshLogRepo) InsertRefreshLog(ctx context.Context, stuID, year, semester string, logTime time.Time) (uint64, error) {
 	refreshLog := do.ClassRefreshLog{
 		StuID:     stuID,
 		Year:      year,
 		Semester:  semester,
 		Status:    do.Pending,
-		UpdatedAt: time.Now(),
+		UpdatedAt: logTime,
 	}
-
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		//先检查下stuID-year-semester是否存在
-		//如果不存在,则插入
-		//如果存在的记录的更新时间距离当前时间超过刷新间隔,则新建一条记录
-		//如果存在的记录的更新时间距离当前时间未超过刷新间隔,如果记录的状态是Pending或Ready,则返回错误
-		//如果存在的记录的状态是Failed,则新建一条记录
-		var records struct {
-			Status    string
-			UpdatedAt time.Time
-		}
-
-		err := tx.Table(do.ClassRefreshLogTableName).Select("status,updated_at").
-			Where("stu_id = ? and year = ? and semester = ?", stuID, year, semester).
-			Order("updated_at desc").
-			First(&records).Error
-
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return r.createRefreshLog(ctx, tx, &refreshLog)
-		}
-		if err != nil {
-			return err
-		}
-
-		if records.UpdatedAt.Before(refreshLog.UpdatedAt.Add(-r.refreshInterval)) {
-			return r.createRefreshLog(ctx, tx, &refreshLog)
-		}
-		if records.Status == do.Failed {
-			return r.createRefreshLog(ctx, tx, &refreshLog)
-		}
-		return errors.New("there are pending or ready records recently")
-	})
-
+	err := r.createRefreshLog(ctx, r.db, &refreshLog)
 	if err != nil {
 		return 0, err
 	}
@@ -80,11 +39,11 @@ func (r *RefreshLogRepo) UpdateRefreshLogStatus(ctx context.Context, logID uint6
 		Where("id = ?", logID).Update("status", status).Error
 }
 
-// SearchRefreshLog 查找在refreshInterval时间内的最新的一条记录
-func (r *RefreshLogRepo) SearchRefreshLog(ctx context.Context, stuID, year, semester string) (*do.ClassRefreshLog, error) {
+// SearchNewestRefreshLog 查找在指定时间内的最新的一条记录
+func (r *RefreshLogRepo) SearchNewestRefreshLog(ctx context.Context, stuID, year, semester string, endTime time.Time) (*do.ClassRefreshLog, error) {
 	var refreshLog do.ClassRefreshLog
 	err := r.db.WithContext(ctx).Table(do.ClassRefreshLogTableName).
-		Where("stu_id = ? and year = ? and semester = ? and updated_at > ?", stuID, year, semester, time.Now().Add(-r.refreshInterval)).
+		Where("stu_id = ? and year = ? and semester = ? and updated_at < ?", stuID, year, semester, endTime).
 		Order("updated_at desc").First(&refreshLog).Error
 	if err != nil {
 		return nil, err

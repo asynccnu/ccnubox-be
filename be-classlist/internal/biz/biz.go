@@ -9,7 +9,7 @@ import (
 )
 
 // ProviderSet is biz providers.
-var ProviderSet = wire.NewSet(NewClassUsecase,NewCronTaskExecute)
+var ProviderSet = wire.NewSet(NewClassUsecase)
 
 type ClassCrawler interface {
 	// 获取本科生的课表
@@ -20,11 +20,12 @@ type ClassCrawler interface {
 
 type ClassRepo interface {
 	GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*ClassInfo, error)
-	GetSpecificClassInfo(ctx context.Context, classID string) (*ClassInfo, error)
+	GetSpecificClassInfo(ctx context.Context, stuID, year, semester, classID string) (*ClassInfo, error)
 	AddClass(ctx context.Context, stuID, year, semester string, classInfo *ClassInfo, sc *StudentCourse) error
-	DeleteClass(ctx context.Context, stuID, year, semester string, classID []string) error
-	GetRecycledIds(ctx context.Context, stuID, year, semester string) ([]string, error)
-	IsRecycledCourseManual(ctx context.Context, stuID, year, semester, classID string) bool
+	DeleteClass(ctx context.Context, stuID, year, semester string, classInfo *ClassInfo) error
+
+	GetAllRecycleClassInfos(ctx context.Context, stuID, year, semester string) ([]*ClassInfo, error)
+	GetRecycleClassInfo(ctx context.Context, stuID, year, semester, classID string) (*ClassInfo, bool)
 	CheckClassIdIsInRecycledBin(ctx context.Context, stuID, year, semester, classID string) bool
 	RemoveClassFromRecycledBin(ctx context.Context, stuID, year, semester, classID string) error
 	UpdateClass(ctx context.Context, stuID, year, semester, oldClassID string,
@@ -33,10 +34,10 @@ type ClassRepo interface {
 	CheckSCIdsExist(ctx context.Context, stuID, year, semester, classID string) bool
 	GetAllSchoolClassInfos(ctx context.Context, year, semester string, cursor time.Time) []*ClassInfo
 	GetAddedClasses(ctx context.Context, stuID, year, semester string) ([]*ClassInfo, error)
-	IsClassOfficial(ctx context.Context, stuID, year, semester, classID string) bool
-	GetClassNote(ctx context.Context, stuID, year, semester, classID string) string
+	GetClassMetaData(ctx context.Context, stuID, year, semester string, classID ...string) map[string]ClassMetaData
 	UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error
 	GetClassNatures(ctx context.Context, stuID string) []string
+	GetStudentIDs(ctx context.Context, lastStuID string, size int) ([]string, error)
 }
 
 type JxbRepo interface {
@@ -51,9 +52,9 @@ type CCNUServiceProxy interface {
 }
 
 type RefreshLogRepo interface {
-	InsertRefreshLog(ctx context.Context, stuID, year, semester string) (uint64, error)
+	InsertRefreshLog(ctx context.Context, stuID, year, semester string, logTime time.Time) (uint64, error)
 	UpdateRefreshLogStatus(ctx context.Context, logID uint64, status string) error
-	SearchRefreshLog(ctx context.Context, stuID, year, semester string) (*do.ClassRefreshLog, error)
+	SearchNewestRefreshLog(ctx context.Context, stuID, year, semester string, endTime time.Time) (*do.ClassRefreshLog, error)
 	GetRefreshLogByID(ctx context.Context, logID uint64) (*do.ClassRefreshLog, error)
 	GetLastRefreshTime(ctx context.Context, stuID, year, semester string, beforeTime time.Time) *time.Time
 	DeleteRedundantLogs(ctx context.Context, stuID, year, semester string) error
@@ -63,8 +64,4 @@ type DelayQueue interface {
 	Send(ctx context.Context, key, value []byte) error
 	Consume(groupID string, f func(ctx context.Context, key []byte, value []byte)) error
 	Close()
-}
-
-type GetStudentIDer interface{
-	GetStudentIDs(ctx context.Context, lastStuID string,size int) ([]string, error)
 }

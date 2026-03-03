@@ -84,7 +84,7 @@ func (c ClassInfoDBRepo) GetClassInfos(ctx context.Context, stuId, xnm, xqm stri
 	db := c.data.Mysql.WithContext(ctx)
 	cla := make([]*do.ClassInfo, 0)
 
-	err := db.Table(do.ClassInfoTableName).Select(fmt.Sprintf("%s.*,%s.note", do.ClassInfoTableName, do.StudentCourseTableName)).
+	err := db.Table(do.ClassInfoTableName).Select(fmt.Sprintf("%s.*", do.ClassInfoTableName)).
 		Joins(fmt.Sprintf(
 			`LEFT JOIN %s ON %s.id = %s.cla_id`, do.StudentCourseTableName, do.ClassInfoTableName, do.StudentCourseTableName,
 		)).

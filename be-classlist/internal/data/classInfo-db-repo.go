@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"gorm.io/gorm"
@@ -23,13 +22,13 @@ func NewClassInfoDBRepo(data *Data) *ClassInfoDBRepo {
 	}
 }
 
-func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*do.ClassInfo) error {
+func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*ClassInfo) error {
 	logh := logger.GetLoggerFromCtx(ctx)
 	if len(classInfos) == 0 {
 		return nil
 	}
 
-	db := c.data.DB(ctx).Table(do.ClassInfoTableName).WithContext(ctx)
+	db := c.data.DB(ctx).Table(ClassInfoTableName).WithContext(ctx)
 	err := db.Debug().
 		Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "id"}},
@@ -40,37 +39,37 @@ func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*d
 		}).
 		Create(&classInfos).Error
 	if err != nil {
-		logh.Errorf("Mysql:create %v in %s failed: %v", classInfos, do.ClassInfoTableName, err)
+		logh.Errorf("Mysql:create %v in %s failed: %v", classInfos, ClassInfoTableName, err)
 		return err
 	}
 	return nil
 }
 
-func (c ClassInfoDBRepo) AddClassInfoToDB(ctx context.Context, classInfo *do.ClassInfo) error {
+func (c ClassInfoDBRepo) AddClassInfoToDB(ctx context.Context, classInfo *ClassInfo) error {
 	logh := logger.GetLoggerFromCtx(ctx)
 	if classInfo == nil {
 		return nil
 	}
 	if classInfo.Day < 1 || classInfo.Day > 7 {
-		logh.Errorf("Mysql:create %v in %s failed: %v", classInfo, do.ClassInfoTableName, fmt.Errorf("date must between 1 and 7"))
+		logh.Errorf("Mysql:create %v in %s failed: %v", classInfo, ClassInfoTableName, fmt.Errorf("date must between 1 and 7"))
 		return errcode.ErrClassUpdate
 	}
-	db := c.data.DB(ctx).Table(do.ClassInfoTableName).WithContext(ctx)
+	db := c.data.DB(ctx).Table(ClassInfoTableName).WithContext(ctx)
 	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&classInfo).Error
 	if err != nil {
-		logh.Errorf("Mysql:create %v in %s failed: %v", classInfo, do.ClassInfoTableName, err)
+		logh.Errorf("Mysql:create %v in %s failed: %v", classInfo, ClassInfoTableName, err)
 		return errcode.ErrClassUpdate
 	}
 	return nil
 }
 
-func (c ClassInfoDBRepo) GetClassInfoFromDB(ctx context.Context, ID string) (*do.ClassInfo, error) {
+func (c ClassInfoDBRepo) GetClassInfoFromDB(ctx context.Context, ID string) (*ClassInfo, error) {
 	logh := logger.GetLoggerFromCtx(ctx)
-	db := c.data.Mysql.Table(do.ClassInfoTableName).WithContext(ctx)
-	cla := &do.ClassInfo{}
+	db := c.data.Mysql.Table(ClassInfoTableName).WithContext(ctx)
+	cla := &ClassInfo{}
 	err := db.Where("id =?", ID).First(cla).Error
 	if err != nil {
-		logh.Errorf("Mysql:find classinfo in %s where (id = %s) failed: %v", do.ClassInfoTableName, ID, err)
+		logh.Errorf("Mysql:find classinfo in %s where (id = %s) failed: %v", ClassInfoTableName, ID, err)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errcode.ErrClassNotFound
 		}
@@ -79,17 +78,17 @@ func (c ClassInfoDBRepo) GetClassInfoFromDB(ctx context.Context, ID string) (*do
 	return cla, err
 }
 
-func (c ClassInfoDBRepo) GetClassInfos(ctx context.Context, stuId, xnm, xqm string) ([]*do.ClassInfo, error) {
+func (c ClassInfoDBRepo) GetClassInfos(ctx context.Context, stuId, xnm, xqm string) ([]*ClassInfo, error) {
 	logh := logger.GetLoggerFromCtx(ctx)
 	db := c.data.Mysql.WithContext(ctx)
-	cla := make([]*do.ClassInfo, 0)
+	cla := make([]*ClassInfo, 0)
 
-	err := db.Table(do.ClassInfoTableName).Select(fmt.Sprintf("%s.*", do.ClassInfoTableName)).
+	err := db.Table(ClassInfoTableName).Select(fmt.Sprintf("%s.*", ClassInfoTableName)).
 		Joins(fmt.Sprintf(
-			`LEFT JOIN %s ON %s.id = %s.cla_id`, do.StudentCourseTableName, do.ClassInfoTableName, do.StudentCourseTableName,
+			`LEFT JOIN %s ON %s.id = %s.cla_id`, StudentCourseTableName, ClassInfoTableName, StudentCourseTableName,
 		)).
 		Where(fmt.Sprintf(
-			`%s.stu_id = ? AND %s.year = ? AND %s.semester = ?`, do.StudentCourseTableName, do.StudentCourseTableName, do.StudentCourseTableName),
+			`%s.stu_id = ? AND %s.year = ? AND %s.semester = ?`, StudentCourseTableName, StudentCourseTableName, StudentCourseTableName),
 			stuId, xnm, xqm,
 		).
 		Find(&cla).Error
@@ -105,11 +104,11 @@ func (c ClassInfoDBRepo) GetClassInfos(ctx context.Context, stuId, xnm, xqm stri
 	return cla, nil
 }
 
-func (c ClassInfoDBRepo) GetAllClassInfos(ctx context.Context, xnm, xqm string, cursor time.Time) ([]*do.ClassInfo, error) {
+func (c ClassInfoDBRepo) GetAllClassInfos(ctx context.Context, xnm, xqm string, cursor time.Time) ([]*ClassInfo, error) {
 	logh := logger.GetLoggerFromCtx(ctx)
 	db := c.data.Mysql.WithContext(ctx)
-	cla := make([]*do.ClassInfo, 0)
-	err := db.Table(do.ClassInfoTableName).
+	cla := make([]*ClassInfo, 0)
+	err := db.Table(ClassInfoTableName).
 		Where("created_at > ? and id in (select distinct cla_id from student_course where year = ? and semester = ? and is_manually_added = ?)",
 			cursor, xnm, xqm, false).
 		Order("created_at ASC").
@@ -123,16 +122,16 @@ func (c ClassInfoDBRepo) GetAllClassInfos(ctx context.Context, xnm, xqm string, 
 	return cla, nil
 }
 
-func (c ClassInfoDBRepo) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm string) ([]*do.ClassInfo, error) {
+func (c ClassInfoDBRepo) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm string) ([]*ClassInfo, error) {
 	logh := logger.GetLoggerFromCtx(ctx)
 	db := c.data.Mysql.WithContext(ctx)
-	cla := make([]*do.ClassInfo, 0)
-	err := db.Table(do.ClassInfoTableName).Select(fmt.Sprintf("%s.*", do.ClassInfoTableName)).
+	cla := make([]*ClassInfo, 0)
+	err := db.Table(ClassInfoTableName).Select(fmt.Sprintf("%s.*", ClassInfoTableName)).
 		Joins(fmt.Sprintf(
-			`LEFT JOIN %s ON %s.id = %s.cla_id`, do.StudentCourseTableName, do.ClassInfoTableName, do.StudentCourseTableName,
+			`LEFT JOIN %s ON %s.id = %s.cla_id`, StudentCourseTableName, ClassInfoTableName, StudentCourseTableName,
 		)).
 		Where(fmt.Sprintf(
-			`%s.stu_id = ? AND %s.year = ? AND %s.semester = ? AND %s.is_manually_added =?`, do.StudentCourseTableName, do.StudentCourseTableName, do.StudentCourseTableName, do.StudentCourseTableName),
+			`%s.stu_id = ? AND %s.year = ? AND %s.semester = ? AND %s.is_manually_added =?`, StudentCourseTableName, StudentCourseTableName, StudentCourseTableName, StudentCourseTableName),
 			stuID, xnm, xqm, true,
 		).Find(&cla).Error
 	if err != nil {
@@ -149,12 +148,12 @@ func (c ClassInfoDBRepo) GetClassNaturesFromDB(ctx context.Context, stuID string
 	var natures []string
 
 	subQuery := db.
-		Table(do.StudentCourseTableName).
+		Table(StudentCourseTableName).
 		Select("cla_id").
 		Where("stu_id = ?", stuID)
 
 	err := db.
-		Table(do.ClassInfoTableName).
+		Table(ClassInfoTableName).
 		Distinct("nature").
 		Where("id IN (?) AND nature IS NOT NULL", subQuery).
 		Pluck("nature", &natures).Error

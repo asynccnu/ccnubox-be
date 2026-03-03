@@ -63,7 +63,7 @@ func NewClassCrawler(pg ProxyGetter) *Crawler {
 }
 
 // GetClassInfoForGraduateStudent 获取研究生课程信息
-func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
 	// 获取代理并将其存入请求的上下文
 	proxyURL := c.pg.GetProxy(ctx)
 
@@ -127,7 +127,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 }
 
 // GetClassInfosForUndergraduate  获取本科生课程信息
-func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
 	// 获取代理并将其存入请求的上下文
 	proxyURL := c.pg.GetProxy(ctx)
 
@@ -192,7 +192,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	return infos, Scs, sum, nil
 }
 
-func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassInfo, []*biz.StudentCourse, int, error) {
+func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
 	var p fastjson.Parser
 	v, err := p.ParseBytes(rawJson)
 	if err != nil {
@@ -204,7 +204,7 @@ func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.Cl
 	}
 	length := len(kbList.GetArray())
 
-	infos := make([]*biz.ClassInfo, 0, length)
+	infos := make([]*biz.ClassInfoBO, 0, length)
 	Scs := make([]*biz.StudentCourse, 0, length)
 	sum := v.GetInt("xsxx", "KCMS")
 
@@ -214,7 +214,7 @@ func extractUndergraduateData(rawJson []byte, stuID, xnm, xqm string) ([]*biz.Cl
 			continue
 		}
 		// 课程信息
-		info := &biz.ClassInfo{}
+		info := &biz.ClassInfoBO{}
 		info.Day, _ = strconv.ParseInt(string(kb.GetStringBytes("xqj")), 10, 64) // 星期几
 		info.Teacher = string(kb.GetStringBytes("xm"))
 		info.Where = string(kb.GetStringBytes("cdmc"))                           // 上课地点

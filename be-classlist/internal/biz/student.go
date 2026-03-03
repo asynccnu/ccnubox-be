@@ -4,11 +4,11 @@ import "context"
 
 // Student 学生接口
 type Student interface {
-	GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfo, []*StudentCourse, int, error)
+	GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfoBO, []*StudentCourse, int, error)
 }
 type Undergraduate struct{}
 
-func (u *Undergraduate) GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfo, []*StudentCourse, int, error) {
+func (u *Undergraduate) GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfoBO, []*StudentCourse, int, error) {
 	infos, scs, sum, err := craw.GetClassInfosForUndergraduate(ctx, stuID, year, semester, cookie)
 	if err != nil {
 		return nil, nil, -1, err
@@ -18,7 +18,7 @@ func (u *Undergraduate) GetClass(ctx context.Context, stuID, year, semester, coo
 
 type GraduateStudent struct{}
 
-func (g *GraduateStudent) GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfo, []*StudentCourse, int, error) {
+func (g *GraduateStudent) GetClass(ctx context.Context, stuID, year, semester, cookie string, craw ClassCrawler) ([]*ClassInfoBO, []*StudentCourse, int, error) {
 	infos, scs, sum, err := craw.GetClassInfoForGraduateStudent(ctx, stuID, year, semester, cookie)
 	if err != nil {
 		return nil, nil, -1, err

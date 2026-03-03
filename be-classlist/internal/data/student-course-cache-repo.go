@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
@@ -18,8 +17,8 @@ type StudentAndCourseCacheRepo struct {
 }
 
 type RecycleClassInfo struct {
-	Info     do.ClassInfo     `json:"info"`
-	MetaData do.ClassMetaData `json:"metaData"`
+	Info     ClassInfo     `json:"info"`
+	MetaData ClassMetaData `json:"metaData"`
 }
 
 func NewStudentAndCourseCacheRepo(rdb *redis.Client, cf *conf.Server) *StudentAndCourseCacheRepo {

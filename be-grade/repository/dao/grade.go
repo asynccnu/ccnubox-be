@@ -63,29 +63,21 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 		return nil, nil
 	}
 
-	type pair struct {
-		StudentId string
-		JxbId     string
-	}
-	pairs := make([]pair, 0, len(grades))
-
+	values := make([][]interface{}, 0, len(grades))
 	// 构造联合键并规格化 ID
 	for i := range grades {
 		grades[i].JxbId = normalizeJxbId(&grades[i])
-		pairs = append(pairs, pair{
-			StudentId: grades[i].StudentId,
-			JxbId:     grades[i].JxbId,
-		})
+		values = append(values, []interface{}{grades[i].StudentId, grades[i].JxbId})
 	}
 
 	// 1. 查询已有记录用于比对
 	var existingGrades []model.Grade
 	// 取消 CONCAT 走索引
 	err = d.db.WithContext(ctx).
-		Where("(student_id, jxb_id) IN ?", pairs).
+		Where("(student_id, jxb_id) IN ?", values).
 		Find(&existingGrades).Error
 	if err != nil {
-		return nil, errorx.Errorf("dao: BatchInsertOrUpdate find existing records failed, count: %d, err: %w", len(pairs), err)
+		return nil, errorx.Errorf("dao: BatchInsertOrUpdate find existing records failed, count: %d, err: %w", len(values), err)
 	}
 
 	existingMap := make(map[string]model.Grade)

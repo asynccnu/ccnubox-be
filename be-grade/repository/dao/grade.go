@@ -67,7 +67,7 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 		StudentId string
 		JxbId     string
 	}
-	var pairs []pair
+	pairs := make([]pair, 0, len(grades))
 
 	// 构造联合键并规格化 ID
 	for i := range grades {

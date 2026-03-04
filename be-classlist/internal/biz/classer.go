@@ -185,11 +185,8 @@ func (cluc *ClassUsecase) pullClassListTask(
 }
 
 func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*ClassInfoBO, *time.Time, error) {
-	startTime := time.Now() // 函数入口时间
 
 	currentTime := time.Now() // 当前时间
-
-	fmt.Printf("\n--- [DEBUG START] stuID: %s, refresh: %v ---\n", stuID, refresh)
 
 	logh := logger.GetLoggerFromCtx(ctx)
 
@@ -201,72 +198,61 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 	lastRefreshTime := cluc.refreshLogRepo.GetLastRefreshTime(noExpireCtx, stuID, year, semester, Ready, currentTime) // 获取上次刷新成功的时间
 	localClassInfo, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)                             // 获取本地课表
 
-	fmt.Printf("[STEP 1] Local Fetch Done | Count: %d | Total Cost: %v\n", len(localClassInfo), time.Since(startTime))
-
 	// lastRefreshTime==nil说明这个学生在year-semester并没有爬取过,必须走爬虫
 	if lastRefreshTime == nil {
 		waitCrawTime = max(waitCrawTime, 15*time.Second)
 	} else if !refresh && err == nil {
-		fmt.Printf("[EXIT] Direct Return Local | Total Cost: %v\n", time.Since(startTime))
 		return localClassInfo, lastRefreshTime, nil
 	}
 
 	// 2. 状态检查与轮询阶段
-	fmt.Printf("[STEP 2] Checking Refresh Log...\n")
 
 	// 查询最新的一条log
 	refreshLog, err := cluc.refreshLogRepo.SearchNewestRefreshLog(ctx, stuID, year, semester, currentTime)
 	// 如果有记录
 	if err == nil && refreshLog != nil {
-		// 不久前已经爬取过,并且已经更新到数据库了,这里直接返回查询数据库的结果即可
-		if refreshLog.IsReady() && refreshLog.UpdatedAt.After(currentTime.Add(-cluc.refreshInterval)) {
-			fmt.Printf("[EXIT] Log is Ready & Fresh | Total Cost: %v\n", time.Since(startTime))
-			return localClassInfo, lastRefreshTime, nil
-		}
-		// 如果是pending,说明正在爬取,我们等待一定时间,如果没有结果,则直接返回数据库的结果
-		// 如果一段时间后是ready,我们重新走数据库
-		if refreshLog.IsPending() {
-			pollStart := time.Now()
-			fmt.Printf("[STEP 2.1] Status is Pending, Starting Poll (Max: %v)...\n", waitCrawTime/2)
-
-			pollingTime := 0 * time.Second
-			refreshLogID := refreshLog.ID
-			// 轮询一段时间，直到当前这个refreshLog退出pending状态
-			for pollingTime < waitCrawTime/2 && refreshLog != nil && refreshLog.IsPending() {
-				refreshLog, _ = cluc.refreshLogRepo.GetRefreshLogByID(ctx, refreshLogID)
-				time.Sleep(200 * time.Millisecond) // 显式休眠
-				pollingTime += 200 * time.Millisecond
-			}
-
-			fmt.Printf("[STEP 2.2] Poll Finished | Poll Cost: %v | Total Cost: %v\n", time.Since(pollStart), time.Since(startTime))
-
-			// 如果refreshLog是ready的，再走一遍数据库，就可以获取刚刚成功的爬虫的结果，而不用再发起一次爬虫请求
-			if refreshLog != nil && refreshLog.IsReady() {
-				newLocalClassInfo, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
-				if err != nil {
-					return localClassInfo, lastRefreshTime, nil
-				}
-				return newLocalClassInfo, &refreshLog.UpdatedAt, nil
-			}
-			// 如果等的时间不长（小于一秒），可以发起爬虫，消耗的时间代价不多
-			// 反之就得返回了
-			if pollingTime >= 1*time.Second {
-				fmt.Printf("[EXIT] Polling Timeout Fallback | Total Cost: %v\n", time.Since(startTime))
+		if refreshLog.UpdatedAt.After(currentTime.Add(-cluc.refreshInterval)) {
+			// 不久前已经爬取过,并且已经更新到数据库了,这里直接返回查询数据库的结果即可
+			if refreshLog.IsReady() {
 				return localClassInfo, lastRefreshTime, nil
 			}
+			// 如果是pending,说明正在爬取,我们等待一定时间,如果没有结果,则直接返回数据库的结果
+			// 如果一段时间后是ready,我们重新走数据库
+			if refreshLog.IsPending() {
+				pollingTime := 0 * time.Second
+				refreshLogID := refreshLog.ID
+				// 轮询一段时间，直到当前这个refreshLog退出pending状态
+				for pollingTime < waitCrawTime/2 && refreshLog != nil && refreshLog.IsPending() {
+					refreshLog, _ = cluc.refreshLogRepo.GetRefreshLogByID(ctx, refreshLogID)
+					time.Sleep(200 * time.Millisecond) // 显式休眠
+					pollingTime += 200 * time.Millisecond
+				}
+
+				// 如果refreshLog是ready的，再走一遍数据库，就可以获取刚刚成功的爬虫的结果，而不用再发起一次爬虫请求
+				if refreshLog != nil && refreshLog.IsReady() {
+					newLocalClassInfo, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+					if err != nil {
+						return localClassInfo, lastRefreshTime, nil
+					}
+					return newLocalClassInfo, &refreshLog.UpdatedAt, nil
+				}
+				// 如果等的时间不长（小于一秒），可以发起爬虫，消耗的时间代价不多
+				// 反之就得返回了
+				if pollingTime >= 1*time.Second {
+					return localClassInfo, lastRefreshTime, nil
+				}
+			}
 		}
+
 	}
 
 	// 3. SingleFlight 爬虫阶段
-	fmt.Printf("[STEP 3] Entering SingleFlight (Wait: %v)...\n", waitCrawTime)
-	sfStart := time.Now()
 
 	requestKey := fmt.Sprintf("craw:%s:%s:%s", stuID, year, semester)
 
 	// 使用 SingleFlight 封装爬取逻辑
 	// v 是返回的结果，err 是错误
 	v, err, _ := cluc.sfGroup.Do(requestKey, func() (interface{}, error) {
-		crawStart := time.Now()
 
 		resChan := make(chan []*ClassInfoBO, 1)
 		go func() {
@@ -277,28 +263,21 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 
 		select {
 		case res := <-resChan:
-			fmt.Printf("[STEP 3.1] crawClass Function Done | Cost: %v\n", time.Since(crawStart))
 			if res != nil {
 				return res, nil
 			}
 			return nil, fmt.Errorf("crawler returned empty result")
 		case <-time.After(waitCrawTime):
-			fmt.Printf("[STEP 3.1] crawClass Timeout! | Cost: %v\n", time.Since(crawStart))
 			return nil, fmt.Errorf("crawler timeout")
 		}
 	})
 
-	fmt.Printf("[STEP 3.2] SingleFlight Out | SF Cost: %v | Total Cost: %v\n", time.Since(sfStart), time.Since(startTime))
-
 	// 如果 SingleFlight 成功获取结果
 	if err == nil {
 		if res, ok := v.([]*ClassInfoBO); ok {
-			fmt.Printf("[FINISH] Success | Total Cost: %v\n", time.Since(startTime))
 			return res, &currentTime, nil
 		}
 	}
-
-	fmt.Printf("[FINISH] Fallback Return | Total Cost: %v\n", time.Since(startTime))
 
 	// 如果爬取失败或超时，降级返回本地旧数据
 	return localClassInfo, lastRefreshTime, nil

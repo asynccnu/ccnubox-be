@@ -27,7 +27,7 @@ type ClassRepo interface {
 	CheckSCIdsExist(ctx context.Context, stuID, year, semester, classID string) bool
 	GetAllSchoolClassInfos(ctx context.Context, year, semester string, cursor time.Time) []*ClassInfoBO
 	GetAddedClasses(ctx context.Context, stuID, year, semester string) ([]*ClassInfoBO, error)
-	GetClassMetaData(ctx context.Context, stuID, year, semester string, classID ...string) map[string]ClassMetaDataBO
+	GetClassMetaData(ctx context.Context, stuID, year, semester, classID string) (ClassMetaDataBO, error)
 	UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error
 	GetClassNatures(ctx context.Context, stuID string) []string
 	GetStudentIDs(ctx context.Context, lastStuID string, size int) ([]string, error)

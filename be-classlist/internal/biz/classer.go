@@ -433,18 +433,15 @@ func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester
 	logh := logger.GetLoggerFromCtx(ctx).WithContext(ctx)
 	// 检查下要更新的课程是否是官方课程，如果是，不让更新
 	newSc.IsManuallyAdded = true
-	metas := cluc.classRepo.GetClassMetaData(ctx, stuID, year, semester, oldClassId)
-	if len(metas) == 0 {
+	meta, err := cluc.classRepo.GetClassMetaData(ctx, stuID, year, semester, oldClassId)
+	if err != nil {
 		return errcode.ErrClassDelete
 	}
-	if meta, ok := metas[oldClassId]; ok {
-		if meta.IsOfficial {
-			logh.Error(fmt.Sprintf("class [%v] is official, cannot delete", oldClassId))
-			return fmt.Errorf("class [%v] is official, cannot delete", oldClassId)
-		}
+	if meta.IsOfficial {
+		logh.Error(fmt.Sprintf("class [%v] is official, cannot delete", oldClassId))
+		return fmt.Errorf("class [%v] is official, cannot delete", oldClassId)
 	}
-	err := cluc.classRepo.UpdateClass(ctx, stuID, year, semester, oldClassId, newClassInfo, newSc)
-	if err != nil {
+	if err := cluc.classRepo.UpdateClass(ctx, stuID, year, semester, oldClassId, newClassInfo, newSc); err != nil {
 		return err
 	}
 	return nil
@@ -553,10 +550,6 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 		return nil, nil, -1, err
 	}
 	return ci, sc, sum, nil
-}
-
-func (cluc *ClassUsecase) GetClassMetaData(ctx context.Context, stuID, year, semester, classID string) map[string]ClassMetaDataBO {
-	return cluc.classRepo.GetClassMetaData(ctx, stuID, year, semester, classID)
 }
 
 func (cluc *ClassUsecase) GetClassNatures(ctx context.Context, stuID string) []string {

@@ -27,6 +27,7 @@ var ProviderSet = wire.NewSet(
 	NewClassInfoCacheRepo,
 	NewJxbDBRepo,
 	NewRefreshLogRepo,
+	NewRecycleBinRepo,
 	NewKafkaProducerBuilder,
 	NewKafkaConsumerBuilder,
 	NewDelayKafkaConfig,

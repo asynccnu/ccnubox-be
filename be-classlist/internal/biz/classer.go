@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/common/pkg/cronx"
-	"golang.org/x/sync/singleflight"
-	"golang.org/x/time/rate"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/common/pkg/cronx"
+	"golang.org/x/sync/singleflight"
+	"golang.org/x/time/rate"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
@@ -19,11 +20,12 @@ import (
 )
 
 type ClassUsecase struct {
-	classRepo ClassRepo
-	crawler   ClassCrawler
-	ccnu      CCNUServiceProxy
-	jxbRepo   JxbRepo
-	delayQue  DelayQueue
+	classRepo      ClassRepo
+	crawler        ClassCrawler
+	ccnu           CCNUServiceProxy
+	jxbRepo        JxbRepo
+	recycleBinRepo RecycleBinRepo
+	delayQue       DelayQueue
 
 	refreshLogRepo  RefreshLogRepo
 	waitCrawTime    time.Duration
@@ -43,6 +45,7 @@ func (cluc *ClassUsecase) Close() {
 func NewClassUsecase(classRepo ClassRepo, crawler ClassCrawler,
 	JxbRepo JxbRepo, Cs CCNUServiceProxy,
 	delayQue DelayQueue, refreshLog RefreshLogRepo,
+	recycleBinRepo RecycleBinRepo,
 	cf *conf.Server, log logger.Logger,
 ) (*ClassUsecase, func()) {
 	waitCrawTime := 1200 * time.Millisecond
@@ -66,6 +69,7 @@ func NewClassUsecase(classRepo ClassRepo, crawler ClassCrawler,
 		delayQue:        delayQue,
 		ccnu:            Cs,
 		refreshLogRepo:  refreshLog,
+		recycleBinRepo:  recycleBinRepo,
 		waitCrawTime:    waitCrawTime,
 		waitUserSvcTime: waitUserSvcTime,
 		cronManager:     cronx.NewManager(log),
@@ -189,14 +193,13 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 	currentTime := time.Now() // 当前时间
 
 	logh := logger.GetLoggerFromCtx(ctx)
-
 	noExpireCtx := logger.WithLogger(context.Background(), logh)
 
 	waitCrawTime := cluc.waitCrawTime // 等待爬虫的时间
 
 	// 1. 本地查询阶段
-	lastRefreshTime := cluc.refreshLogRepo.GetLastRefreshTime(noExpireCtx, stuID, year, semester, Ready, currentTime) // 获取上次刷新成功的时间
-	localClassInfo, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)                             // 获取本地课表
+	lastRefreshTime := cluc.refreshLogRepo.GetLastRefreshTime(ctx, stuID, year, semester, Ready, currentTime) // 获取上次刷新成功的时间
+	localClassInfo, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)                     // 获取本地课表
 
 	// lastRefreshTime==nil说明这个学生在year-semester并没有爬取过,必须走爬虫
 	if lastRefreshTime == nil {
@@ -373,6 +376,13 @@ func (cluc *ClassUsecase) DeleteClass(ctx context.Context, stuID, year, semester
 		return errcode.ErrClassDelete
 	}
 
+	// 先添加到回收站
+	err = cluc.recycleBinRepo.RecycleClass(ctx, stuID, year, semester, classId, classInfo)
+	if err != nil {
+		logh.Error(fmt.Sprintf("add class [%v] to recycle bin failed: %v", classId, err))
+		return errcode.ErrClassDelete
+	}
+
 	// 删除课程
 	err = cluc.classRepo.DeleteClass(ctx, stuID, year, semester, classInfo)
 	if err != nil {
@@ -384,7 +394,7 @@ func (cluc *ClassUsecase) DeleteClass(ctx context.Context, stuID, year, semester
 
 func (cluc *ClassUsecase) GetRecycledClassInfos(ctx context.Context, stuID, year, semester string) ([]*ClassInfoBO, error) {
 	// 获取回收站的课程ID
-	classInfos, err := cluc.classRepo.GetAllRecycleClassInfos(ctx, stuID, year, semester)
+	classInfos, err := cluc.recycleBinRepo.ListClasses(ctx, stuID, year, semester)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +402,7 @@ func (cluc *ClassUsecase) GetRecycledClassInfos(ctx context.Context, stuID, year
 }
 
 func (cluc *ClassUsecase) RecoverClassInfo(ctx context.Context, stuID, year, semester, classId string) error {
-	classInfo, ok := cluc.classRepo.GetRecycleClassInfo(ctx, stuID, year, semester, classId)
+	classInfo, ok := cluc.recycleBinRepo.GetClass(ctx, stuID, year, semester, classId)
 	if !ok {
 		return errcode.ErrRecycleBinDoNotHaveIt
 	}
@@ -404,7 +414,7 @@ func (cluc *ClassUsecase) RecoverClassInfo(ctx context.Context, stuID, year, sem
 	}
 
 	// 删除回收站的对应ID
-	err = cluc.classRepo.RemoveClassFromRecycledBin(ctx, stuID, year, semester, classId)
+	err = cluc.recycleBinRepo.RemoveClass(ctx, stuID, year, semester, classId)
 	if err != nil {
 		return errcode.ErrRecover
 	}

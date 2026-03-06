@@ -21,7 +21,7 @@ type ClassInfoCacheRepo struct {
 }
 
 func NewClassInfoCacheRepo(rdb *redis.Client, cf *conf.Server) *ClassInfoCacheRepo {
-	classExpire := 5 * 24 * time.Hour
+	classExpire := 24 * time.Hour
 	if cf.ClassExpiration > 0 {
 		classExpire = time.Duration(cf.ClassExpiration) * time.Second
 	}
@@ -36,8 +36,38 @@ func NewClassInfoCacheRepo(rdb *redis.Client, cf *conf.Server) *ClassInfoCacheRe
 	}
 }
 
+func (c ClassInfoCacheRepo) generateClassInfosKey(stuId, xnm, xqm string) string {
+	return fmt.Sprintf("ClassInfos:%s:%s:%s", stuId, xnm, xqm)
+}
+
+// GetClassInfosFromCache 从缓存中获取课程信息
+func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, stuId, xnm, xqm string) ([]*ClassInfo, error) {
+	key := c.generateClassInfosKey(stuId, xnm, xqm)
+	logh := logger.GetLoggerFromCtx(ctx)
+
+	classInfos := make([]*ClassInfo, 0)
+	val, err := c.rdb.Get(ctx, key).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, fmt.Errorf("error getting classlist info from cache: %w", err)
+		}
+		logh.Errorf("Redis:get key(%s) failed: %v", key, err)
+		return nil, err
+	}
+	if val == RedisNull {
+		return nil, nil
+	}
+	err = json.Unmarshal([]byte(val), &classInfos)
+	if err != nil {
+		logh.Errorf("json Unmarshal (%v) failed: %v", val, err)
+		return nil, err
+	}
+	return classInfos, nil
+}
+
 // AddClaInfosToCache 将整个课表转换成json格式，然后存到缓存中去
-func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, key string, classInfos []*ClassInfo) error {
+func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, stuId, xnm, xqm string, classInfos []*ClassInfo) error {
+	key := c.generateClassInfosKey(stuId, xnm, xqm)
 	var (
 		val    string
 		expire time.Duration
@@ -66,33 +96,13 @@ func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, key string, 
 	return nil
 }
 
-func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, key string) ([]*ClassInfo, error) {
+// DeleteClassInfoFromCache 删除课程信息缓存
+func (c ClassInfoCacheRepo) DeleteClassInfoFromCache(ctx context.Context, stuId, xnm, xqm string) error {
+	key := c.generateClassInfosKey(stuId, xnm, xqm)
 	logh := logger.GetLoggerFromCtx(ctx)
-
-	classInfos := make([]*ClassInfo, 0)
-	val, err := c.rdb.Get(ctx, key).Result()
-	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return nil, fmt.Errorf("error getting classlist info from cache: %w", err)
-		}
-		logh.Errorf("Redis:get key(%s) failed: %v", key, err)
-		return nil, err
-	}
-	if val == RedisNull {
-		return nil, nil
-	}
-	err = json.Unmarshal([]byte(val), &classInfos)
-	if err != nil {
-		logh.Errorf("json Unmarshal (%v) failed: %v", val, err)
-		return nil, err
-	}
-	return classInfos, nil
-}
-
-func (c ClassInfoCacheRepo) DeleteClassInfoFromCache(ctx context.Context, classInfosKey ...string) error {
-	logh := logger.GetLoggerFromCtx(ctx)
-	if err := c.rdb.Del(ctx, classInfosKey...).Err(); err != nil {
-		logh.Errorf("redis delete key{%v} failed: %v", classInfosKey, err)
+	if err := c.rdb.Del(ctx, key).Err(); err != nil {
+		logh.Errorf("redis delete key{%v} failed: %v", key, err)
+		return err
 	}
 	return nil
 }

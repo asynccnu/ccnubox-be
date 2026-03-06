@@ -89,3 +89,16 @@ func ClassRefreshLogDOToBO(log *ClassRefreshLog) *biz.ClassRefreshLogBO {
 		UpdatedAt: log.UpdatedAt,
 	}
 }
+
+// recycleClassInfoToBO converts RecycleClassInfo to ClassInfoBO
+func recycleClassInfoToBO(info RecycleClassInfo) *biz.ClassInfoBO {
+	return classInfoDOToBO(&info.Info, &info.MetaData)
+}
+
+// classInfoBOToRecycleClassInfo converts ClassInfoBO to RecycleClassInfo
+func classInfoBOToRecycleClassInfo(bo *biz.ClassInfoBO) RecycleClassInfo {
+	return RecycleClassInfo{
+		Info:     *classInfoBOToDO(bo),
+		MetaData: metaDataBOToDO(bo.MetaData),
+	}
+}

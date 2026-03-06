@@ -17,6 +17,7 @@ type ClassCrawler interface {
 
 type ClassRepo interface {
 	GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*ClassInfoBO, error)
+	CacheClass(ctx context.Context, stuID, year, semester string)
 	GetSpecificClassInfo(ctx context.Context, stuID, year, semester, classID string) (*ClassInfoBO, error)
 	AddClass(ctx context.Context, stuID, year, semester string, classInfo *ClassInfoBO, sc *StudentCourse) error
 	DeleteClass(ctx context.Context, stuID, year, semester string, classInfo *ClassInfoBO) error

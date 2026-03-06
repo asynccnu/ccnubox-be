@@ -16,7 +16,7 @@ type StudentAndCourseCacheRepo struct {
 }
 
 func NewStudentAndCourseCacheRepo(rdb *redis.Client, cf *conf.Server) *StudentAndCourseCacheRepo {
-	metaDataExpire := 7 * 24 * time.Hour
+	metaDataExpire := 24 * time.Hour
 	if cf.ClassExpiration > 0 {
 		metaDataExpire = time.Duration(cf.ClassExpiration) * time.Second
 	}

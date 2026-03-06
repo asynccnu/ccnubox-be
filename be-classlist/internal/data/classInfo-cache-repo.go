@@ -21,7 +21,7 @@ type ClassInfoCacheRepo struct {
 }
 
 func NewClassInfoCacheRepo(rdb *redis.Client, cf *conf.Server) *ClassInfoCacheRepo {
-	classExpire := 7 * 24 * time.Hour
+	classExpire := 24 * time.Hour
 	if cf.ClassExpiration > 0 {
 		classExpire = time.Duration(cf.ClassExpiration) * time.Second
 	}

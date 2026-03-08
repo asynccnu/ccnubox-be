@@ -1,4 +1,4 @@
-package do
+package data
 
 import (
 	"time"
@@ -9,6 +9,12 @@ import (
 const (
 	StudentCourseTableName string = "student_course"
 )
+
+type ClassMetaData struct {
+	Note            string `json:"note"`
+	IsManuallyAdded bool   `json:"is_manually_added"`
+}
+
 
 type StudentCourse struct {
 	StuID           string    `gorm:"type:varchar(20);column:stu_id;not null;index:idx_stu_id;uniqueIndex:idx_sc,priority:1" json:"stu_id"` //学号

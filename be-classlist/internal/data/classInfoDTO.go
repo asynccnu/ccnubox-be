@@ -1,4 +1,4 @@
-package do
+package data
 
 import (
 	"encoding/json"
@@ -32,10 +32,7 @@ type ClassInfo struct {
 	UpdatedAt time.Time `json:"-"`
 }
 
-type ClassMetaData struct {
-	Note            string `json:"note"`
-	IsManuallyAdded bool   `json:"is_manually_added"`
-}
+
 
 func (ci *ClassInfo) TableName() string {
 	return ClassInfoTableName

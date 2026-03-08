@@ -4,151 +4,131 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
-	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
 
 type StudentAndCourseCacheRepo struct {
-	rdb               *redis.Client
-	recycleExpiration time.Duration
-}
-
-type RecycleClassInfo struct {
-	Info     do.ClassInfo     `json:"info"`
-	MetaData do.ClassMetaData `json:"metaData"`
+	rdb            *redis.Client
+	metaDataExpire time.Duration
 }
 
 func NewStudentAndCourseCacheRepo(rdb *redis.Client, cf *conf.Server) *StudentAndCourseCacheRepo {
-	expire := 30 * 24 * time.Hour
-
-	if cf.RecycleExpiration > 0 {
-		expire = time.Duration(cf.RecycleExpiration) * time.Second
+	metaDataExpire := 24 * time.Hour
+	if cf.ClassExpiration > 0 {
+		metaDataExpire = time.Duration(cf.ClassExpiration) * time.Second
 	}
-
 	return &StudentAndCourseCacheRepo{
-		rdb:               rdb,
-		recycleExpiration: expire,
+		rdb:            rdb,
+		metaDataExpire: metaDataExpire,
 	}
 }
 
-func (s StudentAndCourseCacheRepo) GetRecycledClassInfo(ctx context.Context, key string) ([]RecycleClassInfo, error) {
-	logh := logger.GetLoggerFromCtx(ctx)
-	members, err := s.rdb.SMembers(ctx, key).Result()
+func (s StudentAndCourseCacheRepo) generateClassMetaDataKey(stuId, xnm, xqm string) string {
+	return fmt.Sprintf("ClassMetaData:%s:%s:%s", stuId, xnm, xqm)
+}
+
+// GetClassMetaData 查询单个课程元数据缓存
+func (s StudentAndCourseCacheRepo) GetClassMetaData(ctx context.Context, stuId, claId, xnm, xqm string) (*ClassMetaData, error) {
+	key := s.generateClassMetaDataKey(stuId, xnm, xqm)
+	val, err := s.rdb.HGet(ctx, key, claId).Result()
 	if err != nil {
-		logh.Errorf("redis: getrecycledClassIds key = %v failed: %v", key, err)
 		return nil, err
 	}
 
-	res := make([]RecycleClassInfo, 0, len(members))
-	for _, member := range members {
-		var recycledClass RecycleClassInfo
-		err = json.Unmarshal([]byte(member), &recycledClass)
-		if err != nil {
-			logh.Errorf("redis: getrecycledClassIds key = %v failed: %v", key, err)
-			return nil, err
-		}
-		res = append(res, recycledClass)
+	var metaData ClassMetaData
+	if err := json.Unmarshal([]byte(val), &metaData); err != nil {
+		return nil, err
 	}
-	return res, nil
+
+	return &metaData, nil
 }
 
-func (s StudentAndCourseCacheRepo) CheckRecycleIdIsExist(ctx context.Context, RecycledBinKey, classId string) bool {
-	logh := logger.GetLoggerFromCtx(ctx)
-	members, err := s.rdb.SMembers(ctx, RecycledBinKey).Result()
-	if err != nil {
-		logh.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
-		return false
+// GetSelectClassMetaData 查询学生某学期指定课程的元数据缓存
+func (s StudentAndCourseCacheRepo) GetSelectClassMetaData(ctx context.Context, stuId, xnm, xqm string, claIds []string) (map[string]*ClassMetaData, error) {
+	key := s.generateClassMetaDataKey(stuId, xnm, xqm)
+
+	if len(claIds) == 0 {
+		return map[string]*ClassMetaData{}, nil
 	}
 
-	for _, member := range members {
-		var recycledClass RecycleClassInfo
-		err = json.Unmarshal([]byte(member), &recycledClass)
-		if err != nil {
-			logh.Errorf("redis: get member(%s) failed: %v", member, err)
+	// 使用HMGet批量获取指定的claIds
+	vals, err := s.rdb.HMGet(ctx, key, claIds...).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	metaDataMap := make(map[string]*ClassMetaData)
+	for i, val := range vals {
+		if val == nil {
 			continue
 		}
-		if recycledClass.Info.ID == classId {
-			return true
+		valStr, ok := val.(string)
+		if !ok {
+			continue
 		}
+		var metaData ClassMetaData
+		if err := json.Unmarshal([]byte(valStr), &metaData); err != nil {
+			continue
+		}
+		metaDataMap[claIds[i]] = &metaData
 	}
-	return false
+
+	return metaDataMap, nil
 }
 
-func (s StudentAndCourseCacheRepo) GetRecycleClass(ctx context.Context, RecycledBinKey, classId string) (RecycleClassInfo, bool) {
-	logh := logger.GetLoggerFromCtx(ctx)
-	members, err := s.rdb.SMembers(ctx, RecycledBinKey).Result()
+// SetClassMetaData 设置单个课程元数据缓存
+func (s StudentAndCourseCacheRepo) SetClassMetaData(ctx context.Context, stuId, claId, xnm, xqm string, metaData *ClassMetaData) error {
+	key := s.generateClassMetaDataKey(stuId, xnm, xqm)
+	data, err := json.Marshal(metaData)
 	if err != nil {
-		logh.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
-		return RecycleClassInfo{}, false
+		return err
 	}
-	for _, member := range members {
-		var recycledClass RecycleClassInfo
-		err = json.Unmarshal([]byte(member), &recycledClass)
+
+	if err := s.rdb.HSet(ctx, key, claId, data).Err(); err != nil {
+		return err
+	}
+
+	// 设置过期时间
+	return s.rdb.Expire(ctx, key, s.metaDataExpire).Err()
+}
+
+// SetAllClassMetaData 批量设置课程元数据缓存
+func (s StudentAndCourseCacheRepo) SetAllClassMetaData(ctx context.Context, stuId, xnm, xqm string, metaDataMap map[string]*ClassMetaData) error {
+	key := s.generateClassMetaDataKey(stuId, xnm, xqm)
+
+	// 构建哈希字段
+	fields := make(map[string]interface{}, len(metaDataMap))
+	for claId, metaData := range metaDataMap {
+		data, err := json.Marshal(metaData)
 		if err != nil {
-			logh.Errorf("redis: get member(%s) failed: %v", member, err)
-			continue
+			return err
 		}
-		if recycledClass.Info.ID == classId {
-			return recycledClass, true
-		}
+		fields[claId] = data
 	}
-	return RecycleClassInfo{}, false
-}
 
-func (s StudentAndCourseCacheRepo) RemoveClassFromRecycledBin(ctx context.Context, RecycledBinKey, classId string) error {
-	logh := logger.GetLoggerFromCtx(ctx)
-	members, err := s.rdb.SMembers(ctx, RecycledBinKey).Result()
-	if err != nil {
-		logh.Errorf("redis: get members of set(%s) failed: %v", RecycledBinKey, err)
+	if len(fields) == 0 {
+		return nil
+	}
+
+	if err := s.rdb.HSet(ctx, key, fields).Err(); err != nil {
 		return err
 	}
 
-	for _, member := range members {
-		var recycleInfo RecycleClassInfo
-		if err := json.Unmarshal([]byte(member), &recycleInfo); err != nil {
-			logh.Errorf("redis: unmarshal recycleInfo(%s) failed: %v", member, err)
-			continue
-		}
-		if recycleInfo.Info.ID == classId {
-			if err := s.rdb.SRem(ctx, RecycledBinKey, member).Err(); err != nil {
-				logh.Errorf("redis: remove recycleInfo(%s) failed: %v", member, err)
-				return err
-			}
-			logh.Infof("redis: classId(%s) removed from set(%s)", classId, RecycledBinKey)
-			break
-		}
-	}
-	return nil
+	// 设置过期时间
+	return s.rdb.Expire(ctx, key, s.metaDataExpire).Err()
 }
 
-func (s StudentAndCourseCacheRepo) RecycleClass(ctx context.Context, recycleBinKey string, info RecycleClassInfo) error {
-	logh := logger.GetLoggerFromCtx(ctx)
-
-	jsonVal, err := json.Marshal(info)
-	if err != nil {
-		return err
-	}
-	// 将 ClassId 放入回收站
-	if err := s.rdb.SAdd(ctx, recycleBinKey, jsonVal).Err(); err != nil {
-		logh.Errorf("redis: add class(%v) to set(%s) failed: %v", info, recycleBinKey, err)
-		return err
-	}
-	// 设置回收站的过期时间
-	if err := s.rdb.Expire(ctx, recycleBinKey, s.recycleExpiration).Err(); err != nil {
-		logh.Errorf("redis: set expiration for key(%s) failed: %v", recycleBinKey, err)
-		return err
-	}
-	return nil
+// DeleteClassMetaData 删除单个课程元数据缓存
+func (s StudentAndCourseCacheRepo) DeleteClassMetaData(ctx context.Context, stuId, claId, xnm, xqm string) error {
+	key := s.generateClassMetaDataKey(stuId, xnm, xqm)
+	return s.rdb.HDel(ctx, key, claId).Err()
 }
 
-func (s StudentAndCourseCacheRepo) GenerateRecycleSetName(stuId, xnm, xqm string) string {
-	return fmt.Sprintf("Recycle:%s:%s:%s", stuId, xnm, xqm)
-}
-
-func (s StudentAndCourseCacheRepo) GenerateClassInfosKey(stuId, xnm, xqm string) string {
-	return fmt.Sprintf("ClassInfos:%s:%s:%s", stuId, xnm, xqm)
+// DeleteAllClassMetaData 删除学生某学期所有课程元数据缓存
+func (s StudentAndCourseCacheRepo) DeleteAllClassMetaData(ctx context.Context, stuId, xnm, xqm string) error {
+	key := s.generateClassMetaDataKey(stuId, xnm, xqm)
+	return s.rdb.Del(ctx, key).Err()
 }

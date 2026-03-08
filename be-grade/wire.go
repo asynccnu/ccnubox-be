@@ -34,6 +34,7 @@ func InitApp() App {
 		ioc.InitGRPCxKratosServer,
 		ioc.InitUserClient,
 		ioc.InitProxyClient,
+		ioc.InitHttpProxyClient,
 		ioc.InitCounterClient,
 		ioc.InitFeedClient,
 		ioc.InitClassListClient,

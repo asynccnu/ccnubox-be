@@ -7,7 +7,6 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data/do"
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
@@ -28,6 +27,7 @@ var ProviderSet = wire.NewSet(
 	NewClassInfoCacheRepo,
 	NewJxbDBRepo,
 	NewRefreshLogRepo,
+	NewRecycleBinRepo,
 	NewKafkaProducerBuilder,
 	NewKafkaConsumerBuilder,
 	NewDelayKafkaConfig,
@@ -68,10 +68,10 @@ func NewDB(c *conf.Data, logger logger.Logger, glogger glog.Interface) *gorm.DB 
 		panic(fmt.Sprintf("connect mysql failed:%v", err))
 	}
 	if err := db.AutoMigrate(
-		&do.ClassInfo{},
-		&do.StudentCourse{},
-		&do.Jxb{},
-		&do.ClassRefreshLog{},
+		&ClassInfo{},
+		&StudentCourse{},
+		&Jxb{},
+		&ClassRefreshLog{},
 	); err != nil {
 		panic(fmt.Sprintf("mysql auto migrate failed:%v", err))
 	}

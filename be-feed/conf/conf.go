@@ -34,6 +34,15 @@ type ConsumeConf struct {
 type JPushConf struct {
 	AppKey       string `yaml:"appKey"`
 	MasterSecret string `yaml:"masterSecret"`
+	HUAWEI       struct {
+		Category string `yaml:"category"`
+	}
+	XIAOMI struct {
+		ChannelId string `yaml:"channelId"`
+	}
+	OPPO struct {
+		ChannelId string `yaml:"channelId"`
+	}
 }
 type HolidayControllerConfig struct {
 	DurationTime int64 `yaml:"durationTime"`

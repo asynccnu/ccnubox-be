@@ -171,6 +171,13 @@ func (r RecycleBinRepo) ListClasses(ctx context.Context, stuID, year, semester s
 	return res, nil
 }
 
+// CleanExpired 删除指定索引下 zset 中已经过期的元素
+func (r RecycleBinRepo) CleanExpired(ctx context.Context, stuID, year, semester string) error {
+	idxKey := r.indexKey(stuID, year, semester)
+	now := time.Now().Unix()
+	return cleanExpiredScript.Run(ctx, r.rdb, []string{idxKey}, now).Err()
+}
+
 func (r RecycleBinRepo) HasClass(ctx context.Context, stuID, year, semester, classID string) bool {
 	idxKey := r.indexKey(stuID, year, semester)
 	score, err := r.rdb.ZScore(ctx, idxKey, classID).Result()

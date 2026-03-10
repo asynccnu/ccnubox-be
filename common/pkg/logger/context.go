@@ -31,3 +31,14 @@ func GetLoggerFromCtx(ctx context.Context) Logger {
 	}
 	return ctxLogger
 }
+
+// 给在业务逻辑中获取 logger 提供一个标准方法
+// 当业务上层注入该日志链路其所特殊的字段时，logger 将会被修饰，需要被注入到上下文中传递
+// 所以在后继链路需要从上下文中提取被修饰过的 logger
+// 若上下文不存在被修饰过的 logger，则取默认 logger 注入当前 ctx（存有链路信息）得到新带有链路信息的 logger
+func From(ctx context.Context) Logger {
+	if l := GetLoggerFromCtx(ctx); l != nil {
+		return l
+	}
+	return GlobalLogger.WithContext(ctx)
+}

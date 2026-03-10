@@ -6,4 +6,8 @@ import (
 
 var Provider = wire.NewSet(
 	initLogger,
+	InitDB,
+	InitEtcdClient,
+	InitGRPCxKratosServer,
+	InitOTel,
 )

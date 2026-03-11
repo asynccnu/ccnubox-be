@@ -13,6 +13,8 @@ import (
 	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type GrpcServer interface {
@@ -30,6 +32,7 @@ func InitGRPCxKratosServer(
 	newCfg := *cfg
 	// 添加前缀
 	newCfg.Name = b_grpc.GetNamePrefix(env, newCfg.Name)
+	hs := health.NewServer()
 	s := kgrpc.NewServer(
 		kgrpc.Address(cfg.Addr),
 		kgrpc.Middleware(
@@ -37,10 +40,13 @@ func InitGRPCxKratosServer(
 				recovery.Recovery(),
 				tracing.Server(),
 				LoggingMiddleware(l),
+				HealthMiddleware(hs),
 			}, middlewares...)...,
 		),
 		kgrpc.Timeout(time.Duration(cfg.ServerTimeout)*time.Minute),
 	)
+	healthpb.RegisterHealthServer(s, hs)
+	hs.SetServingStatus(newCfg.Name, healthpb.HealthCheckResponse_SERVING)
 
 	grpcServer.Register(s)
 	return &grpcx.KratosServer{

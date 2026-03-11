@@ -9,6 +9,8 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 // LoggingMiddleware 返回一个日志中间件
@@ -59,6 +61,23 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 				)
 			}
 
+			return reply, err
+		}
+	}
+}
+
+func HealthMiddleware(hs *health.Server) middleware.Middleware {
+	return func(handler middleware.Handler) middleware.Handler {
+		return func(ctx context.Context, req interface{}) (interface{}, error) {
+			tr, ok := transport.FromServerContext(ctx)
+			if !ok {
+				return handler(ctx, req)
+			}
+			serverName := tr.Operation()
+			reply, err := handler(ctx, req)
+			if err != nil {
+				hs.SetServingStatus(serverName, healthpb.HealthCheckResponse_NOT_SERVING)
+			}
 			return reply, err
 		}
 	}

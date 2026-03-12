@@ -35,6 +35,7 @@ func InitGRPCxKratosServer(
 	hs := health.NewServer()
 	s := kgrpc.NewServer(
 		kgrpc.Address(cfg.Addr),
+		kgrpc.CustomHealth(),
 		kgrpc.Middleware(
 			append([]middleware.Middleware{
 				recovery.Recovery(),

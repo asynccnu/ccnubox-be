@@ -24,6 +24,14 @@ func (h *HealthHandler) RegisterRoutes(s *gin.RouterGroup, basicAuthMiddleware g
 	s.GET("/health/ready", basicAuthMiddleware, ginx.Wrap(h.ReadyCheck))
 }
 
+// HealthCheck 健康存活检查
+// @Summary 健康存活检查
+// @Description 返回服务存活状态，使用 BasicAuth 进行验证
+// @Tags health
+// @Produce json
+// @Success 200 {object} web.Response "ok"
+// @Router /health/live [get]
+// @Security BasicAuth
 func (h *HealthHandler) HealthCheck(c *gin.Context) (web.Response, error) {
 	return web.Response{
 		Code: 200,
@@ -31,6 +39,14 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) (web.Response, error) {
 	}, nil
 }
 
+// ReadyCheck 依赖服务就绪检查
+// @Summary 依赖服务就绪检查
+// @Description 检查各依赖服务的健康状态，使用 BasicAuth 进行验证
+// @Tags health
+// @Produce json
+// @Success 200 {object} web.Response{data=map[string]string} "ok"
+// @Router /health/ready [get]
+// @Security BasicAuth
 func (h *HealthHandler) ReadyCheck(c *gin.Context) (web.Response, error) {
 	var res = make(map[string]string)
 	for n, client := range h.clients {
@@ -39,7 +55,7 @@ func (h *HealthHandler) ReadyCheck(c *gin.Context) (web.Response, error) {
 			res[n] = err.Error()
 			log.Printf("服务 %s 健康检查失败: %v", n, err)
 		}
-		res[n] = resp.String()
+		res[n] = resp.Status.String()
 	}
 	return web.Response{
 		Code: 200,

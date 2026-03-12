@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/rsa"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"net/http"
 
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
@@ -151,7 +152,7 @@ func (c *ccnuService) getGradCookie(ctx context.Context, stuId, password string)
 }
 
 func (c *ccnuService) GetLibraryToken(ctx context.Context, studentId, password string, service ccnuv1.LIBRARY_TYPE) (string, error) {
-	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout), c.secret) // 这里简化了，实际可按需加 Proxy
+	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout, proxy.WithoutProxy()), c.secret) // 这里简化了，实际可按需加 Proxy
 	client, ok, err := c.loginUnderGrad(ctx, studentId, password)
 	if err != nil {
 		return "", errorx.Errorf("GetLibraryDiscussionToken loginUnderGrad error: %w", err)
@@ -181,7 +182,7 @@ func (c *ccnuService) GetLibraryToken(ctx context.Context, studentId, password s
 
 func (c *ccnuService) CheckLibraryToken(ctx context.Context, token string, service ccnuv1.LIBRARY_TYPE) (bool, error) {
 	var err error
-	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout), c.secret)
+	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout, proxy.WithoutProxy()), c.secret)
 	var ok bool
 	switch service {
 	case ccnuv1.LIBRARY_TYPE_LIBRARY_SEAT:

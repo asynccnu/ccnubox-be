@@ -32,7 +32,7 @@ func (h *HealthHandler) RegisterRoutes(s *gin.RouterGroup, basicAuthMiddleware g
 // @Success 200 {object} web.Response "ok"
 // @Router /health/live [get]
 // @Security BasicAuth
-func (h *HealthHandler) HealthCheck(c *gin.Context) (web.Response, error) {
+func (h *HealthHandler) HealthCheck(_ *gin.Context) (web.Response, error) {
 	return web.Response{
 		Code: 200,
 		Msg:  "ok",

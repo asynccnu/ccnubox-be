@@ -21,6 +21,7 @@ const (
 	DefaultXqmEnd   = 3
 )
 
+// TODO这部分逻辑可以准备删除,更换新的教务系统后此接口无用
 type RankService interface {
 	GetRankByTerm(ctx context.Context, req *domain.GetRankByTermReq) (*domain.GetRankByTermResp, error)
 	LoadRank(ctx context.Context, req *domain.LoadRankReq)

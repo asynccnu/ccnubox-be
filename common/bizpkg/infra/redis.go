@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func InitRedis(cfg *conf.RedisConf) redis.Cmdable {
+func InitRedis(cfg *conf.RedisConf) *redis.Client {
 	cmd := redis.NewClient(&redis.Options{Addr: cfg.Addr, Password: cfg.Password})
 
 	if err := cmd.Ping(context.Background()).Err(); err != nil {

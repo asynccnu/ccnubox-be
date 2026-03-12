@@ -1,4 +1,4 @@
-package do
+package data
 
 import (
 	"gorm.io/gorm"
@@ -6,10 +6,6 @@ import (
 )
 
 const (
-	Pending = "pending"
-	Ready   = "ready"
-	Failed  = "failed"
-
 	ClassRefreshLogTableName string = "class_refresh_log"
 )
 
@@ -34,14 +30,4 @@ func (c *ClassRefreshLog) BeforeCreate(tx *gorm.DB) (err error) {
 func (c *ClassRefreshLog) BeforeUpdate(tx *gorm.DB) (err error) {
 	c.UpdatedAt = time.Now()
 	return
-}
-
-func (c *ClassRefreshLog) IsPending() bool {
-	return c.Status == Pending
-}
-func (c *ClassRefreshLog) IsReady() bool {
-	return c.Status == Ready
-}
-func (c *ClassRefreshLog) IsFailed() bool {
-	return c.Status == Failed
 }

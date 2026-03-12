@@ -8,6 +8,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/elecprice"
 	"github.com/asynccnu/ccnubox-be/bff/web/feed"
 	"github.com/asynccnu/ccnubox-be/bff/web/grade"
+	"github.com/asynccnu/ccnubox-be/bff/web/health"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/asynccnu/ccnubox-be/bff/web/library"
 	"github.com/asynccnu/ccnubox-be/bff/web/metrics"
@@ -28,6 +29,7 @@ import (
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/redis/go-redis/v9"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 // InitContentHandler 初始化 ContentHandler
@@ -108,4 +110,8 @@ func InitMetricsHandel(l logger.Logger, redisClient redis.Cmdable, prometheus *p
 
 func InitSwagHandler() *swag.SwagHandler {
 	return swag.NewSwagHandler()
+}
+
+func InitHealthHandler(clients map[string]healthpb.HealthClient) *health.HealthHandler {
+	return health.NewHealthHandler(clients)
 }

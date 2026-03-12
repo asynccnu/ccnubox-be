@@ -52,3 +52,4 @@ test.yaml
 
 config-local.yaml
 .editorconfig
+.kiro/

@@ -25,6 +25,7 @@ const (
 	RoomInfosKey         = "ccnubox:elecprice:rooms:%s:%s"
 	ArchitectureInfosKey = "ccnubox:elecprice:architecture:%s"
 	RoomDetailKey        = "ccnubox:elecprice:detail:%s"
+	MeterIdKey           = "ccnubox:elecprice:meterid:%s"
 )
 
 type ElecPriceCache interface {
@@ -36,6 +37,9 @@ type ElecPriceCache interface {
 
 	GetRoomDetail(ctx context.Context, roomName string) (string, error)
 	SetRoomDetail(ctx context.Context, roomName string, detail string) error
+
+	GetMeterId(ctx context.Context, roomId string) (string, error)
+	SetMeterId(ctx context.Context, roomId string, detail string) error
 }
 
 type RedisElecPriceCache struct {
@@ -139,12 +143,48 @@ func (cache *RedisElecPriceCache) SetRoomDetail(ctx context.Context, roomName st
 	return nil
 }
 
+func (cache *RedisElecPriceCache) GetMeterId(ctx context.Context, roomId string) (string, error) {
+	key := cache.meterIdPrefix(roomId)
+
+	val, err := cache.cmd.Get(ctx, key).Result()
+	if err == nil {
+		if !cache.checkEmptyOrNil(val) {
+			return val, nil
+		}
+		return "", ErrValeEmptyOrNil
+	}
+
+	if errors.Is(err, ErrKeyNotExists) {
+		return "", ErrKeyNotExists
+	}
+
+	return "", errorx.Errorf("cache: get meter id failed, roomId: %s, err: %w", roomId, err)
+}
+
+func (cache *RedisElecPriceCache) SetMeterId(ctx context.Context, roomId string, detail string) error {
+	if cache.checkEmptyOrNil(detail) {
+		return ErrValeEmptyOrNil
+	}
+	key := cache.meterIdPrefix(roomId)
+
+	// meterId 一般稳定，采用与 RoomDetail 相同策略：不过期
+	err := cache.cmd.Set(ctx, key, detail, RoomDetailTTL).Err()
+	if err != nil {
+		return errorx.Errorf("cache: set meter id failed, roomId: %s, err: %w", roomId, err)
+	}
+	return nil
+}
+
 func (cache *RedisElecPriceCache) roomInfosPrefix(archId, floor string) string {
 	return fmt.Sprintf(RoomInfosKey, archId, floor)
 }
 
 func (cache *RedisElecPriceCache) roomDetailPrefix(roomName string) string {
 	return fmt.Sprintf(RoomDetailKey, roomName)
+}
+
+func (cache *RedisElecPriceCache) meterIdPrefix(roomId string) string {
+	return fmt.Sprintf(MeterIdKey, roomId)
 }
 
 func (cache *RedisElecPriceCache) architectureInfosPrefix(area string) string {

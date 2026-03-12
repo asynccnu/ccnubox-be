@@ -11,6 +11,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/tool"
 	pb "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1" // 此处改成了api中的,方便其他服务调用.
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	ctool "github.com/asynccnu/ccnubox-be/common/tool"
 	"github.com/jinzhu/copier"
 )
 
@@ -19,15 +20,13 @@ type ClassListService struct {
 	clu       *biz.ClassUsecase
 	schoolday *conf.SchoolDay
 	logger    logger.Logger
-	defaults  *conf.Defaults
 }
 
-func NewClasserService(clu *biz.ClassUsecase, day *conf.SchoolDay, logger logger.Logger, defaults *conf.Defaults) *ClassListService {
+func NewClasserService(clu *biz.ClassUsecase, day *conf.SchoolDay, logger logger.Logger) *ClassListService {
 	return &ClassListService{
 		clu:       clu,
 		logger:    logger,
 		schoolday: day,
-		defaults:  defaults,
 	}
 }
 
@@ -40,44 +39,35 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 	)
 	ctx = logger.WithLogger(ctx, hlog)
 
-	if s.defaults == nil {
-		hlog.Warn("default 参数未在配置文件中配置")
-	}
+	defaultYear, defaultSemester := ctool.GetCurrentAcademicYearAndSemesterStr(time.Now())
 
 	if req.GetYear() == "" {
-		req.Year = s.defaults.Year
+		req.Year = defaultYear
 		hlog.Warn(fmt.Sprintf("获取 Year 参数为空，使用默认值 %s", req.Year))
 	}
 
 	if req.GetSemester() == "" {
-		req.Semester = s.defaults.Semester
+		req.Semester = defaultSemester
 		hlog.Warn(fmt.Sprintf("获取 Semester 参数为空，使用默认值 %s", req.Semester))
 	}
 
 	if !tool.CheckSY(req.Semester, req.Year) {
 		return &pb.GetClassResponse{}, errcode.ErrParam
 	}
-	pclasses := make([]*pb.Class, 0)
-	classInfos, lastTime, err := s.clu.GetClasses(ctx, req.GetStuId(), req.Year, req.Semester, req.GetRefresh())
+
+	classInfos, lastTime, err := s.clu.GetClasses(ctx, req.StuId, req.Year, req.Semester, req.Refresh)
 	if err != nil {
 		return &pb.GetClassResponse{}, err
 	}
+
+	pbClassInfos := make([]*pb.Class, 0, len(classInfos))
 	for _, classInfo := range classInfos {
-		pinfo := new(pb.ClassInfo)
-
-		_ = copier.Copy(&pinfo, &classInfo)
-		// 优先使用 biz 层设置的 IsOfficial
-		pinfo.IsOfficial = classInfo.IsOfficial
-		// 当 IsOfficial 为 false 时，可能是默认值或手动添加课程，回退到数据库判断以确保本地读取的正确性
-		if !pinfo.IsOfficial {
-			pinfo.IsOfficial = s.clu.IsClassOfficial(ctx, req.GetStuId(), req.GetYear(), req.GetSemester(), classInfo.ID)
-		}
-
-		pclass := &pb.Class{
-			Info: pinfo,
-		}
-		pclasses = append(pclasses, pclass)
+		pbClassInfo := classInfoBOToPb(classInfo)
+		pbClassInfos = append(pbClassInfos, &pb.Class{
+			Info: pbClassInfo,
+		})
 	}
+
 	var lastTimeStamp int64
 
 	if lastTime != nil {
@@ -86,7 +76,7 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		lastTimeStamp = time.Date(1949, 10, 1, 0, 0, 0, 0, time.Local).Unix()
 	}
 	return &pb.GetClassResponse{
-		Classes:  pclasses,
+		Classes:  pbClassInfos,
 		LastTime: lastTimeStamp,
 	}, nil
 }
@@ -104,7 +94,7 @@ func (s *ClassListService) AddClass(ctx context.Context, req *pb.AddClassRequest
 		return &pb.AddClassResponse{}, errcode.ErrParam
 	}
 	weekDur := tool.FormatWeeks(tool.ParseWeeks(req.Weeks))
-	classInfo := &biz.ClassInfo{
+	classInfo := &biz.ClassInfoBO{
 		Day:          req.GetDay(),
 		Teacher:      req.GetTeacher(),
 		Where:        req.GetWhere(),
@@ -183,7 +173,7 @@ func (s *ClassListService) UpdateClass(ctx context.Context, req *pb.UpdateClassR
 		return &pb.UpdateClassResponse{}, errcode.ErrParam
 	}
 
-	oldclassInfo, err := s.clu.SearchClass(ctx, req.GetClassId())
+	oldclassInfo, err := s.clu.GetSpecificClassInfo(ctx, req.StuId, req.Year, req.Semester, req.ClassId)
 	if err != nil {
 		return &pb.UpdateClassResponse{
 			Msg: "修改失败",
@@ -245,15 +235,13 @@ func (s *ClassListService) GetRecycleBinClassInfos(ctx context.Context, req *pb.
 	if !tool.CheckSY(req.Semester, req.Year) {
 		return &pb.GetRecycleBinClassResponse{}, errcode.ErrParam
 	}
-	classInfos, err := s.clu.GetRecycledClassInfos(ctx, req.GetStuId(), req.GetYear(), req.GetSemester())
+	classInfos, err := s.clu.GetRecycledClassInfos(ctx, req.StuId, req.Year, req.Semester)
 	if err != nil {
 		return &pb.GetRecycleBinClassResponse{}, err
 	}
-	pbClassInfos := make([]*pb.ClassInfo, 0)
+	pbClassInfos := make([]*pb.ClassInfo, 0, len(classInfos))
 	for _, classInfo := range classInfos {
-		pbClassInfo := new(pb.ClassInfo)
-		_ = copier.Copy(&pbClassInfo, &classInfo)
-		pbClassInfo.Note = s.clu.GetClassNote(ctx, req.GetStuId(), req.GetYear(), req.GetSemester(), classInfo.ID)
+		pbClassInfo := classInfoBOToPb(classInfo)
 		pbClassInfos = append(pbClassInfos, pbClassInfo)
 	}
 	return &pb.GetRecycleBinClassResponse{

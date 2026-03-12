@@ -4,16 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
-
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
 
 	"github.com/asynccnu/ccnubox-be/be-class/internal/lock"
 	clog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
@@ -51,57 +47,19 @@ type FreeClassroomBiz struct {
 	cookieCli         CookieClient
 	lockBuilder       lock.Builder
 	cache             Cache
-	p                 proxyv1.ProxyClient
-	httpCli           *http.Client
+	p                 proxy.Client
 }
 
-func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli CookieClient, lockBuilder lock.Builder, cache Cache, p proxyv1.ProxyClient) *FreeClassroomBiz {
-	httpCli := &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:        100,              // 最大空闲连接
-			IdleConnTimeout:     90 * time.Second, // 空闲连接超时
-			TLSHandshakeTimeout: 10 * time.Second, // TLS握手超时
-		},
-		Timeout: 30 * time.Second, // 总请求超时
-	}
-	httpCli.Transport = &http.Transport{
-		MaxIdleConnsPerHost: 20, // 每个主机最大空闲连接
-	}
-
+func NewFreeClassroomBiz(classData ClassData, data FreeClassRoomData, cookieCli CookieClient, lockBuilder lock.Builder, cache Cache, p proxy.Client) *FreeClassroomBiz {
 	fcb := &FreeClassroomBiz{
 		classData:         classData,
 		freeClassRoomData: data,
 		cookieCli:         cookieCli,
-		httpCli:           httpCli,
 		lockBuilder:       lockBuilder,
 		cache:             cache,
 		p:                 p,
 	}
-	fcb.pullProxy()
-	beginCronTask(fcb)
-
 	return fcb
-}
-
-func (f *FreeClassroomBiz) pullProxy() {
-	res, err := f.p.GetProxyAddr(context.Background(), &proxyv1.GetProxyAddrRequest{})
-	if err != nil {
-		log.Error("GetProxyAddr in pull proxy err:", err)
-		res = &proxyv1.GetProxyAddrResponse{Addr: ""}
-	}
-	proxy, err := url.Parse(res.Addr)
-	if err != nil {
-		log.Error("parse proxy in pull proxy addr err:", err)
-	}
-
-	f.httpCli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxy)
-	log.Debug("pull proxy addr success, now: ", time.Now())
-}
-
-func beginCronTask(f *FreeClassroomBiz) {
-	cr := cron.New()
-	_, _ = cr.AddFunc("@every 160s", f.pullProxy)
-	cr.Start()
 }
 
 func (f *FreeClassroomBiz) ClearClassroomOccupancyFromES(ctx context.Context, year, semester string) error {
@@ -444,7 +402,11 @@ func (f *FreeClassroomBiz) sendReqFindFreeClassRoom(campus int, preYear, semeste
 		"Content-Type": []string{"application/x-www-form-urlencoded;charset=UTF-8"},
 		"User-Agent":   []string{"Mozilla/5.0"}, // 精简UA
 	}
-	resp, err := f.httpCli.Do(req)
+	resp, err := f.p.NewProxyClient(
+		proxy.WithProxyTransport(false),
+		proxy.WithRedirectPolicy(proxy.RedirectPolicyDefault),
+		proxy.WithTimeout(30*time.Second),
+	).Do(req)
 	if err != nil {
 		clog.LogPrinter.Errorf("failed to send request: %v", err)
 		return nil, err

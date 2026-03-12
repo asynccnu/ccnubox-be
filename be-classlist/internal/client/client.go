@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var ProviderSet = wire.NewSet(NewEnv, NewUserSvc, InitProxyClient)
+var ProviderSet = wire.NewSet(NewEnv, NewUserSvc, InitProxyClient, InitHttpProxyClient)
 
 // TODO 现在是通过强制手动写死的方式实现的根据环境适配注册中心的注册，需要改成通用的方案
 func InitClient(r *etcd.Registry, name string, env *b_conf.Env) (*grpc.ClientConn, error) {

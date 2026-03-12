@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"time"
 
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
@@ -19,11 +19,11 @@ type CCNUService interface {
 type ccnuService struct {
 	timeout time.Duration
 	l       logger.Logger
-	p       proxyv1.ProxyClient
+	p       proxy.Client
 	secret  string
 }
 
-func NewCCNUService(l logger.Logger, p proxyv1.ProxyClient, secret string) CCNUService {
+func NewCCNUService(l logger.Logger, p proxy.Client, secret string) CCNUService {
 	return &ccnuService{
 		timeout: time.Minute * 2,
 		l:       l,

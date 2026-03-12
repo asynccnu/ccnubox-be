@@ -1,5 +1,10 @@
 package tool
 
+import (
+	"strconv"
+	"time"
+)
+
 type StudentType int
 
 const (
@@ -22,4 +27,33 @@ func ParseStudentType(studentId string) StudentType {
 	default:
 		return Unknown
 	}
+}
+
+// IsGraduated 根据学号判断是否毕业
+// 规则：学号前4位为入学年份
+// 当前年份 - 入学年份 >= 5 认为已毕业
+func IsGraduated(studentId string) bool {
+	// 学号长度不足4位
+	if len(studentId) < 4 {
+		return false
+	}
+
+	// 取前4位作为年份
+	yearStr := studentId[:4]
+
+	// 转换为整数
+	enrollYear, err := strconv.Atoi(yearStr)
+	if err != nil {
+		return false
+	}
+
+	// 获取当前年份
+	currentYear := time.Now().Year()
+
+	// 判断是否毕业
+	if currentYear-enrollYear >= 5 {
+		return true
+	}
+
+	return false
 }

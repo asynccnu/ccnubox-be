@@ -15,7 +15,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-type ShenLongProxy struct {
+type HttpProxy struct {
 	Api          string
 	Addr         string
 	AddrBackup   string
@@ -32,7 +32,7 @@ var (
 	ErrEmptyConfig = errorx.New("proxy: empty configuration")
 )
 
-func (s *ShenLongProxy) GetProxyAddr(_ context.Context) (string, string, error) {
+func (s *HttpProxy) GetProxyAddr(_ context.Context) (string, string, error) {
 	// 未配置代理时返回错误
 	if s.Api == "" {
 		return "", "", ErrEmptyConfig
@@ -55,7 +55,7 @@ func NewProxyService(l logger.Logger, cfg *conf.ServerConf) ProxyService {
 		panic(ErrEmptyConfig)
 	}
 
-	s := &ShenLongProxy{
+	s := &HttpProxy{
 		Api:          cfg.ShenLongConf.API,
 		PollInterval: cfg.ShenLongConf.Interval,
 		RetryCount:   cfg.ShenLongConf.Retry,
@@ -80,12 +80,15 @@ func NewProxyService(l logger.Logger, cfg *conf.ServerConf) ProxyService {
 	return s
 }
 
-func (s *ShenLongProxy) fetchIp() {
+func (s *HttpProxy) fetchIp() {
 	client := &http.Client{Timeout: 10 * time.Second}
+
+	var lastErr error
 
 	for i := 0; i < s.RetryCount; i++ {
 		resp, err := client.Get(s.Api)
 		if err != nil {
+			lastErr = err
 			s.l.Error("proxy: fetch ip request failed",
 				logger.Error(err),
 				logger.Int("attempt", i+1),
@@ -98,6 +101,7 @@ func (s *ShenLongProxy) fetchIp() {
 		_ = resp.Body.Close() // 及时关闭资源，防止 for 循环内泄露
 
 		if err != nil {
+			lastErr = err
 			s.l.Error("proxy: read response body failed",
 				logger.Error(err),
 				logger.Int("attempt", i+1),
@@ -129,6 +133,7 @@ func (s *ShenLongProxy) fetchIp() {
 			}
 		}
 
+		lastErr = fmt.Errorf("invalid response: %s", bodyStr)
 		s.l.Error("proxy: invalid response from api",
 			logger.String("resp", bodyStr),
 			logger.Int("attempt", i+1),
@@ -136,10 +141,22 @@ func (s *ShenLongProxy) fetchIp() {
 		time.Sleep(2 * time.Second)
 	}
 
-	s.l.Error("proxy: all attempts failed to fetch new ip", logger.Int("max_retries", s.RetryCount))
+	s.mu.Lock()
+	s.Addr = ""
+	s.AddrBackup = ""
+	s.mu.Unlock()
+
+	if lastErr != nil {
+		s.l.Error("proxy: all attempts failed to fetch new ip",
+			logger.Int("max_retries", s.RetryCount),
+			logger.Error(lastErr),
+		)
+	} else {
+		s.l.Error("proxy: all attempts failed to fetch new ip", logger.Int("max_retries", s.RetryCount))
+	}
 }
 
-func (s *ShenLongProxy) wrapRes(res string) string {
+func (s *HttpProxy) wrapRes(res string) string {
 	// 代理商返回的 IP 经常带有不可见字符或空白符，需要彻底清理
 	cleanRes := strings.TrimSpace(res)
 	if cleanRes == "" {

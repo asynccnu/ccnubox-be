@@ -25,7 +25,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, defaults *conf.Defaults, zapLogConfigs *conf.ZapLogConfigs) (*kratos.App, func(), error) {
+func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, zapLogConfigs *conf.ZapLogConfigs) (*kratos.App, func(), error) {
 	env := client.NewEnv(string2)
 	logger := data.NewLogger(zapLogConfigs)
 	logLogger := data.NewKratosLogger(logger)
@@ -50,7 +50,8 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 		return nil, nil, err
 	}
 	proxyGetter := crawler.NewProxyGetter(proxyClient)
-	crawler3 := crawler.NewClassCrawler3(proxyGetter)
+	client2 := client.InitHttpProxyClient(proxyClient)
+	crawler3 := crawler.NewClassCrawler3(proxyGetter, client2)
 	jxbDBRepo := data.NewJxbDBRepo(dataData)
 	userSvc, err := client.NewUserSvc(etcdRegistry, confRegistry, env)
 	if err != nil {
@@ -65,9 +66,10 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 		cleanup()
 		return nil, nil, err
 	}
-	refreshLogRepo := data.NewRefreshLogRepo(db, confServer)
-	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawler3, jxbDBRepo, userSvc, delayQueue, refreshLogRepo, confServer)
-	classListService := service.NewClasserService(classUsecase, schoolDay, logger, defaults)
+	refreshLogRepo := data.NewRefreshLogRepo(db)
+	recycleBinRepo := data.NewRecycleBinRepo(redisClient, confServer)
+	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawler3, jxbDBRepo, userSvc, delayQueue, refreshLogRepo, recycleBinRepo, confServer, logger)
+	classListService := service.NewClasserService(classUsecase, schoolDay, logger)
 	grpcServer := server.NewGRPCServer(confServer, classListService, logLogger)
 	app := newApp(env, logLogger, grpcServer, etcdRegistry, confServer)
 	return app, func() {

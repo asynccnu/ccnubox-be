@@ -17,28 +17,21 @@ var passwordSQLReg = regexp.MustCompile(
 
 func InitLogger(cfg *conf.ServerConf) logger.Logger {
 	res := log.InitLogger(cfg.Log, 4)
-	// 过滤敏感信息
-	return logger.NewFilterLogger(res, logger.FilterKey("password"), logger.FilterFunc(func(level logger.Level, key, val string) (string, bool) {
-		if level < logger.INFO || key != "request" {
-			return val, false
-		}
 
-		if !strings.Contains(val, "password:") {
-			return val, false
-		}
+	return logger.NewFilterLogger(res,
+		logger.FilterFunc(func(level logger.Level, key, val string) (string, bool) {
+			// 只要包含 password 关键字，不论在哪个字段，都尝试脱敏
+			if !strings.Contains(val, "password") {
+				return val, false
+			}
 
-		masked := passwordReg.ReplaceAllString(val, `$1***$3`)
-		return masked, true
-	}), logger.FilterFunc(func(level logger.Level, key, val string) (string, bool) {
-		if key != "args" {
-			return val, false
-		}
+			// 处理结构化/JSON 风格: password:"xxx"
+			masked := passwordReg.ReplaceAllString(val, `$1***$3`)
 
-		if !strings.Contains(val, "password") {
-			return val, false
-		}
+			// 处理 SQL 风格: `password` = 'xxx'
+			masked = passwordSQLReg.ReplaceAllString(masked, `$1***$3`)
 
-		masked := passwordSQLReg.ReplaceAllString(val, `$1***$3`)
-		return masked, true
-	}))
+			return masked, true
+		}),
+	)
 }

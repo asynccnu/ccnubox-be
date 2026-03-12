@@ -24,6 +24,7 @@ func InitApp() *App {
 		// 第三方
 		ioc.InitCCNUClient,
 		ioc.InitProxyClient,
+		ioc.InitHttpProxyClient,
 		ioc.InitEtcdClient,
 		ioc.NewCrypto,
 		ioc.InitRedis,

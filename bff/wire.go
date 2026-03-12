@@ -29,6 +29,7 @@ func InitApp() *App {
 		ioc.InitGradeClient,
 		ioc.InitContentClient,
 		ioc.InitCounterClient,
+		ioc.InitHealthClient,
 		//基于kratos的微服务
 		ioc.InitClassListClient,
 		ioc.InitClassClient,
@@ -49,6 +50,7 @@ func InitApp() *App {
 		ioc.InitMetricsHandel,
 		ioc.InitLibraryHandler,
 		ioc.InitSwagHandler,
+		ioc.InitHealthHandler,
 
 		//中间件
 		middleware.NewLoggerMiddleware,

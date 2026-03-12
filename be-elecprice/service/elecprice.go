@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"net/url"
 	"strconv"
 	"sync"
@@ -39,14 +40,14 @@ type ElecpriceService interface {
 
 type elecpriceService struct {
 	elecpriceDAO dao.ElecpriceDAO
-	ProxyService ProxyService
+	Proxy        proxy.Client
 	cache        cache.ElecPriceCache
 	l            logger.Logger
 }
 
 func NewElecpriceService(elecpriceDAO dao.ElecpriceDAO, l logger.Logger, c cache.ElecPriceCache,
-	ProxyService ProxyService) ElecpriceService {
-	return &elecpriceService{elecpriceDAO: elecpriceDAO, l: l, ProxyService: ProxyService, cache: c}
+	proxy proxy.Client) ElecpriceService {
+	return &elecpriceService{elecpriceDAO: elecpriceDAO, l: l, Proxy: proxy, cache: c}
 }
 
 func (s *elecpriceService) SetStandard(ctx context.Context, r *domain.SetStandardRequest) error {
@@ -175,7 +176,7 @@ func (s *elecpriceService) GetArchitecture(ctx context.Context, area string) (do
 
 	// 2. 爬取数据
 	apiURL := fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", code)
-	body, err := sendRequest(ctx, apiURL, false)
+	body, err := sendRequest(apiURL, false)
 	if err != nil {
 		return domain.ResultArchitectureInfo{}, INTERNET_ERROR(errorx.Errorf("service: request architecture info failed, area: %s, err: %w", area, err))
 	}
@@ -210,7 +211,7 @@ func (s *elecpriceService) GetRoomInfo(ctx context.Context, archiID string, floo
 
 	// 2. 爬取
 	apiURL := fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getRoomInfo?Architecture_ID=%s&Floor=%s", archiID, floor)
-	body, err := sendRequest(ctx, apiURL, false)
+	body, err := sendRequest(apiURL, false)
 	if err != nil {
 		return resp, INTERNET_ERROR(errorx.Errorf("service: request room info failed, archiID: %s, floor: %s, err: %w", archiID, floor, err))
 	}
@@ -276,22 +277,17 @@ func (s *elecpriceService) GetPriceByName(ctx context.Context, roomName string) 
 		}
 		resp.Union = *res
 	} else {
-		// 并行获取空调和照明电费 (优化为并行)
-		g, gCtx := errgroup.WithContext(ctx)
-		var acRes, lightRes *domain.PriceInfo
+		var (
+			acRes, lightRes *domain.PriceInfo
+			er              error
+		)
 
-		g.Go(func() error {
-			var er error
-			acRes, er = s.GetPriceById(gCtx, detail.AC)
-			return er
-		})
-		g.Go(func() error {
-			var er error
-			lightRes, er = s.GetPriceById(gCtx, detail.Light)
-			return er
-		})
-
-		if er := g.Wait(); er != nil {
+		acRes, er = s.GetPriceById(ctx, detail.AC)
+		if er != nil {
+			return nil, er
+		}
+		lightRes, er = s.GetPriceById(ctx, detail.Light)
+		if er != nil {
 			return nil, er
 		}
 		resp.AC = *acRes
@@ -316,8 +312,16 @@ func (s *elecpriceService) GetPriceById(ctx context.Context, roomid string) (*do
 }
 
 func (s *elecpriceService) GetMeterID(ctx context.Context, RoomID string) (string, error) {
+	// 1. 先查缓存
+	cacheVal, err := s.cache.GetMeterId(ctx, RoomID)
+	if err == nil && !s.checkEmptyOrNil(cacheVal) {
+		return cacheVal, nil
+	}
+	// 其他错误（包括 ErrValeEmptyOrNil 和 ErrKeyNotExists）都继续走远程请求
+
+	// 2. 远程请求
 	apiURL := fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getRoomMeterInfo?Room_ID=%s", RoomID)
-	body, err := sendRequest(ctx, apiURL, false)
+	body, err := sendRequest(apiURL, false)
 	if err != nil {
 		return "", INTERNET_ERROR(errorx.Errorf("service: request meter id failed, rid: %s, err: %w", RoomID, err))
 	}
@@ -326,6 +330,15 @@ func (s *elecpriceService) GetMeterID(ctx context.Context, RoomID string) (strin
 	if err != nil {
 		return "", INTERNET_ERROR(errorx.Errorf("service: parse meter id regex failed, rid: %s, body: %s, err: %w", RoomID, body, err))
 	}
+
+	// 3. 异步写缓存
+	go func() {
+		ctxTm, cancelTm := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancelTm()
+		if er := s.cache.SetMeterId(ctxTm, RoomID, id); er != nil {
+			s.l.Warn("service: async set meter id cache warning", logger.String("roomId", RoomID), logger.Error(er))
+		}
+	}()
 
 	return id, nil
 }
@@ -338,42 +351,31 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 			DayUseValue string
 		}
 	)
-	g, ctx := errgroup.WithContext(ctx)
 
-	g.Go(func() error {
-		apiURL := fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getReserveHKAM?AmMeter_ID=%s", meterID)
-		body, err_ := sendRequest(ctx, apiURL, false)
-		if err_ != nil {
-			return INTERNET_ERROR(errorx.Errorf("service: request reserve HKAM failed, mid: %s, err: %w", meterID, err_))
-		}
-		remain.RemainMoney, err_ = matchRegexpOneEle(body, remainPowerReg)
-		if err_ != nil {
-			return INTERNET_ERROR(errorx.Errorf("service: parse remain money failed, mid: %s, body: %s, err: %w", meterID, body, err_))
-		}
-		return nil
-	})
+	apiURL := fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getReserveHKAM?AmMeter_ID=%s", meterID)
+	body, err_ := sendRequest(apiURL, false)
+	if err_ != nil {
+		return nil, INTERNET_ERROR(errorx.Errorf("service: request reserve HKAM failed, mid: %s, err: %w", meterID, err_))
+	}
+	remain.RemainMoney, err_ = matchRegexpOneEle(body, remainPowerReg)
+	if err_ != nil {
+		return nil, INTERNET_ERROR(errorx.Errorf("service: parse remain money failed, mid: %s, body: %s, err: %w", meterID, body, err_))
+	}
 
-	g.Go(func() error {
-		encodedDate := url.QueryEscape(time.Now().AddDate(0, 0, -1).Format("2006/1/2"))
-		apiURL := fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getMeterDayValue?AmMeter_ID=%s&startDate=%s&endDate=%s", meterID, encodedDate, encodedDate)
-		body, err := sendRequest(ctx, apiURL, true)
-		if err != nil {
-			return INTERNET_ERROR(errorx.Errorf("service: request meter day value failed, mid: %s, date: %s, err: %w", meterID, encodedDate, err))
-		}
+	encodedDate := url.QueryEscape(time.Now().AddDate(0, 0, -1).Format("2006/1/2"))
+	apiURL = fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getMeterDayValue?AmMeter_ID=%s&startDate=%s&endDate=%s", meterID, encodedDate, encodedDate)
+	body, err := sendRequest(apiURL, true)
+	if err != nil {
+		return nil, INTERNET_ERROR(errorx.Errorf("service: request meter day value failed, mid: %s, date: %s, err: %w", meterID, encodedDate, err))
+	}
 
-		dayUse.DayUseValue, err = matchRegexpOneEle(body, dayValueReg)
-		if err != nil {
-			return INTERNET_ERROR(errorx.Errorf("service: parse day use value failed, mid: %s, body: %s, err: %w", meterID, body, err))
-		}
-		dayUse.DayUseMoney, err = matchRegexpOneEle(body, dayUseMeonyReg)
-		if err != nil {
-			return INTERNET_ERROR(errorx.Errorf("service: parse day use money failed, mid: %s, body: %s, err: %w", meterID, body, err))
-		}
-		return nil
-	})
-
-	if errW := g.Wait(); errW != nil {
-		return nil, errW
+	dayUse.DayUseValue, err = matchRegexpOneEle(body, dayValueReg)
+	if err != nil {
+		return nil, INTERNET_ERROR(errorx.Errorf("service: parse day use value failed, mid: %s, body: %s, err: %w", meterID, body, err))
+	}
+	dayUse.DayUseMoney, err = matchRegexpOneEle(body, dayUseMeonyReg)
+	if err != nil {
+		return nil, INTERNET_ERROR(errorx.Errorf("service: parse day use money failed, mid: %s, body: %s, err: %w", meterID, body, err))
 	}
 
 	return &domain.PriceInfo{

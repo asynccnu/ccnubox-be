@@ -22,7 +22,21 @@ type PushData struct {
 	Title       string            `json:"title"`
 }
 
-func NewJPushClient(AppKey string, MasterSecret string) PushClient {
+type JPushConfig struct {
+	AppKey       string `json:"app_key"`
+	MasterSecret string `json:"master_secret"`
+	HUAWEI       struct {
+		Category string `json:"category"`
+	}
+	XIAOMI struct {
+		ChannelId string `json:"channel_id"`
+	}
+	OPPO struct {
+		ChannelId string `json:"channel_id"`
+	}
+}
+
+func NewJPushClient(cfg *JPushConfig) PushClient {
 	//极光推送客户端
 	var pf jpush.Platform
 	//设定为推送给所有平台
@@ -30,9 +44,12 @@ func NewJPushClient(AppKey string, MasterSecret string) PushClient {
 	//配置极光推送选项
 	var o jpush.Options
 	o.SetApnsProduction(true)
+	o.AddThirdPartyChannel(jpush.XIAOMI, jpush.ThirdPartyOptions{ChannelId: cfg.XIAOMI.ChannelId})
+	o.AddThirdPartyChannel(jpush.HUAWEI, jpush.ThirdPartyOptions{Category: cfg.HUAWEI.Category})
+	o.AddThirdPartyChannel(jpush.OPPO, jpush.ThirdPartyOptions{ChannelId: cfg.OPPO.ChannelId})
 
-	//初始化极光推送客户端
-	jPushClient := jpush.NewJPushClient(AppKey, MasterSecret)
+	// 初始化极光推送客户端
+	jPushClient := jpush.NewJPushClient(cfg.AppKey, cfg.MasterSecret)
 
 	return &client{pf: &pf, o: &o, jPushClient: jPushClient}
 }

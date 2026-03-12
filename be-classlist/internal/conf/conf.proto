@@ -10,7 +10,6 @@ message Bootstrap {
   Registry registry = 3;
   ZapLogConfigs zaplog = 4;
   SchoolDay schoolday = 5;
-  Defaults defaults = 6;
   string env = 7; // 开发环境
   OtelConfig otel = 8;
 }
@@ -74,15 +73,10 @@ message ZapLogConfigs {
   bool log_compress = 8;         // 是否压缩日志
   bool log_stdout = 9;           // 是否输出到控制台
 }
+
 message SchoolDay{
   string holidayTime = 1; //放假日期(正式放假的第一天)
   string schoolTime = 2;  //上学日期(正式上学的第一天)
-}
-
-// 前端不传参时使用的默认值
-message Defaults{ 
-  string year = 1;
-  string semester = 2;
 }
 
 message OtelConfig {

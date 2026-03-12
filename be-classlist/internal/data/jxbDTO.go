@@ -1,4 +1,4 @@
-package do
+package data
 
 const (
 	JxbTableName string = "jxb"

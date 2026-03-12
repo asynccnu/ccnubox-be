@@ -59,10 +59,11 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 		cleanup()
 		return nil, nil, err
 	}
-	cultivateStrategy := biz.NewCultivateStrategyBiz(userSvc, cache, cultivateStrategyData, proxyClient)
+	client2 := client.InitHttpProxyClient(proxyClient)
+	cultivateStrategy := biz.NewCultivateStrategyBiz(userSvc, cache, cultivateStrategyData, client2)
 	classServiceService := service.NewClassServiceService(classServiceUserCase, cultivateStrategy)
 	freeClassroomData := data.NewFreeClassroomData(elasticClient)
-	freeClassroomBiz := biz.NewFreeClassroomBiz(classData, freeClassroomData, userSvc, builder, cache, proxyClient)
+	freeClassroomBiz := biz.NewFreeClassroomBiz(classData, freeClassroomData, userSvc, builder, cache, client2)
 	freeClassroomSvc := service.NewFreeClassroomSvc(freeClassroomBiz)
 	grpcServer := server.NewGRPCServer(confServer, classServiceService, freeClassroomSvc, logger)
 	selectionUploader := service.NewSelectionUploader(freeClassroomBiz)

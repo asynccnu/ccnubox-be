@@ -1,31 +1,27 @@
 package biz
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
-type FutureRecords struct {
-	ID       string
-	Owner    string
-	Start    string
-	End      string
-	TimeDesc string
-	States   string
-	DevName  string
-	RoomID   string
-	RoomName string
-	LabName  string
-}
-
-type HistoryRecords struct {
-	Place      string
-	Floor      string
-	Status     string
-	Date       string
-	SubmitTime string
+type Record struct {
+	ID        string
+	RoomID    string
+	RoomName  string
+	BuildName string
+	FloorName string
+	SeatID    string
+	SeatLabel string
+	MakeBegin time.Time
+	MakeEnd   time.Time
+	MakeDate  time.Time
+	Status    string
+	Message   string
 }
 
 type RecordRepo interface {
-	UpsertFutureRecords(ctx context.Context, stuID string, list []*FutureRecords) error
-	ListFutureRecords(ctx context.Context, stuID string) ([]*FutureRecords, error)
-	UpsertHistoryRecords(ctx context.Context, stuID string, list []*HistoryRecords) error
-	ListHistoryRecords(ctx context.Context, stuID string) ([]*HistoryRecords, error)
+	UpsertRecords(ctx context.Context, stuID string, list []*Record) error
+	ListRecords(ctx context.Context, stuID string, date ...time.Time) ([]*Record, error)
+	GetRecordUpdateTime(ctx context.Context, stuID string) (string, error)
 }

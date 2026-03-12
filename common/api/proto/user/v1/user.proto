@@ -7,7 +7,8 @@ service UserService {
   rpc SaveUser (SaveUserReq) returns (SaveUserResp);
   rpc CheckUser (CheckUserReq) returns (CheckUserResp);
   rpc GetCookie (GetCookieRequest) returns (GetCookieResponse);
-  rpc GetLibraryCookie (GetLibraryCookieRequest) returns (GetLibraryCookieResponse);
+  rpc GetLibrarySeatToken (GetLibraryTokenRequest) returns (GetLibraryTokenResponse);
+  rpc GetLibraryDiscussionToken(GetLibraryTokenRequest) returns (GetLibraryTokenResponse);
 }
 
 message SaveUserReq {
@@ -35,10 +36,10 @@ message GetCookieResponse {
   string cookie = 1;
 }
 
-message GetLibraryCookieRequest {
+message GetLibraryTokenRequest {
   string studentId = 1;
 }
 
-message GetLibraryCookieResponse {
-  string cookie = 1;
+message GetLibraryTokenResponse {
+  string token = 1;
 }

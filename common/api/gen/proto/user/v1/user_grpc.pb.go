@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_SaveUser_FullMethodName         = "/user.v1.UserService/SaveUser"
-	UserService_CheckUser_FullMethodName        = "/user.v1.UserService/CheckUser"
-	UserService_GetCookie_FullMethodName        = "/user.v1.UserService/GetCookie"
-	UserService_GetLibraryCookie_FullMethodName = "/user.v1.UserService/GetLibraryCookie"
+	UserService_SaveUser_FullMethodName                  = "/user.v1.UserService/SaveUser"
+	UserService_CheckUser_FullMethodName                 = "/user.v1.UserService/CheckUser"
+	UserService_GetCookie_FullMethodName                 = "/user.v1.UserService/GetCookie"
+	UserService_GetLibrarySeatToken_FullMethodName       = "/user.v1.UserService/GetLibrarySeatToken"
+	UserService_GetLibraryDiscussionToken_FullMethodName = "/user.v1.UserService/GetLibraryDiscussionToken"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -32,7 +33,8 @@ type UserServiceClient interface {
 	SaveUser(ctx context.Context, in *SaveUserReq, opts ...grpc.CallOption) (*SaveUserResp, error)
 	CheckUser(ctx context.Context, in *CheckUserReq, opts ...grpc.CallOption) (*CheckUserResp, error)
 	GetCookie(ctx context.Context, in *GetCookieRequest, opts ...grpc.CallOption) (*GetCookieResponse, error)
-	GetLibraryCookie(ctx context.Context, in *GetLibraryCookieRequest, opts ...grpc.CallOption) (*GetLibraryCookieResponse, error)
+	GetLibrarySeatToken(ctx context.Context, in *GetLibraryTokenRequest, opts ...grpc.CallOption) (*GetLibraryTokenResponse, error)
+	GetLibraryDiscussionToken(ctx context.Context, in *GetLibraryTokenRequest, opts ...grpc.CallOption) (*GetLibraryTokenResponse, error)
 }
 
 type userServiceClient struct {
@@ -73,10 +75,20 @@ func (c *userServiceClient) GetCookie(ctx context.Context, in *GetCookieRequest,
 	return out, nil
 }
 
-func (c *userServiceClient) GetLibraryCookie(ctx context.Context, in *GetLibraryCookieRequest, opts ...grpc.CallOption) (*GetLibraryCookieResponse, error) {
+func (c *userServiceClient) GetLibrarySeatToken(ctx context.Context, in *GetLibraryTokenRequest, opts ...grpc.CallOption) (*GetLibraryTokenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetLibraryCookieResponse)
-	err := c.cc.Invoke(ctx, UserService_GetLibraryCookie_FullMethodName, in, out, cOpts...)
+	out := new(GetLibraryTokenResponse)
+	err := c.cc.Invoke(ctx, UserService_GetLibrarySeatToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetLibraryDiscussionToken(ctx context.Context, in *GetLibraryTokenRequest, opts ...grpc.CallOption) (*GetLibraryTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLibraryTokenResponse)
+	err := c.cc.Invoke(ctx, UserService_GetLibraryDiscussionToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +102,8 @@ type UserServiceServer interface {
 	SaveUser(context.Context, *SaveUserReq) (*SaveUserResp, error)
 	CheckUser(context.Context, *CheckUserReq) (*CheckUserResp, error)
 	GetCookie(context.Context, *GetCookieRequest) (*GetCookieResponse, error)
-	GetLibraryCookie(context.Context, *GetLibraryCookieRequest) (*GetLibraryCookieResponse, error)
+	GetLibrarySeatToken(context.Context, *GetLibraryTokenRequest) (*GetLibraryTokenResponse, error)
+	GetLibraryDiscussionToken(context.Context, *GetLibraryTokenRequest) (*GetLibraryTokenResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -110,8 +123,11 @@ func (UnimplementedUserServiceServer) CheckUser(context.Context, *CheckUserReq) 
 func (UnimplementedUserServiceServer) GetCookie(context.Context, *GetCookieRequest) (*GetCookieResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCookie not implemented")
 }
-func (UnimplementedUserServiceServer) GetLibraryCookie(context.Context, *GetLibraryCookieRequest) (*GetLibraryCookieResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetLibraryCookie not implemented")
+func (UnimplementedUserServiceServer) GetLibrarySeatToken(context.Context, *GetLibraryTokenRequest) (*GetLibraryTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLibrarySeatToken not implemented")
+}
+func (UnimplementedUserServiceServer) GetLibraryDiscussionToken(context.Context, *GetLibraryTokenRequest) (*GetLibraryTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLibraryDiscussionToken not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -188,20 +204,38 @@ func _UserService_GetCookie_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_GetLibraryCookie_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetLibraryCookieRequest)
+func _UserService_GetLibrarySeatToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLibraryTokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).GetLibraryCookie(ctx, in)
+		return srv.(UserServiceServer).GetLibrarySeatToken(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_GetLibraryCookie_FullMethodName,
+		FullMethod: UserService_GetLibrarySeatToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).GetLibraryCookie(ctx, req.(*GetLibraryCookieRequest))
+		return srv.(UserServiceServer).GetLibrarySeatToken(ctx, req.(*GetLibraryTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetLibraryDiscussionToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLibraryTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetLibraryDiscussionToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetLibraryDiscussionToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetLibraryDiscussionToken(ctx, req.(*GetLibraryTokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -226,8 +260,12 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_GetCookie_Handler,
 		},
 		{
-			MethodName: "GetLibraryCookie",
-			Handler:    _UserService_GetLibraryCookie_Handler,
+			MethodName: "GetLibrarySeatToken",
+			Handler:    _UserService_GetLibrarySeatToken_Handler,
+		},
+		{
+			MethodName: "GetLibraryDiscussionToken",
+			Handler:    _UserService_GetLibraryDiscussionToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

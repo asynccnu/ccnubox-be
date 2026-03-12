@@ -11,75 +11,53 @@ func NewAssembler() *Assembler {
 	return &Assembler{}
 }
 
-func (a *Assembler) ConvertTimeSlots(src []*biz.TimeSlot) []*pb.TimeSlot {
+func (a *Assembler) ConvertFreeList(src []*biz.FreeTime) []*pb.FreeTime {
 	if len(src) == 0 {
 		return nil
 	}
-	result := make([]*pb.TimeSlot, 0, len(src))
+	result := make([]*pb.FreeTime, 0, len(src))
 	for _, ts := range src {
-		result = append(result, &pb.TimeSlot{
-			Start:  ts.Start,
-			End:    ts.End,
-			State:  ts.State,
-			Owner:  ts.Owner,
-			Occupy: ts.Occupy,
+		result = append(result, &pb.FreeTime{
+			Start: ts.Start,
+			End:   ts.End,
 		})
 	}
 	return result
 }
 
-func (a *Assembler) ConvertDiscussionTS(src []*biz.DiscussionTS) []*pb.DiscussionTS {
+func (a *Assembler) ConvertDisableList(src []*biz.DisableTime) []*pb.DisableTime {
 	if len(src) == 0 {
 		return nil
 	}
-	result := make([]*pb.DiscussionTS, 0, len(src))
+	result := make([]*pb.DisableTime, 0, len(src))
 	for _, ts := range src {
-		result = append(result, &pb.DiscussionTS{
-			Start:  ts.Start,
-			End:    ts.End,
-			State:  ts.State,
-			Title:  ts.Title,
-			Owner:  ts.Owner,
-			Occupy: ts.Occupy,
+		result = append(result, &pb.DisableTime{
+			Start: ts.Start,
+			End:   ts.End,
 		})
 	}
 	return result
 }
 
-func (a *Assembler) ConvertRecords(src []*biz.FutureRecords) []*pb.Record {
+func (a *Assembler) ConvertRecords(src []*biz.Record) []*pb.Record {
 	if len(src) == 0 {
 		return nil
 	}
 	result := make([]*pb.Record, 0, len(src))
 	for _, r := range src {
 		result = append(result, &pb.Record{
-			Id:       r.ID,
-			Owner:    r.Owner,
-			Start:    r.Start,
-			End:      r.End,
-			TimeDesc: r.TimeDesc,
-			States:   r.States,
-			DevName:  r.DevName,
-			RoomId:   r.RoomID,
-			RoomName: r.RoomName,
-			LabName:  r.LabName,
-		})
-	}
-	return result
-}
-
-func (a *Assembler) ConvertHistory(src []*biz.HistoryRecords) []*pb.History {
-	if len(src) == 0 {
-		return nil
-	}
-	result := make([]*pb.History, 0, len(src))
-	for _, h := range src {
-		result = append(result, &pb.History{
-			Place:      h.Place,
-			Floor:      h.Floor,
-			Status:     h.Status,
-			Date:       h.Date,
-			SubmitTime: h.SubmitTime,
+			Id:        r.ID,
+			RoomId:    r.RoomID,
+			RoomName:  r.RoomName,
+			BuildName: r.BuildName,
+			FloorName: r.FloorName,
+			SeatId:    r.SeatID,
+			SeatLabel: r.SeatLabel,
+			MakeBegin: r.MakeBegin.Format("2006-01-02 15:04"),
+			MakeEnd:   r.MakeEnd.Format("2006-01-02 15:04"),
+			MakeDate:  r.MakeDate.Format("2006-01-02"),
+			Status:    r.Status,
+			Message:   r.Message,
 		})
 	}
 	return result
@@ -107,11 +85,12 @@ func (a *Assembler) ConvertSeats(src []*biz.Seat) []*pb.Seat {
 	result := make([]*pb.Seat, 0, len(src))
 	for _, seat := range src {
 		result = append(result, &pb.Seat{
-			LabName:  seat.LabName,
-			KindName: seat.RoomName,
-			DevId:    seat.DevID,
-			DevName:  seat.DevName,
-			Ts:       a.ConvertTimeSlots(seat.Ts),
+			ID:        seat.ID,
+			Label:     seat.Label,
+			Name:      seat.Name,
+			Status:    seat.Status,
+			AfterFree: seat.AfterFree,
+			FreeList:  a.ConvertFreeList(seat.FreeList),
 		})
 	}
 	return result
@@ -124,13 +103,12 @@ func (a *Assembler) ConvertDiscussions(src []*biz.Discussion) []*pb.Discussion {
 	result := make([]*pb.Discussion, 0, len(src))
 	for _, d := range src {
 		result = append(result, &pb.Discussion{
-			LabId:    d.LabID,
-			LabName:  d.LabName,
-			KindId:   d.KindID,
-			KindName: d.KindName,
-			DevId:    d.DevID,
-			DevName:  d.DevName,
-			TS:       a.ConvertDiscussionTS(d.TS),
+			RoomId:      d.RoomID,
+			Name:        d.Name,
+			RoomType:    d.RoomType,
+			VenueId:     d.VenueID,
+			Address:     d.Address,
+			DisableList: a.ConvertDisableList(d.DisableList),
 		})
 	}
 	return result

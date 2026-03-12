@@ -14,19 +14,17 @@ type Room struct {
 }
 
 type Seat struct {
-	LabName   string     `json:"labName"`
-	KindName  string     `json:"kindName"`
-	DevID     string     `json:"devId"`
-	DevName   string     `json:"devName"`
-	TimeSlots []TimeSlot `json:"ts"`
+	ID        string     `json:"id"`
+	Label     string     `json:"label"`
+	Name      string     `json:"name"`
+	Status    string     `json:"status"`
+	AfterFree bool       `json:"afterFree"`
+	FreeList  []FreeTime `json:"ft"`
 }
 
-type TimeSlot struct {
-	Start  string `json:"start"`
-	End    string `json:"end"`
-	State  string `json:"state"`
-	Owner  string `json:"owner"`
-	Occupy bool   `json:"occupy"`
+type FreeTime struct {
+	Start string `json:"start"`
+	End   string `json:"end"`
 }
 
 type ReserveSeatRequest struct {
@@ -35,33 +33,28 @@ type ReserveSeatRequest struct {
 	End   string `json:"end"`
 }
 
+type ReserveSeatResponse struct {
+	Message string `json:"message"`
+}
+
 type GetSeatRecordResponse struct {
 	Records []Record `json:"records"`
 }
 
 type Record struct {
-	ID       string `json:"id"`
-	Owner    string `json:"owner"`
-	Start    string `json:"start"`
-	End      string `json:"end"`
-	TimeDesc string `json:"timeDesc"`
-	States   string `json:"states"`
-	DevName  string `json:"devName"`
-	RoomID   string `json:"roomId"`
-	RoomName string `json:"roomName"`
-	LabName  string `json:"labName"`
-}
-
-type GetHistoryResponse struct {
-	Histories []History `json:"history"`
-}
-
-type History struct {
-	Place      string `json:"place"`
-	Floor      string `json:"floor"`
-	Status     string `json:"status"`
-	Date       string `json:"date"`
-	SubmitTime string `json:"submitTime"`
+	ID        string `json:"id"`
+	StuID     string `json:"stu_id"`
+	SeatID    string `json:"seat_id"`
+	RoomID    string `json:"room_id"`
+	RoomName  string `json:"room_name"`
+	BuildName string `json:"build_name"`
+	FloorName string `json:"floor_name"`
+	SeatLabel string `json:"seat_label"`
+	MakeBegin string `json:"make_begin"`
+	MakeEnd   string `json:"make_end"`
+	MakeDate  string `json:"make_date"`
+	Message   string `json:"message"`
+	Status    string `json:"status"`
 }
 
 type GetCreditPointResponse struct {
@@ -86,8 +79,9 @@ type CreditRecord struct {
 }
 
 type GetDiscussionRequest struct {
-	ClassID string `json:"class_id"`
-	Date    string `json:"date"`
+	RoomTypeID string `json:"room_type_id"`
+	VenueID    string `json:"venue_id"`
+	Date       string `json:"date"`
 }
 
 type GetDiscussionResponse struct {
@@ -95,22 +89,17 @@ type GetDiscussionResponse struct {
 }
 
 type Discussion struct {
-	LabID    string `json:"labId"`
-	LabName  string `json:"labName"`
-	KindID   string `json:"kindId"`
-	KindName string `json:"kindName"`
-	DevID    string `json:"devId"`
-	DevName  string `json:"devName"`
-	TS       []DiscussionTS
+	RoomID      string `json:"room_id"`
+	Name        string `json:"name"`
+	VenueID     string `json:"venue_id"`
+	RoomType    string `json:"room_type"`
+	Address     string `json:"address"`
+	DisableList []DisableTime
 }
 
-type DiscussionTS struct {
-	Start  string `json:"start"`
-	End    string `json:"end"`
-	State  string `json:"state"`
-	Title  string `json:"title"`
-	Owner  string `json:"owner"`
-	Occupy bool   `json:"occupy"`
+type DisableTime struct {
+	Start string `json:"start"`
+	End   string `json:"end"`
 }
 
 type SearchUserRequest struct {
@@ -143,14 +132,17 @@ type CancelReserveRequest struct {
 }
 
 type ReserveSeatRandomlyRequest struct {
-	RoomID string `json:"room_ids"`
-	DevID   string   `json:"dev_id"`
-	Start   string   `json:"start"`
-	End     string   `json:"end"`
+	RoomID []string `json:"room_ids"`
+	Start  string   `json:"start"`
+	End    string   `json:"end"`
 }
 
 type ReserveSeatRandomlyResponse struct {
 	Message string `json:"message"`
+}
+
+type GetSeatRecordRequest struct {
+	Date []string `json:"date"`
 }
 
 type Comment struct {

@@ -301,27 +301,27 @@ func (x *GetCookieResponse) GetCookie() string {
 	return ""
 }
 
-type GetLibraryCookieRequest struct {
+type GetLibraryTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StudentId     string                 `protobuf:"bytes,1,opt,name=studentId,proto3" json:"studentId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetLibraryCookieRequest) Reset() {
-	*x = GetLibraryCookieRequest{}
+func (x *GetLibraryTokenRequest) Reset() {
+	*x = GetLibraryTokenRequest{}
 	mi := &file_user_v1_user_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetLibraryCookieRequest) String() string {
+func (x *GetLibraryTokenRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetLibraryCookieRequest) ProtoMessage() {}
+func (*GetLibraryTokenRequest) ProtoMessage() {}
 
-func (x *GetLibraryCookieRequest) ProtoReflect() protoreflect.Message {
+func (x *GetLibraryTokenRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_user_v1_user_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -333,39 +333,39 @@ func (x *GetLibraryCookieRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetLibraryCookieRequest.ProtoReflect.Descriptor instead.
-func (*GetLibraryCookieRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetLibraryTokenRequest.ProtoReflect.Descriptor instead.
+func (*GetLibraryTokenRequest) Descriptor() ([]byte, []int) {
 	return file_user_v1_user_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *GetLibraryCookieRequest) GetStudentId() string {
+func (x *GetLibraryTokenRequest) GetStudentId() string {
 	if x != nil {
 		return x.StudentId
 	}
 	return ""
 }
 
-type GetLibraryCookieResponse struct {
+type GetLibraryTokenResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cookie        string                 `protobuf:"bytes,1,opt,name=cookie,proto3" json:"cookie,omitempty"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetLibraryCookieResponse) Reset() {
-	*x = GetLibraryCookieResponse{}
+func (x *GetLibraryTokenResponse) Reset() {
+	*x = GetLibraryTokenResponse{}
 	mi := &file_user_v1_user_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetLibraryCookieResponse) String() string {
+func (x *GetLibraryTokenResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetLibraryCookieResponse) ProtoMessage() {}
+func (*GetLibraryTokenResponse) ProtoMessage() {}
 
-func (x *GetLibraryCookieResponse) ProtoReflect() protoreflect.Message {
+func (x *GetLibraryTokenResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_user_v1_user_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -377,14 +377,14 @@ func (x *GetLibraryCookieResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetLibraryCookieResponse.ProtoReflect.Descriptor instead.
-func (*GetLibraryCookieResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetLibraryTokenResponse.ProtoReflect.Descriptor instead.
+func (*GetLibraryTokenResponse) Descriptor() ([]byte, []int) {
 	return file_user_v1_user_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *GetLibraryCookieResponse) GetCookie() string {
+func (x *GetLibraryTokenResponse) GetToken() string {
 	if x != nil {
-		return x.Cookie
+		return x.Token
 	}
 	return ""
 }
@@ -407,16 +407,17 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\tstudentId\x18\x01 \x01(\tR\tstudentId\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\"+\n" +
 	"\x11GetCookieResponse\x12\x16\n" +
-	"\x06cookie\x18\x01 \x01(\tR\x06cookie\"7\n" +
-	"\x17GetLibraryCookieRequest\x12\x1c\n" +
-	"\tstudentId\x18\x01 \x01(\tR\tstudentId\"2\n" +
-	"\x18GetLibraryCookieResponse\x12\x16\n" +
-	"\x06cookie\x18\x01 \x01(\tR\x06cookie2\x9f\x02\n" +
+	"\x06cookie\x18\x01 \x01(\tR\x06cookie\"6\n" +
+	"\x16GetLibraryTokenRequest\x12\x1c\n" +
+	"\tstudentId\x18\x01 \x01(\tR\tstudentId\"/\n" +
+	"\x17GetLibraryTokenResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token2\x80\x03\n" +
 	"\vUserService\x127\n" +
 	"\bSaveUser\x12\x14.user.v1.SaveUserReq\x1a\x15.user.v1.SaveUserResp\x12:\n" +
 	"\tCheckUser\x12\x15.user.v1.CheckUserReq\x1a\x16.user.v1.CheckUserResp\x12B\n" +
-	"\tGetCookie\x12\x19.user.v1.GetCookieRequest\x1a\x1a.user.v1.GetCookieResponse\x12W\n" +
-	"\x10GetLibraryCookie\x12 .user.v1.GetLibraryCookieRequest\x1a!.user.v1.GetLibraryCookieResponseBDZBgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1;userv1b\x06proto3"
+	"\tGetCookie\x12\x19.user.v1.GetCookieRequest\x1a\x1a.user.v1.GetCookieResponse\x12X\n" +
+	"\x13GetLibrarySeatToken\x12\x1f.user.v1.GetLibraryTokenRequest\x1a .user.v1.GetLibraryTokenResponse\x12^\n" +
+	"\x19GetLibraryDiscussionToken\x12\x1f.user.v1.GetLibraryTokenRequest\x1a .user.v1.GetLibraryTokenResponseBDZBgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1;userv1b\x06proto3"
 
 var (
 	file_user_v1_user_proto_rawDescOnce sync.Once
@@ -432,26 +433,28 @@ func file_user_v1_user_proto_rawDescGZIP() []byte {
 
 var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_user_v1_user_proto_goTypes = []any{
-	(*SaveUserReq)(nil),              // 0: user.v1.SaveUserReq
-	(*SaveUserResp)(nil),             // 1: user.v1.SaveUserResp
-	(*CheckUserReq)(nil),             // 2: user.v1.CheckUserReq
-	(*CheckUserResp)(nil),            // 3: user.v1.CheckUserResp
-	(*GetCookieRequest)(nil),         // 4: user.v1.GetCookieRequest
-	(*GetCookieResponse)(nil),        // 5: user.v1.GetCookieResponse
-	(*GetLibraryCookieRequest)(nil),  // 6: user.v1.GetLibraryCookieRequest
-	(*GetLibraryCookieResponse)(nil), // 7: user.v1.GetLibraryCookieResponse
+	(*SaveUserReq)(nil),             // 0: user.v1.SaveUserReq
+	(*SaveUserResp)(nil),            // 1: user.v1.SaveUserResp
+	(*CheckUserReq)(nil),            // 2: user.v1.CheckUserReq
+	(*CheckUserResp)(nil),           // 3: user.v1.CheckUserResp
+	(*GetCookieRequest)(nil),        // 4: user.v1.GetCookieRequest
+	(*GetCookieResponse)(nil),       // 5: user.v1.GetCookieResponse
+	(*GetLibraryTokenRequest)(nil),  // 6: user.v1.GetLibraryTokenRequest
+	(*GetLibraryTokenResponse)(nil), // 7: user.v1.GetLibraryTokenResponse
 }
 var file_user_v1_user_proto_depIdxs = []int32{
 	0, // 0: user.v1.UserService.SaveUser:input_type -> user.v1.SaveUserReq
 	2, // 1: user.v1.UserService.CheckUser:input_type -> user.v1.CheckUserReq
 	4, // 2: user.v1.UserService.GetCookie:input_type -> user.v1.GetCookieRequest
-	6, // 3: user.v1.UserService.GetLibraryCookie:input_type -> user.v1.GetLibraryCookieRequest
-	1, // 4: user.v1.UserService.SaveUser:output_type -> user.v1.SaveUserResp
-	3, // 5: user.v1.UserService.CheckUser:output_type -> user.v1.CheckUserResp
-	5, // 6: user.v1.UserService.GetCookie:output_type -> user.v1.GetCookieResponse
-	7, // 7: user.v1.UserService.GetLibraryCookie:output_type -> user.v1.GetLibraryCookieResponse
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	6, // 3: user.v1.UserService.GetLibrarySeatToken:input_type -> user.v1.GetLibraryTokenRequest
+	6, // 4: user.v1.UserService.GetLibraryDiscussionToken:input_type -> user.v1.GetLibraryTokenRequest
+	1, // 5: user.v1.UserService.SaveUser:output_type -> user.v1.SaveUserResp
+	3, // 6: user.v1.UserService.CheckUser:output_type -> user.v1.CheckUserResp
+	5, // 7: user.v1.UserService.GetCookie:output_type -> user.v1.GetCookieResponse
+	7, // 8: user.v1.UserService.GetLibrarySeatToken:output_type -> user.v1.GetLibraryTokenResponse
+	7, // 9: user.v1.UserService.GetLibraryDiscussionToken:output_type -> user.v1.GetLibraryTokenResponse
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

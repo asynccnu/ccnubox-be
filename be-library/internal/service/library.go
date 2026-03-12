@@ -42,22 +42,12 @@ func (ls *LibraryService) ReserveSeat(ctx context.Context, req *pb.ReserveSeatRe
 }
 
 func (ls *LibraryService) GetSeatRecord(ctx context.Context, req *pb.GetSeatRecordRequest) (*pb.GetSeatRecordResponse, error) {
-	records, err := ls.biz.GetSeatRecord(ctx, req.StuId)
+	records, err := ls.biz.GetRecordByDate(ctx, req.StuId, req.Date...)
 	if err != nil {
 		return nil, err
 	}
 	return &pb.GetSeatRecordResponse{
 		Record: ls.conv.ConvertRecords(records),
-	}, nil
-}
-
-func (ls *LibraryService) GetHistory(ctx context.Context, req *pb.GetHistoryRequest) (*pb.GetHistoryResponse, error) {
-	history, err := ls.biz.GetHistory(ctx, req.StuId)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.GetHistoryResponse{
-		History: ls.conv.ConvertHistory(history),
 	}, nil
 }
 
@@ -77,7 +67,7 @@ func (ls *LibraryService) GetCreditPoint(ctx context.Context, req *pb.GetCreditP
 }
 
 func (ls *LibraryService) GetDiscussion(ctx context.Context, req *pb.GetDiscussionRequest) (*pb.GetDiscussionResponse, error) {
-	ds, err := ls.biz.GetDiscussion(ctx, req.StuId, req.ClassId, req.Date)
+	ds, err := ls.biz.GetDiscussion(ctx, req.StuId, req.RoomType, req.VenueId, req.Date)
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +106,12 @@ func (ls *LibraryService) CancelReserve(ctx context.Context, req *pb.CancelReser
 }
 
 func (ls *LibraryService) ReserveSeatRandomly(ctx context.Context, req *pb.ReserveSeatRandomlyRequest) (*pb.ReserveSeatRandomlyResponse, error) {
-	//TODO: 简单修改完成 cicd 测试，记得修改
-	RoomIDs := make([]string, 0)
-	RoomIDs = append(RoomIDs, req.StuId)
-	msg, err := ls.biz.ReserveSeatRandomly(ctx, req.StuId, req.Start, req.End, RoomIDs)
+	msg, ok, err := ls.biz.ReserveSeatRandomly(ctx, req.StuId, req.Start, req.End, req.RoomId)
 	if err != nil {
 		return nil, err
+	}
+	if !ok {
+		return &pb.ReserveSeatRandomlyResponse{Message: "未找到空闲座位"}, nil
 	}
 	return &pb.ReserveSeatRandomlyResponse{Message: msg}, nil
 }

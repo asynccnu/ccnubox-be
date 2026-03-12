@@ -3,10 +3,15 @@ package biz
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-library/pkg/tool"
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/redis/go-redis/v9"
 )
+
+const TodayRecordTTL = 30 * time.Minute
 
 type libraryBiz struct {
 	crawler          LibraryCrawler
@@ -41,47 +46,91 @@ func (b *libraryBiz) ReserveSeat(ctx context.Context, stuID, devID, start, end s
 		b.log.Errorf("reserve seats(stu_id:%v) failed: %v", stuID, err)
 		return "", err
 	}
+	//预约后就需要刷新今日预约记录
+	todayRecords, err := b.crawler.GetTodayRecord(ctx, stuID)
+	if err != nil {
+		b.log.Errorf("crawler today record(stu_id:%v) failed:%v", stuID, err)
+		return "", err
+	}
+	err = b.RecordRepo.UpsertRecords(ctx, stuID, todayRecords)
+	if err != nil {
+		b.log.Errorf("update today record(stu_id:%v) failed:%v", stuID, err)
+		return "", err
+	}
 	return message, nil
 }
 
-func (b *libraryBiz) GetSeatRecord(ctx context.Context, stuID string) ([]*FutureRecords, error) {
-	records, err := b.crawler.GetRecord(ctx, stuID)
-	if err != nil {
-		b.log.Errorf("get records(stu_id:%v) failed: %v", stuID, err)
-		return nil, err
+func (b *libraryBiz) GetRecordByDate(ctx context.Context, stuID string, dateStrs ...string) ([]*Record, error) {
+	date := make([]time.Time, 0, len(dateStrs))
+	for _, s := range dateStrs {
+		d, err := tool.ParseDateStringToTime(s)
+		if err != nil {
+			b.log.Errorf("parse time(stuID:%s) error:%v", stuID, err)
+			continue
+		}
+		date = append(date, d)
 	}
-	// 去重并持久化
-	if err = b.RecordRepo.UpsertFutureRecords(ctx, stuID, records); err != nil {
-		b.log.Errorf("persist future records(stu_id:%v) failed: %v", stuID, err)
-		return nil, err
-	}
-	// 从数据库读取去重后的数据
-	result, err := b.RecordRepo.ListFutureRecords(ctx, stuID)
-	if err != nil {
-		b.log.Errorf("list future records(stu_id:%v) failed: %v", stuID, err)
-		return nil, err
-	}
-	return result, nil
-}
 
-func (b *libraryBiz) GetHistory(ctx context.Context, stuID string) ([]*HistoryRecords, error) {
-	history, err := b.crawler.GetHistory(ctx, stuID)
+	needHistoryCrawler := false
+	needTodayCrawler := false
+
+	lastUpdate, err := b.RecordRepo.GetRecordUpdateTime(ctx, stuID)
+	//如果key不存在，说明之前没有更新过，直接更新
 	if err != nil {
-		b.log.Errorf("get history(stu_id:%v) failed: %v", stuID, err)
-		return nil, err
+		if errors.Is(err, redis.Nil) {
+			needHistoryCrawler = true
+			needTodayCrawler = true
+		} else {
+			return nil, err
+		}
+	} else {
+		lastUpdateTime, err := tool.ParseTimeStringToTime(lastUpdate)
+		if err != nil {
+			return nil, err
+		}
+
+		//判断今日预约记录是否要刷新
+		for _, d := range date {
+			if tool.IsSameDay(d, time.Now()) && time.Since(lastUpdateTime) > TodayRecordTTL {
+				needTodayCrawler = true
+				break
+			}
+		}
+		//判断历史数据是否需要刷新
+		if !tool.IsSameDay(lastUpdateTime, time.Now()) {
+			needHistoryCrawler = true
+		}
 	}
-	// 去重并持久化
-	if err = b.RecordRepo.UpsertHistoryRecords(ctx, stuID, history); err != nil {
-		b.log.Errorf("persist history records(stu_id:%v) failed: %v", stuID, err)
-		return nil, err
+
+	var record []*Record
+	if needHistoryCrawler {
+		historyRecord, err := b.crawler.GetHistory(ctx, stuID)
+		if err != nil {
+			return nil, err
+		}
+		record = append(record, historyRecord...)
 	}
-	// 从数据库读取去重后的数据
-	result, err := b.RecordRepo.ListHistoryRecords(ctx, stuID)
+	if needTodayCrawler {
+		todayRecord, err := b.crawler.GetTodayRecord(ctx, stuID)
+		if err != nil {
+			return nil, err
+		}
+		record = append(record, todayRecord...)
+	}
+	if len(record) > 0 {
+		err = b.RecordRepo.UpsertRecords(ctx, stuID, record)
+		if err != nil {
+			b.log.Errorf("update today record(stu_id:%v) failed:%v", stuID, err)
+			return nil, err
+		}
+	}
+
+	res, err := b.RecordRepo.ListRecords(ctx, stuID, date...)
 	if err != nil {
-		b.log.Errorf("list history records(stu_id:%v) failed: %v", stuID, err)
 		return nil, err
 	}
-	return result, nil
+	return res, nil
+
 }
 
 func (b *libraryBiz) GetCreditPoint(ctx context.Context, stuID string) (*CreditPoints, error) {
@@ -104,8 +153,8 @@ func (b *libraryBiz) GetCreditPoint(ctx context.Context, stuID string) (*CreditP
 	return result, nil
 }
 
-func (b *libraryBiz) GetDiscussion(ctx context.Context, stuID, classID, date string) ([]*Discussion, error) {
-	discussions, err := b.crawler.GetDiscussion(ctx, stuID, classID, date)
+func (b *libraryBiz) GetDiscussion(ctx context.Context, stuID, roomTypeID, venueID, date string) ([]*Discussion, error) {
+	discussions, err := b.crawler.GetDiscussion(ctx, stuID, roomTypeID, venueID, date)
 	if err != nil {
 		b.log.Errorf("get discussions(stu_id:%v) failed: %v", stuID, err)
 		return nil, err
@@ -141,27 +190,30 @@ func (b *libraryBiz) CancelReserve(ctx context.Context, stuID, id string) (strin
 }
 
 // 2025-09-02 20:00
-func (b *libraryBiz) ReserveSeatRandomly(ctx context.Context, stuID, start, end string, roomIDs []string) (string, error) {
-	layout := "2006-01-02 15:04"
-	tStart, _ := time.Parse(layout, start)
-	tEnd, _ := time.Parse(layout, end)
-
-	qStart := tStart.Hour()*100 + tStart.Minute()
-	qEnd := tEnd.Hour()*100 + tEnd.Minute()
+func (b *libraryBiz) ReserveSeatRandomly(ctx context.Context, stuID, start, end string, roomIDs []string) (string, bool, error) {
+	qStart, _ := tool.ParseTodayTimeStringToUnix(start)
+	qEnd, _ := tool.ParseTodayTimeStringToUnix(end)
 
 	// 查找空闲预约
-	seatDevID, isExist, err := b.SeatRepo.FindFirstAvailableSeat(ctx, int64(qStart), int64(qEnd), roomIDs)
+	seatDevID, isExist, err := b.SeatRepo.FindFirstAvailableSeat(ctx, qStart, qEnd, roomIDs, stuID)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	if !isExist {
-		return "", errors.New("available seat unfound")
+		return "", false, nil
 	}
+
+	//要把时间转换成分钟
+	startTime, _ := tool.ParseTodayTimeStringToTime(start)
+	startMinute := strconv.Itoa(tool.ParseTimeToMinute(startTime))
+	endTime, _ := tool.ParseTodayTimeStringToTime(end)
+	endMinute := strconv.Itoa(tool.ParseTimeToMinute(endTime))
+
 	// 执行预约操作
-	msg, err := b.ReserveSeat(ctx, stuID, seatDevID, start, end)
+	msg, err := b.ReserveSeat(ctx, stuID, seatDevID, startMinute, endMinute)
 	if err != nil {
 		b.log.Errorf("Randomly reserve(stu_id:%v seatid:%v) failed: %v", stuID, seatDevID, err)
-		return "", err
+		return "", false, err
 	}
-	return msg, nil
+	return msg, true, nil
 }

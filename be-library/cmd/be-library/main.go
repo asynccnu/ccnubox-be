@@ -70,7 +70,7 @@ func main() {
 		"service.name", Name,
 	)
 
-	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger)
+	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger, bc.Crypto.LibrarySecret)
 	if err != nil {
 		panic(err)
 	}

@@ -14,6 +14,7 @@ func InitApp() *App {
 	wire.Build(
 		conf.InitInfraConfig,
 		conf.InitServerConf,
+		ioc.ProvideLibrarySecret,
 		ioc.InitGRPCxKratosServer,
 		grpc.NewCCNUServiceServer,
 		service.NewCCNUService,

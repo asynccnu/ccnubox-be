@@ -26,8 +26,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, logger log.Logger) (*kratos.App, func(), error) {
-	cookiePool := client.NewCookiePoolProvider()
+func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, logger log.Logger, string2 string) (*kratos.App, func(), error) {
 	etcdRegistry := registry.NewRegistrarServer(confRegistry, logger)
 	userServiceClient, err := client.NewClient(etcdRegistry, confRegistry, logger)
 	if err != nil {
@@ -35,7 +34,8 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	}
 	ccnuServiceProxy := client.NewCCNUServiceProxy(userServiceClient)
 	duration := biz.NewWaitTime(confServer)
-	libraryCrawler := crawler.NewLibraryCrawler(logger, cookiePool, ccnuServiceProxy, duration)
+	clientClient := client.NewHttpClient()
+	libraryCrawler := crawler.NewLibraryCrawler(logger, ccnuServiceProxy, duration, clientClient, string2)
 	db, err := data.NewDB(confData)
 	if err != nil {
 		return nil, nil, err
@@ -45,7 +45,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	if err != nil {
 		return nil, nil, err
 	}
-	seatRepo := data.NewSeatRepo(dataData, libraryCrawler)
+	seatRepo, cleanup := data.NewSeatRepo(logger, dataData, libraryCrawler)
 	recordRepo := data.NewRecordRepo(dataData)
 	creditPointsRepo := data.NewCreditPointsRepo(dataData)
 	libraryBiz := biz.NewLibraryBiz(libraryCrawler, logger, seatRepo, recordRepo, creditPointsRepo)
@@ -55,5 +55,6 @@ func wireApp(confServer *conf.Server, confData *conf.Data, confRegistry *conf.Re
 	grpcServer := server.NewGRPCServer(confServer, libraryService, logger)
 	app := newApp(logger, grpcServer, etcdRegistry)
 	return app, func() {
+		cleanup()
 	}, nil
 }

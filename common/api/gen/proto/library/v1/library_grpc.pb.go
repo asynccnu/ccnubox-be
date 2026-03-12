@@ -22,7 +22,6 @@ const (
 	Library_GetSeat_FullMethodName             = "/library.v1.Library/GetSeat"
 	Library_ReserveSeat_FullMethodName         = "/library.v1.Library/ReserveSeat"
 	Library_GetSeatRecord_FullMethodName       = "/library.v1.Library/GetSeatRecord"
-	Library_GetHistory_FullMethodName          = "/library.v1.Library/GetHistory"
 	Library_GetCreditPoint_FullMethodName      = "/library.v1.Library/GetCreditPoint"
 	Library_GetDiscussion_FullMethodName       = "/library.v1.Library/GetDiscussion"
 	Library_SearchUser_FullMethodName          = "/library.v1.Library/SearchUser"
@@ -41,7 +40,6 @@ type LibraryClient interface {
 	GetSeat(ctx context.Context, in *GetSeatRequest, opts ...grpc.CallOption) (*GetSeatResponse, error)
 	ReserveSeat(ctx context.Context, in *ReserveSeatRequest, opts ...grpc.CallOption) (*ReserveSeatResponse, error)
 	GetSeatRecord(ctx context.Context, in *GetSeatRecordRequest, opts ...grpc.CallOption) (*GetSeatRecordResponse, error)
-	GetHistory(ctx context.Context, in *GetHistoryRequest, opts ...grpc.CallOption) (*GetHistoryResponse, error)
 	GetCreditPoint(ctx context.Context, in *GetCreditPointRequest, opts ...grpc.CallOption) (*GetCreditPointResponse, error)
 	GetDiscussion(ctx context.Context, in *GetDiscussionRequest, opts ...grpc.CallOption) (*GetDiscussionResponse, error)
 	SearchUser(ctx context.Context, in *SearchUserRequest, opts ...grpc.CallOption) (*SearchUserResponse, error)
@@ -85,16 +83,6 @@ func (c *libraryClient) GetSeatRecord(ctx context.Context, in *GetSeatRecordRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetSeatRecordResponse)
 	err := c.cc.Invoke(ctx, Library_GetSeatRecord_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *libraryClient) GetHistory(ctx context.Context, in *GetHistoryRequest, opts ...grpc.CallOption) (*GetHistoryResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetHistoryResponse)
-	err := c.cc.Invoke(ctx, Library_GetHistory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +186,6 @@ type LibraryServer interface {
 	GetSeat(context.Context, *GetSeatRequest) (*GetSeatResponse, error)
 	ReserveSeat(context.Context, *ReserveSeatRequest) (*ReserveSeatResponse, error)
 	GetSeatRecord(context.Context, *GetSeatRecordRequest) (*GetSeatRecordResponse, error)
-	GetHistory(context.Context, *GetHistoryRequest) (*GetHistoryResponse, error)
 	GetCreditPoint(context.Context, *GetCreditPointRequest) (*GetCreditPointResponse, error)
 	GetDiscussion(context.Context, *GetDiscussionRequest) (*GetDiscussionResponse, error)
 	SearchUser(context.Context, *SearchUserRequest) (*SearchUserResponse, error)
@@ -226,9 +213,6 @@ func (UnimplementedLibraryServer) ReserveSeat(context.Context, *ReserveSeatReque
 }
 func (UnimplementedLibraryServer) GetSeatRecord(context.Context, *GetSeatRecordRequest) (*GetSeatRecordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSeatRecord not implemented")
-}
-func (UnimplementedLibraryServer) GetHistory(context.Context, *GetHistoryRequest) (*GetHistoryResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetHistory not implemented")
 }
 func (UnimplementedLibraryServer) GetCreditPoint(context.Context, *GetCreditPointRequest) (*GetCreditPointResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCreditPoint not implemented")
@@ -328,24 +312,6 @@ func _Library_GetSeatRecord_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LibraryServer).GetSeatRecord(ctx, req.(*GetSeatRecordRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Library_GetHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetHistoryRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(LibraryServer).GetHistory(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Library_GetHistory_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LibraryServer).GetHistory(ctx, req.(*GetHistoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -530,10 +496,6 @@ var Library_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSeatRecord",
 			Handler:    _Library_GetSeatRecord_Handler,
-		},
-		{
-			MethodName: "GetHistory",
-			Handler:    _Library_GetHistory_Handler,
 		},
 		{
 			MethodName: "GetCreditPoint",

@@ -24,16 +24,28 @@ func NewCCNUServiceProxy(cs user.UserServiceClient) biz.CCNUServiceProxy {
 	return &CCNUService{Cs: cs}
 }
 
-func (c *CCNUService) GetLibraryCookie(ctx context.Context, stuID string) (string, error) {
-	resp, err := c.Cs.GetLibraryCookie(ctx, &user.GetLibraryCookieRequest{
+func (c *CCNUService) GetLibrarySeatToken(ctx context.Context, stuID string) (string, error) {
+	resp, err := c.Cs.GetLibrarySeatToken(ctx, &user.GetLibraryTokenRequest{
 		StudentId: stuID,
 	})
 	if err != nil {
 		fmt.Println(err)
 		return "", errcode.ErrCCNULogin
 	}
-	cookie := resp.Cookie
-	return cookie, nil
+	token := resp.Token
+	return token, nil
+}
+
+func (c *CCNUService) GetLibraryDiscussionToken(ctx context.Context, stuID string) (string, error) {
+	resp, err := c.Cs.GetLibraryDiscussionToken(ctx, &user.GetLibraryTokenRequest{
+		StudentId: stuID,
+	})
+	if err != nil {
+		fmt.Println(err)
+		return "", errcode.ErrCCNULogin
+	}
+	token := resp.Token
+	return token, nil
 }
 
 func NewClient(r *etcd.Registry, cf *conf.Registry, logger log.Logger) (user.UserServiceClient, error) {

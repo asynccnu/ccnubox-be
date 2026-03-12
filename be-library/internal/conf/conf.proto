@@ -10,6 +10,7 @@ message Bootstrap {
   Data data = 2;
   Registry registry = 3;
   ZapLogConfigs zaplog = 4;
+  Crypto crypto = 5;
 }
 
 message Server {
@@ -59,4 +60,8 @@ message Etcd {
   string addr = 1;
   string username = 2;
   string password = 3;
+}
+
+message Crypto {
+  string librarySecret = 1;
 }

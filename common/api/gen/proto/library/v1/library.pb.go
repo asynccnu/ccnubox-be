@@ -172,11 +172,12 @@ func (x *RoomSeat) GetSeats() []*Seat {
 
 type Seat struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	LabName       string                 `protobuf:"bytes,1,opt,name=lab_name,json=labName,proto3" json:"lab_name,omitempty"`
-	KindName      string                 `protobuf:"bytes,2,opt,name=kind_name,json=kindName,proto3" json:"kind_name,omitempty"`
-	DevId         string                 `protobuf:"bytes,3,opt,name=dev_id,json=devId,proto3" json:"dev_id,omitempty"`
-	DevName       string                 `protobuf:"bytes,4,opt,name=dev_name,json=devName,proto3" json:"dev_name,omitempty"`
-	Ts            []*TimeSlot            `protobuf:"bytes,5,rep,name=ts,proto3" json:"ts,omitempty"`
+	ID            string                 `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	Label         string                 `protobuf:"bytes,2,opt,name=Label,proto3" json:"Label,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=Name,proto3" json:"Name,omitempty"`
+	Status        string                 `protobuf:"bytes,4,opt,name=Status,proto3" json:"Status,omitempty"`
+	AfterFree     bool                   `protobuf:"varint,5,opt,name=AfterFree,proto3" json:"AfterFree,omitempty"`
+	FreeList      []*FreeTime            `protobuf:"bytes,6,rep,name=FreeList,proto3" json:"FreeList,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -211,39 +212,98 @@ func (*Seat) Descriptor() ([]byte, []int) {
 	return file_library_v1_library_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *Seat) GetLabName() string {
+func (x *Seat) GetID() string {
 	if x != nil {
-		return x.LabName
+		return x.ID
 	}
 	return ""
 }
 
-func (x *Seat) GetKindName() string {
+func (x *Seat) GetLabel() string {
 	if x != nil {
-		return x.KindName
+		return x.Label
 	}
 	return ""
 }
 
-func (x *Seat) GetDevId() string {
+func (x *Seat) GetName() string {
 	if x != nil {
-		return x.DevId
+		return x.Name
 	}
 	return ""
 }
 
-func (x *Seat) GetDevName() string {
+func (x *Seat) GetStatus() string {
 	if x != nil {
-		return x.DevName
+		return x.Status
 	}
 	return ""
 }
 
-func (x *Seat) GetTs() []*TimeSlot {
+func (x *Seat) GetAfterFree() bool {
 	if x != nil {
-		return x.Ts
+		return x.AfterFree
+	}
+	return false
+}
+
+func (x *Seat) GetFreeList() []*FreeTime {
+	if x != nil {
+		return x.FreeList
 	}
 	return nil
+}
+
+type FreeTime struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Start         string                 `protobuf:"bytes,1,opt,name=start,proto3" json:"start,omitempty"`
+	End           string                 `protobuf:"bytes,2,opt,name=end,proto3" json:"end,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FreeTime) Reset() {
+	*x = FreeTime{}
+	mi := &file_library_v1_library_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FreeTime) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FreeTime) ProtoMessage() {}
+
+func (x *FreeTime) ProtoReflect() protoreflect.Message {
+	mi := &file_library_v1_library_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FreeTime.ProtoReflect.Descriptor instead.
+func (*FreeTime) Descriptor() ([]byte, []int) {
+	return file_library_v1_library_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *FreeTime) GetStart() string {
+	if x != nil {
+		return x.Start
+	}
+	return ""
+}
+
+func (x *FreeTime) GetEnd() string {
+	if x != nil {
+		return x.End
+	}
+	return ""
 }
 
 type TimeSlot struct {
@@ -259,7 +319,7 @@ type TimeSlot struct {
 
 func (x *TimeSlot) Reset() {
 	*x = TimeSlot{}
-	mi := &file_library_v1_library_proto_msgTypes[4]
+	mi := &file_library_v1_library_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -271,7 +331,7 @@ func (x *TimeSlot) String() string {
 func (*TimeSlot) ProtoMessage() {}
 
 func (x *TimeSlot) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[4]
+	mi := &file_library_v1_library_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -284,7 +344,7 @@ func (x *TimeSlot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimeSlot.ProtoReflect.Descriptor instead.
 func (*TimeSlot) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{4}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *TimeSlot) GetStart() string {
@@ -335,7 +395,7 @@ type ReserveSeatRequest struct {
 
 func (x *ReserveSeatRequest) Reset() {
 	*x = ReserveSeatRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[5]
+	mi := &file_library_v1_library_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -347,7 +407,7 @@ func (x *ReserveSeatRequest) String() string {
 func (*ReserveSeatRequest) ProtoMessage() {}
 
 func (x *ReserveSeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[5]
+	mi := &file_library_v1_library_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -360,7 +420,7 @@ func (x *ReserveSeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveSeatRequest.ProtoReflect.Descriptor instead.
 func (*ReserveSeatRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{5}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ReserveSeatRequest) GetDevId() string {
@@ -400,7 +460,7 @@ type ReserveSeatResponse struct {
 
 func (x *ReserveSeatResponse) Reset() {
 	*x = ReserveSeatResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[6]
+	mi := &file_library_v1_library_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -412,7 +472,7 @@ func (x *ReserveSeatResponse) String() string {
 func (*ReserveSeatResponse) ProtoMessage() {}
 
 func (x *ReserveSeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[6]
+	mi := &file_library_v1_library_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -425,7 +485,7 @@ func (x *ReserveSeatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveSeatResponse.ProtoReflect.Descriptor instead.
 func (*ReserveSeatResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{6}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ReserveSeatResponse) GetMessage() string {
@@ -435,17 +495,18 @@ func (x *ReserveSeatResponse) GetMessage() string {
 	return ""
 }
 
-// 获取未来预约记录
+// 获取预约记录
 type GetSeatRecordRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StuId         string                 `protobuf:"bytes,1,opt,name=stu_id,json=stuId,proto3" json:"stu_id,omitempty"`
+	Date          []string               `protobuf:"bytes,2,rep,name=date,proto3" json:"date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetSeatRecordRequest) Reset() {
 	*x = GetSeatRecordRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[7]
+	mi := &file_library_v1_library_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -457,7 +518,7 @@ func (x *GetSeatRecordRequest) String() string {
 func (*GetSeatRecordRequest) ProtoMessage() {}
 
 func (x *GetSeatRecordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[7]
+	mi := &file_library_v1_library_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -470,7 +531,7 @@ func (x *GetSeatRecordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSeatRecordRequest.ProtoReflect.Descriptor instead.
 func (*GetSeatRecordRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{7}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetSeatRecordRequest) GetStuId() string {
@@ -478,6 +539,13 @@ func (x *GetSeatRecordRequest) GetStuId() string {
 		return x.StuId
 	}
 	return ""
+}
+
+func (x *GetSeatRecordRequest) GetDate() []string {
+	if x != nil {
+		return x.Date
+	}
+	return nil
 }
 
 type GetSeatRecordResponse struct {
@@ -489,7 +557,7 @@ type GetSeatRecordResponse struct {
 
 func (x *GetSeatRecordResponse) Reset() {
 	*x = GetSeatRecordResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[8]
+	mi := &file_library_v1_library_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -501,7 +569,7 @@ func (x *GetSeatRecordResponse) String() string {
 func (*GetSeatRecordResponse) ProtoMessage() {}
 
 func (x *GetSeatRecordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[8]
+	mi := &file_library_v1_library_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -514,7 +582,7 @@ func (x *GetSeatRecordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSeatRecordResponse.ProtoReflect.Descriptor instead.
 func (*GetSeatRecordResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{8}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetSeatRecordResponse) GetRecord() []*Record {
@@ -527,22 +595,24 @@ func (x *GetSeatRecordResponse) GetRecord() []*Record {
 type Record struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Owner         string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	Start         string                 `protobuf:"bytes,3,opt,name=start,proto3" json:"start,omitempty"`
-	End           string                 `protobuf:"bytes,4,opt,name=end,proto3" json:"end,omitempty"`
-	TimeDesc      string                 `protobuf:"bytes,5,opt,name=time_desc,json=timeDesc,proto3" json:"time_desc,omitempty"`
-	States        string                 `protobuf:"bytes,6,opt,name=states,proto3" json:"states,omitempty"`
-	DevName       string                 `protobuf:"bytes,7,opt,name=dev_name,json=devName,proto3" json:"dev_name,omitempty"`
-	RoomId        string                 `protobuf:"bytes,8,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	RoomName      string                 `protobuf:"bytes,9,opt,name=room_name,json=roomName,proto3" json:"room_name,omitempty"`
-	LabName       string                 `protobuf:"bytes,10,opt,name=lab_name,json=labName,proto3" json:"lab_name,omitempty"`
+	RoomId        string                 `protobuf:"bytes,2,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	RoomName      string                 `protobuf:"bytes,3,opt,name=room_name,json=roomName,proto3" json:"room_name,omitempty"`
+	BuildName     string                 `protobuf:"bytes,4,opt,name=build_name,json=buildName,proto3" json:"build_name,omitempty"`
+	FloorName     string                 `protobuf:"bytes,5,opt,name=floor_name,json=floorName,proto3" json:"floor_name,omitempty"`
+	SeatId        string                 `protobuf:"bytes,6,opt,name=seat_id,json=seatId,proto3" json:"seat_id,omitempty"`
+	SeatLabel     string                 `protobuf:"bytes,7,opt,name=seat_label,json=seatLabel,proto3" json:"seat_label,omitempty"`
+	MakeBegin     string                 `protobuf:"bytes,8,opt,name=make_begin,json=makeBegin,proto3" json:"make_begin,omitempty"`
+	MakeEnd       string                 `protobuf:"bytes,9,opt,name=make_end,json=makeEnd,proto3" json:"make_end,omitempty"`
+	MakeDate      string                 `protobuf:"bytes,10,opt,name=make_date,json=makeDate,proto3" json:"make_date,omitempty"`
+	Status        string                 `protobuf:"bytes,11,opt,name=status,proto3" json:"status,omitempty"`
+	Message       string                 `protobuf:"bytes,12,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Record) Reset() {
 	*x = Record{}
-	mi := &file_library_v1_library_proto_msgTypes[9]
+	mi := &file_library_v1_library_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -554,7 +624,7 @@ func (x *Record) String() string {
 func (*Record) ProtoMessage() {}
 
 func (x *Record) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[9]
+	mi := &file_library_v1_library_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -567,54 +637,12 @@ func (x *Record) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Record.ProtoReflect.Descriptor instead.
 func (*Record) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{9}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Record) GetId() string {
 	if x != nil {
 		return x.Id
-	}
-	return ""
-}
-
-func (x *Record) GetOwner() string {
-	if x != nil {
-		return x.Owner
-	}
-	return ""
-}
-
-func (x *Record) GetStart() string {
-	if x != nil {
-		return x.Start
-	}
-	return ""
-}
-
-func (x *Record) GetEnd() string {
-	if x != nil {
-		return x.End
-	}
-	return ""
-}
-
-func (x *Record) GetTimeDesc() string {
-	if x != nil {
-		return x.TimeDesc
-	}
-	return ""
-}
-
-func (x *Record) GetStates() string {
-	if x != nil {
-		return x.States
-	}
-	return ""
-}
-
-func (x *Record) GetDevName() string {
-	if x != nil {
-		return x.DevName
 	}
 	return ""
 }
@@ -633,174 +661,65 @@ func (x *Record) GetRoomName() string {
 	return ""
 }
 
-func (x *Record) GetLabName() string {
+func (x *Record) GetBuildName() string {
 	if x != nil {
-		return x.LabName
+		return x.BuildName
 	}
 	return ""
 }
 
-// 获取历史记录
-type GetHistoryRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StuId         string                 `protobuf:"bytes,1,opt,name=stu_id,json=stuId,proto3" json:"stu_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetHistoryRequest) Reset() {
-	*x = GetHistoryRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetHistoryRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetHistoryRequest) ProtoMessage() {}
-
-func (x *GetHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[10]
+func (x *Record) GetFloorName() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetHistoryRequest.ProtoReflect.Descriptor instead.
-func (*GetHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *GetHistoryRequest) GetStuId() string {
-	if x != nil {
-		return x.StuId
+		return x.FloorName
 	}
 	return ""
 }
 
-type GetHistoryResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	History       []*History             `protobuf:"bytes,1,rep,name=history,proto3" json:"history,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetHistoryResponse) Reset() {
-	*x = GetHistoryResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetHistoryResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetHistoryResponse) ProtoMessage() {}
-
-func (x *GetHistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[11]
+func (x *Record) GetSeatId() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetHistoryResponse.ProtoReflect.Descriptor instead.
-func (*GetHistoryResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *GetHistoryResponse) GetHistory() []*History {
-	if x != nil {
-		return x.History
-	}
-	return nil
-}
-
-type History struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Place         string                 `protobuf:"bytes,1,opt,name=place,proto3" json:"place,omitempty"`
-	Floor         string                 `protobuf:"bytes,2,opt,name=floor,proto3" json:"floor,omitempty"`
-	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	Date          string                 `protobuf:"bytes,4,opt,name=date,proto3" json:"date,omitempty"`
-	SubmitTime    string                 `protobuf:"bytes,5,opt,name=submitTime,proto3" json:"submitTime,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *History) Reset() {
-	*x = History{}
-	mi := &file_library_v1_library_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *History) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*History) ProtoMessage() {}
-
-func (x *History) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use History.ProtoReflect.Descriptor instead.
-func (*History) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *History) GetPlace() string {
-	if x != nil {
-		return x.Place
+		return x.SeatId
 	}
 	return ""
 }
 
-func (x *History) GetFloor() string {
+func (x *Record) GetSeatLabel() string {
 	if x != nil {
-		return x.Floor
+		return x.SeatLabel
 	}
 	return ""
 }
 
-func (x *History) GetStatus() string {
+func (x *Record) GetMakeBegin() string {
+	if x != nil {
+		return x.MakeBegin
+	}
+	return ""
+}
+
+func (x *Record) GetMakeEnd() string {
+	if x != nil {
+		return x.MakeEnd
+	}
+	return ""
+}
+
+func (x *Record) GetMakeDate() string {
+	if x != nil {
+		return x.MakeDate
+	}
+	return ""
+}
+
+func (x *Record) GetStatus() string {
 	if x != nil {
 		return x.Status
 	}
 	return ""
 }
 
-func (x *History) GetDate() string {
+func (x *Record) GetMessage() string {
 	if x != nil {
-		return x.Date
-	}
-	return ""
-}
-
-func (x *History) GetSubmitTime() string {
-	if x != nil {
-		return x.SubmitTime
+		return x.Message
 	}
 	return ""
 }
@@ -815,7 +734,7 @@ type GetCreditPointRequest struct {
 
 func (x *GetCreditPointRequest) Reset() {
 	*x = GetCreditPointRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[13]
+	mi := &file_library_v1_library_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -827,7 +746,7 @@ func (x *GetCreditPointRequest) String() string {
 func (*GetCreditPointRequest) ProtoMessage() {}
 
 func (x *GetCreditPointRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[13]
+	mi := &file_library_v1_library_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -840,7 +759,7 @@ func (x *GetCreditPointRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCreditPointRequest.ProtoReflect.Descriptor instead.
 func (*GetCreditPointRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{13}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetCreditPointRequest) GetStuId() string {
@@ -860,7 +779,7 @@ type GetCreditPointResponse struct {
 
 func (x *GetCreditPointResponse) Reset() {
 	*x = GetCreditPointResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[14]
+	mi := &file_library_v1_library_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -872,7 +791,7 @@ func (x *GetCreditPointResponse) String() string {
 func (*GetCreditPointResponse) ProtoMessage() {}
 
 func (x *GetCreditPointResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[14]
+	mi := &file_library_v1_library_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -885,7 +804,7 @@ func (x *GetCreditPointResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCreditPointResponse.ProtoReflect.Descriptor instead.
 func (*GetCreditPointResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{14}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetCreditPointResponse) GetCreditSummary() *CreditSummary {
@@ -913,7 +832,7 @@ type CreditSummary struct {
 
 func (x *CreditSummary) Reset() {
 	*x = CreditSummary{}
-	mi := &file_library_v1_library_proto_msgTypes[15]
+	mi := &file_library_v1_library_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -925,7 +844,7 @@ func (x *CreditSummary) String() string {
 func (*CreditSummary) ProtoMessage() {}
 
 func (x *CreditSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[15]
+	mi := &file_library_v1_library_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -938,7 +857,7 @@ func (x *CreditSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreditSummary.ProtoReflect.Descriptor instead.
 func (*CreditSummary) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{15}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CreditSummary) GetSystem() string {
@@ -973,7 +892,7 @@ type CreditRecord struct {
 
 func (x *CreditRecord) Reset() {
 	*x = CreditRecord{}
-	mi := &file_library_v1_library_proto_msgTypes[16]
+	mi := &file_library_v1_library_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -985,7 +904,7 @@ func (x *CreditRecord) String() string {
 func (*CreditRecord) ProtoMessage() {}
 
 func (x *CreditRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[16]
+	mi := &file_library_v1_library_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -998,7 +917,7 @@ func (x *CreditRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreditRecord.ProtoReflect.Descriptor instead.
 func (*CreditRecord) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{16}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *CreditRecord) GetTitle() string {
@@ -1025,16 +944,17 @@ func (x *CreditRecord) GetLocation() string {
 // 获取研讨间信息
 type GetDiscussionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ClassId       string                 `protobuf:"bytes,1,opt,name=class_id,json=classId,proto3" json:"class_id,omitempty"`
+	RoomType      string                 `protobuf:"bytes,1,opt,name=room_type,json=roomType,proto3" json:"room_type,omitempty"`
 	Date          string                 `protobuf:"bytes,2,opt,name=date,proto3" json:"date,omitempty"`
 	StuId         string                 `protobuf:"bytes,3,opt,name=stu_id,json=stuId,proto3" json:"stu_id,omitempty"`
+	VenueId       string                 `protobuf:"bytes,4,opt,name=venue_id,json=venueId,proto3" json:"venue_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetDiscussionRequest) Reset() {
 	*x = GetDiscussionRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[17]
+	mi := &file_library_v1_library_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1046,7 +966,7 @@ func (x *GetDiscussionRequest) String() string {
 func (*GetDiscussionRequest) ProtoMessage() {}
 
 func (x *GetDiscussionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[17]
+	mi := &file_library_v1_library_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1059,12 +979,12 @@ func (x *GetDiscussionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDiscussionRequest.ProtoReflect.Descriptor instead.
 func (*GetDiscussionRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{17}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *GetDiscussionRequest) GetClassId() string {
+func (x *GetDiscussionRequest) GetRoomType() string {
 	if x != nil {
-		return x.ClassId
+		return x.RoomType
 	}
 	return ""
 }
@@ -1083,6 +1003,13 @@ func (x *GetDiscussionRequest) GetStuId() string {
 	return ""
 }
 
+func (x *GetDiscussionRequest) GetVenueId() string {
+	if x != nil {
+		return x.VenueId
+	}
+	return ""
+}
+
 type GetDiscussionResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Discussions   []*Discussion          `protobuf:"bytes,1,rep,name=discussions,proto3" json:"discussions,omitempty"`
@@ -1092,7 +1019,7 @@ type GetDiscussionResponse struct {
 
 func (x *GetDiscussionResponse) Reset() {
 	*x = GetDiscussionResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[18]
+	mi := &file_library_v1_library_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1104,7 +1031,7 @@ func (x *GetDiscussionResponse) String() string {
 func (*GetDiscussionResponse) ProtoMessage() {}
 
 func (x *GetDiscussionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[18]
+	mi := &file_library_v1_library_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1117,7 +1044,7 @@ func (x *GetDiscussionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDiscussionResponse.ProtoReflect.Descriptor instead.
 func (*GetDiscussionResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{18}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetDiscussionResponse) GetDiscussions() []*Discussion {
@@ -1129,20 +1056,19 @@ func (x *GetDiscussionResponse) GetDiscussions() []*Discussion {
 
 type Discussion struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	LabId         string                 `protobuf:"bytes,1,opt,name=lab_id,json=labId,proto3" json:"lab_id,omitempty"`
-	LabName       string                 `protobuf:"bytes,2,opt,name=lab_name,json=labName,proto3" json:"lab_name,omitempty"`
-	KindId        string                 `protobuf:"bytes,3,opt,name=kind_id,json=kindId,proto3" json:"kind_id,omitempty"`
-	KindName      string                 `protobuf:"bytes,4,opt,name=kind_name,json=kindName,proto3" json:"kind_name,omitempty"`
-	DevId         string                 `protobuf:"bytes,5,opt,name=dev_id,json=devId,proto3" json:"dev_id,omitempty"`
-	DevName       string                 `protobuf:"bytes,6,opt,name=dev_name,json=devName,proto3" json:"dev_name,omitempty"`
-	TS            []*DiscussionTS        `protobuf:"bytes,7,rep,name=TS,proto3" json:"TS,omitempty"`
+	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	VenueId       string                 `protobuf:"bytes,3,opt,name=venue_id,json=venueId,proto3" json:"venue_id,omitempty"`
+	RoomType      string                 `protobuf:"bytes,4,opt,name=roomType,proto3" json:"roomType,omitempty"`
+	Address       string                 `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
+	DisableList   []*DisableTime         `protobuf:"bytes,6,rep,name=DisableList,proto3" json:"DisableList,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Discussion) Reset() {
 	*x = Discussion{}
-	mi := &file_library_v1_library_proto_msgTypes[19]
+	mi := &file_library_v1_library_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1154,7 +1080,7 @@ func (x *Discussion) String() string {
 func (*Discussion) ProtoMessage() {}
 
 func (x *Discussion) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[19]
+	mi := &file_library_v1_library_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1167,85 +1093,74 @@ func (x *Discussion) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Discussion.ProtoReflect.Descriptor instead.
 func (*Discussion) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{19}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *Discussion) GetLabId() string {
+func (x *Discussion) GetRoomId() string {
 	if x != nil {
-		return x.LabId
+		return x.RoomId
 	}
 	return ""
 }
 
-func (x *Discussion) GetLabName() string {
+func (x *Discussion) GetName() string {
 	if x != nil {
-		return x.LabName
+		return x.Name
 	}
 	return ""
 }
 
-func (x *Discussion) GetKindId() string {
+func (x *Discussion) GetVenueId() string {
 	if x != nil {
-		return x.KindId
+		return x.VenueId
 	}
 	return ""
 }
 
-func (x *Discussion) GetKindName() string {
+func (x *Discussion) GetRoomType() string {
 	if x != nil {
-		return x.KindName
+		return x.RoomType
 	}
 	return ""
 }
 
-func (x *Discussion) GetDevId() string {
+func (x *Discussion) GetAddress() string {
 	if x != nil {
-		return x.DevId
+		return x.Address
 	}
 	return ""
 }
 
-func (x *Discussion) GetDevName() string {
+func (x *Discussion) GetDisableList() []*DisableTime {
 	if x != nil {
-		return x.DevName
-	}
-	return ""
-}
-
-func (x *Discussion) GetTS() []*DiscussionTS {
-	if x != nil {
-		return x.TS
+		return x.DisableList
 	}
 	return nil
 }
 
-type DiscussionTS struct {
+type DisableTime struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Start         string                 `protobuf:"bytes,1,opt,name=start,proto3" json:"start,omitempty"`
 	End           string                 `protobuf:"bytes,2,opt,name=end,proto3" json:"end,omitempty"`
-	State         string                 `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
-	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
-	Owner         string                 `protobuf:"bytes,5,opt,name=owner,proto3" json:"owner,omitempty"`
-	Occupy        bool                   `protobuf:"varint,6,opt,name=occupy,proto3" json:"occupy,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DiscussionTS) Reset() {
-	*x = DiscussionTS{}
-	mi := &file_library_v1_library_proto_msgTypes[20]
+func (x *DisableTime) Reset() {
+	*x = DisableTime{}
+	mi := &file_library_v1_library_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DiscussionTS) String() string {
+func (x *DisableTime) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DiscussionTS) ProtoMessage() {}
+func (*DisableTime) ProtoMessage() {}
 
-func (x *DiscussionTS) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[20]
+func (x *DisableTime) ProtoReflect() protoreflect.Message {
+	mi := &file_library_v1_library_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1256,51 +1171,23 @@ func (x *DiscussionTS) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DiscussionTS.ProtoReflect.Descriptor instead.
-func (*DiscussionTS) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{20}
+// Deprecated: Use DisableTime.ProtoReflect.Descriptor instead.
+func (*DisableTime) Descriptor() ([]byte, []int) {
+	return file_library_v1_library_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *DiscussionTS) GetStart() string {
+func (x *DisableTime) GetStart() string {
 	if x != nil {
 		return x.Start
 	}
 	return ""
 }
 
-func (x *DiscussionTS) GetEnd() string {
+func (x *DisableTime) GetEnd() string {
 	if x != nil {
 		return x.End
 	}
 	return ""
-}
-
-func (x *DiscussionTS) GetState() string {
-	if x != nil {
-		return x.State
-	}
-	return ""
-}
-
-func (x *DiscussionTS) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *DiscussionTS) GetOwner() string {
-	if x != nil {
-		return x.Owner
-	}
-	return ""
-}
-
-func (x *DiscussionTS) GetOccupy() bool {
-	if x != nil {
-		return x.Occupy
-	}
-	return false
 }
 
 // 查找用户
@@ -1314,7 +1201,7 @@ type SearchUserRequest struct {
 
 func (x *SearchUserRequest) Reset() {
 	*x = SearchUserRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[21]
+	mi := &file_library_v1_library_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1326,7 +1213,7 @@ func (x *SearchUserRequest) String() string {
 func (*SearchUserRequest) ProtoMessage() {}
 
 func (x *SearchUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[21]
+	mi := &file_library_v1_library_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1339,7 +1226,7 @@ func (x *SearchUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchUserRequest.ProtoReflect.Descriptor instead.
 func (*SearchUserRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{21}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SearchUserRequest) GetStudentId() string {
@@ -1368,7 +1255,7 @@ type SearchUserResponse struct {
 
 func (x *SearchUserResponse) Reset() {
 	*x = SearchUserResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[22]
+	mi := &file_library_v1_library_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1380,7 +1267,7 @@ func (x *SearchUserResponse) String() string {
 func (*SearchUserResponse) ProtoMessage() {}
 
 func (x *SearchUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[22]
+	mi := &file_library_v1_library_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1393,7 +1280,7 @@ func (x *SearchUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchUserResponse.ProtoReflect.Descriptor instead.
 func (*SearchUserResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{22}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SearchUserResponse) GetId() string {
@@ -1441,7 +1328,7 @@ type ReserveDiscussionRequest struct {
 
 func (x *ReserveDiscussionRequest) Reset() {
 	*x = ReserveDiscussionRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[23]
+	mi := &file_library_v1_library_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1453,7 +1340,7 @@ func (x *ReserveDiscussionRequest) String() string {
 func (*ReserveDiscussionRequest) ProtoMessage() {}
 
 func (x *ReserveDiscussionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[23]
+	mi := &file_library_v1_library_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1466,7 +1353,7 @@ func (x *ReserveDiscussionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveDiscussionRequest.ProtoReflect.Descriptor instead.
 func (*ReserveDiscussionRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{23}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ReserveDiscussionRequest) GetDevId() string {
@@ -1534,7 +1421,7 @@ type ReserveDiscussionResponse struct {
 
 func (x *ReserveDiscussionResponse) Reset() {
 	*x = ReserveDiscussionResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[24]
+	mi := &file_library_v1_library_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1546,7 +1433,7 @@ func (x *ReserveDiscussionResponse) String() string {
 func (*ReserveDiscussionResponse) ProtoMessage() {}
 
 func (x *ReserveDiscussionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[24]
+	mi := &file_library_v1_library_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1559,7 +1446,7 @@ func (x *ReserveDiscussionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveDiscussionResponse.ProtoReflect.Descriptor instead.
 func (*ReserveDiscussionResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{24}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ReserveDiscussionResponse) GetMessage() string {
@@ -1580,7 +1467,7 @@ type CancelReserveRequest struct {
 
 func (x *CancelReserveRequest) Reset() {
 	*x = CancelReserveRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[25]
+	mi := &file_library_v1_library_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1592,7 +1479,7 @@ func (x *CancelReserveRequest) String() string {
 func (*CancelReserveRequest) ProtoMessage() {}
 
 func (x *CancelReserveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[25]
+	mi := &file_library_v1_library_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1605,7 +1492,7 @@ func (x *CancelReserveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelReserveRequest.ProtoReflect.Descriptor instead.
 func (*CancelReserveRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{25}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CancelReserveRequest) GetId() string {
@@ -1631,7 +1518,7 @@ type CancelReserveResponse struct {
 
 func (x *CancelReserveResponse) Reset() {
 	*x = CancelReserveResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[26]
+	mi := &file_library_v1_library_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1643,7 +1530,7 @@ func (x *CancelReserveResponse) String() string {
 func (*CancelReserveResponse) ProtoMessage() {}
 
 func (x *CancelReserveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[26]
+	mi := &file_library_v1_library_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1656,7 +1543,7 @@ func (x *CancelReserveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelReserveResponse.ProtoReflect.Descriptor instead.
 func (*CancelReserveResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{26}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CancelReserveResponse) GetMessage() string {
@@ -1672,14 +1559,14 @@ type ReserveSeatRandomlyRequest struct {
 	Start         string                 `protobuf:"bytes,1,opt,name=start,proto3" json:"start,omitempty"`
 	End           string                 `protobuf:"bytes,2,opt,name=end,proto3" json:"end,omitempty"`
 	StuId         string                 `protobuf:"bytes,3,opt,name=stu_id,json=stuId,proto3" json:"stu_id,omitempty"`
-	RoomId        string                 `protobuf:"bytes,4,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	RoomId        []string               `protobuf:"bytes,4,rep,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ReserveSeatRandomlyRequest) Reset() {
 	*x = ReserveSeatRandomlyRequest{}
-	mi := &file_library_v1_library_proto_msgTypes[27]
+	mi := &file_library_v1_library_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1691,7 +1578,7 @@ func (x *ReserveSeatRandomlyRequest) String() string {
 func (*ReserveSeatRandomlyRequest) ProtoMessage() {}
 
 func (x *ReserveSeatRandomlyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[27]
+	mi := &file_library_v1_library_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1704,7 +1591,7 @@ func (x *ReserveSeatRandomlyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveSeatRandomlyRequest.ProtoReflect.Descriptor instead.
 func (*ReserveSeatRandomlyRequest) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{27}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ReserveSeatRandomlyRequest) GetStart() string {
@@ -1728,11 +1615,11 @@ func (x *ReserveSeatRandomlyRequest) GetStuId() string {
 	return ""
 }
 
-func (x *ReserveSeatRandomlyRequest) GetRoomId() string {
+func (x *ReserveSeatRandomlyRequest) GetRoomId() []string {
 	if x != nil {
 		return x.RoomId
 	}
-	return ""
+	return nil
 }
 
 type ReserveSeatRandomlyResponse struct {
@@ -1744,7 +1631,7 @@ type ReserveSeatRandomlyResponse struct {
 
 func (x *ReserveSeatRandomlyResponse) Reset() {
 	*x = ReserveSeatRandomlyResponse{}
-	mi := &file_library_v1_library_proto_msgTypes[28]
+	mi := &file_library_v1_library_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1756,7 +1643,7 @@ func (x *ReserveSeatRandomlyResponse) String() string {
 func (*ReserveSeatRandomlyResponse) ProtoMessage() {}
 
 func (x *ReserveSeatRandomlyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[28]
+	mi := &file_library_v1_library_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1769,7 +1656,7 @@ func (x *ReserveSeatRandomlyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveSeatRandomlyResponse.ProtoReflect.Descriptor instead.
 func (*ReserveSeatRandomlyResponse) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{28}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ReserveSeatRandomlyResponse) GetMessage() string {
@@ -1794,7 +1681,7 @@ type Comment struct {
 
 func (x *Comment) Reset() {
 	*x = Comment{}
-	mi := &file_library_v1_library_proto_msgTypes[29]
+	mi := &file_library_v1_library_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1806,7 +1693,7 @@ func (x *Comment) String() string {
 func (*Comment) ProtoMessage() {}
 
 func (x *Comment) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[29]
+	mi := &file_library_v1_library_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1819,7 +1706,7 @@ func (x *Comment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Comment.ProtoReflect.Descriptor instead.
 func (*Comment) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{29}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *Comment) GetId() int64 {
@@ -1876,7 +1763,7 @@ type CreateCommentReq struct {
 
 func (x *CreateCommentReq) Reset() {
 	*x = CreateCommentReq{}
-	mi := &file_library_v1_library_proto_msgTypes[30]
+	mi := &file_library_v1_library_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1888,7 +1775,7 @@ func (x *CreateCommentReq) String() string {
 func (*CreateCommentReq) ProtoMessage() {}
 
 func (x *CreateCommentReq) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[30]
+	mi := &file_library_v1_library_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1901,7 +1788,7 @@ func (x *CreateCommentReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCommentReq.ProtoReflect.Descriptor instead.
 func (*CreateCommentReq) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{30}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *CreateCommentReq) GetSeatId() string {
@@ -1941,7 +1828,7 @@ type GetCommentResp struct {
 
 func (x *GetCommentResp) Reset() {
 	*x = GetCommentResp{}
-	mi := &file_library_v1_library_proto_msgTypes[31]
+	mi := &file_library_v1_library_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1953,7 +1840,7 @@ func (x *GetCommentResp) String() string {
 func (*GetCommentResp) ProtoMessage() {}
 
 func (x *GetCommentResp) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[31]
+	mi := &file_library_v1_library_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1966,7 +1853,7 @@ func (x *GetCommentResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCommentResp.ProtoReflect.Descriptor instead.
 func (*GetCommentResp) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{31}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetCommentResp) GetComment() []*Comment {
@@ -1986,7 +1873,7 @@ type ID struct {
 
 func (x *ID) Reset() {
 	*x = ID{}
-	mi := &file_library_v1_library_proto_msgTypes[32]
+	mi := &file_library_v1_library_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1998,7 +1885,7 @@ func (x *ID) String() string {
 func (*ID) ProtoMessage() {}
 
 func (x *ID) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[32]
+	mi := &file_library_v1_library_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2011,7 +1898,7 @@ func (x *ID) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ID.ProtoReflect.Descriptor instead.
 func (*ID) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{32}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ID) GetId() int64 {
@@ -2031,7 +1918,7 @@ type Resp struct {
 
 func (x *Resp) Reset() {
 	*x = Resp{}
-	mi := &file_library_v1_library_proto_msgTypes[33]
+	mi := &file_library_v1_library_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2043,7 +1930,7 @@ func (x *Resp) String() string {
 func (*Resp) ProtoMessage() {}
 
 func (x *Resp) ProtoReflect() protoreflect.Message {
-	mi := &file_library_v1_library_proto_msgTypes[33]
+	mi := &file_library_v1_library_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2056,7 +1943,7 @@ func (x *Resp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Resp.ProtoReflect.Descriptor instead.
 func (*Resp) Descriptor() ([]byte, []int) {
-	return file_library_v1_library_proto_rawDescGZIP(), []int{33}
+	return file_library_v1_library_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *Resp) GetMessage() string {
@@ -2080,13 +1967,17 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"room_seats\x18\x01 \x03(\v2\x14.library.v1.RoomSeatR\troomSeats\"K\n" +
 	"\bRoomSeat\x12\x17\n" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12&\n" +
-	"\x05seats\x18\x02 \x03(\v2\x10.library.v1.SeatR\x05seats\"\x96\x01\n" +
-	"\x04Seat\x12\x19\n" +
-	"\blab_name\x18\x01 \x01(\tR\alabName\x12\x1b\n" +
-	"\tkind_name\x18\x02 \x01(\tR\bkindName\x12\x15\n" +
-	"\x06dev_id\x18\x03 \x01(\tR\x05devId\x12\x19\n" +
-	"\bdev_name\x18\x04 \x01(\tR\adevName\x12$\n" +
-	"\x02ts\x18\x05 \x03(\v2\x14.library.v1.TimeSlotR\x02ts\"v\n" +
+	"\x05seats\x18\x02 \x03(\v2\x10.library.v1.SeatR\x05seats\"\xa8\x01\n" +
+	"\x04Seat\x12\x0e\n" +
+	"\x02ID\x18\x01 \x01(\tR\x02ID\x12\x14\n" +
+	"\x05Label\x18\x02 \x01(\tR\x05Label\x12\x12\n" +
+	"\x04Name\x18\x03 \x01(\tR\x04Name\x12\x16\n" +
+	"\x06Status\x18\x04 \x01(\tR\x06Status\x12\x1c\n" +
+	"\tAfterFree\x18\x05 \x01(\bR\tAfterFree\x120\n" +
+	"\bFreeList\x18\x06 \x03(\v2\x14.library.v1.FreeTimeR\bFreeList\"2\n" +
+	"\bFreeTime\x12\x14\n" +
+	"\x05start\x18\x01 \x01(\tR\x05start\x12\x10\n" +
+	"\x03end\x18\x02 \x01(\tR\x03end\"v\n" +
 	"\bTimeSlot\x12\x14\n" +
 	"\x05start\x18\x01 \x01(\tR\x05start\x12\x10\n" +
 	"\x03end\x18\x02 \x01(\tR\x03end\x12\x14\n" +
@@ -2099,35 +1990,30 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\x03end\x18\x03 \x01(\tR\x03end\x12\x15\n" +
 	"\x06stu_id\x18\x04 \x01(\tR\x05stuId\"/\n" +
 	"\x13ReserveSeatResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"-\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"A\n" +
 	"\x14GetSeatRecordRequest\x12\x15\n" +
-	"\x06stu_id\x18\x01 \x01(\tR\x05stuId\"C\n" +
+	"\x06stu_id\x18\x01 \x01(\tR\x05stuId\x12\x12\n" +
+	"\x04date\x18\x02 \x03(\tR\x04date\"C\n" +
 	"\x15GetSeatRecordResponse\x12*\n" +
-	"\x06record\x18\x01 \x03(\v2\x12.library.v1.RecordR\x06record\"\xf7\x01\n" +
+	"\x06record\x18\x01 \x03(\v2\x12.library.v1.RecordR\x06record\"\xcd\x02\n" +
 	"\x06Record\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
-	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x14\n" +
-	"\x05start\x18\x03 \x01(\tR\x05start\x12\x10\n" +
-	"\x03end\x18\x04 \x01(\tR\x03end\x12\x1b\n" +
-	"\ttime_desc\x18\x05 \x01(\tR\btimeDesc\x12\x16\n" +
-	"\x06states\x18\x06 \x01(\tR\x06states\x12\x19\n" +
-	"\bdev_name\x18\a \x01(\tR\adevName\x12\x17\n" +
-	"\aroom_id\x18\b \x01(\tR\x06roomId\x12\x1b\n" +
-	"\troom_name\x18\t \x01(\tR\broomName\x12\x19\n" +
-	"\blab_name\x18\n" +
-	" \x01(\tR\alabName\"*\n" +
-	"\x11GetHistoryRequest\x12\x15\n" +
-	"\x06stu_id\x18\x01 \x01(\tR\x05stuId\"C\n" +
-	"\x12GetHistoryResponse\x12-\n" +
-	"\ahistory\x18\x01 \x03(\v2\x13.library.v1.HistoryR\ahistory\"\x81\x01\n" +
-	"\aHistory\x12\x14\n" +
-	"\x05place\x18\x01 \x01(\tR\x05place\x12\x14\n" +
-	"\x05floor\x18\x02 \x01(\tR\x05floor\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\tR\x06status\x12\x12\n" +
-	"\x04date\x18\x04 \x01(\tR\x04date\x12\x1e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\aroom_id\x18\x02 \x01(\tR\x06roomId\x12\x1b\n" +
+	"\troom_name\x18\x03 \x01(\tR\broomName\x12\x1d\n" +
 	"\n" +
-	"submitTime\x18\x05 \x01(\tR\n" +
-	"submitTime\".\n" +
+	"build_name\x18\x04 \x01(\tR\tbuildName\x12\x1d\n" +
+	"\n" +
+	"floor_name\x18\x05 \x01(\tR\tfloorName\x12\x17\n" +
+	"\aseat_id\x18\x06 \x01(\tR\x06seatId\x12\x1d\n" +
+	"\n" +
+	"seat_label\x18\a \x01(\tR\tseatLabel\x12\x1d\n" +
+	"\n" +
+	"make_begin\x18\b \x01(\tR\tmakeBegin\x12\x19\n" +
+	"\bmake_end\x18\t \x01(\tR\amakeEnd\x12\x1b\n" +
+	"\tmake_date\x18\n" +
+	" \x01(\tR\bmakeDate\x12\x16\n" +
+	"\x06status\x18\v \x01(\tR\x06status\x12\x18\n" +
+	"\amessage\x18\f \x01(\tR\amessage\".\n" +
 	"\x15GetCreditPointRequest\x12\x15\n" +
 	"\x06stu_id\x18\x01 \x01(\tR\x05stuId\"\x99\x01\n" +
 	"\x16GetCreditPointResponse\x12@\n" +
@@ -2140,29 +2026,25 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\fCreditRecord\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x1a\n" +
 	"\bsubtitle\x18\x02 \x01(\tR\bsubtitle\x12\x1a\n" +
-	"\blocation\x18\x03 \x01(\tR\blocation\"\\\n" +
-	"\x14GetDiscussionRequest\x12\x19\n" +
-	"\bclass_id\x18\x01 \x01(\tR\aclassId\x12\x12\n" +
+	"\blocation\x18\x03 \x01(\tR\blocation\"y\n" +
+	"\x14GetDiscussionRequest\x12\x1b\n" +
+	"\troom_type\x18\x01 \x01(\tR\broomType\x12\x12\n" +
 	"\x04date\x18\x02 \x01(\tR\x04date\x12\x15\n" +
-	"\x06stu_id\x18\x03 \x01(\tR\x05stuId\"Q\n" +
+	"\x06stu_id\x18\x03 \x01(\tR\x05stuId\x12\x19\n" +
+	"\bvenue_id\x18\x04 \x01(\tR\avenueId\"Q\n" +
 	"\x15GetDiscussionResponse\x128\n" +
-	"\vdiscussions\x18\x01 \x03(\v2\x16.library.v1.DiscussionR\vdiscussions\"\xd0\x01\n" +
+	"\vdiscussions\x18\x01 \x03(\v2\x16.library.v1.DiscussionR\vdiscussions\"\xc5\x01\n" +
 	"\n" +
-	"Discussion\x12\x15\n" +
-	"\x06lab_id\x18\x01 \x01(\tR\x05labId\x12\x19\n" +
-	"\blab_name\x18\x02 \x01(\tR\alabName\x12\x17\n" +
-	"\akind_id\x18\x03 \x01(\tR\x06kindId\x12\x1b\n" +
-	"\tkind_name\x18\x04 \x01(\tR\bkindName\x12\x15\n" +
-	"\x06dev_id\x18\x05 \x01(\tR\x05devId\x12\x19\n" +
-	"\bdev_name\x18\x06 \x01(\tR\adevName\x12(\n" +
-	"\x02TS\x18\a \x03(\v2\x18.library.v1.DiscussionTSR\x02TS\"\x90\x01\n" +
-	"\fDiscussionTS\x12\x14\n" +
+	"Discussion\x12\x17\n" +
+	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
+	"\bvenue_id\x18\x03 \x01(\tR\avenueId\x12\x1a\n" +
+	"\broomType\x18\x04 \x01(\tR\broomType\x12\x18\n" +
+	"\aaddress\x18\x05 \x01(\tR\aaddress\x129\n" +
+	"\vDisableList\x18\x06 \x03(\v2\x17.library.v1.DisableTimeR\vDisableList\"5\n" +
+	"\vDisableTime\x12\x14\n" +
 	"\x05start\x18\x01 \x01(\tR\x05start\x12\x10\n" +
-	"\x03end\x18\x02 \x01(\tR\x03end\x12\x14\n" +
-	"\x05state\x18\x03 \x01(\tR\x05state\x12\x14\n" +
-	"\x05title\x18\x04 \x01(\tR\x05title\x12\x14\n" +
-	"\x05owner\x18\x05 \x01(\tR\x05owner\x12\x16\n" +
-	"\x06occupy\x18\x06 \x01(\bR\x06occupy\"I\n" +
+	"\x03end\x18\x02 \x01(\tR\x03end\"I\n" +
 	"\x11SearchUserRequest\x12\x1d\n" +
 	"\n" +
 	"student_id\x18\x01 \x01(\tR\tstudentId\x12\x15\n" +
@@ -2192,7 +2074,7 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\x05start\x18\x01 \x01(\tR\x05start\x12\x10\n" +
 	"\x03end\x18\x02 \x01(\tR\x03end\x12\x15\n" +
 	"\x06stu_id\x18\x03 \x01(\tR\x05stuId\x12\x17\n" +
-	"\aroom_id\x18\x04 \x01(\tR\x06roomId\"7\n" +
+	"\aroom_id\x18\x04 \x03(\tR\x06roomId\"7\n" +
 	"\x1bReserveSeatRandomlyResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"\x9f\x01\n" +
 	"\aComment\x12\x0e\n" +
@@ -2213,13 +2095,11 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\x02ID\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\" \n" +
 	"\x04Resp\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\x8b\b\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\xbe\a\n" +
 	"\aLibrary\x12B\n" +
 	"\aGetSeat\x12\x1a.library.v1.GetSeatRequest\x1a\x1b.library.v1.GetSeatResponse\x12N\n" +
 	"\vReserveSeat\x12\x1e.library.v1.ReserveSeatRequest\x1a\x1f.library.v1.ReserveSeatResponse\x12T\n" +
-	"\rGetSeatRecord\x12 .library.v1.GetSeatRecordRequest\x1a!.library.v1.GetSeatRecordResponse\x12K\n" +
-	"\n" +
-	"GetHistory\x12\x1d.library.v1.GetHistoryRequest\x1a\x1e.library.v1.GetHistoryResponse\x12W\n" +
+	"\rGetSeatRecord\x12 .library.v1.GetSeatRecordRequest\x1a!.library.v1.GetSeatRecordResponse\x12W\n" +
 	"\x0eGetCreditPoint\x12!.library.v1.GetCreditPointRequest\x1a\".library.v1.GetCreditPointResponse\x12T\n" +
 	"\rGetDiscussion\x12 .library.v1.GetDiscussionRequest\x1a!.library.v1.GetDiscussionResponse\x12K\n" +
 	"\n" +
@@ -2243,85 +2123,80 @@ func file_library_v1_library_proto_rawDescGZIP() []byte {
 	return file_library_v1_library_proto_rawDescData
 }
 
-var file_library_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_library_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_library_v1_library_proto_goTypes = []any{
 	(*GetSeatRequest)(nil),              // 0: library.v1.GetSeatRequest
 	(*GetSeatResponse)(nil),             // 1: library.v1.GetSeatResponse
 	(*RoomSeat)(nil),                    // 2: library.v1.RoomSeat
 	(*Seat)(nil),                        // 3: library.v1.Seat
-	(*TimeSlot)(nil),                    // 4: library.v1.TimeSlot
-	(*ReserveSeatRequest)(nil),          // 5: library.v1.ReserveSeatRequest
-	(*ReserveSeatResponse)(nil),         // 6: library.v1.ReserveSeatResponse
-	(*GetSeatRecordRequest)(nil),        // 7: library.v1.GetSeatRecordRequest
-	(*GetSeatRecordResponse)(nil),       // 8: library.v1.GetSeatRecordResponse
-	(*Record)(nil),                      // 9: library.v1.Record
-	(*GetHistoryRequest)(nil),           // 10: library.v1.GetHistoryRequest
-	(*GetHistoryResponse)(nil),          // 11: library.v1.GetHistoryResponse
-	(*History)(nil),                     // 12: library.v1.History
-	(*GetCreditPointRequest)(nil),       // 13: library.v1.GetCreditPointRequest
-	(*GetCreditPointResponse)(nil),      // 14: library.v1.GetCreditPointResponse
-	(*CreditSummary)(nil),               // 15: library.v1.CreditSummary
-	(*CreditRecord)(nil),                // 16: library.v1.CreditRecord
-	(*GetDiscussionRequest)(nil),        // 17: library.v1.GetDiscussionRequest
-	(*GetDiscussionResponse)(nil),       // 18: library.v1.GetDiscussionResponse
-	(*Discussion)(nil),                  // 19: library.v1.Discussion
-	(*DiscussionTS)(nil),                // 20: library.v1.DiscussionTS
-	(*SearchUserRequest)(nil),           // 21: library.v1.SearchUserRequest
-	(*SearchUserResponse)(nil),          // 22: library.v1.SearchUserResponse
-	(*ReserveDiscussionRequest)(nil),    // 23: library.v1.ReserveDiscussionRequest
-	(*ReserveDiscussionResponse)(nil),   // 24: library.v1.ReserveDiscussionResponse
-	(*CancelReserveRequest)(nil),        // 25: library.v1.CancelReserveRequest
-	(*CancelReserveResponse)(nil),       // 26: library.v1.CancelReserveResponse
-	(*ReserveSeatRandomlyRequest)(nil),  // 27: library.v1.ReserveSeatRandomlyRequest
-	(*ReserveSeatRandomlyResponse)(nil), // 28: library.v1.ReserveSeatRandomlyResponse
-	(*Comment)(nil),                     // 29: library.v1.Comment
-	(*CreateCommentReq)(nil),            // 30: library.v1.CreateCommentReq
-	(*GetCommentResp)(nil),              // 31: library.v1.GetCommentResp
-	(*ID)(nil),                          // 32: library.v1.ID
-	(*Resp)(nil),                        // 33: library.v1.Resp
+	(*FreeTime)(nil),                    // 4: library.v1.FreeTime
+	(*TimeSlot)(nil),                    // 5: library.v1.TimeSlot
+	(*ReserveSeatRequest)(nil),          // 6: library.v1.ReserveSeatRequest
+	(*ReserveSeatResponse)(nil),         // 7: library.v1.ReserveSeatResponse
+	(*GetSeatRecordRequest)(nil),        // 8: library.v1.GetSeatRecordRequest
+	(*GetSeatRecordResponse)(nil),       // 9: library.v1.GetSeatRecordResponse
+	(*Record)(nil),                      // 10: library.v1.Record
+	(*GetCreditPointRequest)(nil),       // 11: library.v1.GetCreditPointRequest
+	(*GetCreditPointResponse)(nil),      // 12: library.v1.GetCreditPointResponse
+	(*CreditSummary)(nil),               // 13: library.v1.CreditSummary
+	(*CreditRecord)(nil),                // 14: library.v1.CreditRecord
+	(*GetDiscussionRequest)(nil),        // 15: library.v1.GetDiscussionRequest
+	(*GetDiscussionResponse)(nil),       // 16: library.v1.GetDiscussionResponse
+	(*Discussion)(nil),                  // 17: library.v1.Discussion
+	(*DisableTime)(nil),                 // 18: library.v1.DisableTime
+	(*SearchUserRequest)(nil),           // 19: library.v1.SearchUserRequest
+	(*SearchUserResponse)(nil),          // 20: library.v1.SearchUserResponse
+	(*ReserveDiscussionRequest)(nil),    // 21: library.v1.ReserveDiscussionRequest
+	(*ReserveDiscussionResponse)(nil),   // 22: library.v1.ReserveDiscussionResponse
+	(*CancelReserveRequest)(nil),        // 23: library.v1.CancelReserveRequest
+	(*CancelReserveResponse)(nil),       // 24: library.v1.CancelReserveResponse
+	(*ReserveSeatRandomlyRequest)(nil),  // 25: library.v1.ReserveSeatRandomlyRequest
+	(*ReserveSeatRandomlyResponse)(nil), // 26: library.v1.ReserveSeatRandomlyResponse
+	(*Comment)(nil),                     // 27: library.v1.Comment
+	(*CreateCommentReq)(nil),            // 28: library.v1.CreateCommentReq
+	(*GetCommentResp)(nil),              // 29: library.v1.GetCommentResp
+	(*ID)(nil),                          // 30: library.v1.ID
+	(*Resp)(nil),                        // 31: library.v1.Resp
 }
 var file_library_v1_library_proto_depIdxs = []int32{
 	2,  // 0: library.v1.GetSeatResponse.room_seats:type_name -> library.v1.RoomSeat
 	3,  // 1: library.v1.RoomSeat.seats:type_name -> library.v1.Seat
-	4,  // 2: library.v1.Seat.ts:type_name -> library.v1.TimeSlot
-	9,  // 3: library.v1.GetSeatRecordResponse.record:type_name -> library.v1.Record
-	12, // 4: library.v1.GetHistoryResponse.history:type_name -> library.v1.History
-	15, // 5: library.v1.GetCreditPointResponse.credit_summary:type_name -> library.v1.CreditSummary
-	16, // 6: library.v1.GetCreditPointResponse.credit_record:type_name -> library.v1.CreditRecord
-	19, // 7: library.v1.GetDiscussionResponse.discussions:type_name -> library.v1.Discussion
-	20, // 8: library.v1.Discussion.TS:type_name -> library.v1.DiscussionTS
-	29, // 9: library.v1.GetCommentResp.Comment:type_name -> library.v1.Comment
-	0,  // 10: library.v1.Library.GetSeat:input_type -> library.v1.GetSeatRequest
-	5,  // 11: library.v1.Library.ReserveSeat:input_type -> library.v1.ReserveSeatRequest
-	7,  // 12: library.v1.Library.GetSeatRecord:input_type -> library.v1.GetSeatRecordRequest
-	10, // 13: library.v1.Library.GetHistory:input_type -> library.v1.GetHistoryRequest
-	13, // 14: library.v1.Library.GetCreditPoint:input_type -> library.v1.GetCreditPointRequest
-	17, // 15: library.v1.Library.GetDiscussion:input_type -> library.v1.GetDiscussionRequest
-	21, // 16: library.v1.Library.SearchUser:input_type -> library.v1.SearchUserRequest
-	23, // 17: library.v1.Library.ReserveDiscussion:input_type -> library.v1.ReserveDiscussionRequest
-	25, // 18: library.v1.Library.CancelReserve:input_type -> library.v1.CancelReserveRequest
-	27, // 19: library.v1.Library.ReserveSeatRandomly:input_type -> library.v1.ReserveSeatRandomlyRequest
-	30, // 20: library.v1.Library.CreateComment:input_type -> library.v1.CreateCommentReq
-	32, // 21: library.v1.Library.GetComments:input_type -> library.v1.ID
-	32, // 22: library.v1.Library.DeleteComment:input_type -> library.v1.ID
-	1,  // 23: library.v1.Library.GetSeat:output_type -> library.v1.GetSeatResponse
-	6,  // 24: library.v1.Library.ReserveSeat:output_type -> library.v1.ReserveSeatResponse
-	8,  // 25: library.v1.Library.GetSeatRecord:output_type -> library.v1.GetSeatRecordResponse
-	11, // 26: library.v1.Library.GetHistory:output_type -> library.v1.GetHistoryResponse
-	14, // 27: library.v1.Library.GetCreditPoint:output_type -> library.v1.GetCreditPointResponse
-	18, // 28: library.v1.Library.GetDiscussion:output_type -> library.v1.GetDiscussionResponse
-	22, // 29: library.v1.Library.SearchUser:output_type -> library.v1.SearchUserResponse
-	24, // 30: library.v1.Library.ReserveDiscussion:output_type -> library.v1.ReserveDiscussionResponse
-	26, // 31: library.v1.Library.CancelReserve:output_type -> library.v1.CancelReserveResponse
-	28, // 32: library.v1.Library.ReserveSeatRandomly:output_type -> library.v1.ReserveSeatRandomlyResponse
-	33, // 33: library.v1.Library.CreateComment:output_type -> library.v1.Resp
-	31, // 34: library.v1.Library.GetComments:output_type -> library.v1.GetCommentResp
-	33, // 35: library.v1.Library.DeleteComment:output_type -> library.v1.Resp
-	23, // [23:36] is the sub-list for method output_type
-	10, // [10:23] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	4,  // 2: library.v1.Seat.FreeList:type_name -> library.v1.FreeTime
+	10, // 3: library.v1.GetSeatRecordResponse.record:type_name -> library.v1.Record
+	13, // 4: library.v1.GetCreditPointResponse.credit_summary:type_name -> library.v1.CreditSummary
+	14, // 5: library.v1.GetCreditPointResponse.credit_record:type_name -> library.v1.CreditRecord
+	17, // 6: library.v1.GetDiscussionResponse.discussions:type_name -> library.v1.Discussion
+	18, // 7: library.v1.Discussion.DisableList:type_name -> library.v1.DisableTime
+	27, // 8: library.v1.GetCommentResp.Comment:type_name -> library.v1.Comment
+	0,  // 9: library.v1.Library.GetSeat:input_type -> library.v1.GetSeatRequest
+	6,  // 10: library.v1.Library.ReserveSeat:input_type -> library.v1.ReserveSeatRequest
+	8,  // 11: library.v1.Library.GetSeatRecord:input_type -> library.v1.GetSeatRecordRequest
+	11, // 12: library.v1.Library.GetCreditPoint:input_type -> library.v1.GetCreditPointRequest
+	15, // 13: library.v1.Library.GetDiscussion:input_type -> library.v1.GetDiscussionRequest
+	19, // 14: library.v1.Library.SearchUser:input_type -> library.v1.SearchUserRequest
+	21, // 15: library.v1.Library.ReserveDiscussion:input_type -> library.v1.ReserveDiscussionRequest
+	23, // 16: library.v1.Library.CancelReserve:input_type -> library.v1.CancelReserveRequest
+	25, // 17: library.v1.Library.ReserveSeatRandomly:input_type -> library.v1.ReserveSeatRandomlyRequest
+	28, // 18: library.v1.Library.CreateComment:input_type -> library.v1.CreateCommentReq
+	30, // 19: library.v1.Library.GetComments:input_type -> library.v1.ID
+	30, // 20: library.v1.Library.DeleteComment:input_type -> library.v1.ID
+	1,  // 21: library.v1.Library.GetSeat:output_type -> library.v1.GetSeatResponse
+	7,  // 22: library.v1.Library.ReserveSeat:output_type -> library.v1.ReserveSeatResponse
+	9,  // 23: library.v1.Library.GetSeatRecord:output_type -> library.v1.GetSeatRecordResponse
+	12, // 24: library.v1.Library.GetCreditPoint:output_type -> library.v1.GetCreditPointResponse
+	16, // 25: library.v1.Library.GetDiscussion:output_type -> library.v1.GetDiscussionResponse
+	20, // 26: library.v1.Library.SearchUser:output_type -> library.v1.SearchUserResponse
+	22, // 27: library.v1.Library.ReserveDiscussion:output_type -> library.v1.ReserveDiscussionResponse
+	24, // 28: library.v1.Library.CancelReserve:output_type -> library.v1.CancelReserveResponse
+	26, // 29: library.v1.Library.ReserveSeatRandomly:output_type -> library.v1.ReserveSeatRandomlyResponse
+	31, // 30: library.v1.Library.CreateComment:output_type -> library.v1.Resp
+	29, // 31: library.v1.Library.GetComments:output_type -> library.v1.GetCommentResp
+	31, // 32: library.v1.Library.DeleteComment:output_type -> library.v1.Resp
+	21, // [21:33] is the sub-list for method output_type
+	9,  // [9:21] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_library_v1_library_proto_init() }
@@ -2335,7 +2210,7 @@ func file_library_v1_library_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_library_v1_library_proto_rawDesc), len(file_library_v1_library_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   34,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -21,6 +21,52 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type LIBRARY_TYPE int32
+
+const (
+	LIBRARY_TYPE_LIBRARY_SEAT       LIBRARY_TYPE = 0
+	LIBRARY_TYPE_LIBRARY_DISCUSSION LIBRARY_TYPE = 1
+)
+
+// Enum value maps for LIBRARY_TYPE.
+var (
+	LIBRARY_TYPE_name = map[int32]string{
+		0: "LIBRARY_SEAT",
+		1: "LIBRARY_DISCUSSION",
+	}
+	LIBRARY_TYPE_value = map[string]int32{
+		"LIBRARY_SEAT":       0,
+		"LIBRARY_DISCUSSION": 1,
+	}
+)
+
+func (x LIBRARY_TYPE) Enum() *LIBRARY_TYPE {
+	p := new(LIBRARY_TYPE)
+	*p = x
+	return p
+}
+
+func (x LIBRARY_TYPE) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LIBRARY_TYPE) Descriptor() protoreflect.EnumDescriptor {
+	return file_ccnu_v1_ccnu_proto_enumTypes[0].Descriptor()
+}
+
+func (LIBRARY_TYPE) Type() protoreflect.EnumType {
+	return &file_ccnu_v1_ccnu_proto_enumTypes[0]
+}
+
+func (x LIBRARY_TYPE) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LIBRARY_TYPE.Descriptor instead.
+func (LIBRARY_TYPE) EnumDescriptor() ([]byte, []int) {
+	return file_ccnu_v1_ccnu_proto_rawDescGZIP(), []int{0}
+}
+
 type GetXKCookieRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StudentId     string                 `protobuf:"bytes,1,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
@@ -221,28 +267,29 @@ func (x *LoginCCNUResponse) GetSuccess() bool {
 	return false
 }
 
-type GetLibraryCookieRequest struct {
+type GetLibraryTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StudentId     string                 `protobuf:"bytes,1,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
 	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	Type          LIBRARY_TYPE           `protobuf:"varint,3,opt,name=type,proto3,enum=ccnu.v1.LIBRARY_TYPE" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetLibraryCookieRequest) Reset() {
-	*x = GetLibraryCookieRequest{}
+func (x *GetLibraryTokenRequest) Reset() {
+	*x = GetLibraryTokenRequest{}
 	mi := &file_ccnu_v1_ccnu_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetLibraryCookieRequest) String() string {
+func (x *GetLibraryTokenRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetLibraryCookieRequest) ProtoMessage() {}
+func (*GetLibraryTokenRequest) ProtoMessage() {}
 
-func (x *GetLibraryCookieRequest) ProtoReflect() protoreflect.Message {
+func (x *GetLibraryTokenRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ccnu_v1_ccnu_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -254,46 +301,53 @@ func (x *GetLibraryCookieRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetLibraryCookieRequest.ProtoReflect.Descriptor instead.
-func (*GetLibraryCookieRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetLibraryTokenRequest.ProtoReflect.Descriptor instead.
+func (*GetLibraryTokenRequest) Descriptor() ([]byte, []int) {
 	return file_ccnu_v1_ccnu_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *GetLibraryCookieRequest) GetStudentId() string {
+func (x *GetLibraryTokenRequest) GetStudentId() string {
 	if x != nil {
 		return x.StudentId
 	}
 	return ""
 }
 
-func (x *GetLibraryCookieRequest) GetPassword() string {
+func (x *GetLibraryTokenRequest) GetPassword() string {
 	if x != nil {
 		return x.Password
 	}
 	return ""
 }
 
-type GetLibraryCookieResponse struct {
+func (x *GetLibraryTokenRequest) GetType() LIBRARY_TYPE {
+	if x != nil {
+		return x.Type
+	}
+	return LIBRARY_TYPE_LIBRARY_SEAT
+}
+
+type GetLibraryTokenResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cookie        string                 `protobuf:"bytes,1,opt,name=cookie,proto3" json:"cookie,omitempty"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetLibraryCookieResponse) Reset() {
-	*x = GetLibraryCookieResponse{}
+func (x *GetLibraryTokenResponse) Reset() {
+	*x = GetLibraryTokenResponse{}
 	mi := &file_ccnu_v1_ccnu_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetLibraryCookieResponse) String() string {
+func (x *GetLibraryTokenResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetLibraryCookieResponse) ProtoMessage() {}
+func (*GetLibraryTokenResponse) ProtoMessage() {}
 
-func (x *GetLibraryCookieResponse) ProtoReflect() protoreflect.Message {
+func (x *GetLibraryTokenResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_ccnu_v1_ccnu_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -305,16 +359,112 @@ func (x *GetLibraryCookieResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetLibraryCookieResponse.ProtoReflect.Descriptor instead.
-func (*GetLibraryCookieResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetLibraryTokenResponse.ProtoReflect.Descriptor instead.
+func (*GetLibraryTokenResponse) Descriptor() ([]byte, []int) {
 	return file_ccnu_v1_ccnu_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GetLibraryCookieResponse) GetCookie() string {
+func (x *GetLibraryTokenResponse) GetToken() string {
 	if x != nil {
-		return x.Cookie
+		return x.Token
 	}
 	return ""
+}
+
+type CheckLibraryTokenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Type          LIBRARY_TYPE           `protobuf:"varint,2,opt,name=type,proto3,enum=ccnu.v1.LIBRARY_TYPE" json:"type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckLibraryTokenRequest) Reset() {
+	*x = CheckLibraryTokenRequest{}
+	mi := &file_ccnu_v1_ccnu_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckLibraryTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckLibraryTokenRequest) ProtoMessage() {}
+
+func (x *CheckLibraryTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ccnu_v1_ccnu_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckLibraryTokenRequest.ProtoReflect.Descriptor instead.
+func (*CheckLibraryTokenRequest) Descriptor() ([]byte, []int) {
+	return file_ccnu_v1_ccnu_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CheckLibraryTokenRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *CheckLibraryTokenRequest) GetType() LIBRARY_TYPE {
+	if x != nil {
+		return x.Type
+	}
+	return LIBRARY_TYPE_LIBRARY_SEAT
+}
+
+type CheckLibraryTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Valid         bool                   `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckLibraryTokenResponse) Reset() {
+	*x = CheckLibraryTokenResponse{}
+	mi := &file_ccnu_v1_ccnu_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckLibraryTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckLibraryTokenResponse) ProtoMessage() {}
+
+func (x *CheckLibraryTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ccnu_v1_ccnu_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckLibraryTokenResponse.ProtoReflect.Descriptor instead.
+func (*CheckLibraryTokenResponse) Descriptor() ([]byte, []int) {
+	return file_ccnu_v1_ccnu_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *CheckLibraryTokenResponse) GetValid() bool {
+	if x != nil {
+		return x.Valid
+	}
+	return false
 }
 
 var File_ccnu_v1_ccnu_proto protoreflect.FileDescriptor
@@ -334,17 +484,27 @@ const file_ccnu_v1_ccnu_proto_rawDesc = "" +
 	"student_id\x18\x01 \x01(\tR\tstudentId\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"-\n" +
 	"\x11LoginCCNUResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"T\n" +
-	"\x17GetLibraryCookieRequest\x12\x1d\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"~\n" +
+	"\x16GetLibraryTokenRequest\x12\x1d\n" +
 	"\n" +
 	"student_id\x18\x01 \x01(\tR\tstudentId\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"2\n" +
-	"\x18GetLibraryCookieResponse\x12\x16\n" +
-	"\x06cookie\x18\x01 \x01(\tR\x06cookie2\xf4\x01\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\x12)\n" +
+	"\x04type\x18\x03 \x01(\x0e2\x15.ccnu.v1.LIBRARY_TYPER\x04type\"/\n" +
+	"\x17GetLibraryTokenResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"[\n" +
+	"\x18CheckLibraryTokenRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12)\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x15.ccnu.v1.LIBRARY_TYPER\x04type\"1\n" +
+	"\x19CheckLibraryTokenResponse\x12\x14\n" +
+	"\x05valid\x18\x01 \x01(\bR\x05valid*8\n" +
+	"\fLIBRARY_TYPE\x12\x10\n" +
+	"\fLIBRARY_SEAT\x10\x00\x12\x16\n" +
+	"\x12LIBRARY_DISCUSSION\x10\x012\xcd\x02\n" +
 	"\vCCNUService\x12H\n" +
 	"\vGetXKCookie\x12\x1b.ccnu.v1.GetXKCookieRequest\x1a\x1c.ccnu.v1.GetXKCookieResponse\x12B\n" +
-	"\tLoginCCNU\x12\x19.ccnu.v1.LoginCCNURequest\x1a\x1a.ccnu.v1.LoginCCNUResponse\x12W\n" +
-	"\x10GetLibraryCookie\x12 .ccnu.v1.GetLibraryCookieRequest\x1a!.ccnu.v1.GetLibraryCookieResponseBDZBgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1;ccnuv1b\x06proto3"
+	"\tLoginCCNU\x12\x19.ccnu.v1.LoginCCNURequest\x1a\x1a.ccnu.v1.LoginCCNUResponse\x12T\n" +
+	"\x0fGetLibraryToken\x12\x1f.ccnu.v1.GetLibraryTokenRequest\x1a .ccnu.v1.GetLibraryTokenResponse\x12Z\n" +
+	"\x11CheckLibraryToken\x12!.ccnu.v1.CheckLibraryTokenRequest\x1a\".ccnu.v1.CheckLibraryTokenResponseBDZBgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1;ccnuv1b\x06proto3"
 
 var (
 	file_ccnu_v1_ccnu_proto_rawDescOnce sync.Once
@@ -358,27 +518,35 @@ func file_ccnu_v1_ccnu_proto_rawDescGZIP() []byte {
 	return file_ccnu_v1_ccnu_proto_rawDescData
 }
 
-var file_ccnu_v1_ccnu_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ccnu_v1_ccnu_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ccnu_v1_ccnu_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ccnu_v1_ccnu_proto_goTypes = []any{
-	(*GetXKCookieRequest)(nil),       // 0: ccnu.v1.GetXKCookieRequest
-	(*GetXKCookieResponse)(nil),      // 1: ccnu.v1.GetXKCookieResponse
-	(*LoginCCNURequest)(nil),         // 2: ccnu.v1.LoginCCNURequest
-	(*LoginCCNUResponse)(nil),        // 3: ccnu.v1.LoginCCNUResponse
-	(*GetLibraryCookieRequest)(nil),  // 4: ccnu.v1.GetLibraryCookieRequest
-	(*GetLibraryCookieResponse)(nil), // 5: ccnu.v1.GetLibraryCookieResponse
+	(LIBRARY_TYPE)(0),                 // 0: ccnu.v1.LIBRARY_TYPE
+	(*GetXKCookieRequest)(nil),        // 1: ccnu.v1.GetXKCookieRequest
+	(*GetXKCookieResponse)(nil),       // 2: ccnu.v1.GetXKCookieResponse
+	(*LoginCCNURequest)(nil),          // 3: ccnu.v1.LoginCCNURequest
+	(*LoginCCNUResponse)(nil),         // 4: ccnu.v1.LoginCCNUResponse
+	(*GetLibraryTokenRequest)(nil),    // 5: ccnu.v1.GetLibraryTokenRequest
+	(*GetLibraryTokenResponse)(nil),   // 6: ccnu.v1.GetLibraryTokenResponse
+	(*CheckLibraryTokenRequest)(nil),  // 7: ccnu.v1.CheckLibraryTokenRequest
+	(*CheckLibraryTokenResponse)(nil), // 8: ccnu.v1.CheckLibraryTokenResponse
 }
 var file_ccnu_v1_ccnu_proto_depIdxs = []int32{
-	0, // 0: ccnu.v1.CCNUService.GetXKCookie:input_type -> ccnu.v1.GetXKCookieRequest
-	2, // 1: ccnu.v1.CCNUService.LoginCCNU:input_type -> ccnu.v1.LoginCCNURequest
-	4, // 2: ccnu.v1.CCNUService.GetLibraryCookie:input_type -> ccnu.v1.GetLibraryCookieRequest
-	1, // 3: ccnu.v1.CCNUService.GetXKCookie:output_type -> ccnu.v1.GetXKCookieResponse
-	3, // 4: ccnu.v1.CCNUService.LoginCCNU:output_type -> ccnu.v1.LoginCCNUResponse
-	5, // 5: ccnu.v1.CCNUService.GetLibraryCookie:output_type -> ccnu.v1.GetLibraryCookieResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: ccnu.v1.GetLibraryTokenRequest.type:type_name -> ccnu.v1.LIBRARY_TYPE
+	0, // 1: ccnu.v1.CheckLibraryTokenRequest.type:type_name -> ccnu.v1.LIBRARY_TYPE
+	1, // 2: ccnu.v1.CCNUService.GetXKCookie:input_type -> ccnu.v1.GetXKCookieRequest
+	3, // 3: ccnu.v1.CCNUService.LoginCCNU:input_type -> ccnu.v1.LoginCCNURequest
+	5, // 4: ccnu.v1.CCNUService.GetLibraryToken:input_type -> ccnu.v1.GetLibraryTokenRequest
+	7, // 5: ccnu.v1.CCNUService.CheckLibraryToken:input_type -> ccnu.v1.CheckLibraryTokenRequest
+	2, // 6: ccnu.v1.CCNUService.GetXKCookie:output_type -> ccnu.v1.GetXKCookieResponse
+	4, // 7: ccnu.v1.CCNUService.LoginCCNU:output_type -> ccnu.v1.LoginCCNUResponse
+	6, // 8: ccnu.v1.CCNUService.GetLibraryToken:output_type -> ccnu.v1.GetLibraryTokenResponse
+	8, // 9: ccnu.v1.CCNUService.CheckLibraryToken:output_type -> ccnu.v1.CheckLibraryTokenResponse
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ccnu_v1_ccnu_proto_init() }
@@ -391,13 +559,14 @@ func file_ccnu_v1_ccnu_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ccnu_v1_ccnu_proto_rawDesc), len(file_ccnu_v1_ccnu_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   6,
+			NumEnums:      1,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_ccnu_v1_ccnu_proto_goTypes,
 		DependencyIndexes: file_ccnu_v1_ccnu_proto_depIdxs,
+		EnumInfos:         file_ccnu_v1_ccnu_proto_enumTypes,
 		MessageInfos:      file_ccnu_v1_ccnu_proto_msgTypes,
 	}.Build()
 	File_ccnu_v1_ccnu_proto = out.File

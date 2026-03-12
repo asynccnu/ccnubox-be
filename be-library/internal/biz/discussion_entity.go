@@ -2,24 +2,38 @@ package biz
 
 import "context"
 
+//type Discussion struct {
+//	LabID    string
+//	LabName  string
+//	KindID   string
+//	KindName string
+//	DevID    string
+//	DevName  string
+//	TS       []*DiscussionTS
+//}
+
 type Discussion struct {
-	LabID    string
-	LabName  string
-	KindID   string
-	KindName string
-	DevID    string
-	DevName  string
-	TS       []*DiscussionTS
+	RoomID      string
+	Name        string
+	VenueID     string
+	RoomType    string
+	Address     string
+	DisableList []*DisableTime
 }
 
-type DiscussionTS struct {
-	Start  string
-	End    string
-	State  string
-	Title  string
-	Owner  string
-	Occupy bool
+type DisableTime struct {
+	Start string
+	End   string
 }
+
+//type DiscussionTS struct {
+//	Start  string
+//	End    string
+//	State  string
+//	Title  string
+//	Owner  string
+//	Occupy bool
+//}
 
 type Search struct {
 	ID    string `json:"id"`    // 预约研讨间id

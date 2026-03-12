@@ -54,7 +54,7 @@ func NewDB(c *conf.Data) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to connect database: %w", err)
 	}
 
-	if err = db.AutoMigrate(&DO.Seat{}, &DO.TimeSlot{}, &DO.Comment{}, &DO.FutureRecord{}, &DO.HistoryRecord{}, &DO.CreditSummary{}, &DO.CreditRecord{}); err != nil {
+	if err = db.AutoMigrate(&DO.Seat{}, &DO.TimeSlot{}, &DO.Comment{}, &DO.FutureRecord{}, &DO.HistoryRecord{}, &DO.CreditSummary{}, &DO.CreditRecord{}, &DO.Record{}); err != nil {
 		return nil, fmt.Errorf("auto migrate failed: %w", err)
 	}
 

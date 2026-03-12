@@ -43,7 +43,7 @@ func Test_ccnuService_getGradCookie(t *testing.T) {
 	testLogger := new(TestLogger)
 	ccs := NewCCNUService(testLogger, &MockProxy{})
 	stuId, password := "", ""
-	cookie, err := ccs.GetLibraryCookie(context.Background(), stuId, password)
+	cookie, err := ccs.GetLibraryToken(context.Background(), stuId, password)
 	if err != nil {
 		t.Errorf("GetXKCookie err : %v", err)
 	}

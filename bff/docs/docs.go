@@ -2652,56 +2652,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/library/get_history_records": {
-            "get": {
-                "description": "获取1年内的预约记录和三个月内的取消记录",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "library"
-                ],
-                "summary": "获取历史预约记录",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功返回历史预约记录",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/library.GetHistoryResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "500": {
-                        "description": "系统异常，获取失败",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/library/get_seat": {
             "post": {
                 "description": "默认获取当天图书馆座位信息",
@@ -2762,8 +2712,8 @@ const docTemplate = `{
             }
         },
         "/library/get_seat_records": {
-            "get": {
-                "description": "获取即将到来的预约",
+            "post": {
+                "description": "获取预约记录",
                 "consumes": [
                     "application/json"
                 ],
@@ -2773,7 +2723,7 @@ const docTemplate = `{
                 "tags": [
                     "library"
                 ],
-                "summary": "获取未来预约",
+                "summary": "获取预约记录",
                 "parameters": [
                     {
                         "type": "string",
@@ -2781,11 +2731,20 @@ const docTemplate = `{
                         "name": "Authorization",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "description": "预约座位的请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/library.GetSeatRecordRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "成功返回即将到来的预约",
+                        "description": "成功返回预约记录",
                         "schema": {
                             "allOf": [
                                 {
@@ -5132,54 +5091,50 @@ const docTemplate = `{
                 }
             }
         },
-        "library.Discussion": {
-            "type": "object",
-            "properties": {
-                "devId": {
-                    "type": "string"
-                },
-                "devName": {
-                    "type": "string"
-                },
-                "kindId": {
-                    "type": "string"
-                },
-                "kindName": {
-                    "type": "string"
-                },
-                "labId": {
-                    "type": "string"
-                },
-                "labName": {
-                    "type": "string"
-                },
-                "ts": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/library.DiscussionTS"
-                    }
-                }
-            }
-        },
-        "library.DiscussionTS": {
+        "library.DisableTime": {
             "type": "object",
             "properties": {
                 "end": {
                     "type": "string"
                 },
-                "occupy": {
-                    "type": "boolean"
+                "start": {
+                    "type": "string"
+                }
+            }
+        },
+        "library.Discussion": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
                 },
-                "owner": {
+                "disableList": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/library.DisableTime"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "room_id": {
+                    "type": "string"
+                },
+                "room_type": {
+                    "type": "string"
+                },
+                "venue_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "library.FreeTime": {
+            "type": "object",
+            "properties": {
+                "end": {
                     "type": "string"
                 },
                 "start": {
-                    "type": "string"
-                },
-                "state": {
-                    "type": "string"
-                },
-                "title": {
                     "type": "string"
                 }
             }
@@ -5195,10 +5150,13 @@ const docTemplate = `{
         "library.GetDiscussionRequest": {
             "type": "object",
             "properties": {
-                "class_id": {
+                "date": {
                     "type": "string"
                 },
-                "date": {
+                "room_type_id": {
+                    "type": "string"
+                },
+                "venue_id": {
                     "type": "string"
                 }
             }
@@ -5214,13 +5172,13 @@ const docTemplate = `{
                 }
             }
         },
-        "library.GetHistoryResponse": {
+        "library.GetSeatRecordRequest": {
             "type": "object",
             "properties": {
-                "history": {
+                "date": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/library.History"
+                        "type": "string"
                     }
                 }
             }
@@ -5258,57 +5216,46 @@ const docTemplate = `{
                 }
             }
         },
-        "library.History": {
-            "type": "object",
-            "properties": {
-                "date": {
-                    "type": "string"
-                },
-                "floor": {
-                    "type": "string"
-                },
-                "place": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "submitTime": {
-                    "type": "string"
-                }
-            }
-        },
         "library.Record": {
             "type": "object",
             "properties": {
-                "devName": {
+                "build_name": {
                     "type": "string"
                 },
-                "end": {
+                "floor_name": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "labName": {
+                "make_begin": {
                     "type": "string"
                 },
-                "owner": {
+                "make_date": {
                     "type": "string"
                 },
-                "roomId": {
+                "make_end": {
                     "type": "string"
                 },
-                "roomName": {
+                "message": {
                     "type": "string"
                 },
-                "start": {
+                "room_id": {
                     "type": "string"
                 },
-                "states": {
+                "room_name": {
                     "type": "string"
                 },
-                "timeDesc": {
+                "seat_id": {
+                    "type": "string"
+                },
+                "seat_label": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "stu_id": {
                     "type": "string"
                 }
             }
@@ -5345,14 +5292,14 @@ const docTemplate = `{
         "library.ReserveSeatRandomlyRequest": {
             "type": "object",
             "properties": {
-                "dev_id": {
-                    "type": "string"
-                },
                 "end": {
                     "type": "string"
                 },
                 "room_ids": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "start": {
                     "type": "string"
@@ -5423,42 +5370,25 @@ const docTemplate = `{
         "library.Seat": {
             "type": "object",
             "properties": {
-                "devId": {
-                    "type": "string"
-                },
-                "devName": {
-                    "type": "string"
-                },
-                "kindName": {
-                    "type": "string"
-                },
-                "labName": {
-                    "type": "string"
-                },
-                "ts": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/library.TimeSlot"
-                    }
-                }
-            }
-        },
-        "library.TimeSlot": {
-            "type": "object",
-            "properties": {
-                "end": {
-                    "type": "string"
-                },
-                "occupy": {
+                "afterFree": {
                     "type": "boolean"
                 },
-                "owner": {
+                "ft": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/library.FreeTime"
+                    }
+                },
+                "id": {
                     "type": "string"
                 },
-                "start": {
+                "label": {
                     "type": "string"
                 },
-                "state": {
+                "name": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }

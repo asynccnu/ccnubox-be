@@ -3,7 +3,6 @@ package data
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -14,10 +13,9 @@ import (
 )
 
 const (
-	futureRecordKeyPrefix  = "lib:future:records:"
-	futureRecordTTL        = 60 * time.Second
-	historyRecordKeyPrefix = "lib:history:records:"
-	historyRecordTTL       = 60 * time.Second
+	RecordKeyPrefix    = "lib:records:"
+	RecordTTL          = 60 * time.Second
+	RecordUpdatePrefix = "lib:records_update:"
 )
 
 type recordRepo struct {
@@ -30,177 +28,170 @@ func NewRecordRepo(data *Data) biz.RecordRepo {
 	}
 }
 
-// 未来预约缓存
-func (r *recordRepo) futureRecordKey(stuID string) string {
-	return fmt.Sprintf("%s%s", futureRecordKeyPrefix, stuID)
+func (r *recordRepo) recordKey(stuID string) string {
+	return fmt.Sprintf("%s%s", RecordKeyPrefix, stuID)
 }
 
-func (r *recordRepo) getFutureRecordsCache(ctx context.Context, stuID string) ([]*biz.FutureRecords, bool, error) {
-	key := r.futureRecordKey(stuID)
-	val, err := r.data.redis.Get(ctx, key).Bytes()
-	if errors.Is(err, redis.Nil) {
-		return nil, false, nil
+func (r *recordRepo) recordUpdateKey(stuID string) string {
+	return fmt.Sprintf("%s%s", RecordUpdatePrefix, stuID)
+}
+
+// 如果不传date就是查所有预约记录
+func (r *recordRepo) getRecordsCache(ctx context.Context, stuID string, date ...time.Time) ([]*biz.Record, bool, error) {
+	key := r.recordKey(stuID)
+	//先检查key是否存在
+	exists, err := r.data.redis.Exists(ctx, key).Result()
+	if err != nil || exists == 0 {
+		return nil, false, err
 	}
+	var ops []*redis.ZRangeBy
+	if len(date) == 0 {
+		ops = append(ops, &redis.ZRangeBy{
+			Min: "-inf",
+			Max: "+inf",
+		})
+	} else {
+		for _, d := range date {
+			start := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location()).Unix()
+			end := time.Date(d.Year(), d.Month(), d.Day(), 23, 59, 59, 0, d.Location()).Unix()
+			option := &redis.ZRangeBy{
+				Min: fmt.Sprintf("%d", start),
+				Max: fmt.Sprintf("%d", end),
+			}
+			ops = append(ops, option)
+		}
+	}
+
+	var out []*biz.Record
+	pipe := r.data.redis.Pipeline()
+	var cmds []*redis.StringSliceCmd
+	for _, op := range ops {
+		cmd := pipe.ZRangeByScore(ctx, key, op)
+		cmds = append(cmds, cmd)
+	}
+	_, err = pipe.Exec(ctx)
 	if err != nil {
 		return nil, false, err
 	}
-	var out []*biz.FutureRecords
-	if err = json.Unmarshal(val, &out); err != nil {
-		return nil, false, err
+
+	for _, cmd := range cmds {
+		vals := cmd.Val()
+		for _, v := range vals {
+			var rec biz.Record
+			if err := json.Unmarshal([]byte(v), &rec); err != nil {
+				r.data.log.Errorf("unmarshal record error:%v", err)
+				continue
+			}
+			out = append(out, &rec)
+		}
 	}
 	return out, true, nil
 }
 
-func (r *recordRepo) setFutureRecordsCache(ctx context.Context, stuID string, list []*biz.FutureRecords) error {
-	key := r.futureRecordKey(stuID)
-	data, err := json.Marshal(list)
-	if err != nil {
-		return err
+func (r *recordRepo) setRecordsCache(ctx context.Context, stuID string, list []*biz.Record) error {
+	key := r.recordKey(stuID)
+	zset := make([]redis.Z, 0, len(list))
+	for _, li := range list {
+		data, err := json.Marshal(li)
+		if err != nil {
+			return err
+		}
+		zset = append(zset, redis.Z{
+			Score:  float64(li.MakeBegin.Unix()),
+			Member: data,
+		})
 	}
-	return r.data.redis.Set(ctx, key, data, futureRecordTTL).Err()
+	pipe := r.data.redis.Pipeline()
+	pipe.Del(ctx, key)
+	pipe.ZAdd(ctx, key, zset...)
+	pipe.Expire(ctx, key, RecordTTL)
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
-func (r *recordRepo) delFutureRecordsCache(ctx context.Context, stuID string) error {
-	key := r.futureRecordKey(stuID)
+func (r *recordRepo) delRecordsCache(ctx context.Context, stuID string) error {
+	key := r.recordKey(stuID)
 	return r.data.redis.Del(ctx, key).Err()
 }
 
-// UpsertFutureRecords 复合唯一键去重,写库成功后删除缓存
-func (r *recordRepo) UpsertFutureRecords(ctx context.Context, stuID string, list []*biz.FutureRecords) error {
+func (r *recordRepo) setRecordsUpdateTime(ctx context.Context, stuID string) error {
+	key := r.recordUpdateKey(stuID)
+	t := time.Now().Format("2006-01-02 15:04")
+	return r.data.redis.Set(ctx, key, t, 0).Err()
+}
+
+// GetRecordUpdateTime 这里的更新时间是数据库数据的更新时间
+func (r *recordRepo) GetRecordUpdateTime(ctx context.Context, stuID string) (string, error) {
+	key := r.recordUpdateKey(stuID)
+	t, err := r.data.redis.Get(ctx, key).Result()
+	if err != nil {
+		return "", err
+	}
+	return t, nil
+}
+
+// UpsertRecords 复合唯一键去重,写库成功后删除缓存
+func (r *recordRepo) UpsertRecords(ctx context.Context, stuID string, list []*biz.Record) error {
 	if len(list) == 0 {
 		return nil
 	}
-	dos := ConvertBizFutureRecordsDO(stuID, list)
-
+	dos := ConvertRecordBizToDo(stuID, list)
 	if err := r.data.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns: []clause.Column{
-				{Name: "stu_id"},
-				{Name: "start"},
-				{Name: "end"},
+				{Name: "id"},
 			},
-			DoUpdates: clause.AssignmentColumns([]string{
-				"remote_id", "owner", "time_desc", "states", "dev_name", "room_id", "room_name", "lab_name",
-			}),
+			UpdateAll: true,
 		}).
 		Create(&dos).Error; err != nil {
 		return err
 	}
-	
 	// 写库后删缓存
-	if err := r.delFutureRecordsCache(ctx, stuID); err != nil {
+	if err := r.delRecordsCache(ctx, stuID); err != nil {
 		r.data.log.Warnf("del future records cache(stu_id:%s) failed: %v", stuID, err)
 	}
-	return nil
-}
-
-// ListFutureRecords 先读缓存,未命中则查库并写回缓存
-func (r *recordRepo) ListFutureRecords(ctx context.Context, stuID string) ([]*biz.FutureRecords, error) {
-	if cached, ok, err := r.getFutureRecordsCache(ctx, stuID); err == nil && ok {
-		return cached, nil
-	} else if err != nil {
-		r.data.log.Warnf("get future records cache(stu_id:%s) err: %v", stuID, err)
-	}
-
-	var dos []DO.FutureRecord
-	if err := r.data.db.WithContext(ctx).
-		Where("stu_id = ?", stuID).
-		Order("start DESC").
-		Find(&dos).Error; err != nil {
-		return nil, err
-	}
-
-	out := ConvertDOFutureRecordsBiz(dos)
-
-	// 回填缓存
-	if err := r.setFutureRecordsCache(ctx, stuID, out); err != nil {
-		r.data.log.Warnf("set future records cache(stu_id:%s) err: %v", stuID, err)
-	}
-	return out, nil
-}
-
-// 历史预约缓存
-func (r *recordRepo) historyRecordKey(stuID string) string {
-	return fmt.Sprintf("%s%s", historyRecordKeyPrefix, stuID)
-}
-
-func (r *recordRepo) getHistoryRecordCache(ctx context.Context, stuID string) ([]*biz.HistoryRecords, bool, error) {
-	key := r.historyRecordKey(stuID)
-	val, err := r.data.redis.Get(ctx, key).Bytes()
-	if errors.Is(err, redis.Nil) {
-		return nil, false, nil
-	}
-	if err != nil {
-		return nil, false, err
-	}
-	var out []*biz.HistoryRecords
-	if err = json.Unmarshal(val, &out); err != nil {
-		return nil, false, err
-	}
-	return out, true, nil
-}
-
-func (r *recordRepo) setHistoryRecordCache(ctx context.Context, stuID string, list []*biz.HistoryRecords) error {
-	key := r.historyRecordKey(stuID)
-	data, err := json.Marshal(list)
+	//更新update的时间
+	err := r.setRecordsUpdateTime(ctx, stuID)
 	if err != nil {
 		return err
-	}
-	return r.data.redis.Set(ctx, key, data, historyRecordTTL).Err()
-}
-
-func (r *recordRepo) delHistoryRecordCache(ctx context.Context, stuID string) error {
-	key := r.historyRecordKey(stuID)
-	return r.data.redis.Del(ctx, key).Err()
-}
-
-func (r *recordRepo) UpsertHistoryRecords(ctx context.Context, stuID string, list []*biz.HistoryRecords) error {
-	if len(list) == 0 {
-		return nil
-	}
-	dos := ConvertBizHistoryRecordsDO(stuID, list)
-
-	if err := r.data.db.WithContext(ctx).
-		Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "stu_id"},
-				{Name: "submit_time"},
-			},
-			DoUpdates: clause.AssignmentColumns([]string{
-				"place", "floor", "status", "date",
-			}),
-		}).Create(&dos).Error; err != nil {
-		return err
-	}
-	// 写库后删缓存
-	if err := r.delHistoryRecordCache(ctx, stuID); err != nil {
-		r.data.log.Warnf("del history record cache(stu_id:%s) err: %v", stuID, err)
 	}
 	return nil
 }
 
-// ListHistoryRecords 先读缓存,未命中则查库并写回缓存
-func (r *recordRepo) ListHistoryRecords(ctx context.Context, stuID string) ([]*biz.HistoryRecords, error) {
-	if cached, ok, err := r.getHistoryRecordCache(ctx, stuID); err == nil && ok {
-		return cached, nil
+// ListRecords 先读缓存,未命中则查库并写回缓存
+func (r *recordRepo) ListRecords(ctx context.Context, stuID string, date ...time.Time) ([]*biz.Record, error) {
+	//只根据日期查询
+	if cache, ok, err := r.getRecordsCache(ctx, stuID, date...); err == nil && ok {
+		return cache, nil
 	} else if err != nil {
-		r.data.log.Warnf("get history record cache(stu_id:%s) err: %v", stuID, err)
+		r.data.log.Warnf("get records cache(stu_id:%s) err: %v", stuID, err)
 	}
 
-	var dos []DO.HistoryRecord
+	//key失效就全量查询更新
+	var dos []*DO.Record
 	if err := r.data.db.WithContext(ctx).
-		Where("stu_id = ?", stuID).
-		Order("submit_time DESC").
+		Where("stu_id=?", stuID).
+		Order("make_begin DESC").
 		Find(&dos).Error; err != nil {
 		return nil, err
 	}
 
-	out := ConvertDOHistoryRecordsBiz(dos)
+	out := ConvertRecordDoToBiz(dos)
 
-	// 回填缓存
-	if err := r.setHistoryRecordCache(ctx, stuID, out); err != nil {
-		return nil, err
+	//回写缓存
+	if err := r.setRecordsCache(ctx, stuID, out); err != nil {
+		r.data.log.Warnf("set records cache(stu_id:%s) err: %v", stuID, err)
 	}
 
-	return out, nil
+	//过滤指定日期的记录
+	var res []*biz.Record
+	for _, rec := range out {
+		for _, d := range date {
+			if d.Day() == rec.MakeDate.Day() {
+				res = append(res, rec)
+			}
+		}
+	}
+
+	return res, nil
 }

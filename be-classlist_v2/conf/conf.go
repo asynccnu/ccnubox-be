@@ -25,12 +25,15 @@ type ShenLongConf struct {
 }
 
 type ClassListConf struct {
-	WaitCrawTime        int32 `yaml:"waitCrawTime,omitempty"`        // 等待爬虫抓取数据的时间,单位ms
-	ClassExpiration     int32 `yaml:"classExpiration,omitempty"`     // 课程过期时间,单位s
-	RecycleExpiration   int32 `yaml:"recycleExpiration,omitempty"`   // 回收站课程过期时间,单位s
-	BlackListExpiration int32 `yaml:"blackListExpiration,omitempty"` // 黑名单过期时间,如果要查询的课程在数据库不存在,列入黑名单,单位s
-	WaitUserSvcTime     int32 `yaml:"waitUserSvcTime,omitempty"`     // 等待用户服务的时间,单位ms
-	RefreshInterval     int32 `yaml:"refreshInterval,omitempty"`     // 刷新间隔时间,单位s
+	WaitCrawTime        int32 `yaml:"waitCrawTime"`        // 等待爬虫抓取数据的时间,单位ms
+	ClassExpiration     int32 `yaml:"classExpiration"`     // 课程过期时间,单位ms
+	RecycleExpiration   int32 `yaml:"recycleExpiration"`   // 回收站课程过期时间,单位ms
+	BlackListExpiration int32 `yaml:"blackListExpiration"` // 黑名单过期时间,如果要查询的课程在数据库不存在,列入黑名单,单位ms
+	WaitUserSvcTime     int32 `yaml:"waitUserSvcTime"`     // 等待用户服务的时间,单位ms
+	RefreshInterval     int32 `yaml:"refreshInterval"`     // 刷新间隔时间,单位ms
+
+	HolidayTime string `yaml:"holidayTime"` // 放假日期(正式放假的第一天)
+	SchoolTime  string `yaml:"schoolTime"`  // 上学日期(正式上学的第一天)
 }
 
 func InitServerConf() *ServerConf {

@@ -129,6 +129,10 @@ func (c *Passport) loginCCNUPassport(
 	v.Set("execution", params.execution)
 	v.Set("_eventId", params._eventId)
 	v.Set("submit", params.submit)
+	v.Set("visitorid", tool.RandomMD5())
+	v.Set("epid", "Edge145.0.0.0")
+	v.Set("ugt", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0")
+	v.Set("bz", tool.RandomMD5())
 
 	urlstr := LoginCCNUPassPortURL + ";jsessionid=" + params.JSESSIONID
 	request, err := http.NewRequestWithContext(ctx, "POST", urlstr, strings.NewReader(v.Encode()))

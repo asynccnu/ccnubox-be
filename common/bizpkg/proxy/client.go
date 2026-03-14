@@ -11,6 +11,9 @@ type HttpClient struct {
 }
 
 func (c *HttpClient) Use(options ...Option) {
+	if len(options) == 0 {
+		return
+	}
 	for _, option := range options {
 		option(c)
 	}

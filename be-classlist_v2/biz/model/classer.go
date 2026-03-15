@@ -35,6 +35,18 @@ type ClassMetaDataBO struct {
 	Note       string // 备注
 }
 
+type StudentCourseBO struct {
+	StuID           string //学号
+	ClaID           string //课程ID
+	Year            string //学年
+	Semester        string //学期
+	IsManuallyAdded bool   //是否为手动添加
+	Note            string //课程备注
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+
 const (
 	Pending = "pending"
 	Ready   = "ready"
@@ -52,3 +64,11 @@ func (c *ClassRefreshLogBO) IsReady() bool {
 func (c *ClassRefreshLogBO) IsFailed() bool {
 	return c.Status == Failed
 }
+
+type RefreshAction int
+
+const (
+	ActionReturnLocal RefreshAction = iota
+	ActionWaitPending
+	ActionStartCrawl
+)

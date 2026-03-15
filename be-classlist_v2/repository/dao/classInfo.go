@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"gorm.io/gorm"
@@ -32,7 +31,7 @@ func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*m
 		return nil
 	}
 
-	db := c.data.DB(ctx).Table(ClassInfoTableName).WithContext(ctx)
+	db := c.Mysql.Table(model.ClassInfoTableName).WithContext(ctx)
 	err := db.Debug().
 		Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "id"}},

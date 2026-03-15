@@ -16,7 +16,7 @@ import (
 // 统一本地查询逻辑 GetClassesFromLocal + GetLastRefreshTime
 func (cluc *ClassUsecase) loadLocal(ctx context.Context, stuID, year, semester string) (classes []*model.ClassInfoBO, lastRefresh *time.Time, err error) {
 	lastRefresh = cluc.refreshLogRepo.GetLastRefreshTime(ctx, stuID, year, semester, model.Ready, time.Now())
-	classes, err = cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+	classes, err = cluc.classInfoRepo.GetClassesFromLocal(ctx, stuID, year, semester)
 	return classes, lastRefresh, err
 }
 

@@ -36,16 +36,15 @@ type ClassMetaDataBO struct {
 }
 
 type StudentCourseBO struct {
-	StuID           string //学号
-	ClaID           string //课程ID
-	Year            string //学年
-	Semester        string //学期
-	IsManuallyAdded bool   //是否为手动添加
-	Note            string //课程备注
+	StuID           string // 学号
+	ClaID           string // 课程ID
+	Year            string // 学年
+	Semester        string // 学期
+	IsManuallyAdded bool   // 是否为手动添加
+	Note            string // 课程备注
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
-
 
 const (
 	Pending = "pending"

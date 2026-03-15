@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/usecase"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/tool"

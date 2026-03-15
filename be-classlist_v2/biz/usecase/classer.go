@@ -15,7 +15,7 @@ import (
 type ClassUsecase struct {
 	conf *conf.ServerConf
 
-	classRepo      biz.ClassRepo
+	classInfoRepo  biz.ClassInfoRepo
 	refreshLogRepo biz.RefreshLogRepo
 	jxbRepo        biz.JxbRepo
 	ccnu           biz.CCNUService
@@ -25,7 +25,7 @@ type ClassUsecase struct {
 	sfGroup  singleflight.Group
 }
 
-// 将实现 grpc service 的函数与流程里使用到的工具函数分开放在两个文件里提高可读性
+// 将实现暴露出的主函数与流程里使用到的工具函数分开放在两个文件里提高可读性
 func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*model.ClassInfoBO, *time.Time, error) {
 	// 能返回到最上层的错误，就统一在最上层打错误日志
 	logh := logger.From(ctx).With(
@@ -64,7 +64,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 
 		if readyLog != nil && readyLog.IsReady() {
 			// 刷新的课表保存到本地了，从本地拿就好了
-			newLocalClassInfo, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+			newLocalClassInfo, err := cluc.classInfoRepo.GetClassesFromLocal(ctx, stuID, year, semester)
 			if err != nil {
 				logh.Errorf("fetch class from local error=%v", err)
 				return localClasses, localLastRefreshTime, nil

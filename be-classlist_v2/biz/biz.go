@@ -7,7 +7,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 )
 
-type ClassRepo interface {
+type ClassInfoRepo interface {
 	GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*model.ClassInfoBO, error)
 	CacheClass(ctx context.Context, stuID, year, semester string)
 	GetSpecificClassInfo(ctx context.Context, stuID, year, semester, classID string) (*model.ClassInfoBO, error)

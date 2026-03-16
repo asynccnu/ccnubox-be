@@ -27,3 +27,8 @@ type ClassInfo struct {
 	// Note         string    `json:"note"`                                                                               //备注，用于和学生课程表联合查询，数据库中不存储
 	UpdatedAt time.Time `json:"-"`
 }
+
+type ClassMetaData struct {
+	Note            string `json:"note"`
+	IsManuallyAdded bool   `json:"is_manually_added"`
+}

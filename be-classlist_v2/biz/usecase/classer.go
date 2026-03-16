@@ -15,7 +15,7 @@ import (
 type ClassUsecase struct {
 	conf *conf.ServerConf
 
-	classInfoRepo  biz.ClassInfoRepo
+	classRepo      biz.ClassRepo
 	refreshLogRepo biz.RefreshLogRepo
 	jxbRepo        biz.JxbRepo
 	ccnu           biz.CCNUService
@@ -64,7 +64,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 
 		if readyLog != nil && readyLog.IsReady() {
 			// 刷新的课表保存到本地了，从本地拿就好了
-			newLocalClassInfo, err := cluc.classInfoRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+			newLocalClassInfo, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
 			if err != nil {
 				logh.Errorf("fetch class from local error=%v", err)
 				return localClasses, localLastRefreshTime, nil

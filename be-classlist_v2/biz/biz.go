@@ -7,7 +7,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 )
 
-type ClassInfoRepo interface {
+type ClassRepo interface {
 	GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*model.ClassInfoBO, error)
 	CacheClass(ctx context.Context, stuID, year, semester string)
 	GetSpecificClassInfo(ctx context.Context, stuID, year, semester, classID string) (*model.ClassInfoBO, error)
@@ -31,7 +31,7 @@ type RefreshLogRepo interface {
 	UpdateRefreshLogStatus(ctx context.Context, logID uint64, status string) error
 	SearchNewestRefreshLog(ctx context.Context, stuID, year, semester string, endTime time.Time) (*model.ClassRefreshLogBO, error)
 	GetRefreshLogByID(ctx context.Context, logID uint64) (*model.ClassRefreshLogBO, error)
-	GetLastRefreshTime(ctx context.Context, stuID, year, semester, status string, beforeTime time.Time) *time.Time
+	GetLastRefreshTime(ctx context.Context, stuID, year, semester, status string, beforeTime time.Time) (*time.Time, error)
 }
 type CCNUService interface {
 	GetCookie(ctx context.Context, stuID string) (string, error)

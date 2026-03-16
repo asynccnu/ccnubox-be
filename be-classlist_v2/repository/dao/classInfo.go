@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type ClassInfoDBRepo struct {
+type ClassInfoDAO struct {
 	Mysql *gorm.DB
 }
 
@@ -81,22 +81,22 @@ func (c ClassInfoDBRepo) GetClassInfoFromDB(ctx context.Context, ID string) (*Cl
 	return cla, err
 }
 
-func (c ClassInfoDBRepo) GetClassInfos(ctx context.Context, stuId, xnm, xqm string) ([]*ClassInfo, error) {
-	logh := logger.GetLoggerFromCtx(ctx)
-	db := c.data.Mysql.WithContext(ctx)
-	cla := make([]*ClassInfo, 0)
+func (c ClassInfoDAO) GetClassInfos(ctx context.Context, stuId, xnm, xqm string) ([]*model.ClassInfo, error) {
+	logh := logger.From(ctx)
+	db := c.Mysql.WithContext(ctx)
+	cla := make([]*model.ClassInfo, 0)
 
-	err := db.Table(ClassInfoTableName).Select(fmt.Sprintf("%s.*", ClassInfoTableName)).
+	err := db.Table(model.ClassInfoTableName).Select(fmt.Sprintf("%s.*", model.ClassInfoTableName)).
 		Joins(fmt.Sprintf(
-			`LEFT JOIN %s ON %s.id = %s.cla_id`, StudentCourseTableName, ClassInfoTableName, StudentCourseTableName,
+			`LEFT JOIN %s ON %s.id = %s.cla_id`, model.StudentCourseTableName, model.ClassInfoTableName, model.StudentCourseTableName,
 		)).
 		Where(fmt.Sprintf(
-			`%s.stu_id = ? AND %s.year = ? AND %s.semester = ?`, StudentCourseTableName, StudentCourseTableName, StudentCourseTableName),
+			`%s.stu_id = ? AND %s.year = ? AND %s.semester = ?`, model.StudentCourseTableName, model.StudentCourseTableName, model.StudentCourseTableName),
 			stuId, xnm, xqm,
 		).
 		Find(&cla).Error
 	if err != nil {
-		logh.Errorf("Mysql:find classinfos  where (stu_id = %s,year = %s,semester = %s) failed:%v",
+		logh.Errorf("Mysql:find classinfos where (stu_id = %s,year = %s,semester = %s) failed:%v",
 			stuId, xnm, xqm, err)
 		return nil, err
 	}

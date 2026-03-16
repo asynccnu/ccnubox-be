@@ -15,7 +15,7 @@ import (
 
 const RedisNull = "redis_Null"
 
-type ClassInfoCacheRepo struct {
+type ClassInfoCache struct {
 	rdb                 *redis.Client
 	classExpiration     time.Duration
 	blackListExpiration time.Duration
@@ -37,12 +37,12 @@ func NewClassInfoCacheRepo(rdb *redis.Client, cf *conf.ServerConf) *ClassInfoCac
 	}
 }
 
-func (c ClassInfoCacheRepo) generateClassInfosKey(stuId, xnm, xqm string) string {
+func (c ClassInfoCache) generateClassInfosKey(stuId, xnm, xqm string) string {
 	return fmt.Sprintf("ClassInfos:%s:%s:%s", stuId, xnm, xqm)
 }
 
 // GetClassInfosFromCache 从缓存中获取课程信息
-func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, stuId, xnm, xqm string) ([]*model.ClassInfo, error) {
+func (c ClassInfoCache) GetClassInfosFromCache(ctx context.Context, stuId, xnm, xqm string) ([]*model.ClassInfo, error) {
 	key := c.generateClassInfosKey(stuId, xnm, xqm)
 	logh := logger.From(ctx)
 
@@ -67,14 +67,14 @@ func (c ClassInfoCacheRepo) GetClassInfosFromCache(ctx context.Context, stuId, x
 }
 
 // AddClaInfosToCache 将整个课表转换成json格式，然后存到缓存中去
-func (c ClassInfoCacheRepo) AddClaInfosToCache(ctx context.Context, stuId, xnm, xqm string, classInfos []*model.ClassInfo) error {
+func (c ClassInfoCache) AddClaInfosToCache(ctx context.Context, stuId, xnm, xqm string, classInfos []*model.ClassInfo) error {
 	key := c.generateClassInfosKey(stuId, xnm, xqm)
 	var (
 		val    string
 		expire time.Duration
 		// 根据是否为空指针，来决定过期时间
 	)
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := logger.From(ctx)
 	// 检查classInfos是否为空指针
 	if classInfos == nil {
 		val = RedisNull

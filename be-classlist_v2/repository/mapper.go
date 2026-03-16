@@ -1,4 +1,4 @@
-package dao
+package repo
 
 import (
 	bizModel "github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
@@ -6,9 +6,8 @@ import (
 )
 
 // 将数据库中的数据结构与业务层相互转化
-
-func metaDataDOToBO(meta ClassMetaData) biz.ClassMetaDataBO {
-	return biz.ClassMetaDataBO{
+func metaDataDOToBO(meta repoModel.ClassMetaData) bizModel.ClassMetaDataBO {
+	return bizModel.ClassMetaDataBO{
 		IsOfficial: !meta.IsManuallyAdded,
 		Note:       meta.Note,
 	}
@@ -21,8 +20,8 @@ func metaDataBOToDO(meta biz.ClassMetaDataBO) ClassMetaData {
 	}
 }
 
-func classInfoDOToBO(do *ClassInfo, meta *ClassMetaData) *biz.ClassInfoBO {
-	bo := &biz.ClassInfoBO{
+func classInfoDOToBO(do *repoModel.ClassInfo, meta *repoModel.ClassMetaData) *bizModel.ClassInfoBO {
+	bo := &bizModel.ClassInfoBO{
 		ID:           do.ID,
 		CreatedAt:    do.CreatedAt,
 		UpdatedAt:    do.UpdatedAt,

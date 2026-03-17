@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type ClassInfoBO struct {
 	ID           string // 集合了课程信息的字符串，便于标识（课程ID）
@@ -44,6 +47,10 @@ type StudentCourseBO struct {
 	Note            string // 课程备注
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+}
+
+func (ci *ClassInfoBO) UpdateID() {
+	ci.ID = fmt.Sprintf("Class:%s:%s:%s:%d:%s:%s:%s:%d", ci.Classname, ci.Year, ci.Semester, ci.Day, ci.ClassWhen, ci.Teacher, ci.Where, ci.Weeks)
 }
 
 const (

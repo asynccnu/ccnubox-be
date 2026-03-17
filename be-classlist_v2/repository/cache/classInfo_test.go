@@ -37,7 +37,7 @@ func initTestLogger(t *testing.T) {
 	logger.InitGlobalLogger(l)
 }
 
-func newRepoWithLogger(t *testing.T) (*ClassInfoCacheRepo, *miniredis.Miniredis) {
+func newRepoWithLogger(t *testing.T) (*ClassInfoCache, *miniredis.Miniredis) {
 	t.Helper()
 
 	mr, err := miniredis.Run()
@@ -55,7 +55,7 @@ func newRepoWithLogger(t *testing.T) (*ClassInfoCacheRepo, *miniredis.Miniredis)
 	}
 
 	initTestLogger(t)
-	return NewClassInfoCacheRepo(rdb, cfg), mr
+	return NewClassInfoCache(BaseCache{rdb: rdb}, cfg), mr
 }
 
 func TestClassInfoCache_SetGet(t *testing.T) {

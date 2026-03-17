@@ -13,8 +13,8 @@ func metaDataDOToBO(meta repoModel.ClassMetaData) bizModel.ClassMetaDataBO {
 	}
 }
 
-func metaDataBOToDO(meta biz.ClassMetaDataBO) ClassMetaData {
-	return ClassMetaData{
+func metaDataBOToDO(meta bizModel.ClassMetaDataBO) repoModel.ClassMetaData {
+	return repoModel.ClassMetaData{
 		IsManuallyAdded: !meta.IsOfficial,
 		Note:            meta.Note,
 	}
@@ -45,8 +45,8 @@ func classInfoDOToBO(do *repoModel.ClassInfo, meta *repoModel.ClassMetaData) *bi
 	return bo
 }
 
-func classInfoBOToDO(bo *biz.ClassInfoBO) *ClassInfo {
-	cdo := &ClassInfo{
+func classInfoBOToDO(bo *bizModel.ClassInfoBO) *repoModel.ClassInfo {
+	cdo := &repoModel.ClassInfo{
 		ID:           bo.ID,
 		CreatedAt:    bo.CreatedAt,
 		UpdatedAt:    bo.UpdatedAt,
@@ -66,8 +66,8 @@ func classInfoBOToDO(bo *biz.ClassInfoBO) *ClassInfo {
 	return cdo
 }
 
-func studentCourseBOToDO(bo *biz.StudentCourse) *StudentCourse {
-	return &StudentCourse{
+func studentCourseBOToDO(bo *bizModel.StudentCourseBO) *repoModel.StudentCourse {
+	return &repoModel.StudentCourse{
 		StuID:           bo.StuID,
 		ClaID:           bo.ClaID,
 		Year:            bo.Year,
@@ -87,18 +87,5 @@ func ClassRefreshLogDOToBO(log *repoModel.ClassRefreshLog) *bizModel.ClassRefres
 		Semester:  log.Semester,
 		Status:    log.Status,
 		UpdatedAt: log.UpdatedAt,
-	}
-}
-
-// recycleClassInfoToBO converts RecycleClassInfo to ClassInfoBO
-func recycleClassInfoToBO(info RecycleClassInfo) *biz.ClassInfoBO {
-	return classInfoDOToBO(&info.Info, &info.MetaData)
-}
-
-// classInfoBOToRecycleClassInfo converts ClassInfoBO to RecycleClassInfo
-func classInfoBOToRecycleClassInfo(bo *biz.ClassInfoBO) RecycleClassInfo {
-	return RecycleClassInfo{
-		Info:     *classInfoBOToDO(bo),
-		MetaData: metaDataBOToDO(bo.MetaData),
 	}
 }

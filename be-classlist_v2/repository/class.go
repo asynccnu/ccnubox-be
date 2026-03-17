@@ -28,6 +28,15 @@ type ClassRepo struct {
 	StuCourseCache *cache.StudentCourseCache
 }
 
+func NewClassRepo(ClaInfoDAO *dao.ClassInfoDAO, ClaInfoCache *cache.ClassInfoCache, StuCourseDAO *dao.StudentCourseDAO, StuCourseCache *cache.StudentCourseCache) *ClassRepo {
+	return &ClassRepo{
+		ClaInfoDAO:     ClaInfoDAO,
+		ClaInfoCache:   ClaInfoCache,
+		StuCourseDAO:   StuCourseDAO,
+		StuCourseCache: StuCourseCache,
+	}
+}
+
 // GetClassesFromLocal 从本地获取课程
 func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*bizModel.ClassInfoBO, error) {
 	logh := logger.From(ctx)
@@ -198,6 +207,25 @@ func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string
 	}
 
 	return nil
+}
+
+// GetAddedClasses 获取学生添加的课程信息
+func (cla ClassRepo) GetAddedClasses(ctx context.Context, stuID, year, semester string) ([]*bizModel.ClassInfoBO, error) {
+	classInfos, err := cla.ClaInfoDAO.GetAddedClassInfos(ctx, stuID, year, semester)
+	if err != nil {
+		return nil, err
+	}
+
+	classInfosBiz := make([]*bizModel.ClassInfoBO, 0, len(classInfos))
+	for _, classInfo := range classInfos {
+		if classInfo == nil {
+			continue
+		}
+
+		classInfosBiz = append(classInfosBiz, classInfoDOToBO(classInfo, nil))
+	}
+	cla.fillClassMetaData(ctx, stuID, year, semester, classInfosBiz)
+	return classInfosBiz, nil
 }
 
 func (cla ClassRepo) fillClassMetaData(ctx context.Context, stuID, year, semester string, classInfosBiz []*bizModel.ClassInfoBO) {

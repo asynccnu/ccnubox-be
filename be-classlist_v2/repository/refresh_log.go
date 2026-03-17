@@ -12,6 +12,12 @@ type RefreshLogRepo struct {
 	refDB *dao.RefreshLogDAO
 }
 
+func NewRefreshLogRepo(refDB *dao.RefreshLogDAO) RefreshLogRepo {
+	return RefreshLogRepo{
+		refDB: refDB,
+	}
+}
+
 func (r *RefreshLogRepo) GetLastRefreshTime(ctx context.Context, stuID, year, semester, status string, beforeTime time.Time) (*time.Time, error) {
 	return r.refDB.GetLastRefreshTime(ctx, stuID, year, semester, status, beforeTime)
 }

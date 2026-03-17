@@ -2,7 +2,6 @@ package dao
 
 import (
 	"context"
-	"errors"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
@@ -12,6 +11,12 @@ import (
 
 type StudentCourseDAO struct {
 	BaseDAO
+}
+
+func NewStudentCourseDAO(base BaseDAO) StudentCourseDAO {
+	return StudentCourseDAO{
+		BaseDAO: base,
+	}
 }
 
 func (s StudentCourseDAO) GetClassMetaData(ctx context.Context, stuID, year, semester string, claIds []string) map[string]model.ClassMetaData {
@@ -85,62 +90,13 @@ func (s StudentCourseDAO) SaveManyStudentAndCourseToDB(ctx context.Context, scs 
 		return nil
 	}
 
-	db := s.data.DB(ctx).Table(StudentCourseTableName).WithContext(ctx)
+	db := s.GetDB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
 
 	if err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(scs).Error; err != nil {
-		logh.Errorf("Mysql:create %v in %s failed: %v", scs, StudentCourseTableName, err)
+		logh.Errorf("Mysql:create %v in %s failed: %v", scs, model.StudentCourseTableName, err)
 		return errcode.ErrCourseSave
 	}
 	return nil
-}
-
-func (s StudentAndCourseDBRepo) SaveStudentAndCourseToDB(ctx context.Context, sc *StudentCourse) error {
-	logh := logger.GetLoggerFromCtx(ctx)
-	if sc == nil {
-		logh.Warn("insert student_course 0 data")
-		return nil
-	}
-	db := s.data.DB(ctx).Table(StudentCourseTableName).WithContext(ctx)
-	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(sc).Error
-	if err != nil {
-		logh.Errorf("Mysql:create %v in %s failed: %v", sc, StudentCourseTableName, err)
-		return errcode.ErrClassUpdate
-	}
-	return nil
-}
-
-func (s StudentAndCourseDBRepo) DeleteStudentAndCourseInDB(ctx context.Context, stuID, year, semester string, claID string) error {
-	logh := logger.GetLoggerFromCtx(ctx)
-	if len(claID) == 0 {
-		logh.Warn("delete student_course 0 data")
-		return errors.New("mysql can't delete zero data")
-	}
-	db := s.data.DB(ctx).Table(StudentCourseTableName).WithContext(ctx)
-	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND cla_id IN (?)", year, semester, stuID, claID).Delete(&StudentCourse{}).Error
-	if err != nil {
-		logh.Errorf("Mysql:delete %v in %s failed: %v", claID, StudentCourseTableName, err)
-		return errcode.ErrClassDelete
-	}
-	return nil
-}
-
-func (s StudentAndCourseDBRepo) CheckExists(ctx context.Context, xnm, xqm, stuId, classId string) bool {
-	db := s.data.Mysql.Table(StudentCourseTableName).WithContext(ctx)
-	var cnt int64
-	err := db.Where("stu_id = ?  AND year = ? AND semester = ? AND cla_id = ?", stuId, xnm, xqm, classId).Count(&cnt).Error
-	if err != nil || cnt == 0 {
-		return false
-	}
-	return true
-}
-
-func (s StudentAndCourseDBRepo) GetClassNum(ctx context.Context, stuID, year, semester string, isManuallyAdded bool) (num int64, err error) {
-	db := s.data.DB(ctx).Table(StudentCourseTableName)
-	err = db.Where("stu_id = ? AND year = ? AND semester = ? AND is_manually_added = ?", stuID, year, semester, isManuallyAdded).Count(&num).Error
-	if err != nil {
-		return 0, err
-	}
-	return num, nil
 }
 
 func (s StudentCourseDAO) DeleteStudentAndCourseByTimeFromDB(ctx context.Context, stuID, year, semester string) error {
@@ -153,85 +109,4 @@ func (s StudentCourseDAO) DeleteStudentAndCourseByTimeFromDB(ctx context.Context
 		return errcode.ErrClassDelete
 	}
 	return nil
-}
-
-func (s StudentAndCourseDBRepo) CheckManualCourseStatus(ctx context.Context, stuID, year, semester, classID string) bool {
-	db := s.data.DB(ctx).Table(StudentCourseTableName).WithContext(ctx)
-
-	var isAdded bool
-
-	err := db.Where("stu_id = ? and year = ? and semester = ? and cla_id = ?", stuID, year, semester, classID).
-		Pluck("is_manually_added", &isAdded).Error
-	if err != nil {
-		return true
-	}
-	return isAdded
-}
-
-func (s StudentAndCourseDBRepo) GetCourseNote(ctx context.Context, stuID, year, semester, classID string) string {
-	logh := logger.GetLoggerFromCtx(ctx)
-	db := s.data.DB(ctx).Table(StudentCourseTableName).WithContext(ctx)
-
-	var note string
-
-	err := db.
-		Select("note").
-		Where("stu_id = ? and year = ? and semester = ? and cla_id = ?", stuID, year, semester, classID).
-		Limit(1).
-		Scan(&note).Error
-	if err != nil {
-		logh.Warnf("Query course_note failed[stu_id:%v year:%v semester:%v cla_id:%v]: %v", stuID, year, semester, classID, err)
-		return ""
-	}
-
-	if note == "" {
-		logh.Warnf("Course note empty[stu_id:%v year:%v semester:%v cla_id:%v]", stuID, year, semester, classID)
-	} else {
-		logh.Infof("Course note found[stu_id:%v year:%v semester:%v cla_id:%v] len=%d", stuID, year, semester, classID, len(note))
-	}
-
-	return note
-}
-
-func (s StudentAndCourseDBRepo) UpdateCourseNote(ctx context.Context, stuID, year, semester, classID, note string) error {
-	db := s.data.DB(ctx).Table(StudentCourseTableName).WithContext(ctx)
-
-	cn := &StudentCourse{StuID: stuID, Year: year, Semester: semester, ClaID: classID, Note: note}
-
-	err := db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "stu_id"}, {Name: "year"}, {Name: "semester"}, {Name: "cla_id"}},
-		DoUpdates: clause.Assignments(map[string]interface{}{"note": note}),
-	}).Create(cn).Error
-	if err != nil {
-		return errcode.ErrClassUpdate
-	}
-	return nil
-}
-
-func (s StudentAndCourseDBRepo) GetStudentIDs(ctx context.Context, lastStuID string, size int) ([]string, error) {
-	if size <= 0 {
-		size = 100
-	}
-
-	db := s.data.DB(ctx).Table(StudentCourseTableName).WithContext(ctx)
-
-	var ids []string
-
-	query := db.
-		Distinct("stu_id").
-		Order("stu_id ASC").
-		Limit(size)
-
-	// 游标条件
-	if lastStuID != "" {
-		query = query.Where("stu_id > ?", lastStuID)
-	}
-
-	err := query.
-		Pluck("stu_id", &ids).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return ids, nil
 }

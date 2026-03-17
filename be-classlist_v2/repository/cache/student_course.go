@@ -77,3 +77,9 @@ func (s StudentCourseCache) SetAllClassMetaData(ctx context.Context, stuId, xnm,
 	// 设置过期时间
 	return s.rdb.Expire(ctx, key, s.metaDataExpire).Err()
 }
+
+// DeleteAllClassMetaData 删除学生某学期所有课程元数据缓存
+func (s StudentCourseCache) DeleteAllClassMetaData(ctx context.Context, stuId, xnm, xqm string) error {
+	key := s.generateClassMetaDataKey(stuId, xnm, xqm)
+	return s.rdb.Del(ctx, key).Err()
+}

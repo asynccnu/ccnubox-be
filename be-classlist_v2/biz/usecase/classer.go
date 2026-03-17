@@ -43,6 +43,9 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 
 	// 1. 本地查询阶段
 	localClasses, localLastRefreshTime, localErr := cluc.loadLocal(ctx, stuID, year, semester)
+	if localErr != nil {
+		logh.Errorf("error load local:%v",localErr)
+	}
 
 	// 希望首次爬虫时间更长
 	if localLastRefreshTime == nil {

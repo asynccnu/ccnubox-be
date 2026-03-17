@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"gorm.io/gorm"
@@ -13,7 +14,7 @@ import (
 )
 
 type ClassInfoDAO struct {
-	Mysql *gorm.DB
+	BaseDAO
 }
 
 func NewClassInfoDBRepo(mysqlDB *gorm.DB, logger logger.Logger) (*ClassInfoDBRepo, func(), error) {
@@ -25,9 +26,10 @@ func NewClassInfoDBRepo(mysqlDB *gorm.DB, logger logger.Logger) (*ClassInfoDBRep
 	}, cleanup, nil
 }
 
-func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*model.ClassInfo) error {
+func (c ClassInfoDAO) SaveClassInfosToDB(ctx context.Context, classInfos []*model.ClassInfo) error {
 	logh := logger.From(ctx)
 	if len(classInfos) == 0 {
+		logh.Warnf("no classinfo to save!")
 		return nil
 	}
 
@@ -42,25 +44,26 @@ func (c ClassInfoDBRepo) SaveClassInfosToDB(ctx context.Context, classInfos []*m
 		}).
 		Create(&classInfos).Error
 	if err != nil {
-		logh.Errorf("Mysql:create %v in %s failed: %v", classInfos, ClassInfoTableName, err)
-		return err
+		return fmt.Errorf("Mysql:create %v in %s failed: %v", classInfos, model.ClassInfoTableName, err)
 	}
 	return nil
 }
 
-func (c ClassInfoDBRepo) AddClassInfoToDB(ctx context.Context, classInfo *ClassInfo) error {
+func (c ClassInfoDAO) AddClassInfoToDB(ctx context.Context, classInfo *model.ClassInfo) error {
 	logh := logger.GetLoggerFromCtx(ctx)
 	if classInfo == nil {
 		return nil
 	}
 	if classInfo.Day < 1 || classInfo.Day > 7 {
-		logh.Errorf("Mysql:create %v in %s failed: %v", classInfo, ClassInfoTableName, fmt.Errorf("date must between 1 and 7"))
+		logh.Errorf("Mysql:create %v in %s failed: %v", classInfo, model.ClassInfoTableName, fmt.Errorf("date must between 1 and 7"))
 		return errcode.ErrClassUpdate
 	}
-	db := c.data.DB(ctx).Table(ClassInfoTableName).WithContext(ctx)
+
+	// 约定将事务 db 从 ctx 中取出来
+	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
 	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&classInfo).Error
 	if err != nil {
-		logh.Errorf("Mysql:create %v in %s failed: %v", classInfo, ClassInfoTableName, err)
+		logh.Errorf("Mysql:create %v in %s failed: %v", classInfo, model.ClassInfoTableName, err)
 		return errcode.ErrClassUpdate
 	}
 	return nil

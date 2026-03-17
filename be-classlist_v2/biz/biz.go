@@ -9,21 +9,8 @@ import (
 
 type ClassRepo interface {
 	GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*model.ClassInfoBO, error)
-	CacheClass(ctx context.Context, stuID, year, semester string)
-	GetSpecificClassInfo(ctx context.Context, stuID, year, semester, classID string) (*model.ClassInfoBO, error)
 	AddClass(ctx context.Context, stuID, year, semester string, classInfo *model.ClassInfoBO, sc *model.StudentCourseBO) error
-	DeleteClass(ctx context.Context, stuID, year, semester string, classInfo *model.ClassInfoBO) error
-
-	UpdateClass(ctx context.Context, stuID, year, semester, oldClassID string,
-		newClassInfo *model.ClassInfoBO, newSc *model.StudentCourseBO) error
 	SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*model.ClassInfoBO, scs []*model.StudentCourseBO) error
-	CheckSCIdsExist(ctx context.Context, stuID, year, semester, classID string) bool
-	GetAllSchoolClassInfos(ctx context.Context, year, semester string, cursor time.Time) []*model.ClassInfoBO
-	GetAddedClasses(ctx context.Context, stuID, year, semester string) ([]*model.ClassInfoBO, error)
-	GetClassMetaData(ctx context.Context, stuID, year, semester, classID string) (*model.ClassMetaDataBO, error)
-	UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error
-	GetClassNatures(ctx context.Context, stuID string) []string
-	GetStudentIDs(ctx context.Context, lastStuID string, size int) ([]string, error)
 }
 
 type RefreshLogRepo interface {

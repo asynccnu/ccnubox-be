@@ -98,9 +98,9 @@ func (c ClassInfoCache) AddClaInfosToCache(ctx context.Context, stuId, xnm, xqm 
 }
 
 // DeleteClassInfoFromCache 删除课程信息缓存
-func (c ClassInfoCacheRepo) DeleteClassInfoFromCache(ctx context.Context, stuId, xnm, xqm string) error {
+func (c ClassInfoCache) DeleteClassInfoFromCache(ctx context.Context, stuId, xnm, xqm string) error {
 	key := c.generateClassInfosKey(stuId, xnm, xqm)
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := logger.From(ctx)
 	if err := c.rdb.Del(ctx, key).Err(); err != nil {
 		logh.Errorf("redis delete key{%v} failed: %v", key, err)
 		return err

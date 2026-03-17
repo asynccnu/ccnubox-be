@@ -2,15 +2,22 @@ package repo
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	bizModel "github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/transaction"
 	repoModel "github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
+	"github.com/avast/retry-go"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/dao"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
+
+// MaxNum 每个学期最多允许添加的课程数量
+const MaxNum = 20
 
 // 一表一个 DAO/cache 结构体
 // 一业务一个 repo 结构体 （面对上一层的业务）
@@ -74,6 +81,125 @@ func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semes
 	return classInfosBiz, nil
 }
 
+// AddClass 添加课程信息
+func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string, classInfo *bizModel.ClassInfoBO, sc *bizModel.StudentCourseBO) error {
+	logh := logger.GetLoggerFromCtx(ctx)
+
+	// 类型转换
+	classInfoDo, scDo := classInfoBOToDO(classInfo), studentCourseBOToDO(sc)
+
+	// Cache Aside Pattern: Update database first
+	errTx := transaction.InTx(cla.ClaInfoDAO.GetDB(ctx), ctx, func(ctx context.Context) error {
+		if err := cla.ClaInfoDAO.AddClassInfoToDB(ctx, classInfoDo); err != nil {
+			return errcode.ErrClassUpdate
+		}
+		// 处理 StudentCourse
+		if err := cla.StuCourseDAO.SaveStudentAndCourseToDB(ctx, scDo); err != nil {
+			return errcode.ErrClassUpdate
+		}
+		cnt, err := cla.StuCourseDAO.GetClassNum(ctx, stuID, year, semester, sc.IsManuallyAdded)
+		if err == nil && cnt > MaxNum {
+			return fmt.Errorf("classlist num limit")
+		}
+		return nil
+	})
+	if errTx != nil {
+		logh.Errorf("Add Class [%v,%v,%v,%+v,%+v] failed:%v", stuID, year, semester, classInfo, sc, errTx)
+		return errTx
+	}
+
+	// Invalidate cache synchronously after successful transaction with retry
+	err := retry.Do(
+		func() error {
+			return cla.ClaInfoCache.DeleteClassInfoFromCache(ctx, stuID, year, semester)
+		},
+		retry.Attempts(5),
+		retry.OnRetry(func(n uint, err error) {
+			logh.Warnf("Retry %d: Failed to invalidate cache for [%v %v %v]: %v", n+1, stuID, year, semester, err)
+		}),
+	)
+	if err != nil {
+		logh.Warnf("Failed to invalidate cache after retries for [%v %v %v]: %v", stuID, year, semester, err)
+		// Don't return error - database write succeeded
+	}
+
+	return nil
+}
+
+// SaveClass 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
+func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*bizModel.ClassInfoBO, scs []*bizModel.StudentCourseBO) error {
+	logh := logger.GetLoggerFromCtx(ctx)
+	if len(classInfos) == 0 || len(scs) == 0 {
+		return errors.New("classInfos or scs is empty")
+	}
+
+	classInfosdo := make([]*repoModel.ClassInfo, 0, len(classInfos))
+	scsdo := make([]*repoModel.StudentCourse, 0, len(scs))
+
+	for _, classInfo := range classInfos {
+		classInfosdo = append(classInfosdo, classInfoBOToDO(classInfo))
+	}
+	for _, sc := range scs {
+		scsdo = append(scsdo, studentCourseBOToDO(sc))
+	}
+
+	// Cache Aside Pattern: Update database first
+	err := transaction.InTx(cla.ClaInfoDAO.GetDB(ctx), ctx, func(ctx context.Context) error {
+		// 删除对应的所有关系[只删除官方课程]
+		err := cla.StuCourseDAO.DeleteStudentAndCourseByTimeFromDB(ctx, stuID, year, semester)
+		if err != nil {
+			return err
+		}
+		// 保存课程信息到db
+		err = cla.ClaInfoDAO.SaveClassInfosToDB(ctx, classInfosdo)
+		if err != nil {
+			return err
+		}
+		// 保存新的关系
+		err = cla.StuCourseDAO.SaveManyStudentAndCourseToDB(ctx, scsdo)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logh.Errorf("Save class [%+v] and scs [%v] failed:%v", classInfos, scs, err)
+		return err
+	}
+
+	// Invalidate cache synchronously after successful transaction with retry
+	err = retry.Do(
+		func() error {
+			return cla.ClaInfoCache.DeleteClassInfoFromCache(ctx, stuID, year, semester)
+		},
+		retry.Attempts(5),
+		retry.OnRetry(func(n uint, err error) {
+			logh.Warnf("Retry %d: Failed to invalidate cache for [%v %v %v]: %v", n+1, stuID, year, semester, err)
+		}),
+	)
+	if err != nil {
+		logh.Warnf("Failed to invalidate cache after retries for [%v %v %v]: %v", stuID, year, semester, err)
+		// Don't return error - database write succeeded
+	}
+
+	// 删除metaData的缓存
+	err = retry.Do(
+		func() error {
+			return cla.StuCourseCache.DeleteAllClassMetaData(ctx, stuID, year, semester)
+		},
+		retry.Attempts(5),
+		retry.OnRetry(func(n uint, err error) {
+			logh.Warnf("Retry %d: Failed to invalidate cache for [%v %v %v]: %v", n+1, stuID, year, semester, err)
+		}),
+	)
+	if err != nil {
+		logh.Warnf("Failed to invalidate cache after retries for [%v %v %v]: %v", stuID, year, semester, err)
+		// Don't return error - database write succeeded
+	}
+
+	return nil
+}
+
 func (cla ClassRepo) fillClassMetaData(ctx context.Context, stuID, year, semester string, classInfosBiz []*bizModel.ClassInfoBO) {
 	if len(classInfosBiz) == 0 {
 		return
@@ -123,4 +249,3 @@ func (cla ClassRepo) fillClassMetaData(ctx context.Context, stuID, year, semeste
 		}
 	}
 }
-

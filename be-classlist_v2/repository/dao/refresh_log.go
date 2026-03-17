@@ -12,7 +12,7 @@ import (
 )
 
 type RefreshLogDAO struct {
-	db *gorm.DB
+	BaseDAO
 }
 
 func NewRefreshLogRepo(db *gorm.DB) *RefreshLogDAO {
@@ -34,4 +34,52 @@ func (r *RefreshLogDAO) GetLastRefreshTime(ctx context.Context, stuID, year, sem
 		return nil, fmt.Errorf("get last refresh time: %w", err)
 	}
 	return &refreshLog.UpdatedAt, nil
+}
+
+// InsertRefreshLog 插入一条刷新记录
+func (r *RefreshLogDAO) InsertRefreshLog(ctx context.Context, stuID, year, semester, status string, logTime time.Time) (uint64, error) {
+	refreshLog := model.ClassRefreshLog{
+		StuID:     stuID,
+		Year:      year,
+		Semester:  semester,
+		Status:    status,
+		UpdatedAt: logTime,
+	}
+	err := r.createRefreshLog(ctx, r.db, &refreshLog)
+	if err != nil {
+		return 0, err
+	}
+	return refreshLog.ID, nil
+}
+
+func (r *RefreshLogDAO) UpdateRefreshLogStatus(ctx context.Context, logID uint64, status string) error {
+	return r.db.WithContext(ctx).Table(model.ClassRefreshLogTableName).
+		Where("id = ?", logID).Update("status", status).Error
+}
+
+// SearchNewestRefreshLog 查找在指定时间内的最新的一条记录
+func (r *RefreshLogDAO) SearchNewestRefreshLog(ctx context.Context, stuID, year, semester string, endTime time.Time) (*model.ClassRefreshLog, error) {
+	var refreshLog model.ClassRefreshLog
+	err := r.db.WithContext(ctx).Table(model.ClassRefreshLogTableName).
+		Where("stu_id = ? and year = ? and semester = ? and updated_at < ?", stuID, year, semester, endTime).
+		Order("updated_at desc").First(&refreshLog).Error
+	if err != nil {
+		return nil, err
+	}
+	return &refreshLog, nil
+}
+
+// GetRefreshLogByID  查找指定ID的记录
+func (r *RefreshLogDAO) GetRefreshLogByID(ctx context.Context, logID uint64) (*model.ClassRefreshLog, error) {
+	var refreshLog model.ClassRefreshLog
+	err := r.db.WithContext(ctx).Table(model.ClassRefreshLogTableName).
+		Where("id = ?", logID).First(&refreshLog).Error
+	if err != nil {
+		return nil, err
+	}
+	return &refreshLog, nil
+}
+
+func (r *RefreshLogDAO) createRefreshLog(ctx context.Context, db *gorm.DB, refreshLog *model.ClassRefreshLog) error {
+	return db.WithContext(ctx).Create(refreshLog).Error
 }

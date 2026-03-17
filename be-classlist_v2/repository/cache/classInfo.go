@@ -16,12 +16,12 @@ import (
 const RedisNull = "redis_Null"
 
 type ClassInfoCache struct {
-	rdb                 *redis.Client
+	BaseCache
 	classExpiration     time.Duration
 	blackListExpiration time.Duration
 }
 
-func NewClassInfoCacheRepo(rdb *redis.Client, cf *conf.ServerConf) *ClassInfoCacheRepo {
+func NewClassInfoCache(base BaseCache, cf *conf.ServerConf) *ClassInfoCache {
 	classExpire := 24 * time.Hour
 	if cf.ClassListConf.ClassExpiration > 0 {
 		classExpire = time.Duration(cf.ClassListConf.ClassExpiration) * time.Second
@@ -30,8 +30,8 @@ func NewClassInfoCacheRepo(rdb *redis.Client, cf *conf.ServerConf) *ClassInfoCac
 	if cf.ClassListConf.BlackListExpiration > 0 {
 		blackListExpiration = time.Duration(cf.ClassListConf.BlackListExpiration) * time.Second
 	}
-	return &ClassInfoCacheRepo{
-		rdb:                 rdb,
+	return &ClassInfoCache{
+		BaseCache:           base,
 		classExpiration:     classExpire,
 		blackListExpiration: blackListExpiration,
 	}

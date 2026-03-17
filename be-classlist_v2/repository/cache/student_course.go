@@ -6,13 +6,24 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
-	"github.com/redis/go-redis/v9"
 )
 
 type StudentCourseCache struct {
-	rdb            *redis.Client
+	BaseCache
 	metaDataExpire time.Duration
+}
+
+func NewStudentCourseCache(base BaseCache, cf *conf.ServerConf) *StudentCourseCache {
+	metaDataExpire := 24 * time.Hour
+	if cf.ClassListConf.ClassExpiration > 0 {
+		metaDataExpire = time.Duration(cf.ClassListConf.ClassExpiration) * time.Second
+	}
+	return &StudentCourseCache{
+		BaseCache:      base,
+		metaDataExpire: metaDataExpire,
+	}
 }
 
 func (s StudentCourseCache) generateClassMetaDataKey(stuId, xnm, xqm string) string {

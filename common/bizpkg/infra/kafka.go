@@ -17,6 +17,7 @@ func InitKafka(cfg *conf.KafkaConf) sarama.Client {
 
 	saramaCfg.Producer.Return.Successes = true
 	saramaCfg.Producer.Partitioner = sarama.NewConsistentCRCHashPartitioner
+
 	client, err := sarama.NewClient(cfg.Addrs, saramaCfg)
 	if err != nil {
 		log.Fatal("初始化 kafka 失败", err)

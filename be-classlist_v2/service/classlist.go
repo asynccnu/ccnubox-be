@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/usecase"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/tool"
@@ -14,7 +15,6 @@ import (
 )
 
 type ClassListService struct {
-	pb.UnimplementedClasserServer
 	clu  *usecase.ClassUsecase
 	conf *conf.ServerConf
 }
@@ -75,4 +75,8 @@ func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest
 		Classes:  pbClassInfos,
 		LastTime: lastTimeStamp,
 	}, nil
+}
+
+func convertToShanghaiTimeStamp(t time.Time) int64 {
+	return tool.ToShanghaiTime(t).Unix()
 }

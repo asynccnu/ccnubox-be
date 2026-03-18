@@ -25,6 +25,26 @@ type ClassUsecase struct {
 	sfGroup  singleflight.Group
 }
 
+func NewClassUsecase(
+	conf *conf.ServerConf,
+	cla biz.ClassRepo,
+	re biz.RefreshLogRepo,
+	jxb biz.JxbRepo,
+	ccnu biz.CCNUService,
+	crawler biz.ClassCrawler,
+	queue biz.DelayQueue,
+) *ClassUsecase {
+	return &ClassUsecase{
+		conf:           conf,
+		classRepo:      cla,
+		refreshLogRepo: re,
+		jxbRepo:        jxb,
+		ccnu:           ccnu,
+		crawler:        crawler,
+		delayQue:       queue,
+	}
+}
+
 // 将实现暴露出的主函数与流程里使用到的工具函数分开放在两个文件里提高可读性
 func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*model.ClassInfoBO, *time.Time, error) {
 	// 能返回到最上层的错误，就统一在最上层打错误日志
@@ -44,7 +64,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 	// 1. 本地查询阶段
 	localClasses, localLastRefreshTime, localErr := cluc.loadLocal(ctx, stuID, year, semester)
 	if localErr != nil {
-		logh.Errorf("error load local:%v",localErr)
+		logh.Errorf("error load local:%v", localErr)
 	}
 
 	// 希望首次爬虫时间更长

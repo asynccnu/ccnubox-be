@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/dao"
 )
@@ -12,8 +13,8 @@ type RefreshLogRepo struct {
 	refDB *dao.RefreshLogDAO
 }
 
-func NewRefreshLogRepo(refDB *dao.RefreshLogDAO) RefreshLogRepo {
-	return RefreshLogRepo{
+func NewRefreshLogRepo(refDB *dao.RefreshLogDAO) biz.RefreshLogRepo {
+	return &RefreshLogRepo{
 		refDB: refDB,
 	}
 }

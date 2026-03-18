@@ -15,7 +15,11 @@ func init() {
 }
 
 func main() {
-	app := InitApp()
+	app, cleanup, err := InitApp()
+	if err != nil {
+		panic(err)
+	}
+	defer cleanup()
 	app.Start()
 }
 

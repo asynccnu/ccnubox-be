@@ -6,6 +6,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
-func initLogger(cfg *conf.ServerConf) logger.Logger {
+func InitLogger(cfg *conf.ServerConf) logger.Logger {
 	return log.InitLogger(cfg.Log, 3)
 }

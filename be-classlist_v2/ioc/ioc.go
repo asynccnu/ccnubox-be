@@ -4,10 +4,15 @@ import (
 	"github.com/google/wire"
 )
 
-var Provider = wire.NewSet(
-	initLogger,
+var ProviderSet = wire.NewSet(
+	InitLogger,
 	InitDB,
 	InitEtcdClient,
 	InitGRPCxKratosServer,
 	InitOTel,
+	InitUserSvcClient,
+	InitProxyClient,
+	InitHttpProxyClient,
+	InitKafka,
+	InitRedis,
 )

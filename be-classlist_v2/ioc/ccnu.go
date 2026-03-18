@@ -1,7 +1,7 @@
 package ioc
 
 import (
-	"github.com/asynccnu/ccnubox-be/be-grade/conf"
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/grpc/client"
 	etcdv3 "go.etcd.io/etcd/client/v3"

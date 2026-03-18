@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	bizModel "github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/transaction"
@@ -28,7 +29,7 @@ type ClassRepo struct {
 	StuCourseCache *cache.StudentCourseCache
 }
 
-func NewClassRepo(ClaInfoDAO *dao.ClassInfoDAO, ClaInfoCache *cache.ClassInfoCache, StuCourseDAO *dao.StudentCourseDAO, StuCourseCache *cache.StudentCourseCache) *ClassRepo {
+func NewClassRepo(ClaInfoDAO *dao.ClassInfoDAO, ClaInfoCache *cache.ClassInfoCache, StuCourseDAO *dao.StudentCourseDAO, StuCourseCache *cache.StudentCourseCache) biz.ClassRepo {
 	return &ClassRepo{
 		ClaInfoDAO:     ClaInfoDAO,
 		ClaInfoCache:   ClaInfoCache,

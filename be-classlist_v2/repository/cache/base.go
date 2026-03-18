@@ -3,9 +3,9 @@ package cache
 import "github.com/redis/go-redis/v9"
 
 type BaseCache struct {
-	rdb *redis.Client
+	rdb redis.Cmdable
 }
 
-func NewBaseCache(rdb *redis.Client) BaseCache {
+func NewBaseCache(rdb redis.Cmdable) BaseCache {
 	return BaseCache{rdb: rdb}
 }

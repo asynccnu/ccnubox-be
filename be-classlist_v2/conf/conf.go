@@ -1,6 +1,11 @@
 package conf
 
-import "github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
+import (
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
+	"github.com/google/wire"
+)
+
+var ProviderSet = wire.NewSet(InitInfraConfig, InitServerConf)
 
 const (
 	ServerEnv = "CCNUBOX_CLASSLIST_NACOS_DSN"

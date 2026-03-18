@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/tool"
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"

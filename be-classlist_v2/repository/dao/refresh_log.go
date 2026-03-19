@@ -54,7 +54,11 @@ func (r *RefreshLogDAO) InsertRefreshLog(ctx context.Context, stuID, year, semes
 
 func (r *RefreshLogDAO) UpdateRefreshLogStatus(ctx context.Context, logID uint64, status string) error {
 	return r.GetDB(ctx).WithContext(ctx).Table(model.ClassRefreshLogTableName).
-		Where("id = ?", logID).Update("status", status).Error
+		Where("id = ?", logID).
+		Updates(map[string]interface{}{
+			"status":     status,
+			"updated_at": time.Now(),
+		}).Error
 }
 
 // SearchNewestRefreshLog 查找在指定时间内的最新的一条记录

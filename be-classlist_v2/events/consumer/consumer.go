@@ -18,7 +18,8 @@ type DelaySendHandler struct {
 	topic     string
 	kp        sarama.SyncProducer
 	delayTime time.Duration
-	sync.Once
+	setOnce   sync.Once
+	downOnce  sync.Once
 }
 
 func NewDelaySendHandler(topic string, client sarama.Client, delayTime time.Duration) (*DelaySendHandler, error) {
@@ -34,14 +35,14 @@ func NewDelaySendHandler(topic string, client sarama.Client, delayTime time.Dura
 }
 
 func (c *DelaySendHandler) Setup(sarama.ConsumerGroupSession) error {
-	c.Do(func() {
+	c.setOnce.Do(func() {
 		logger.GlobalLogger.Infof("delay send handler setup")
 	})
 	return nil
 }
 
 func (c *DelaySendHandler) Cleanup(sarama.ConsumerGroupSession) error {
-	c.Do(func() {
+	c.downOnce.Do(func() {
 		logger.GlobalLogger.Infof("delay send handler cleanup")
 	})
 	return nil

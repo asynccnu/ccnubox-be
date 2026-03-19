@@ -18,7 +18,7 @@ type StudentCourseCache struct {
 func NewStudentCourseCache(base BaseCache, cf *conf.ServerConf) *StudentCourseCache {
 	metaDataExpire := 24 * time.Hour
 	if cf.ClassListConf.ClassExpiration > 0 {
-		metaDataExpire = time.Duration(cf.ClassListConf.ClassExpiration) * time.Second
+		metaDataExpire = time.Duration(cf.ClassListConf.ClassExpiration) * time.Millisecond
 	}
 	return &StudentCourseCache{
 		BaseCache:      base,

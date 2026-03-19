@@ -24,11 +24,11 @@ type ClassInfoCache struct {
 func NewClassInfoCache(base BaseCache, cf *conf.ServerConf) *ClassInfoCache {
 	classExpire := 24 * time.Hour
 	if cf.ClassListConf.ClassExpiration > 0 {
-		classExpire = time.Duration(cf.ClassListConf.ClassExpiration) * time.Second
+		classExpire = time.Duration(cf.ClassListConf.ClassExpiration) * time.Millisecond
 	}
 	blackListExpiration := 1 * time.Minute
 	if cf.ClassListConf.BlackListExpiration > 0 {
-		blackListExpiration = time.Duration(cf.ClassListConf.BlackListExpiration) * time.Second
+		blackListExpiration = time.Duration(cf.ClassListConf.BlackListExpiration) * time.Millisecond
 	}
 	return &ClassInfoCache{
 		BaseCache:           base,

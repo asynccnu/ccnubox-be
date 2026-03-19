@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
@@ -19,5 +20,8 @@ func (c *CCNUService) GetCookie(ctx context.Context, stuID string) (string, erro
 	resp, err := c.user.GetCookie(ctx, &userv1.GetCookieRequest{
 		StudentId: stuID,
 	})
-	return resp.Cookie, err
+	if err != nil || resp == nil {
+		return "", fmt.Errorf("No cookie was fetched from user service err=%v", err)
+	}
+	return resp.Cookie, nil
 }

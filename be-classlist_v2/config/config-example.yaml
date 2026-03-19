@@ -1,0 +1,28 @@
+otel:
+  serviceName: "be-classlist_v2"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"
+
+log:
+  path: "/logs/app.log"
+  maxSize: 100
+  maxBackups: 7
+  maxAge: 30
+  compress: 1
+
+shenLongConf:
+  api: "http://shenlong.example/api"
+  interval: 60
+  retry: 3
+  username: "your_user"
+  password: "your_pass"
+
+classListConf:
+  waitCrawTime: 5000
+  classExpiration: 604800000
+  recycleExpiration: 2592000000
+  blackListExpiration: 60000
+  waitUserSvcTime: 10000
+  refreshInterval: 60000
+  holidayTime: "2025-07-05"
+  schoolTime: "2025-02-17"

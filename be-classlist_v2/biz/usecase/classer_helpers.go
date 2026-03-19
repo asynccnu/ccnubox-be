@@ -73,6 +73,11 @@ func (cluc *ClassUsecase) decideRefreshAction(ctx context.Context, stuID, year, 
 func (cluc *ClassUsecase) waitPending(ctx context.Context, refreshLogID uint64, waitBudget time.Duration) (classLog *model.ClassRefreshLogBO, waited time.Duration) {
 	start := time.Now()
 	for {
+		// 若请求取消或超时，直接返回
+		if ctx.Err() != nil {
+			return classLog, time.Since(start)
+		}
+
 		// 若超时，返回 classLog（大概率为空）
 		if time.Since(start) >= waitBudget {
 			return classLog, time.Since(start)
@@ -85,7 +90,11 @@ func (cluc *ClassUsecase) waitPending(ctx context.Context, refreshLogID uint64, 
 			return classLog, time.Since(start)
 		}
 
-		time.Sleep(200 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return classLog, time.Since(start)
+		case <-time.After(200 * time.Millisecond):
+		}
 	}
 }
 

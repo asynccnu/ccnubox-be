@@ -32,9 +32,11 @@ var (
 		local expireAt = ARGV[2]
 		local expiration = ARGV[3]
 		local classID = ARGV[4]
-		
+		local idxExpiration = ARGV[5]
+
 		redis.call('SET', valueKey, payload, 'EX', expiration)
 		redis.call('ZADD', idxKey, expireAt, classID)
+		redis.call('EXPIRE', idxKey, idxExpiration)
 		return 1
 	`)
 
@@ -60,8 +62,9 @@ var (
 )
 
 type RecycleBinRepo struct {
-	rdb               *redis.Client
-	recycleExpiration time.Duration
+	rdb            *redis.Client
+	recycleExpiration time.Duration // valueKey 的过期时间
+	idxExpiration  time.Duration    // idxKey (zset) 的过期时间
 }
 
 func NewRecycleBinRepo(rdb *redis.Client, cf *conf.Server) *RecycleBinRepo {
@@ -69,7 +72,9 @@ func NewRecycleBinRepo(rdb *redis.Client, cf *conf.Server) *RecycleBinRepo {
 	if cf.RecycleExpiration > 0 {
 		expire = time.Duration(cf.RecycleExpiration) * time.Second
 	}
-	return &RecycleBinRepo{rdb: rdb, recycleExpiration: expire}
+	// zset 过期时间写死3个月
+	idxExpire := 90 * 24 * time.Hour
+	return &RecycleBinRepo{rdb: rdb, recycleExpiration: expire, idxExpiration: idxExpire}
 }
 
 func (r RecycleBinRepo) indexKey(stuID, year, semester string) string {
@@ -100,6 +105,7 @@ func (r RecycleBinRepo) RecycleClass(ctx context.Context, stuID, year, semester,
 		expireAt.Unix(),
 		int(r.recycleExpiration.Seconds()),
 		classID,
+		int(r.idxExpiration.Seconds()),
 	).Err()
 
 	if err != nil {

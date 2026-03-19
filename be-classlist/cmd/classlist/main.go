@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
+	"github.com/asynccnu/ccnubox-be/be-classlist/internal/cron"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/metrics"
 	b_conf "github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
@@ -41,8 +42,18 @@ func init() {
 	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
 }
 
-func newApp(env *b_conf.Env, logger log.Logger, gs *grpc.Server, r *etcd.Registry, server *conf.Server) *kratos.App {
-	return kratos.New(
+type App struct {
+	app  *kratos.App
+	cron cron.Cron
+}
+
+func (a *App) Run() error {
+	a.cron.StartCronTask()
+	return a.app.Run()
+}
+
+func newApp(env *b_conf.Env, logger log.Logger, gs *grpc.Server, r *etcd.Registry, server *conf.Server, cron cron.Cron) *App {
+	kratosApp := kratos.New(
 		kratos.Name(b_grpc.GetNamePrefix(env, server.Name)),
 		kratos.Version(Version),
 		kratos.Metadata(map[string]string{}),
@@ -52,6 +63,10 @@ func newApp(env *b_conf.Env, logger log.Logger, gs *grpc.Server, r *etcd.Registr
 		),
 		kratos.Registrar(r),
 	)
+	return &App{
+		app:  kratosApp,
+		cron: cron,
+	}
 }
 
 func main() {

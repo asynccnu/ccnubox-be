@@ -1,6 +1,7 @@
 package class
 
 import (
+	"context"
 	"errors"
 	"sort"
 	"time"
@@ -11,25 +12,33 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	cs "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classService/v1"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
+	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
 
 type ClassHandler struct {
 	ClassListClient    classlistv1.ClasserClient
+	CounterClient      counterv1.CounterServiceClient
 	ClassServiceClient cs.ClassServiceClient
 	Administrators     map[string]struct{} // 这里注入的是管理员权限验证配置
+	l                  logger.Logger
 }
 
 func NewClassListHandler(
 	ClassListClient classlistv1.ClasserClient,
 	ClassServiceClient cs.ClassServiceClient,
+	CounterClient counterv1.CounterServiceClient,
 	administrators map[string]struct{},
+	l logger.Logger,
 ) *ClassHandler {
 	return &ClassHandler{
 		ClassListClient:    ClassListClient,
 		ClassServiceClient: ClassServiceClient,
+		CounterClient:      CounterClient,
 		Administrators:     administrators,
+		l:                  l,
 	}
 }
 
@@ -98,6 +107,14 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 		Classes:         respClasses,
 		LastRefreshTime: getResp.LastTime,
 	}
+
+	go func() {
+		ct := context.Background()
+		_, err := c.CounterClient.AddCounter(ct, &counterv1.AddCounterReq{StudentId: uc.StudentId, ServiceType: counterv1.ServiceType_CLASSLIST})
+		if err != nil {
+			c.l.Error("增加用户feedCount失败:", logger.Error(err))
+		}
+	}()
 
 	return web.Response{
 		Msg:  "Success",

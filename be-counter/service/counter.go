@@ -11,10 +11,10 @@ import (
 )
 
 type CounterService interface {
-	AddCounter(ctx context.Context, StudentId string) error
-	GetCounterLevels(ctx context.Context, label string) (StudentIds []string, err error)
-	ChangeCounterLevels(ctx context.Context, req domain.ChangeCounterLevels) error
-	ClearCounterLevels(ctx context.Context) error
+	AddCounter(ctx context.Context, StudentId string, serviceType string) error
+	GetCounterLevels(ctx context.Context, label string, serviceType string) (StudentIds []string, err error)
+	ChangeCounterLevels(ctx context.Context, req domain.ChangeCounterLevels, serviceType string) error
+	ClearCounterLevels(ctx context.Context, serviceType string) error
 }
 
 type CachedCounterService struct {
@@ -31,9 +31,9 @@ func NewCachedCounterService(cache cache.CounterCache, l logger.Logger, cfg *con
 	}
 }
 
-func (s *CachedCounterService) AddCounter(ctx context.Context, StudentId string) error {
+func (s *CachedCounterService) AddCounter(ctx context.Context, StudentId string, serviceType string) error {
 	// 获取当前计数
-	count, err := s.cache.GetCounterByStudentId(ctx, StudentId)
+	count, err := s.cache.GetCounterByStudentId(ctx, StudentId, serviceType)
 	if err != nil {
 		// 注意：如果 cache 层处理了 redis.Nil 并返回 0, nil，则这里不会报错
 		// 如果 cache 层报错，说明是 Redis 连接等问题
@@ -41,7 +41,7 @@ func (s *CachedCounterService) AddCounter(ctx context.Context, StudentId string)
 	}
 
 	// 增加计数
-	err = s.cache.SetCounterByStudentId(ctx, StudentId, count+1)
+	err = s.cache.SetCounterByStudentId(ctx, StudentId, count+1, serviceType)
 	if err != nil {
 		return errorx.Errorf("service: failed to increment counter for student %s: %w", StudentId, err)
 	}
@@ -49,8 +49,8 @@ func (s *CachedCounterService) AddCounter(ctx context.Context, StudentId string)
 	return nil
 }
 
-func (s *CachedCounterService) GetCounterLevels(ctx context.Context, label string) ([]string, error) {
-	counts, err := s.cache.GetAllCounter(ctx)
+func (s *CachedCounterService) GetCounterLevels(ctx context.Context, label string, serviceType string) ([]string, error) {
+	counts, err := s.cache.GetAllCounter(ctx, serviceType)
 	if err != nil {
 		return nil, errorx.Errorf("service: failed to fetch all counters from cache: %w", err)
 	}
@@ -88,8 +88,8 @@ func (s *CachedCounterService) GetCounterLevels(ctx context.Context, label strin
 	return StudentIds, nil
 }
 
-func (s *CachedCounterService) ChangeCounterLevels(ctx context.Context, req domain.ChangeCounterLevels) error {
-	counts, err := s.cache.GetCounters(ctx, req.StudentIds)
+func (s *CachedCounterService) ChangeCounterLevels(ctx context.Context, req domain.ChangeCounterLevels, serviceType string) error {
+	counts, err := s.cache.GetCounters(ctx, req.StudentIds, serviceType)
 	if err != nil {
 		return errorx.Errorf("service: failed to get counters for batch update: %w", err)
 	}
@@ -110,15 +110,15 @@ func (s *CachedCounterService) ChangeCounterLevels(ctx context.Context, req doma
 		}
 	}
 
-	err = s.cache.SetCounters(ctx, counts)
+	err = s.cache.SetCounters(ctx, counts, serviceType)
 	if err != nil {
 		return errorx.Errorf("service: failed to save updated counters: %w", err)
 	}
 	return nil
 }
 
-func (s *CachedCounterService) ClearCounterLevels(ctx context.Context) error {
-	err := s.cache.CleanZeroCounter(ctx)
+func (s *CachedCounterService) ClearCounterLevels(ctx context.Context, serviceType string) error {
+	err := s.cache.CleanZeroCounter(ctx, serviceType)
 	if err != nil {
 		return errorx.Errorf("service: failed to clear zero counters: %w", err)
 	}

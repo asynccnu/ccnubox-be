@@ -32,8 +32,10 @@ registry:
     addr: "ccnubox-etcd:2379"
     username: "root"
     password: "12345678"
-  usersvc: "discovery:///user"               # 用户服务地址
-  proxysvc: "discovery:///proxy"
+  usersvc: "user"
+  proxysvc: "proxy"
+  countersvc: "counter"
+  contentsvc: "content"
 
 zaplog:
   ##日志级别

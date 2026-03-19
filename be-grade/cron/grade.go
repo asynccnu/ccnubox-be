@@ -104,7 +104,7 @@ func (c *GradeController) publishMSG(label string) {
 
 	ctx := context.Background()
 
-	resp, err := c.counter.GetCounterLevels(ctx, &counterv1.GetCounterLevelsReq{Label: label})
+	resp, err := c.counter.GetCounterLevels(ctx, &counterv1.GetCounterLevelsReq{Label: label, ServiceType: counterv1.ServiceType_GRADE})
 	if err != nil {
 		c.l.Error("获取UserLevels失败", logger.Error(err))
 		return
@@ -129,9 +129,10 @@ func (c *GradeController) publishMSG(label string) {
 
 			//更改等级到最高级别
 			_, err = c.counter.ChangeCounterLevels(ctx, &counterv1.ChangeCounterLevelsReq{
-				StudentIds: res.StuId,
-				IsReduce:   false,
-				Step:       int64(counterv1.CounterLevel_LEVEL_THERE),
+				StudentIds:  res.StuId,
+				IsReduce:    false,
+				Step:        int64(counterv1.CounterLevel_LEVEL_THERE),
+				ServiceType: counterv1.ServiceType_GRADE,
 			})
 
 			if err != nil {
@@ -159,9 +160,10 @@ func (c *GradeController) publishMSG(label string) {
 
 	//更改已经完成的studentId等级到最低等级
 	_, err = c.counter.ChangeCounterLevels(ctx, &counterv1.ChangeCounterLevelsReq{
-		StudentIds: resp.StudentIds,
-		IsReduce:   false,
-		Step:       7,
+		StudentIds:  resp.StudentIds,
+		IsReduce:    true,
+		Step:        7,
+		ServiceType: counterv1.ServiceType_GRADE,
 	})
 
 	return

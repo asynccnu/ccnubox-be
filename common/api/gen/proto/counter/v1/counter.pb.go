@@ -74,9 +74,56 @@ func (CounterLevel) EnumDescriptor() ([]byte, []int) {
 	return file_counter_v1_counter_proto_rawDescGZIP(), []int{0}
 }
 
+type ServiceType int32
+
+const (
+	ServiceType_GRADE     ServiceType = 0
+	ServiceType_CLASSLIST ServiceType = 1
+)
+
+// Enum value maps for ServiceType.
+var (
+	ServiceType_name = map[int32]string{
+		0: "GRADE",
+		1: "CLASSLIST",
+	}
+	ServiceType_value = map[string]int32{
+		"GRADE":     0,
+		"CLASSLIST": 1,
+	}
+)
+
+func (x ServiceType) Enum() *ServiceType {
+	p := new(ServiceType)
+	*p = x
+	return p
+}
+
+func (x ServiceType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ServiceType) Descriptor() protoreflect.EnumDescriptor {
+	return file_counter_v1_counter_proto_enumTypes[1].Descriptor()
+}
+
+func (ServiceType) Type() protoreflect.EnumType {
+	return &file_counter_v1_counter_proto_enumTypes[1]
+}
+
+func (x ServiceType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ServiceType.Descriptor instead.
+func (ServiceType) EnumDescriptor() ([]byte, []int) {
+	return file_counter_v1_counter_proto_rawDescGZIP(), []int{1}
+}
+
 type AddCounterReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StudentId     string                 `protobuf:"bytes,1,opt,name=studentId,proto3" json:"studentId,omitempty"` //发送一个studentId增加一次,根据具体的次数划分等级
+	ServiceType   ServiceType            `protobuf:"varint,2,opt,name=serviceType,proto3,enum=counter.v1.ServiceType" json:"serviceType,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,6 +165,13 @@ func (x *AddCounterReq) GetStudentId() string {
 	return ""
 }
 
+func (x *AddCounterReq) GetServiceType() ServiceType {
+	if x != nil {
+		return x.ServiceType
+	}
+	return ServiceType_GRADE
+}
+
 type AddCounterResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -157,6 +211,7 @@ func (*AddCounterResp) Descriptor() ([]byte, []int) {
 type GetCounterLevelsReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	ServiceType   ServiceType            `protobuf:"varint,2,opt,name=serviceType,proto3,enum=counter.v1.ServiceType" json:"serviceType,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -196,6 +251,13 @@ func (x *GetCounterLevelsReq) GetLabel() string {
 		return x.Label
 	}
 	return ""
+}
+
+func (x *GetCounterLevelsReq) GetServiceType() ServiceType {
+	if x != nil {
+		return x.ServiceType
+	}
+	return ServiceType_GRADE
 }
 
 type GetCounterLevelsResp struct {
@@ -247,6 +309,7 @@ type ChangeCounterLevelsReq struct {
 	StudentIds    []string               `protobuf:"bytes,1,rep,name=studentIds,proto3" json:"studentIds,omitempty"`
 	IsReduce      bool                   `protobuf:"varint,2,opt,name=isReduce,proto3" json:"isReduce,omitempty"` //如果是ture表示降低等级，1,3,7表示其等级
 	Step          int64                  `protobuf:"varint,3,opt,name=step,proto3" json:"step,omitempty"`         //表示降低几个等级,
+	ServiceType   ServiceType            `protobuf:"varint,4,opt,name=serviceType,proto3,enum=counter.v1.ServiceType" json:"serviceType,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -302,6 +365,13 @@ func (x *ChangeCounterLevelsReq) GetStep() int64 {
 	return 0
 }
 
+func (x *ChangeCounterLevelsReq) GetServiceType() ServiceType {
+	if x != nil {
+		return x.ServiceType
+	}
+	return ServiceType_GRADE
+}
+
 type ChangeCounterLevelsResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -340,6 +410,7 @@ func (*ChangeCounterLevelsResp) Descriptor() ([]byte, []int) {
 
 type ClearCounterLevelsReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServiceType   ServiceType            `protobuf:"varint,1,opt,name=serviceType,proto3,enum=counter.v1.ServiceType" json:"serviceType,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -372,6 +443,13 @@ func (x *ClearCounterLevelsReq) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ClearCounterLevelsReq.ProtoReflect.Descriptor instead.
 func (*ClearCounterLevelsReq) Descriptor() ([]byte, []int) {
 	return file_counter_v1_counter_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ClearCounterLevelsReq) GetServiceType() ServiceType {
+	if x != nil {
+		return x.ServiceType
+	}
+	return ServiceType_GRADE
 }
 
 type ClearCounterLevelsResp struct {
@@ -415,30 +493,37 @@ var File_counter_v1_counter_proto protoreflect.FileDescriptor
 const file_counter_v1_counter_proto_rawDesc = "" +
 	"\n" +
 	"\x18counter/v1/counter.proto\x12\n" +
-	"counter.v1\"-\n" +
+	"counter.v1\"h\n" +
 	"\rAddCounterReq\x12\x1c\n" +
-	"\tstudentId\x18\x01 \x01(\tR\tstudentId\"\x10\n" +
-	"\x0eAddCounterResp\"+\n" +
+	"\tstudentId\x18\x01 \x01(\tR\tstudentId\x129\n" +
+	"\vserviceType\x18\x02 \x01(\x0e2\x17.counter.v1.ServiceTypeR\vserviceType\"\x10\n" +
+	"\x0eAddCounterResp\"f\n" +
 	"\x13GetCounterLevelsReq\x12\x14\n" +
-	"\x05label\x18\x01 \x01(\tR\x05label\"6\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x129\n" +
+	"\vserviceType\x18\x02 \x01(\x0e2\x17.counter.v1.ServiceTypeR\vserviceType\"6\n" +
 	"\x14GetCounterLevelsResp\x12\x1e\n" +
 	"\n" +
 	"studentIds\x18\x01 \x03(\tR\n" +
-	"studentIds\"h\n" +
+	"studentIds\"\xa3\x01\n" +
 	"\x16ChangeCounterLevelsReq\x12\x1e\n" +
 	"\n" +
 	"studentIds\x18\x01 \x03(\tR\n" +
 	"studentIds\x12\x1a\n" +
 	"\bisReduce\x18\x02 \x01(\bR\bisReduce\x12\x12\n" +
-	"\x04step\x18\x03 \x01(\x03R\x04step\"\x19\n" +
-	"\x17ChangeCounterLevelsResp\"\x17\n" +
-	"\x15ClearCounterLevelsReq\"\x18\n" +
+	"\x04step\x18\x03 \x01(\x03R\x04step\x129\n" +
+	"\vserviceType\x18\x04 \x01(\x0e2\x17.counter.v1.ServiceTypeR\vserviceType\"\x19\n" +
+	"\x17ChangeCounterLevelsResp\"R\n" +
+	"\x15ClearCounterLevelsReq\x129\n" +
+	"\vserviceType\x18\x01 \x01(\x0e2\x17.counter.v1.ServiceTypeR\vserviceType\"\x18\n" +
 	"\x16ClearCounterLevelsResp*T\n" +
 	"\fCounterLevel\x12\x15\n" +
 	"\x11LEVEL_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tLEVEL_ONE\x10\x01\x12\r\n" +
 	"\tLEVEL_TWO\x10\x03\x12\x0f\n" +
-	"\vLEVEL_THERE\x10\a2\xe9\x02\n" +
+	"\vLEVEL_THERE\x10\a*'\n" +
+	"\vServiceType\x12\t\n" +
+	"\x05GRADE\x10\x00\x12\r\n" +
+	"\tCLASSLIST\x10\x012\xe9\x02\n" +
 	"\x0eCounterService\x12C\n" +
 	"\n" +
 	"AddCounter\x12\x19.counter.v1.AddCounterReq\x1a\x1a.counter.v1.AddCounterResp\x12U\n" +
@@ -458,33 +543,38 @@ func file_counter_v1_counter_proto_rawDescGZIP() []byte {
 	return file_counter_v1_counter_proto_rawDescData
 }
 
-var file_counter_v1_counter_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_counter_v1_counter_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_counter_v1_counter_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_counter_v1_counter_proto_goTypes = []any{
 	(CounterLevel)(0),               // 0: counter.v1.CounterLevel
-	(*AddCounterReq)(nil),           // 1: counter.v1.AddCounterReq
-	(*AddCounterResp)(nil),          // 2: counter.v1.AddCounterResp
-	(*GetCounterLevelsReq)(nil),     // 3: counter.v1.GetCounterLevelsReq
-	(*GetCounterLevelsResp)(nil),    // 4: counter.v1.GetCounterLevelsResp
-	(*ChangeCounterLevelsReq)(nil),  // 5: counter.v1.ChangeCounterLevelsReq
-	(*ChangeCounterLevelsResp)(nil), // 6: counter.v1.ChangeCounterLevelsResp
-	(*ClearCounterLevelsReq)(nil),   // 7: counter.v1.ClearCounterLevelsReq
-	(*ClearCounterLevelsResp)(nil),  // 8: counter.v1.ClearCounterLevelsResp
+	(ServiceType)(0),                // 1: counter.v1.ServiceType
+	(*AddCounterReq)(nil),           // 2: counter.v1.AddCounterReq
+	(*AddCounterResp)(nil),          // 3: counter.v1.AddCounterResp
+	(*GetCounterLevelsReq)(nil),     // 4: counter.v1.GetCounterLevelsReq
+	(*GetCounterLevelsResp)(nil),    // 5: counter.v1.GetCounterLevelsResp
+	(*ChangeCounterLevelsReq)(nil),  // 6: counter.v1.ChangeCounterLevelsReq
+	(*ChangeCounterLevelsResp)(nil), // 7: counter.v1.ChangeCounterLevelsResp
+	(*ClearCounterLevelsReq)(nil),   // 8: counter.v1.ClearCounterLevelsReq
+	(*ClearCounterLevelsResp)(nil),  // 9: counter.v1.ClearCounterLevelsResp
 }
 var file_counter_v1_counter_proto_depIdxs = []int32{
-	1, // 0: counter.v1.CounterService.AddCounter:input_type -> counter.v1.AddCounterReq
-	3, // 1: counter.v1.CounterService.GetCounterLevels:input_type -> counter.v1.GetCounterLevelsReq
-	5, // 2: counter.v1.CounterService.ChangeCounterLevels:input_type -> counter.v1.ChangeCounterLevelsReq
-	7, // 3: counter.v1.CounterService.ClearCounterLevels:input_type -> counter.v1.ClearCounterLevelsReq
-	2, // 4: counter.v1.CounterService.AddCounter:output_type -> counter.v1.AddCounterResp
-	4, // 5: counter.v1.CounterService.GetCounterLevels:output_type -> counter.v1.GetCounterLevelsResp
-	6, // 6: counter.v1.CounterService.ChangeCounterLevels:output_type -> counter.v1.ChangeCounterLevelsResp
-	8, // 7: counter.v1.CounterService.ClearCounterLevels:output_type -> counter.v1.ClearCounterLevelsResp
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	1, // 0: counter.v1.AddCounterReq.serviceType:type_name -> counter.v1.ServiceType
+	1, // 1: counter.v1.GetCounterLevelsReq.serviceType:type_name -> counter.v1.ServiceType
+	1, // 2: counter.v1.ChangeCounterLevelsReq.serviceType:type_name -> counter.v1.ServiceType
+	1, // 3: counter.v1.ClearCounterLevelsReq.serviceType:type_name -> counter.v1.ServiceType
+	2, // 4: counter.v1.CounterService.AddCounter:input_type -> counter.v1.AddCounterReq
+	4, // 5: counter.v1.CounterService.GetCounterLevels:input_type -> counter.v1.GetCounterLevelsReq
+	6, // 6: counter.v1.CounterService.ChangeCounterLevels:input_type -> counter.v1.ChangeCounterLevelsReq
+	8, // 7: counter.v1.CounterService.ClearCounterLevels:input_type -> counter.v1.ClearCounterLevelsReq
+	3, // 8: counter.v1.CounterService.AddCounter:output_type -> counter.v1.AddCounterResp
+	5, // 9: counter.v1.CounterService.GetCounterLevels:output_type -> counter.v1.GetCounterLevelsResp
+	7, // 10: counter.v1.CounterService.ChangeCounterLevels:output_type -> counter.v1.ChangeCounterLevelsResp
+	9, // 11: counter.v1.CounterService.ClearCounterLevels:output_type -> counter.v1.ClearCounterLevelsResp
+	8, // [8:12] is the sub-list for method output_type
+	4, // [4:8] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_counter_v1_counter_proto_init() }
@@ -497,7 +587,7 @@ func file_counter_v1_counter_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_counter_v1_counter_proto_rawDesc), len(file_counter_v1_counter_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,

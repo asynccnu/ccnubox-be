@@ -23,6 +23,7 @@ type ServerConf struct {
 	Oss                 *OssConf        `yaml:"oss"`
 	Prometheus          *PrometheusConf `yaml:"prometheus"`
 	BasicAuth           *BasicAuthConf  `yaml:"basicAuth"`
+	Tiered              *TieredConf     `yaml:"tiered"`
 }
 type HttpConf struct {
 	Addr string `yaml:"addr"`
@@ -70,6 +71,12 @@ type PrometheusConf struct {
 type BasicAuthConf struct {
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
+}
+
+type TieredConf struct {
+	Low    int `yaml:"low"`
+	Middle int `yaml:"middle"`
+	High   int `yaml:"high"`
 }
 
 type ElecPriceConf struct {

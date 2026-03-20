@@ -19,7 +19,7 @@ func NewCounterServiceServer(svc service.CounterService) *CounterServiceServer {
 }
 
 func (d *CounterServiceServer) AddCounter(ctx context.Context, request *counterv1.AddCounterReq) (*counterv1.AddCounterResp, error) {
-	err := d.svc.AddCounter(ctx, request.GetStudentId(), request.GetServiceType().String())
+	err := d.svc.AddCounter(ctx, request.GetStudentId())
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (d *CounterServiceServer) ChangeCounterLevels(ctx context.Context, request 
 		StudentIds: request.StudentIds,
 		IsReduce:   request.IsReduce,
 		Steps:      request.Step,
-	}, request.GetServiceType().String())
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (d *CounterServiceServer) ChangeCounterLevels(ctx context.Context, request 
 }
 
 func (d *CounterServiceServer) GetCounterLevels(ctx context.Context, request *counterv1.GetCounterLevelsReq) (*counterv1.GetCounterLevelsResp, error) {
-	levels, err := d.svc.GetCounterLevels(ctx, request.GetLabel(), request.GetServiceType().String())
+	levels, err := d.svc.GetCounterLevels(ctx, request.GetLabel())
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (d *CounterServiceServer) GetCounterLevels(ctx context.Context, request *co
 }
 
 func (d *CounterServiceServer) ClearCounterLevels(ctx context.Context, req *counterv1.ClearCounterLevelsReq) (*counterv1.ClearCounterLevelsResp, error) {
-	err := d.svc.ClearCounterLevels(ctx, req.GetServiceType().String())
+	err := d.svc.ClearCounterLevels(ctx)
 	if err != nil {
 		return nil, err
 	}

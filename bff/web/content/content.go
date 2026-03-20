@@ -2,6 +2,7 @@ package content
 
 import (
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
+	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/gin-gonic/gin"
 )
@@ -9,6 +10,7 @@ import (
 // ContentHandler 处理与 content 相关的 API 请求
 type ContentHandler struct {
 	contentClient  contentv1.ContentServiceClient
+	counterClient  counterv1.CounterServiceClient
 	userClient     userv1.UserServiceClient
 	Administrators map[string]struct{}
 }
@@ -16,9 +18,10 @@ type ContentHandler struct {
 // NewContentHandler 创建一个新的 ContentHandler 实例
 func NewContentHandler(contentClient contentv1.ContentServiceClient,
 	userClient userv1.UserServiceClient,
+	counterClient counterv1.CounterServiceClient,
 	administrators map[string]struct{},
 ) *ContentHandler {
-	return &ContentHandler{contentClient: contentClient, userClient: userClient, Administrators: administrators}
+	return &ContentHandler{contentClient: contentClient, userClient: userClient, counterClient: counterClient, Administrators: administrators}
 }
 
 // RegisterRoutes 注册与 content 相关的路由

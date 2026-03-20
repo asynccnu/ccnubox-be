@@ -3,8 +3,9 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/crawler"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
@@ -119,8 +120,11 @@ func (s *gradeService) GetGradeScore(ctx context.Context, studentId string) ([]d
 
 func (s *gradeService) GetUpdateScore(ctx context.Context, studentId string) ([]domain.Grade, error) {
 	grades, err := s.fetchGradesWithSingleFlight(ctx, studentId)
-	if err != nil || len(grades.update) == 0 {
+	if err != nil {
 		return nil, ErrGetGrade(errorx.Errorf("service: get update score failed, sid: %s, err: %w", studentId, err))
+	}
+	if len(grades.update) == 0 {
+		return nil, nil
 	}
 	return modelConvDomain(grades.update), nil
 }

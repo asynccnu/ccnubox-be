@@ -36,11 +36,13 @@ import (
 func InitContentHandler(
 	cfg *conf.ServerConf,
 	contentClient contentv1.ContentServiceClient,
+	counterClient counterv1.CounterServiceClient,
 	userClient userv1.UserServiceClient,
 ) *content.ContentHandler {
 	return content.NewContentHandler(
 		contentClient,
 		userClient,
+		counterClient,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))

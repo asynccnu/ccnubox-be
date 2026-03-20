@@ -9,18 +9,18 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/client"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/cron"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/crawler"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/registry"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/server"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/service"
+	"github.com/go-kratos/kratos/v2"
 	"github.com/google/wire"
 )
 
 // wireApp init kratos application.
-func wireApp(string, *conf.Server, *conf.Data, *conf.Registry, *conf.SchoolDay, *conf.ZapLogConfigs) (*App, func(), error) {
+func wireApp(string, *conf.Server, *conf.Data, *conf.Registry, *conf.SchoolDay, *conf.ZapLogConfigs) (*kratos.App, func(), error) {
 	panic(wire.Build(server.ProviderSet,
 		data.ProviderSet,
 		biz.ProviderSet,
@@ -28,7 +28,6 @@ func wireApp(string, *conf.Server, *conf.Data, *conf.Registry, *conf.SchoolDay, 
 		registry.ProviderSet,
 		service.ProviderSet,
 		client.ProviderSet,
-		cron.ProviderSet,
 		newApp,
 		wire.Bind(new(biz.ClassCrawler), new(*crawler.Crawler3)),
 		wire.Bind(new(biz.RefreshLogRepo), new(*data.RefreshLogRepo)),

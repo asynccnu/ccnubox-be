@@ -9,6 +9,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
+	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -34,6 +35,7 @@ func (h *ContentHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.R
 		// 因为用户打开匣子必然会发送这个请求,如果短时间(5分钟)内要获取课表或者是成绩会体验感好很多
 		ctx := context.Background()
 		_, _ = h.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: uc.StudentId})
+		_, _ = h.counterClient.AddCounter(ctx, &counterv1.AddCounterReq{StudentId: uc.StudentId})
 	}()
 
 	banners, err := h.contentClient.GetBanners(ctx, &contentv1.GetBannersRequest{})

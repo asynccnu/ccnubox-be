@@ -1,7 +1,6 @@
 package class
 
 import (
-	"context"
 	"errors"
 	"sort"
 	"time"
@@ -107,14 +106,6 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 		Classes:         respClasses,
 		LastRefreshTime: getResp.LastTime,
 	}
-
-	go func() {
-		ct := context.Background()
-		_, err := c.CounterClient.AddCounter(ct, &counterv1.AddCounterReq{StudentId: uc.StudentId, ServiceType: counterv1.ServiceType_CLASSLIST})
-		if err != nil {
-			c.l.Error("增加用户feedCount失败:", logger.Error(err))
-		}
-	}()
 
 	return web.Response{
 		Msg:  "Success",

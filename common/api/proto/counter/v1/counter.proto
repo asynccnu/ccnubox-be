@@ -14,7 +14,6 @@ service CounterService {
 
 message AddCounterReq{
   string studentId=1;//发送一个studentId增加一次,根据具体的次数划分等级
-  ServiceType serviceType=2;
 }
 
 message AddCounterResp{
@@ -22,7 +21,6 @@ message AddCounterResp{
 
 message GetCounterLevelsReq{
   string label=1;
-  ServiceType serviceType=2;
 }
 
 message GetCounterLevelsResp{
@@ -34,7 +32,6 @@ message ChangeCounterLevelsReq{
   repeated string studentIds =1;
   bool isReduce=2;//如果是ture表示降低等级，1,3,7表示其等级
   int64 step =3;//表示降低几个等级,
-  ServiceType serviceType=4;
 }
 
 // 等级常量定义
@@ -45,15 +42,8 @@ enum CounterLevel {
   LEVEL_THERE = 7;
 }
 
-enum ServiceType{
-  GRADE=0;
-  CLASSLIST=1;
-}
-
 message ChangeCounterLevelsResp{}
 
-message ClearCounterLevelsReq{
-  ServiceType serviceType=1;
-}
+message ClearCounterLevelsReq{}
 
 message ClearCounterLevelsResp{}

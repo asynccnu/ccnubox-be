@@ -8,7 +8,6 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/be-grade/conf"
-	"github.com/asynccnu/ccnubox-be/be-grade/cron"
 	"github.com/asynccnu/ccnubox-be/be-grade/events"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
 	"github.com/asynccnu/ccnubox-be/be-grade/grpc"
@@ -37,15 +36,9 @@ func InitApp() App {
 	rankService := service.NewRankService(rankDAO, logger, userServiceClient)
 	gradeServiceServer := grpc.NewGradeGrpcService(gradeService, rankService)
 	server := ioc.InitGRPCxKratosServer(gradeServiceServer, client, logger, infraConf)
-	counterServiceClient := ioc.InitCounterClient(client, infraConf)
-	feedServiceClient := ioc.InitFeedClient(client, infraConf)
-	redisClient := ioc.InitRedisClient(infraConf)
-	redsync := ioc.InitRedisLock(redisClient)
-	gradeController := cron.NewGradeController(logger, counterServiceClient, userServiceClient, feedServiceClient, classerClient, gradeService, rankService, redsync, serverConf)
-	v := cron.NewCron(gradeController)
 	gradeDetailEventConsumerHandler := events.NewGradeDetailEventConsumerHandler(saramaClient, logger, gradeService, serverConf)
-	v2 := ioc.InitConsumers(gradeDetailEventConsumerHandler)
-	v3 := ioc.InitOTel(serverConf)
-	app := NewApp(server, v, v2, v3)
+	v := ioc.InitConsumers(gradeDetailEventConsumerHandler)
+	v2 := ioc.InitOTel(serverConf)
+	app := NewApp(server, v, v2)
 	return app
 }

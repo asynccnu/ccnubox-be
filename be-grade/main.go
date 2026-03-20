@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-grade/cron"
 	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/joho/godotenv"
@@ -24,18 +23,15 @@ func main() {
 type App struct {
 	server    grpcx.Server
 	consumers []saramax.Consumer
-	crons     []cron.Cron
 	shutdown  func(ctx context.Context) error
 }
 
 func NewApp(server grpcx.Server,
-	crons []cron.Cron,
 	consumers []saramax.Consumer,
 	shutdown func(ctx context.Context) error,
 ) App {
 	return App{
 		server:    server,
-		crons:     crons,
 		consumers: consumers,
 		shutdown:  shutdown,
 	}
@@ -50,10 +46,6 @@ func (app *App) Start() {
 			panic(fmt.Sprintln("shutdown error:", err))
 		}
 	}()
-
-	for _, c := range app.crons {
-		c.StartCronTask()
-	}
 
 	//启动所有的消费者,但是这里实际上只注入了一个消费者
 	for _, c := range app.consumers {

@@ -10,12 +10,12 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/client"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
-	"github.com/asynccnu/ccnubox-be/be-classlist/internal/cron"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/data"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/pkg/crawler"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/registry"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/server"
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/service"
+	"github.com/go-kratos/kratos/v2"
 )
 
 import (
@@ -25,7 +25,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, zapLogConfigs *conf.ZapLogConfigs) (*App, func(), error) {
+func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confRegistry *conf.Registry, schoolDay *conf.SchoolDay, zapLogConfigs *conf.ZapLogConfigs) (*kratos.App, func(), error) {
 	env := client.NewEnv(string2)
 	logger := data.NewLogger(zapLogConfigs)
 	logLogger := data.NewKratosLogger(logger)
@@ -71,22 +71,7 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 	classUsecase, cleanup3 := biz.NewClassUsecase(classRepo, crawler3, jxbDBRepo, userSvc, delayQueue, refreshLogRepo, recycleBinRepo, confServer, logger)
 	classListService := service.NewClasserService(classUsecase, schoolDay, logger)
 	grpcServer := server.NewGRPCServer(confServer, classListService, logLogger)
-	counterServiceClient, err := client.InitCounterClient(etcdRegistry, confRegistry, logLogger, env)
-	if err != nil {
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
-	contentServiceClient, err := client.InitContentClient(etcdRegistry, confRegistry, logLogger, env)
-	if err != nil {
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
-	cronCron := cron.NewClassListController(counterServiceClient, classUsecase, contentServiceClient, logger)
-	app := newApp(env, logLogger, grpcServer, etcdRegistry, confServer, cronCron)
+	app := newApp(env, logLogger, grpcServer, etcdRegistry, confServer)
 	return app, func() {
 		cleanup3()
 		cleanup2()

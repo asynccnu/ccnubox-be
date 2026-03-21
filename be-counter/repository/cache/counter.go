@@ -3,13 +3,12 @@ package cache
 import (
 	"context"
 	"strconv"
-	"time"
 
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/redis/go-redis/v9"
 )
 
-const REDISKEY = "ccnubox:FUC:"
+const REDISKEY = "ccnubox:FUC"
 
 type CounterCache interface {
 	GetCounterByStudentId(ctx context.Context, StudentId string) (count int64, err error)
@@ -29,8 +28,8 @@ func NewRedisCounterCache(cmd redis.Cmdable) CounterCache {
 }
 
 func (cache *RedisCounterCache) GetCounterByStudentId(ctx context.Context, StudentId string) (count int64, err error) {
-	key := cache.getKey(StudentId)
-	val, err := cache.cmd.Get(ctx, key).Int64()
+
+	val, err := cache.cmd.HGet(ctx, REDISKEY, StudentId).Int64()
 	if err != nil {
 		if errorx.Is(err, redis.Nil) {
 			return 0, nil
@@ -41,9 +40,7 @@ func (cache *RedisCounterCache) GetCounterByStudentId(ctx context.Context, Stude
 }
 
 func (cache *RedisCounterCache) SetCounterByStudentId(ctx context.Context, StudentId string, count int64) error {
-	key := cache.getKey(StudentId)
-	expiration := time.Hour * 24 * 7 // 一周的过期时间
-	err := cache.cmd.Set(ctx, key, count, expiration).Err()
+	err := cache.cmd.HSet(ctx, REDISKEY, StudentId, count).Err()
 	if err != nil {
 		return errorx.Errorf("cache: set counter failed, studentId: %s, err: %w", StudentId, err)
 	}
@@ -53,42 +50,27 @@ func (cache *RedisCounterCache) SetCounterByStudentId(ctx context.Context, Stude
 // 获取所有 Counter
 func (cache *RedisCounterCache) GetAllCounter(ctx context.Context) (Counters []*Counter, err error) {
 	var cursor uint64
-	var keys []string
-	var countPerScan int64 = 100
-
+	var result []string
 	for {
-		keys, cursor, err = cache.cmd.Scan(ctx, cursor, REDISKEY+"*", countPerScan).Result()
+		result, cursor, err = cache.cmd.HScan(ctx, REDISKEY, cursor, "*", 500).Result()
 		if err != nil {
-			return nil, errorx.Errorf("cache: scan keys failed: %w", err)
+			return nil, errorx.Errorf("cache: HGetAll keys failed: %w", err)
 		}
 
-		if len(keys) > 0 {
-			values, err := cache.cmd.MGet(ctx, keys...).Result()
+		for i := 0; i < len(result); i += 2 {
+			id := result[i]
+			key := result[i+1]
+			cnt, err := strconv.ParseInt(key, 10, 64)
 			if err != nil {
-				return nil, errorx.Errorf("cache: mget keys failed: %w", err)
+				return nil, errorx.Errorf("cache: get all parse failed, key: %s, err: %w", id, err)
 			}
-
-			for i, value := range values {
-				if value != nil {
-					// 假设前缀长度固定，这里可以做更健壮的处理
-					studentId := keys[i][len(REDISKEY):]
-
-					count, err := strconv.ParseInt(value.(string), 10, 64)
-					if err != nil {
-						return nil, errorx.Errorf("cache: parse count failed, key: %s, err: %w", keys[i], err)
-					}
-
-					Counters = append(Counters, &Counter{
-						StudentId: studentId,
-						Count:     count,
-					})
-				}
-			}
+			Counters = append(Counters, &Counter{StudentId: id, Count: cnt})
 		}
 
 		if cursor == 0 {
 			break
 		}
+
 	}
 
 	return Counters, nil
@@ -98,38 +80,36 @@ func (cache *RedisCounterCache) GetAllCounter(ctx context.Context) (Counters []*
 func (cache *RedisCounterCache) CleanZeroCounter(ctx context.Context) error {
 	var cursor uint64
 	var countPerScan int64 = 100
-
+	var result []string
+	var err error
+	var delFields []string
 	for {
-		keys, cursor, err := cache.cmd.Scan(ctx, cursor, REDISKEY+"*", countPerScan).Result()
+		result, cursor, err = cache.cmd.HScan(ctx, REDISKEY, cursor, "*", countPerScan).Result()
 		if err != nil {
 			return errorx.Errorf("cache: clean scan failed: %w", err)
 		}
 
-		if len(keys) > 0 {
-			values, err := cache.cmd.MGet(ctx, keys...).Result()
+		for i := 0; i < len(result); i += 2 {
+			key := result[i]
+			val := result[i+1]
+			cnt, err := strconv.ParseInt(val, 10, 64)
 			if err != nil {
-				return errorx.Errorf("cache: clean mget failed: %w", err)
+				return errorx.Errorf("cache: get clean parse failed, key: %s, err: %w", key, err)
 			}
-
-			for i, value := range values {
-				if value != nil {
-					count, err := strconv.ParseInt(value.(string), 10, 64)
-					if err != nil {
-						return errorx.Errorf("cache: clean parse failed, key: %s, err: %w", keys[i], err)
-					}
-
-					if count == 0 {
-						err := cache.cmd.Del(ctx, keys[i]).Err()
-						if err != nil {
-							return errorx.Errorf("cache: clean delete failed, key: %s, err: %w", keys[i], err)
-						}
-					}
-				}
+			if cnt == 0 {
+				delFields = append(delFields, key)
 			}
 		}
 
 		if cursor == 0 {
 			break
+		}
+	}
+
+	if len(delFields) > 0 {
+		_, err := cache.cmd.HDel(ctx, REDISKEY, delFields...).Result()
+		if err != nil {
+			return errorx.Errorf("cache: del fields failed,err:%w", err)
 		}
 	}
 	return nil
@@ -138,11 +118,9 @@ func (cache *RedisCounterCache) CleanZeroCounter(ctx context.Context) error {
 // 批量设置多个 Counter
 func (cache *RedisCounterCache) SetCounters(ctx context.Context, Counters []*Counter) error {
 	pipe := cache.cmd.Pipeline()
-	expiration := time.Hour * 24 * 7
 
 	for _, c := range Counters {
-		key := cache.getKey(c.StudentId)
-		pipe.Set(ctx, key, c.Count, expiration)
+		pipe.HSet(ctx, c.StudentId, REDISKEY, c.Count)
 	}
 
 	_, err := pipe.Exec(ctx)
@@ -155,12 +133,12 @@ func (cache *RedisCounterCache) SetCounters(ctx context.Context, Counters []*Cou
 
 // 批量获取多个 Counter
 func (cache *RedisCounterCache) GetCounters(ctx context.Context, StudentIds []string) (Counters []*Counter, err error) {
-	keys := make([]string, len(StudentIds))
+	fields := make([]string, len(StudentIds))
 	for i, sid := range StudentIds {
-		keys[i] = cache.getKey(sid)
+		fields[i] = sid
 	}
 
-	values, err := cache.cmd.MGet(ctx, keys...).Result()
+	values, err := cache.cmd.HMGet(ctx, REDISKEY, fields...).Result()
 	if err != nil {
 		return nil, errorx.Errorf("cache: batch get counters failed: %w", err)
 	}
@@ -180,10 +158,6 @@ func (cache *RedisCounterCache) GetCounters(ctx context.Context, StudentIds []st
 	}
 
 	return Counters, nil
-}
-
-func (cache *RedisCounterCache) getKey(StudentId string) string {
-	return REDISKEY + StudentId
 }
 
 type Counter struct {

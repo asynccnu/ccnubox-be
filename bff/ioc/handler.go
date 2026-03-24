@@ -95,7 +95,7 @@ func InitUserHandler(
 	return user.NewUserHandler(hdl, userClient, preLoader)
 }
 
-func InitLibraryHandler(cfg *conf.ServerConf, client libraryv1.LibraryClient) *library.LibraryHandler {
+func InitLibraryHandler(cfg *conf.ServerConf, client libraryv1.LibraryServiceClient) *library.LibraryHandler {
 	return library.NewLibraryHandler(client,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }

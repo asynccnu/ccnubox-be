@@ -94,6 +94,7 @@ func (c *Crawler) doSeatRequestWithToken(ctx context.Context, method, url, token
 
 		resp, err := c.client.Do(req)
 		if err != nil {
+			c.l.Errorf("crawler: library http request failed, err: %w", err)
 			return nil, errorx.Errorf("crawler: library http request failed, err: %w", err)
 		}
 		return resp, nil
@@ -117,6 +118,7 @@ func (c *Crawler) GetSeatInfos(ctx context.Context, token string, roomIDs []stri
 					mutex.Lock()
 					results[roomID] = nil
 					mutex.Unlock()
+					c.l.Errorf("crawler: get seat infos failed, err: %w", err)
 					return ErrGetSeat(errorx.Errorf("crawler: get roomid:%s failed", roomID))
 				}
 				mutex.Lock()
@@ -209,6 +211,7 @@ func (c *Crawler) GetFreeList(ctx context.Context, token string, seatID string) 
 
 	resp, err := c.doSeatRequestWithToken(ctx, "POST", fullURL, token, nil)
 	if err != nil {
+		c.l.Errorf("crawler: get freeSeat infos failed, err: %w", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -258,10 +261,11 @@ func (c *Crawler) ReserveSeat(ctx context.Context, token string, devid, start, e
 	path := fmt.Sprintf("%s/%s/%s/%s/%s", ReserveAPIPath, devid, date, start, end)
 	fullURL, err := buildURL(path, params)
 	if err != nil {
-		return "", errorx.Errorf("crawler: reserve seat failed, err: %w", err)
+		return "", err
 	}
 	resp, err := c.doSeatRequestWithToken(ctx, "POST", fullURL, token, nil)
 	if err != nil {
+		c.l.Errorf("crawler: reserve seat failed, err: %w", err)
 		return "", err
 	}
 	defer resp.Body.Close()
@@ -285,6 +289,7 @@ func (c *Crawler) CancelReserve(ctx context.Context, token string, id string) (s
 
 	resp, err := c.doSeatRequestWithToken(ctx, "POST", fullURL, token, nil)
 	if err != nil {
+		c.l.Errorf("crawler: cancel reserve failed, err: %w", err)
 		return "", err
 	}
 	defer resp.Body.Close()
@@ -307,6 +312,7 @@ func (c *Crawler) GetTodayRecord(ctx context.Context, token string) ([]*Record, 
 
 	records, err := c.getRecord(ctx, token, fullURL, TODAY_RECORD_TYPE)
 	if err != nil {
+		c.l.Errorf("crawler: get today record failed, err: %w", err)
 		return nil, err
 	}
 
@@ -320,6 +326,7 @@ func (c *Crawler) GetHistory(ctx context.Context, token string) ([]*Record, erro
 	fullURL := fmt.Sprintf("https://kjyy.ccnu.edu.cn/jsq/static/frontApi/user/history/%d/%d", 0, today)
 	records, err := c.getRecord(ctx, token, fullURL, HISTORY_RECORD_TYPE)
 	if err != nil {
+		c.l.Errorf("crawler: get history record failed, err: %w", err)
 		return nil, err
 	}
 	return records, nil

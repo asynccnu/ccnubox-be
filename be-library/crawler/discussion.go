@@ -36,6 +36,7 @@ func (c *Crawler) GetDiscussion(ctx context.Context, token string, roomTypeId, v
 	}
 	resp, err := c.doDiscussionRequestWithToken(ctx, "POST", URL, token, bytes.NewBuffer(reqBytes))
 	if err != nil {
+		c.l.Errorf("crawler: get discussion infos failed, err: %w", err)
 		return nil, err
 	}
 	defer resp.Body.Close()

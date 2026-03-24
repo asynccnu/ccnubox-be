@@ -10,11 +10,11 @@ import (
 )
 
 type LibraryHandler struct {
-	LibraryClient  libraryv1.LibraryClient // 注入 grpc 服务
+	LibraryClient  libraryv1.LibraryServiceClient // 注入 grpc 服务
 	Administrators map[string]struct{}
 }
 
-func NewLibraryHandler(client libraryv1.LibraryClient, admins map[string]struct{}) *LibraryHandler {
+func NewLibraryHandler(client libraryv1.LibraryServiceClient, admins map[string]struct{}) *LibraryHandler {
 	return &LibraryHandler{
 		LibraryClient:  client,
 		Administrators: admins,

@@ -5,6 +5,7 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/bff/conf"
+	"github.com/asynccnu/ccnubox-be/bff/cron"
 	"github.com/asynccnu/ccnubox-be/bff/ioc"
 	"github.com/asynccnu/ccnubox-be/bff/web/middleware"
 	"github.com/google/wire"
@@ -20,6 +21,9 @@ func InitApp() *App {
 		ioc.InitLogger,
 		ioc.InitRedis,
 		ioc.InitOTel,
+		ioc.InitRedisLock,
+		ioc.InitScheduler,
+		cron.NewTieredHandler,
 
 		//grpc注册
 		ioc.InitFeedClient,

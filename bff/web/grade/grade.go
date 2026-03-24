@@ -1,7 +1,6 @@
 package grade
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -92,15 +91,6 @@ func (h *GradeHandler) GetGradeByTerm(ctx *gin.Context, req GetGradeByTermReq, u
 			FinalGrade:          grade.FinalGrade,                   // 期末分数
 		})
 	}
-
-	// 这里做了一个异步的增加用户的feedCount
-	go func() {
-		ct := context.Background()
-		_, err := h.CounterClient.AddCounter(ct, &counterv1.AddCounterReq{StudentId: uc.StudentId})
-		if err != nil {
-			h.l.Error("增加用户feedCount失败:", logger.Error(err))
-		}
-	}()
 
 	return web.Response{
 		Msg:  fmt.Sprintf("获取成绩成功!"),

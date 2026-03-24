@@ -45,4 +45,5 @@ enum CounterLevel {
 message ChangeCounterLevelsResp{}
 
 message ClearCounterLevelsReq{}
+
 message ClearCounterLevelsResp{}

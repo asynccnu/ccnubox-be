@@ -51,7 +51,7 @@ func NewLibrary(client *http.Client, secret string) *Library {
 	}
 }
 
-// 1.LoginLibrary 使用登录通行证的client访问图书馆页面为该client设置cookie
+// LoginLibrary 使用登录通行证的client访问图书馆页面为该client设置cookie
 func (c *Library) LoginLibrary(ctx context.Context) error {
 	request, err := http.NewRequestWithContext(ctx, "POST", PG_URL_LOGIN_LIBRARY, nil)
 	if err != nil {
@@ -69,7 +69,7 @@ func (c *Library) LoginLibrary(ctx context.Context) error {
 	return nil
 }
 
-// 2.GetSeatAuthTokenFromLibrary 从图书馆系统中提取座位预约服务的 Token
+// GetSeatAuthTokenFromLibrary 从图书馆系统中提取座位预约服务的 Token
 func (c *Library) GetSeatAuthTokenFromLibrary(ctx context.Context) (string, error) {
 	rawToken, err := c.getRawTokenFromLibrary(ctx, PG_URL_SEAT_LIBRARY_PREFIX)
 	if err != nil {
@@ -118,7 +118,7 @@ func (c *Library) GetSeatAuthTokenFromLibrary(ctx context.Context) (string, erro
 
 }
 
-// 2.CheckLibrarySeatToken 验证座位预约服务Token的有效性
+// CheckLibrarySeatToken 验证座位预约服务Token的有效性
 func (c *Library) CheckLibrarySeatToken(ctx context.Context, token string) (bool, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", PG_URL_SEST_TOKEN_CHECK, nil)
 	if err != nil {
@@ -143,7 +143,7 @@ func (c *Library) CheckLibrarySeatToken(ctx context.Context, token string) (bool
 	return resp.StatusCode == http.StatusOK, nil
 }
 
-// 3.GetDiscussionAuthTokenFromLibrary 从图书馆系统中提取研讨室预约服务的 Token
+// GetDiscussionAuthTokenFromLibrary 从图书馆系统中提取研讨室预约服务的 Token
 func (c *Library) GetDiscussionAuthTokenFromLibrary(ctx context.Context) (string, error) {
 	rawToken, err := c.getRawTokenFromLibrary(ctx, PG_URL_DISCUSSION_LIBRARY_PREFIX)
 	if err != nil {
@@ -186,7 +186,7 @@ func (c *Library) GetDiscussionAuthTokenFromLibrary(ctx context.Context) (string
 	return authToken.String(), nil
 }
 
-// 4.CheckLibraryDiscussionToken 验证研讨室预约服务Token的有效性
+// CheckLibraryDiscussionToken 验证研讨室预约服务Token的有效性
 func (c *Library) CheckLibraryDiscussionToken(ctx context.Context, token string) (bool, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", PG_URL_DISCUSSION_TOKEN_CHECK, nil)
 	if err != nil {

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package library.v1;
+
+import "errors/errors.proto";
+
+option go_package = "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1;libraryv1";
+
+enum LibraryErrorReason {
+  // 设置缺省错误码
+  option (errors.default_code) = 500;
+
+  GET_SEAT_ERROR = 0 [(errors.code) = 501];
+  GET_DISCUSSION_ERROR = 1 [(errors.code) = 502];
+  PARSE_TIME_ERROR = 2 [(errors.code) = 503];
+  GET_TOKEN_ERROR = 3 [(errors.code) = 504];
+}

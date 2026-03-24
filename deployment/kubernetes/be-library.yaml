@@ -14,7 +14,7 @@ spec:
         app: be-library
     spec:
       containers:
-        - name: be-library
+        - name: library
           image: be-library:v1
           imagePullPolicy: Always
           resources:
@@ -31,5 +31,5 @@ spec:
           configMap:
             name: ccnube-config
             items:
-              - key: be-library.yaml
+              - key: library.yaml
                 path: config.yaml

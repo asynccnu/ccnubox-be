@@ -1,10 +1,9 @@
 syntax = "proto3";
 
 package library.v1;
-
 option go_package = "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1;libraryv1";
 
-service Library {
+service LibraryService {
     rpc GetSeat (GetSeatRequest) returns (GetSeatResponse);
     rpc ReserveSeat (ReserveSeatRequest) returns (ReserveSeatResponse);
     rpc GetSeatRecord (GetSeatRecordRequest) returns (GetSeatRecordResponse);

@@ -1,13 +1,13 @@
-name: Build and Deploy - be-library
+name: Build and Deploy - library
 
 on:
   push:
     branches:
       - cccccnu # 👈 这里设置一个不同于 main 的分支以避免触发，之后要使用的话改回 main 即可
     paths:
-      - 'be-library/**'
+      - '../../library/**'
 env:
-  SERVICE_NAME: be-library  # 👈 这里设置的是全局环境变量
+  SERVICE_NAME: library  # 👈 这里设置的是全局环境变量
   SERVICE_VERSION: BE_LIBRARY  # 👈 这里设置的是 Docker Compose 文件中使用的环境变量名称
 
 

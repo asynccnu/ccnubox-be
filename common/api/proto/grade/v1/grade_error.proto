@@ -10,5 +10,4 @@ enum GradeErrorReason {
   option (errors.default_code) = 500;
 
   GET_GRADE_ERROR = 0 [(errors.code) = 501];
-
 }

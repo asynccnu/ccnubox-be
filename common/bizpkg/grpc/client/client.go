@@ -73,8 +73,8 @@ func InitGrade(ecli *clientv3.Client, cfg *conf.GrpcConfs, env *conf.Env) gradev
 	return InitClient(ecli, GetConf(cfg, b_grpc.GRADE), env, gradev1.NewGradeServiceClient)
 }
 
-func InitLibrary(ecli *clientv3.Client, cfg *conf.GrpcConfs, env *conf.Env) libraryv1.LibraryClient {
-	return InitClient(ecli, GetConf(cfg, b_grpc.LIBRARY), env, libraryv1.NewLibraryClient)
+func InitLibrary(ecli *clientv3.Client, cfg *conf.GrpcConfs, env *conf.Env) libraryv1.LibraryServiceClient {
+	return InitClient(ecli, GetConf(cfg, b_grpc.LIBRARY), env, libraryv1.NewLibraryServiceClient)
 }
 
 func InitContent(ecli *clientv3.Client, cfg *conf.GrpcConfs, env *conf.Env) contentv1.ContentServiceClient {

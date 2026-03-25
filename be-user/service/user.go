@@ -88,25 +88,25 @@ func (s *userService) Save(ctx context.Context, studentId string, password strin
 func (s *userService) Check(ctx context.Context, studentId string, password string) (bool, error) {
 	tlog := s.l.WithContext(ctx)
 
-	// 优先尝试从官方教务验证
-	_, err := tool.Retry(func() (*ccnuv1.LoginCCNUResponse, error) {
-		return s.ccnu.LoginCCNU(ctx, &ccnuv1.LoginCCNURequest{StudentId: studentId, Password: password})
-	})
-
-	switch {
-	case err == nil:
-		return true, nil
-	case ccnuv1.IsInvalidSidOrPwd(err):
-		return false, InCorrectPassword(errorx.New("sid or password incorrect in ccnu system"))
-	}
-
-	tlog.Warn("ccnu login failed, fallback to local check", logger.Error(err))
+	//// 优先尝试从官方教务验证
+	//_, err := tool.Retry(func() (*ccnuv1.LoginCCNUResponse, error) {
+	//	return s.ccnu.LoginCCNU(ctx, &ccnuv1.LoginCCNURequest{StudentId: studentId, Password: password})
+	//})
+	//
+	//switch {
+	//case err == nil:
+	//	return true, nil
+	//case ccnuv1.IsInvalidSidOrPwd(err):
+	//	return false, InCorrectPassword(errorx.New("sid or password incorrect in ccnu system"))
+	//}
+	//
+	//tlog.Warn("ccnu login failed, fallback to local check", logger.Error(err))
 
 	// 降级逻辑：检查本地数据库加密密码
-	encryptedPwd, err := s.cryptoClient.Encrypt(password)
-	if err != nil {
-		return false, ENCRYPT_ERROR(errorx.Errorf("service: fallback encrypt failed, err: %w", err))
-	}
+	//encryptedPwd, err := s.cryptoClient.Encrypt(password)
+	//if err != nil {
+	//	return false, ENCRYPT_ERROR(errorx.Errorf("service: fallback encrypt failed, err: %w", err))
+	//}
 
 	user, err := s.dao.FindByStudentId(ctx, studentId)
 	if err != nil {
@@ -116,9 +116,15 @@ func (s *userService) Check(ctx context.Context, studentId string, password stri
 		return false, DEFAULT_DAO_ERROR(errorx.Errorf("local dao query failed, err: %w", err))
 	}
 
-	if user.Password == encryptedPwd {
+	decryptedPwd, err := s.cryptoClient.Decrypt(user.Password)
+	if err != nil {
+		return false, DEFAULT_DAO_ERROR(errorx.Errorf("service: decrypt failed, err: %w", err))
+	}
+
+	if decryptedPwd == password {
 		return true, nil
 	}
+	tlog.Error("database check failed, login failed")
 	return false, InCorrectPassword(errorx.New("password does not match local record"))
 }
 

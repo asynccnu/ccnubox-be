@@ -1,0 +1,14 @@
+log:
+  path: "/logs/library.log"
+  maxSize: 100
+  maxBackups: 7
+  maxAge: 30
+  compress: 1
+
+otel:
+  serviceName: "be-library"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"
+
+crypto:
+  secret: "please-change-me"

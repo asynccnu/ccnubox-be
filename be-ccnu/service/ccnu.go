@@ -151,26 +151,47 @@ func (c *ccnuService) getGradCookie(ctx context.Context, stuId, password string)
 	return cookie, nil
 }
 
-func (c *ccnuService) GetLibraryCookie(ctx context.Context, studentId, password string) (string, error) {
-	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout, proxy.WithoutProxy())) // 这里简化了，实际可按需加 Proxy
+func (c *ccnuService) GetLibraryToken(ctx context.Context, studentId, password string, service ccnuv1.LIBRARY_TYPE) (string, error) {
+	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout, proxy.WithoutProxy()), c.secret) // 这里简化了，实际可按需加 Proxy
 	client, ok, err := c.loginUnderGrad(ctx, studentId, password)
 	if err != nil {
-		return "", errorx.Errorf("GetLibraryCookie loginUnderGrad error: %w", err)
+		return "", errorx.Errorf("GetLibraryDiscussionToken loginUnderGrad error: %w", err)
 	}
 	if !ok {
-		return "", Invalid_SidOrPwd_ERROR(errorx.New("GetLibraryCookie login failed"))
+		return "", Invalid_SidOrPwd_ERROR(errorx.New("GetLibraryDiscussionToken login failed"))
 	}
 
 	l.Client = client
 	err = l.LoginLibrary(ctx)
 	if err != nil {
-		return "", CCNUSERVER_ERROR(errorx.Errorf("GetLibraryCookie LoginLibrary error: %w", err))
+		return "", CCNUSERVER_ERROR(errorx.Errorf("GetLibraryDiscussionToken LoginLibrary error: %w", err))
 	}
-
-	cookie, err := l.GetCookieFromLibrarySystem()
+	var token string
+	switch service {
+	case ccnuv1.LIBRARY_TYPE_LIBRARY_SEAT:
+		token, err = l.GetSeatAuthTokenFromLibrary(ctx)
+	case ccnuv1.LIBRARY_TYPE_LIBRARY_DISCUSSION:
+		token, err = l.GetDiscussionAuthTokenFromLibrary(ctx)
+	}
 	if err != nil {
-		return "", CCNUSERVER_ERROR(errorx.Errorf("GetLibraryCookie GetCookieFromLibrarySystem error: %w", err))
+		return "", CCNUSERVER_ERROR(errorx.Errorf("GetLibraryDiscussionToken GetRawTokenFromLibrarySystem error: %w", err))
 	}
 
-	return cookie, nil
+	return token, nil
+}
+
+func (c *ccnuService) CheckLibraryToken(ctx context.Context, token string, service ccnuv1.LIBRARY_TYPE) (bool, error) {
+	var err error
+	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout, proxy.WithoutProxy()), c.secret)
+	var ok bool
+	switch service {
+	case ccnuv1.LIBRARY_TYPE_LIBRARY_SEAT:
+		ok, err = l.CheckLibrarySeatToken(ctx, token)
+	case ccnuv1.LIBRARY_TYPE_LIBRARY_DISCUSSION:
+		ok, err = l.CheckLibraryDiscussionToken(ctx, token)
+	}
+	if err != nil {
+		return false, CCNUSERVER_ERROR(errorx.Errorf("CheckLibraryDiscussionToken library crawler check token err:%w", err))
+	}
+	return ok, nil
 }

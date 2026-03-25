@@ -8,7 +8,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func InitLibrary(ecli *clientv3.Client, cfg *conf.InfraConf) libraryv1.LibraryClient {
+func InitLibrary(ecli *clientv3.Client, cfg *conf.InfraConf) libraryv1.LibraryServiceClient {
 	return client.InitLibrary(ecli, cfg.Grpc, cfg.Env)
 
 }

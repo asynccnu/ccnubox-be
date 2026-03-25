@@ -1,14 +1,12 @@
 syntax = "proto3";
 
 package library.v1;
-
 option go_package = "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1;libraryv1";
 
-service Library {
+service LibraryService {
     rpc GetSeat (GetSeatRequest) returns (GetSeatResponse);
     rpc ReserveSeat (ReserveSeatRequest) returns (ReserveSeatResponse);
     rpc GetSeatRecord (GetSeatRecordRequest) returns (GetSeatRecordResponse);
-    rpc GetHistory (GetHistoryRequest) returns (GetHistoryResponse);
     rpc GetCreditPoint (GetCreditPointRequest) returns (GetCreditPointResponse);
     rpc GetDiscussion (GetDiscussionRequest) returns (GetDiscussionResponse);
     rpc SearchUser (SearchUserRequest) returns (SearchUserResponse);
@@ -36,11 +34,17 @@ message RoomSeat {
 }
 
 message Seat {
-    string lab_name = 1;
-    string kind_name = 2;
-    string dev_id = 3;
-    string dev_name = 4;
-    repeated TimeSlot ts = 5;
+  string ID=1;
+  string Label=2;
+  string Name=3;
+  string Status=4;
+  bool AfterFree=5;
+  repeated FreeTime FreeList=6;
+}
+
+message FreeTime{
+  string start=1;
+  string end=2;
 }
 
 message TimeSlot {
@@ -63,9 +67,10 @@ message ReserveSeatResponse {
     string message = 1;
 }
 
-// 获取未来预约记录
+// 获取预约记录
 message GetSeatRecordRequest {
     string stu_id = 1;
+    repeated string date=2;
 }
 
 message GetSeatRecordResponse {
@@ -74,33 +79,19 @@ message GetSeatRecordResponse {
 
 message Record {
     string id = 1;
-    string owner = 2;
-    string start = 3;
-    string end = 4;
-    string time_desc = 5;
-    string states = 6;
-    string dev_name = 7;
-    string room_id = 8;
-    string room_name = 9;
-    string lab_name = 10;
+    string room_id = 2;
+    string room_name = 3;
+    string build_name=4;
+    string floor_name=5;
+    string seat_id=6;
+    string seat_label=7;
+    string make_begin=8;
+    string make_end=9;
+    string make_date=10;
+    string status=11;
+    string message=12;
 }
 
-// 获取历史记录
-message GetHistoryRequest {
-    string stu_id = 1;
-}
-
-message GetHistoryResponse {
-    repeated History history = 1;
-}
-
-message History {
-    string place = 1;
-    string floor = 2;
-    string status = 3;
-    string date = 4;
-    string submitTime = 5;
-}
 
 // 获取信誉分
 message GetCreditPointRequest{
@@ -126,9 +117,10 @@ message CreditRecord{
 
 // 获取研讨间信息
 message GetDiscussionRequest{
-    string class_id = 1;
+    string room_type = 1;
     string date = 2;
     string stu_id = 3;
+    string venue_id=4;
 }
 
 message GetDiscussionResponse{
@@ -136,22 +128,17 @@ message GetDiscussionResponse{
 }
 
 message Discussion{
-    string lab_id = 1;
-    string lab_name = 2;
-    string kind_id = 3;
-    string kind_name = 4;
-    string dev_id = 5;
-    string dev_name = 6;
-    repeated DiscussionTS TS = 7;
+    string room_id = 1;
+    string name = 2;
+    string venue_id=3;
+    string roomType = 4;
+    string address = 5;
+    repeated DisableTime DisableList = 6;
 }
 
-message DiscussionTS{
+message DisableTime{
     string start = 1;
     string end = 2;
-    string state = 3;
-    string title = 4;
-    string owner = 5;
-    bool occupy = 6;
 }
 
 // 查找用户
@@ -198,7 +185,7 @@ message ReserveSeatRandomlyRequest {
     string start = 1;
     string end = 2;
     string stu_id = 3;
-    string room_id = 4;
+    repeated string room_id = 4;
 }
 
 message ReserveSeatRandomlyResponse {

@@ -123,7 +123,7 @@ services:
       - ../configs/be-grade.yaml:/data/conf/config.yaml
 
   be-library:
-    container_name: be-library
+    container_name: library
     image: be-library:v1
     restart: "always"
     networks:
@@ -131,8 +131,8 @@ services:
     ports:
       - "19093:19093"
     volumes:
-      - ../logs/be-library/:/logs/
-      - ../configs/be-library.yaml:/data/conf/config.yaml
+      - ../logs/library/:/logs/
+      - ../configs/library.yaml:/data/conf/config.yaml
 
   be-infosum:
     container_name: be-infosum

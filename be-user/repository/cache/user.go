@@ -17,8 +17,8 @@ var (
 type UserCache interface {
 	GetCookie(ctx context.Context, sid string) (string, error)
 	SetCookie(ctx context.Context, sid string, cookie string) error
-	GetLibraryCookie(ctx context.Context, sid string) (string, error)
-	SetLibraryCookie(ctx context.Context, sid string, cookie string) error
+	GetLibraryToken(ctx context.Context, sid string, serviceType string) (string, error)
+	SetLibraryToken(ctx context.Context, sid string, cookie string, serviceType string) error
 }
 
 type RedisUserCache struct {
@@ -55,8 +55,8 @@ func (cache *RedisUserCache) SetCookie(ctx context.Context, sid string, cookie s
 }
 
 // GetLibraryCookie 从 Redis 获取指定 sid 对应的图书馆 cookie
-func (cache *RedisUserCache) GetLibraryCookie(ctx context.Context, sid string) (string, error) {
-	key := cache.libraryKey(sid)
+func (cache *RedisUserCache) GetLibraryToken(ctx context.Context, sid string, serviceType string) (string, error) {
+	key := cache.libraryKey(sid, serviceType)
 	val, err := cache.cmd.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -68,8 +68,8 @@ func (cache *RedisUserCache) GetLibraryCookie(ctx context.Context, sid string) (
 }
 
 // SetLibraryCookie 将 sid 和对应的图书馆 cookie 存入 Redis
-func (cache *RedisUserCache) SetLibraryCookie(ctx context.Context, sid string, cookie string) error {
-	key := cache.libraryKey(sid)
+func (cache *RedisUserCache) SetLibraryToken(ctx context.Context, sid string, cookie string, serviceType string) error {
+	key := cache.libraryKey(sid, serviceType)
 	err := cache.cmd.Set(ctx, key, cookie, 5*time.Minute).Err()
 	if err != nil {
 		return errorx.Errorf("cache: redis set library cookie failed, key: %s, err: %w", key, err)
@@ -81,6 +81,6 @@ func (cache *RedisUserCache) key(sid string) string {
 	return fmt.Sprintf("ccnubox:users:xk:%s", sid) // 增加 xk 标识区分业务
 }
 
-func (cache *RedisUserCache) libraryKey(sid string) string {
-	return fmt.Sprintf("ccnubox:users:lib:%s", sid) // 统一命名层级
+func (cache *RedisUserCache) libraryKey(sid string, service string) string {
+	return fmt.Sprintf("ccnubox:users:lib:%s:%s", service, sid) // 统一命名层级
 }

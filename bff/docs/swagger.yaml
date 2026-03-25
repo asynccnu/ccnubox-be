@@ -1061,38 +1061,35 @@ definitions:
       total:
         type: string
     type: object
-  library.Discussion:
-    properties:
-      devId:
-        type: string
-      devName:
-        type: string
-      kindId:
-        type: string
-      kindName:
-        type: string
-      labId:
-        type: string
-      labName:
-        type: string
-      ts:
-        items:
-          $ref: '#/definitions/library.DiscussionTS'
-        type: array
-    type: object
-  library.DiscussionTS:
+  library.DisableTime:
     properties:
       end:
         type: string
-      occupy:
-        type: boolean
-      owner:
-        type: string
       start:
         type: string
-      state:
+    type: object
+  library.Discussion:
+    properties:
+      address:
         type: string
-      title:
+      disableList:
+        items:
+          $ref: '#/definitions/library.DisableTime'
+        type: array
+      name:
+        type: string
+      room_id:
+        type: string
+      room_type:
+        type: string
+      venue_id:
+        type: string
+    type: object
+  library.FreeTime:
+    properties:
+      end:
+        type: string
+      start:
         type: string
     type: object
   library.GetCreditPointResponse:
@@ -1102,9 +1099,11 @@ definitions:
     type: object
   library.GetDiscussionRequest:
     properties:
-      class_id:
-        type: string
       date:
+        type: string
+      room_type_id:
+        type: string
+      venue_id:
         type: string
     type: object
   library.GetDiscussionResponse:
@@ -1114,11 +1113,11 @@ definitions:
           $ref: '#/definitions/library.Discussion'
         type: array
     type: object
-  library.GetHistoryResponse:
+  library.GetSeatRecordRequest:
     properties:
-      history:
+      date:
         items:
-          $ref: '#/definitions/library.History'
+          type: string
         type: array
     type: object
   library.GetSeatRecordResponse:
@@ -1142,40 +1141,33 @@ definitions:
           $ref: '#/definitions/library.Room'
         type: array
     type: object
-  library.History:
-    properties:
-      date:
-        type: string
-      floor:
-        type: string
-      place:
-        type: string
-      status:
-        type: string
-      submitTime:
-        type: string
-    type: object
   library.Record:
     properties:
-      devName:
+      build_name:
         type: string
-      end:
+      floor_name:
         type: string
       id:
         type: string
-      labName:
+      make_begin:
         type: string
-      owner:
+      make_date:
         type: string
-      roomId:
+      make_end:
         type: string
-      roomName:
+      message:
         type: string
-      start:
+      room_id:
         type: string
-      states:
+      room_name:
         type: string
-      timeDesc:
+      seat_id:
+        type: string
+      seat_label:
+        type: string
+      status:
+        type: string
+      stu_id:
         type: string
     type: object
   library.ReserveDiscussionRequest:
@@ -1199,12 +1191,12 @@ definitions:
     type: object
   library.ReserveSeatRandomlyRequest:
     properties:
-      dev_id:
-        type: string
       end:
         type: string
       room_ids:
-        type: string
+        items:
+          type: string
+        type: array
       start:
         type: string
     type: object
@@ -1249,30 +1241,19 @@ definitions:
     type: object
   library.Seat:
     properties:
-      devId:
-        type: string
-      devName:
-        type: string
-      kindName:
-        type: string
-      labName:
-        type: string
-      ts:
-        items:
-          $ref: '#/definitions/library.TimeSlot'
-        type: array
-    type: object
-  library.TimeSlot:
-    properties:
-      end:
-        type: string
-      occupy:
+      afterFree:
         type: boolean
-      owner:
+      ft:
+        items:
+          $ref: '#/definitions/library.FreeTime'
+        type: array
+      id:
         type: string
-      start:
+      label:
         type: string
-      state:
+      name:
+        type: string
+      status:
         type: string
     type: object
   metrics.MetricsReq:
@@ -2944,36 +2925,6 @@ paths:
       summary: 获取图书馆研讨间信息
       tags:
       - library
-  /library/get_history_records:
-    get:
-      consumes:
-      - application/json
-      description: 获取1年内的预约记录和三个月内的取消记录
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功返回历史预约记录
-          schema:
-            allOf:
-            - $ref: '#/definitions/web.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/library.GetHistoryResponse'
-              type: object
-        "500":
-          description: 系统异常，获取失败
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 获取历史预约记录
-      tags:
-      - library
   /library/get_seat:
     post:
       consumes:
@@ -3011,21 +2962,27 @@ paths:
       tags:
       - library
   /library/get_seat_records:
-    get:
+    post:
       consumes:
       - application/json
-      description: 获取即将到来的预约
+      description: 获取预约记录
       parameters:
       - description: Bearer Token
         in: header
         name: Authorization
         required: true
         type: string
+      - description: 预约座位的请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/library.GetSeatRecordRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: 成功返回即将到来的预约
+          description: 成功返回预约记录
           schema:
             allOf:
             - $ref: '#/definitions/web.Response'
@@ -3037,7 +2994,7 @@ paths:
           description: 系统异常，获取失败
           schema:
             $ref: '#/definitions/web.Response'
-      summary: 获取未来预约
+      summary: 获取预约记录
       tags:
       - library
   /library/reserve_discussion:

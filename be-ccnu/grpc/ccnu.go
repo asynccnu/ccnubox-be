@@ -39,7 +39,11 @@ func (s *CCNUServiceServer) LoginCCNU(ctx context.Context, request *ccnuv1.Login
 	return &ccnuv1.LoginCCNUResponse{Success: success}, err
 }
 
-func (s *CCNUServiceServer) GetLibraryCookie(ctx context.Context, request *ccnuv1.GetLibraryCookieRequest) (*ccnuv1.GetLibraryCookieResponse, error) {
-	cookie, err := s.ccnu.GetLibraryCookie(ctx, request.GetStudentId(), request.GetPassword())
-	return &ccnuv1.GetLibraryCookieResponse{Cookie: cookie}, err
+func (s *CCNUServiceServer) GetLibraryToken(ctx context.Context, request *ccnuv1.GetLibraryTokenRequest) (*ccnuv1.GetLibraryTokenResponse, error) {
+	token, err := s.ccnu.GetLibraryToken(ctx, request.GetStudentId(), request.GetPassword(), request.GetType())
+	return &ccnuv1.GetLibraryTokenResponse{Token: token}, err
+}
+func (s *CCNUServiceServer) CheckLibraryToken(ctx context.Context, request *ccnuv1.CheckLibraryTokenRequest) (*ccnuv1.CheckLibraryTokenResponse, error) {
+	valid, err := s.ccnu.CheckLibraryToken(ctx, request.GetToken(), request.GetType())
+	return &ccnuv1.CheckLibraryTokenResponse{Valid: valid}, err
 }

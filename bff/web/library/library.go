@@ -10,11 +10,11 @@ import (
 )
 
 type LibraryHandler struct {
-	LibraryClient  libraryv1.LibraryClient // 注入 grpc 服务
+	LibraryClient  libraryv1.LibraryServiceClient // 注入 grpc 服务
 	Administrators map[string]struct{}
 }
 
-func NewLibraryHandler(client libraryv1.LibraryClient, admins map[string]struct{}) *LibraryHandler {
+func NewLibraryHandler(client libraryv1.LibraryServiceClient, admins map[string]struct{}) *LibraryHandler {
 	return &LibraryHandler{
 		LibraryClient:  client,
 		Administrators: admins,
@@ -25,8 +25,7 @@ func (h *LibraryHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 	sg := s.Group("/library")
 	sg.POST("/get_seat", authMiddleware, ginx.WrapClaimsAndReq(h.GetSeatInfos))
 	sg.POST("/reserve_seat", authMiddleware, ginx.WrapClaimsAndReq(h.ReserveSeat))
-	sg.GET("/get_seat_records", authMiddleware, ginx.WrapClaims(h.GetSeatRecord))
-	sg.GET("/get_history_records", authMiddleware, ginx.WrapClaims(h.GetHistory))
+	sg.POST("/get_seat_records", authMiddleware, ginx.WrapClaimsAndReq(h.GetSeatRecord))
 	sg.GET("/get_credit_points", authMiddleware, ginx.WrapClaims(h.GetCreditPoint))
 	sg.POST("/get_discussion", authMiddleware, ginx.WrapClaimsAndReq(h.GetDiscussion))
 	sg.GET("/search_user", authMiddleware, ginx.WrapClaimsAndReq(h.SearchUser))
@@ -64,23 +63,21 @@ func (h *LibraryHandler) GetSeatInfos(ctx *gin.Context, req GetSeatRequest, uc i
 		seatList := make([]Seat, 0, len(room.Seats))
 
 		for _, seat := range room.Seats {
-			timeSlots := make([]TimeSlot, 0, len(seat.Ts))
-			for _, ts := range seat.Ts {
-				timeSlots = append(timeSlots, TimeSlot{
-					Start:  ts.Start,
-					End:    ts.End,
-					State:  ts.State,
-					Owner:  ts.Owner,
-					Occupy: ts.Occupy,
+			freeList := make([]FreeTime, 0, len(seat.FreeList))
+			for _, ts := range seat.FreeList {
+				freeList = append(freeList, FreeTime{
+					Start: ts.Start,
+					End:   ts.End,
 				})
 			}
 
 			seatList = append(seatList, Seat{
-				LabName:   seat.LabName,
-				KindName:  seat.KindName,
-				DevID:     seat.DevId,
-				DevName:   seat.DevName,
-				TimeSlots: timeSlots,
+				ID:        seat.ID,
+				Label:     seat.Label,
+				Name:      seat.Name,
+				Status:    seat.Status,
+				AfterFree: seat.AfterFree,
+				FreeList:  freeList,
 			})
 		}
 
@@ -112,7 +109,7 @@ func (h *LibraryHandler) GetSeatInfos(ctx *gin.Context, req GetSeatRequest, uc i
 // @Failure 500 {object} web.Response "系统异常，预约失败"
 // @Router /library/reserve_seat [post]
 func (h *LibraryHandler) ReserveSeat(ctx *gin.Context, req ReserveSeatRequest, uc ijwt.UserClaims) (web.Response, error) {
-	_, err := h.LibraryClient.ReserveSeat(ctx, &libraryv1.ReserveSeatRequest{
+	msg, err := h.LibraryClient.ReserveSeat(ctx, &libraryv1.ReserveSeatRequest{
 		DevId: req.DevID,
 		Start: req.Start,
 		End:   req.End,
@@ -121,25 +118,28 @@ func (h *LibraryHandler) ReserveSeat(ctx *gin.Context, req ReserveSeatRequest, u
 	if err != nil {
 		return web.Response{}, errs.RESERVE_SEAT_ERROR(err)
 	}
+	resp := ReserveSeatResponse{Message: msg.Message}
 
 	return web.Response{
-		Msg: "Success",
+		Msg: resp.Message,
 	}, nil
 }
 
-// GetSeatRecord 获取未来预约
-// @Summary 获取未来预约
-// @Description 获取即将到来的预约
+// GetSeatRecord 获取预约记录
+// @Summary 获取预约记录
+// @Description 获取预约记录
 // @Tags library
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer Token"
-// @Success 200 {object} web.Response{data=GetSeatRecordResponse} "成功返回即将到来的预约"
+// @Param request body GetSeatRecordRequest true "预约座位的请求参数"
+// @Success 200 {object} web.Response{data=GetSeatRecordResponse} "成功返回预约记录"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
-// @Router /library/get_seat_records [get]
-func (h *LibraryHandler) GetSeatRecord(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
+// @Router /library/get_seat_records [post]
+func (h *LibraryHandler) GetSeatRecord(ctx *gin.Context, req GetSeatRecordRequest, uc ijwt.UserClaims) (web.Response, error) {
 	res, err := h.LibraryClient.GetSeatRecord(ctx, &libraryv1.GetSeatRecordRequest{
 		StuId: uc.StudentId,
+		Date:  req.Date,
 	})
 	if err != nil {
 		return web.Response{}, errs.GET_SEAT_RECORD_ERROR(err)
@@ -148,60 +148,24 @@ func (h *LibraryHandler) GetSeatRecord(ctx *gin.Context, uc ijwt.UserClaims) (we
 	respRecords := make([]Record, 0, len(res.Record))
 	for _, record := range res.Record {
 		respRecords = append(respRecords, Record{
-			ID:       record.Id,
-			Owner:    record.Owner,
-			Start:    record.Start,
-			End:      record.End,
-			TimeDesc: record.TimeDesc,
-			States:   record.States,
-			DevName:  record.DevName,
-			RoomID:   record.RoomId,
-			RoomName: record.RoomName,
-			LabName:  record.LabName,
+			ID:        record.Id,
+			StuID:     uc.StudentId,
+			SeatID:    record.SeatId,
+			RoomID:    record.RoomId,
+			RoomName:  record.RoomName,
+			BuildName: record.BuildName,
+			FloorName: record.FloorName,
+			SeatLabel: record.SeatLabel,
+			MakeBegin: record.MakeBegin,
+			MakeEnd:   record.MakeEnd,
+			MakeDate:  record.MakeDate,
+			Message:   record.Message,
+			Status:    record.Status,
 		})
 	}
 
 	resp := GetSeatRecordResponse{
 		Records: respRecords,
-	}
-
-	return web.Response{
-		Msg:  "Success",
-		Data: resp,
-	}, nil
-}
-
-// GetHistory 获取历史预约记录
-// @Summary 获取历史预约记录
-// @Description 获取1年内的预约记录和三个月内的取消记录
-// @Tags library
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Success 200 {object} web.Response{data=GetHistoryResponse} "成功返回历史预约记录"
-// @Failure 500 {object} web.Response "系统异常，获取失败"
-// @Router /library/get_history_records [get]
-func (h *LibraryHandler) GetHistory(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
-	res, err := h.LibraryClient.GetHistory(ctx, &libraryv1.GetHistoryRequest{
-		StuId: uc.StudentId,
-	})
-	if err != nil {
-		return web.Response{}, errs.GET_HISTORY_ERROR(err)
-	}
-
-	HistoryRecords := make([]History, 0, len(res.History))
-	for _, history := range res.History {
-		HistoryRecords = append(HistoryRecords, History{
-			Place:      history.Place,
-			Floor:      history.Floor,
-			Status:     history.Status,
-			Date:       history.Date,
-			SubmitTime: history.SubmitTime,
-		})
-	}
-
-	resp := GetHistoryResponse{
-		Histories: HistoryRecords,
 	}
 
 	return web.Response{
@@ -220,6 +184,7 @@ func (h *LibraryHandler) GetHistory(ctx *gin.Context, uc ijwt.UserClaims) (web.R
 // @Success 200 {object} web.Response{data=GetCreditPointResponse} "成功返回信誉分"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /library/get_credit_points [get]
+// TODO：不可用
 func (h *LibraryHandler) GetCreditPoint(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 	res, err := h.LibraryClient.GetCreditPoint(ctx, &libraryv1.GetCreditPointRequest{
 		StuId: uc.StudentId,
@@ -269,9 +234,10 @@ func (h *LibraryHandler) GetCreditPoint(ctx *gin.Context, uc ijwt.UserClaims) (w
 // @Router /library/get_discussion [post]
 func (h *LibraryHandler) GetDiscussion(ctx *gin.Context, req GetDiscussionRequest, uc ijwt.UserClaims) (web.Response, error) {
 	res, err := h.LibraryClient.GetDiscussion(ctx, &libraryv1.GetDiscussionRequest{
-		ClassId: req.ClassID,
-		Date:    req.Date,
-		StuId:   uc.StudentId,
+		RoomType: req.RoomTypeID,
+		VenueId:  req.VenueID,
+		Date:     req.Date,
+		StuId:    uc.StudentId,
 	})
 	if err != nil {
 		return web.Response{}, errs.GET_DISCUSSION_ERROR(err)
@@ -279,25 +245,20 @@ func (h *LibraryHandler) GetDiscussion(ctx *gin.Context, req GetDiscussionReques
 
 	discussions := make([]Discussion, 0, len(res.Discussions))
 	for _, d := range res.Discussions {
-		ts := make([]DiscussionTS, 0, len(d.TS))
-		for _, t := range d.TS {
-			ts = append(ts, DiscussionTS{
-				Start:  t.Start,
-				End:    t.End,
-				State:  t.State,
-				Title:  t.Title,
-				Owner:  t.Owner,
-				Occupy: t.Occupy,
+		ts := make([]DisableTime, 0, len(d.DisableList))
+		for _, t := range d.DisableList {
+			ts = append(ts, DisableTime{
+				Start: t.Start,
+				End:   t.End,
 			})
 		}
 		discussions = append(discussions, Discussion{
-			LabID:    d.LabId,
-			LabName:  d.LabName,
-			KindID:   d.KindId,
-			KindName: d.KindName,
-			DevID:    d.DevId,
-			DevName:  d.DevName,
-			TS:       ts,
+			RoomID:      d.RoomId,
+			RoomType:    d.RoomType,
+			Name:        d.Name,
+			VenueID:     d.VenueId,
+			Address:     d.Address,
+			DisableList: ts,
 		})
 	}
 
@@ -322,6 +283,7 @@ func (h *LibraryHandler) GetDiscussion(ctx *gin.Context, req GetDiscussionReques
 // @Success 200 {object} web.Response{data=SearchUserResponse} "成功返回学生的ID"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /library/search_user [get]
+// TODO：不可用，要删
 func (h *LibraryHandler) SearchUser(ctx *gin.Context, req SearchUserRequest, uc ijwt.UserClaims) (web.Response, error) {
 	res, err := h.LibraryClient.SearchUser(ctx, &libraryv1.SearchUserRequest{
 		StudentId: req.StudentID,
@@ -357,6 +319,7 @@ func (h *LibraryHandler) SearchUser(ctx *gin.Context, req SearchUserRequest, uc 
 // @Success 200 {object} web.Response "成功返回预约研讨间成功"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /library/reserve_discussion [post]
+// TODO：不可用
 func (h *LibraryHandler) ReserveDiscussion(ctx *gin.Context, req ReserveDiscussionRequest, uc ijwt.UserClaims) (web.Response, error) {
 	_, err := h.LibraryClient.ReserveDiscussion(ctx, &libraryv1.ReserveDiscussionRequest{
 		DevId:  req.DevID,
@@ -389,7 +352,7 @@ func (h *LibraryHandler) ReserveDiscussion(ctx *gin.Context, req ReserveDiscussi
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /library/cancel_reserve [post]
 func (h *LibraryHandler) CancelReserve(ctx *gin.Context, req CancelReserveRequest, uc ijwt.UserClaims) (web.Response, error) {
-	_, err := h.LibraryClient.CancelReserve(ctx, &libraryv1.CancelReserveRequest{
+	resp, err := h.LibraryClient.CancelReserve(ctx, &libraryv1.CancelReserveRequest{
 		Id:    req.ID,
 		StuId: uc.StudentId,
 	})
@@ -398,7 +361,7 @@ func (h *LibraryHandler) CancelReserve(ctx *gin.Context, req CancelReserveReques
 	}
 
 	return web.Response{
-		Msg: "Success",
+		Msg: resp.Message,
 	}, nil
 }
 
@@ -413,6 +376,7 @@ func (h *LibraryHandler) CancelReserve(ctx *gin.Context, req CancelReserveReques
 // @Success 200 {object} web.Response "成功返回创建信息"
 // @Failure 500 {object} web.Response "系统异常，创建失败"
 // @Router /library/create_comment [post]
+// TODO：
 func (h *LibraryHandler) CreateComment(ctx *gin.Context, req CreateCommentReq, uc ijwt.UserClaims) (web.Response, error) {
 	// 不知道用户名到底要不要实现，这里直接用学号代替了先
 	msg, err := h.LibraryClient.CreateComment(ctx, &libraryv1.CreateCommentReq{
@@ -441,6 +405,7 @@ func (h *LibraryHandler) CreateComment(ctx *gin.Context, req CreateCommentReq, u
 // @Success 200 {object} web.Response{data=[]Comment} "成功返回评论列表"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /library/get_comments [get]
+// TODO：
 func (h *LibraryHandler) GetComments(ctx *gin.Context, req IDreq, uc ijwt.UserClaims) (web.Response, error) {
 	comments, err := h.LibraryClient.GetComments(ctx, &libraryv1.ID{Id: int64(req.ID)})
 	if err != nil {
@@ -464,6 +429,7 @@ func (h *LibraryHandler) GetComments(ctx *gin.Context, req IDreq, uc ijwt.UserCl
 // @Success 200 {object} web.Response "成功返回删除信息"
 // @Failure 500 {object} web.Response "系统异常，删除失败"
 // @Router /library/delete_comment [get]
+// TODO：
 func (h *LibraryHandler) DeleteComment(ctx *gin.Context, req IDreq, uc ijwt.UserClaims) (web.Response, error) {
 	msg, err := h.LibraryClient.DeleteComment(ctx, &libraryv1.ID{Id: int64(req.ID)})
 	if err != nil {

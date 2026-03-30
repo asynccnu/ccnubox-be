@@ -17,16 +17,7 @@ type InfraConf struct {
 
 type ServerConf struct {
 	conf.BaseServerConf `mapstructure:",squash"`
-	ShenLongConf        *ShenLongConf  `yaml:"shenLongConf"`
 	ClassListConf       *ClassListConf `yaml:"classListConf"`
-}
-
-type ShenLongConf struct {
-	API      string `yaml:"api"`
-	Interval int    `yaml:"interval"`
-	Retry    int    `yaml:"retry"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
 }
 
 type ClassListConf struct {

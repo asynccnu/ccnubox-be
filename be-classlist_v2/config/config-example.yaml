@@ -10,13 +10,6 @@ log:
   maxAge: 30
   compress: 1
 
-shenLongConf:
-  api: "http://shenlong.example/api"
-  interval: 60
-  retry: 3
-  username: "your_user"
-  password: "your_pass"
-
 classListConf:
   waitCrawTime: 5000
   classExpiration: 604800000

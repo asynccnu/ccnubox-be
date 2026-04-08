@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -162,5 +163,20 @@ func (s *HttpProxy) wrapRes(res string) string {
 	if cleanRes == "" {
 		return ""
 	}
-	return fmt.Sprintf("http://%s:%s@%s", s.Username, s.Password, cleanRes)
+
+	if !strings.Contains(cleanRes, "://") {
+		cleanRes = "http://" + cleanRes
+	}
+
+	proxyURL, err := url.Parse(cleanRes)
+	if err != nil {
+		s.l.Warn("proxy: invalid proxy address format", logger.String("addr", cleanRes), logger.Error(err))
+		return ""
+	}
+
+	if s.Username != "" || s.Password != "" {
+		proxyURL.User = url.UserPassword(s.Username, s.Password)
+	}
+
+	return proxyURL.String()
 }

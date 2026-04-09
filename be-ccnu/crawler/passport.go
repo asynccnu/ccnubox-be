@@ -60,7 +60,6 @@ func (c *Passport) LoginPassport(ctx context.Context, stuId string, password str
 // 1. 前置请求：从 HTML 中提取参数
 func (c *Passport) getParamsFromHtml(ctx context.Context) (*accountRequestParams, error) {
 	params := &accountRequestParams{}
-
 	request, err := http.NewRequestWithContext(ctx, "GET", LoginCCNUPassPortURL, nil)
 	if err != nil {
 		return params, errorx.Errorf("create login request failed: %w", err)

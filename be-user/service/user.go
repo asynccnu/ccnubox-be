@@ -279,6 +279,7 @@ func (s *userService) checkLibraryToken(ctx context.Context, token string, servi
 		Token: token,
 		Type:  serviceType,
 	}
+
 	res, err := s.ccnu.CheckLibraryToken(ctx, req)
 	if err != nil {
 		return false, err

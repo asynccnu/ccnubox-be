@@ -55,12 +55,12 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.CCNU_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.DEV_SERVER }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.CCNU_SERVER_ADDR}} >> ~/.ssh/known_hosts
       - name: SSH into server and deploy
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEV_SERVER_USER }}@${{ secrets.DEV_SERVER }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEV_SERVER_USER }}@${{ secrets.CCNU_SERVER_ADDR}} << 'EOF'
             set -e
             cd ~/ccnubox_v3
 

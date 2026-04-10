@@ -44,13 +44,13 @@ func NewClassCrawler3(pg ProxyGetter, pc proxy.Client) *Crawler3 {
 				IdleConnTimeout:     90 * time.Second,
 				TLSHandshakeTimeout: 10 * time.Second,
 				DisableKeepAlives:   false,
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					// 从 request 的 context 中获取代理地址
-					if p, ok := req.Context().Value("proxy_url").(*url.URL); ok {
-						return p, nil
-					}
-					return nil, nil
-				},
+				// Proxy: func(req *http.Request) (*url.URL, error) {
+				// 	// 从 request 的 context 中获取代理地址
+				// 	if p, ok := req.Context().Value("proxy_url").(*url.URL); ok {
+				// 		return p, nil
+				// 	}
+				// 	return nil, nil
+				// },
 			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return nil
@@ -70,26 +70,32 @@ func NewClassCrawler3(pg ProxyGetter, pc proxy.Client) *Crawler3 {
 }
 
 func (c *Crawler3) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
-	// 获取代理并将其存入请求的上下文
-	proxyURL := c.pg.GetProxy(ctx)
-
-	var reqCtx context.Context
-	reqCtx = ctx
-	if proxyURL != nil {
-		reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
-	}
+	// // 获取代理并将其存入请求的上下文
+	// proxyURL := c.pg.GetProxy(ctx)
+	//
+	// var reqCtx context.Context
+	// reqCtx = ctx
+	// if proxyURL != nil {
+	// 	reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
+	// }
+	reqCtx := ctx
 
 	// 使用连接池获取 HTTP 客户端
 	//client := c.clientPool.Get().(*http.Client)
 	//defer c.clientPool.Put(client)
 
 	client := c.proxyClient.NewProxyClient(
-		proxy.WithProxyTransport(
-			false,
+		// proxy.WithProxyTransport(
+		// 	false,
+		// 	proxy.WithMaxIdleConns(10),
+		// 	proxy.WithIdleConnTimeout(90*time.Second),
+		// 	proxy.WithTLSHandshakeTimeout(10*time.Second),
+		// ),
+		proxy.WithTransport(proxy.NewHttpProxyTransport(
 			proxy.WithMaxIdleConns(10),
 			proxy.WithIdleConnTimeout(90*time.Second),
 			proxy.WithTLSHandshakeTimeout(10*time.Second),
-		),
+		)),
 	)
 
 	logh := logger.GetLoggerFromCtx(ctx)
@@ -364,14 +370,15 @@ func (c *Crawler3) parseTimeDesc(s string) (day string, sections []int, weeks []
 }
 
 func (c *Crawler3) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
-	// 获取代理并将其存入请求的上下文
-	proxyURL := c.pg.GetProxy(ctx)
-
-	var reqCtx context.Context
-	reqCtx = ctx
-	if proxyURL != nil {
-		reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
-	}
+	// // 获取代理并将其存入请求的上下文
+	// proxyURL := c.pg.GetProxy(ctx)
+	//
+	// var reqCtx context.Context
+	// reqCtx = ctx
+	// if proxyURL != nil {
+	// 	reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
+	// }
+	reqCtx := ctx
 
 	// 使用连接池获取 HTTP 客户端
 	client := c.clientPool.Get().(*http.Client)

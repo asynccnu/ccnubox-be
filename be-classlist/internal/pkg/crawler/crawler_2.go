@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -43,13 +42,13 @@ func NewClassCrawler2(pg ProxyGetter) *Crawler2 {
 				IdleConnTimeout:     90 * time.Second,
 				TLSHandshakeTimeout: 10 * time.Second,
 				DisableKeepAlives:   false,
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					// 从 request 的 context 中获取代理地址
-					if p, ok := req.Context().Value("proxy_url").(*url.URL); ok {
-						return p, nil
-					}
-					return nil, nil
-				},
+				// Proxy: func(req *http.Request) (*url.URL, error) {
+				// 	// 从 request 的 context 中获取代理地址
+				// 	if p, ok := req.Context().Value("proxy_url").(*url.URL); ok {
+				// 		return p, nil
+				// 	}
+				// 	return nil, nil
+				// },
 			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return nil
@@ -68,14 +67,15 @@ func NewClassCrawler2(pg ProxyGetter) *Crawler2 {
 }
 
 func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
-	// 获取代理并将其存入请求的上下文
-	proxyURL := c.pg.GetProxy(ctx)
-
-	var reqCtx context.Context
-	reqCtx = ctx
-	if proxyURL != nil {
-		reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
-	}
+	// // 获取代理并将其存入请求的上下文
+	// proxyURL := c.pg.GetProxy(ctx)
+	//
+	// var reqCtx context.Context
+	// reqCtx = ctx
+	// if proxyURL != nil {
+	// 	reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
+	// }
+	reqCtx := ctx
 
 	// 使用连接池获取 HTTP 客户端
 	client := c.clientPool.Get().(*http.Client)
@@ -146,14 +146,15 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 }
 
 func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
-	// 获取代理并将其存入请求的上下文
-	proxyURL := c.pg.GetProxy(ctx)
-
-	var reqCtx context.Context
-	reqCtx = ctx
-	if proxyURL != nil {
-		reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
-	}
+	// // 获取代理并将其存入请求的上下文
+	// proxyURL := c.pg.GetProxy(ctx)
+	//
+	// var reqCtx context.Context
+	// reqCtx = ctx
+	// if proxyURL != nil {
+	// 	reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
+	// }
+	reqCtx := ctx
 
 	// 使用连接池获取 HTTP 客户端
 	client := c.clientPool.Get().(*http.Client)

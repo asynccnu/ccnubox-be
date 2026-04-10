@@ -37,40 +37,42 @@ func NewProxyGetter(pc proxyv1.ProxyClient) ProxyGetter {
 
 // GetProxy 获取代理
 func (p *proxyGetter) GetProxy(ctx context.Context) *url.URL {
-	currentTime := time.Now().Unix()
-
-	// 如果缓存有效，直接返回
-	p.proxyMutex.RLock()
-	if currentTime-p.lastUpdateProxyTime <= p.updateInterval {
-		prx := p.proxy
-		p.proxyMutex.RUnlock()
-		return prx
-	}
-	p.proxyMutex.RUnlock()
-
-	// 代理过期，进入合并请求流程
-	// 使用 DoChan 得到一个 channel，用 select 控制超时
-	resultCh := p.sfGroup.DoChan("fetch_proxy", func() (interface{}, error) {
-		return p.doFetchProxy(ctx)
-	})
-
-	select {
-	case res := <-resultCh:
-		// 如果 成功返回，返回新代理
-		if res.Err == nil && res.Val != nil {
-			return res.Val.(*url.URL)
-		}
-		// 如果 失败，降级
-		return p.getOldProxy()
-
-	case <-time.After(500 * time.Millisecond):
-		// 如果 500ms 还没拿到结果，不等了，直接降级
-		// 这样即使阻塞了，协程也能继续工作
-		return p.getOldProxy()
-
-	case <-ctx.Done():
-		return p.getOldProxy()
-	}
+	// currentTime := time.Now().Unix()
+	//
+	// // 如果缓存有效，直接返回
+	// p.proxyMutex.RLock()
+	// if currentTime-p.lastUpdateProxyTime <= p.updateInterval {
+	// 	prx := p.proxy
+	// 	p.proxyMutex.RUnlock()
+	// 	return prx
+	// }
+	// p.proxyMutex.RUnlock()
+	//
+	// // 代理过期，进入合并请求流程
+	// // 使用 DoChan 得到一个 channel，用 select 控制超时
+	// resultCh := p.sfGroup.DoChan("fetch_proxy", func() (interface{}, error) {
+	// 	return p.doFetchProxy(ctx)
+	// })
+	//
+	// select {
+	// case res := <-resultCh:
+	// 	// 如果 成功返回，返回新代理
+	// 	if res.Err == nil && res.Val != nil {
+	// 		return res.Val.(*url.URL)
+	// 	}
+	// 	// 如果 失败，降级
+	// 	return p.getOldProxy()
+	//
+	// case <-time.After(500 * time.Millisecond):
+	// 	// 如果 500ms 还没拿到结果，不等了，直接降级
+	// 	// 这样即使阻塞了，协程也能继续工作
+	// 	return p.getOldProxy()
+	//
+	// case <-ctx.Done():
+	// 	return p.getOldProxy()
+	// }
+	_ = ctx
+	return nil
 }
 
 // doFetchProxy 实际执行 RPC 请求的方法

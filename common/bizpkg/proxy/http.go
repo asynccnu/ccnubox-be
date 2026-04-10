@@ -5,7 +5,6 @@ import (
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/robfig/cron/v3"
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
@@ -63,30 +62,30 @@ func (s *HttpProxy) GetProxyAddr(ctx context.Context, cnt int) []string {
 }
 
 func (s *HttpProxy) update() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-	defer cancel()
-
-	res, err := s.p.GetProxyAddr(ctx, &proxyv1.GetProxyAddrRequest{})
-	if err != nil {
-		log.Warn("从神龙获取代理地址失败: %v", err)
-		s.mu.Lock()
-		s.Addr, s.AddrBackup = "", ""
-		s.mu.Unlock()
-		return
-	}
-
-	s.mu.Lock()
-	s.Addr, s.AddrBackup = res.Addr, res.Backup
-	s.mu.Unlock()
+	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	// defer cancel()
+	//
+	// res, err := s.p.GetProxyAddr(ctx, &proxyv1.GetProxyAddrRequest{})
+	// if err != nil {
+	// 	log.Warn("从神龙获取代理地址失败: %v", err)
+	// 	s.mu.Lock()
+	// 	s.Addr, s.AddrBackup = "", ""
+	// 	s.mu.Unlock()
+	// 	return
+	// }
+	//
+	// s.mu.Lock()
+	// s.Addr, s.AddrBackup = res.Addr, res.Backup
+	// s.mu.Unlock()
 }
 
 func NewHttpProxy(p proxyv1.ProxyClient) Client {
 	globalProxy = &HttpProxy{p: p}
 
-	globalProxy.update()
-	c := cron.New()
-	_, _ = c.AddFunc("@every 15s", globalProxy.update)
-	c.Start()
+	// globalProxy.update()
+	// c := cron.New()
+	// _, _ = c.AddFunc("@every 15s", globalProxy.update)
+	// c.Start()
 
 	return globalProxy
 }

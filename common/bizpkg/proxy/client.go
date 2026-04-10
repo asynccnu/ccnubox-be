@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"context"
 	"net/http"
 	"time"
 )
@@ -39,22 +38,24 @@ func WithTransport(tr *HttpTransport) Option {
 
 func WithProxyTransport(isBackup bool, options ...RoundTripperOption) Option {
 	return func(client *HttpClient) {
-		proxyAddrs := globalProxy.GetProxyAddr(context.Background(), 2)
-		var proxyAddr string
-		if isBackup {
-			proxyAddr = proxyAddrs[1]
-		} else {
-			proxyAddr = proxyAddrs[0]
-		}
-
-		//适配没有代理的情况，否则会报错
-		if proxyAddr == "" {
-			return
-		}
-
-		tr := globalProxy.NewProxyTransport(
-			WithProxy(proxyAddr),
-		)
+		// proxyAddrs := globalProxy.GetProxyAddr(context.Background(), 2)
+		// var proxyAddr string
+		// if isBackup {
+		// 	proxyAddr = proxyAddrs[1]
+		// } else {
+		// 	proxyAddr = proxyAddrs[0]
+		// }
+		//
+		// 适配没有代理的情况，否则会报错
+		// if proxyAddr == "" {
+		// 	return
+		// }
+		//
+		// tr := globalProxy.NewProxyTransport(
+		// 	WithProxy(proxyAddr),
+		// )
+		_ = isBackup
+		tr := globalProxy.NewProxyTransport()
 
 		tr.Use(options...)
 		client.Transport = tr

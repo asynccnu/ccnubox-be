@@ -63,7 +63,7 @@ func (p *TieredHandler) Refresh(ctx context.Context, studentId string) error {
 }
 
 func getGradeEventUrl(semester string, courseType string) string {
-	return fmt.Sprintf("ccnubox://scoreCalculation?semester=%s&courseType=%s", semester, courseType)
+	return fmt.Sprintf(`ccnubox://scoreCalculation?semester=["%s"]&courseType=["%s"]`, semester, courseType)
 }
 
 func formatSemester(xnm int64, xqm int64) string {

@@ -2,6 +2,7 @@ package feed
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
@@ -14,7 +15,9 @@ import (
 )
 
 func getFeedbackUrl(recordID string) string {
-	return fmt.Sprintf("ccnubox://feedback/detail?record_id=%s", recordID)
+	values := url.Values{}
+	values.Add("record_id", fmt.Sprintf(`"%s"`, recordID))
+	return fmt.Sprintf("ccnubox://feedback/detail?%s", values.Encode())
 }
 
 type FeedHandler struct {

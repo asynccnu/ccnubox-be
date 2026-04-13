@@ -3,6 +3,7 @@ package cron
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
@@ -63,7 +64,10 @@ func (p *TieredHandler) Refresh(ctx context.Context, studentId string) error {
 }
 
 func getGradeEventUrl(semester string, courseType string) string {
-	return fmt.Sprintf(`ccnubox://scoreCalculation?semester=["%s"]&courseType=["%s"]`, semester, courseType)
+	values := url.Values{}
+	values.Add("semester", fmt.Sprintf(`["%s"]`, semester))
+	values.Add("courseType", fmt.Sprintf(`["%s"]`, courseType))
+	return fmt.Sprintf("ccnubox://scoreCalculation?%s", values.Encode())
 }
 
 func formatSemester(xnm int64, xqm int64) string {

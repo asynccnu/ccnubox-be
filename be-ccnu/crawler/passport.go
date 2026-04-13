@@ -64,6 +64,7 @@ func (c *Passport) getParamsFromHtml(ctx context.Context) (*accountRequestParams
 	if err != nil {
 		return params, errorx.Errorf("create login request failed: %w", err)
 	}
+	request.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36")
 
 	resp, err := c.Client.Do(request)
 	if err != nil {
@@ -75,7 +76,6 @@ func (c *Passport) getParamsFromHtml(ctx context.Context) (*accountRequestParams
 	if err != nil {
 		return params, errorx.Errorf("read login html failed: %w", err)
 	}
-
 	var JSESSIONID string
 	for _, cookie := range resp.Cookies() {
 		if cookie.Name == "JSESSIONID" {

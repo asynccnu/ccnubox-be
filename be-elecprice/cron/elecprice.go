@@ -3,6 +3,7 @@ package cron
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-elecprice/conf"
@@ -12,7 +13,9 @@ import (
 )
 
 func getElecpriceEventUrl(roomID string) string {
-	return fmt.Sprintf("ccnubox://electricityBillinBalance?room_id=%s", roomID)
+	value := url.Values{}
+	value.Add("room_id", fmt.Sprintf(`"%s"`, roomID))
+	return fmt.Sprintf("ccnubox://electricityBillinBalance?%s", value.Encode())
 }
 
 type ElecpriceController struct {

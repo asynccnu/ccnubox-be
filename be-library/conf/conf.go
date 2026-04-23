@@ -10,7 +10,7 @@ const (
 
 // InfraConf 通用配置
 type InfraConf struct {
-	*conf.InfraConf `mapstructure:",squash"` //为了能够正常解析需要对其进行拍平
+	*conf.InfraConf `mapstructure:",squash"` // 为了能够正常解析需要对其进行拍平
 }
 
 // ServerConf 服务配置

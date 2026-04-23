@@ -3,7 +3,7 @@ name: Build and Deploy - be-library
 on:
   push:
     branches:
-      - cccccnu # 👈 这里设置一个不同于 main 的分支以避免触发，之后要使用的话改回 main 即可
+      - main # 👈 这里设置一个不同于 main 的分支以避免触发，之后要使用的话改回 main 即可
     paths:
       - 'be-library/**'
 env:

@@ -63,4 +63,5 @@ type RecycleBinRepo interface {
 	GetClass(ctx context.Context, stuID, year, semester, classID string) (*ClassInfoBO, bool)
 	ListClasses(ctx context.Context, stuID, year, semester string) ([]*ClassInfoBO, error)
 	HasClass(ctx context.Context, stuID, year, semester, classID string) bool
+	CleanExpired(ctx context.Context, stuID, year, semester string) error
 }

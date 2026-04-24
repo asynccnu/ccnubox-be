@@ -41,9 +41,14 @@ func (s *UserServiceServer) GetCookie(ctx context.Context, request *userv1.GetCo
 	return &userv1.GetCookieResponse{Cookie: u}, err
 }
 
-func (s *UserServiceServer) GetLibraryCookie(ctx context.Context, request *userv1.GetLibraryCookieRequest) (*userv1.GetLibraryCookieResponse, error) {
-	cookie, err := s.svc.GetLibraryCookie(ctx, request.GetStudentId())
-	return &userv1.GetLibraryCookieResponse{Cookie: cookie}, err
+func (s *UserServiceServer) GetLibrarySeatToken(ctx context.Context, request *userv1.GetLibraryTokenRequest) (*userv1.GetLibraryTokenResponse, error) {
+	token, err := s.svc.GetLibrarySeatToken(ctx, request.GetStudentId())
+	return &userv1.GetLibraryTokenResponse{Token: token}, err
+}
+
+func (s *UserServiceServer) GetLibraryDiscussionToken(ctx context.Context, request *userv1.GetLibraryTokenRequest) (*userv1.GetLibraryTokenResponse, error) {
+	token, err := s.svc.GetLibraryDiscussionToken(ctx, request.GetStudentId())
+	return &userv1.GetLibraryTokenResponse{Token: token}, err
 }
 
 func (s *UserServiceServer) CheckUser(ctx context.Context, req *userv1.CheckUserReq) (*userv1.CheckUserResp, error) {

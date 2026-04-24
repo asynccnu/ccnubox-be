@@ -11,6 +11,9 @@ type HttpClient struct {
 }
 
 func (c *HttpClient) Use(options ...Option) {
+	if len(options) == 0 {
+		return
+	}
 	for _, option := range options {
 		option(c)
 	}
@@ -43,6 +46,12 @@ func WithProxyTransport(isBackup bool, options ...RoundTripperOption) Option {
 		} else {
 			proxyAddr = proxyAddrs[0]
 		}
+
+		//适配没有代理的情况，否则会报错
+		if proxyAddr == "" {
+			return
+		}
+
 		tr := globalProxy.NewProxyTransport(
 			WithProxy(proxyAddr),
 		)

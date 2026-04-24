@@ -76,14 +76,14 @@ func NewClassUsecase(classRepo ClassRepo, crawler ClassCrawler,
 		refreshInterval: refreshInterval,
 	}
 
-	// 每周日自动为全部学员爬取课表
-	err := cluc.cronManager.AddTask("pull_class_list", "0 3 * * 0", cluc.pullClassListTask)
+	// 每天凌晨5点设置的课表缓存
+	err := cluc.cronManager.AddTask("cache_class_list", "0 5 * * *", cluc.cacheClass)
 	if err != nil {
 		panic(err)
 	}
 
-	// 每天凌晨5点设置的课表缓存
-	err = cluc.cronManager.AddTask("cache_class_list", "0 5 * * *", cluc.cacheClass)
+	// 每个月 1 号 2 点清理回收站中过期的 zset 元素
+	err = cluc.cronManager.AddTask("clean_recycle_bin", "0 2 1 * *", cluc.cleanRecycleBinTask)
 	if err != nil {
 		panic(err)
 	}
@@ -553,99 +553,6 @@ func (cluc *ClassUsecase) UpdateClassNote(ctx context.Context, stuID, year, seme
 	return nil
 }
 
-func (cluc *ClassUsecase) pullClassListTask(
-	ctx context.Context,
-	log logger.Logger,
-) {
-	log.Info("Executing PullClassListTask")
-
-	const (
-		pageSize        = 200
-		workerCount     = 16
-		qps             = 20
-		progressLogStep = 200
-	)
-
-	// 使用官方令牌桶限流
-	limiter := rate.NewLimiter(rate.Limit(qps), qps)
-
-	jobs := make(chan string, 1000)
-
-	var (
-		wg        sync.WaitGroup
-		processed atomic.Int64
-	)
-
-	log.Infof("PullClassListTask started pageSize=%d workerCount=%d qps=%d", pageSize, workerCount, qps)
-
-	year, semester := tool.GetCurrentAcademicYearAndSemesterStr(time.Now())
-
-	// worker pool
-	for i := 0; i < workerCount; i++ {
-		workerID := i + 1
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			log.Infof("worker-%d started", id)
-			defer log.Infof("worker-%d stopped", id)
-
-			for stuID := range jobs {
-				if tool.IsGraduated(stuID) {
-					// 跳过已经毕业的学生
-					log.Infof("worker-%d skipping graduated student %s", id, stuID)
-					continue
-				}
-
-				// 等待令牌,如果上下文被取消则退出
-				if err := limiter.Wait(ctx); err != nil {
-					log.Warnf("worker-%d limiter wait canceled: %v", id, err)
-					return
-				}
-
-				log.Infof("worker-%d processing student %s", id, stuID)
-
-				localClassInfo, _ := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
-				_ = cluc.crawClass(ctx, stuID, year, semester, time.Now(), localClassInfo, false)
-
-				count := processed.Add(1)
-				if count%progressLogStep == 0 {
-					log.Infof("processed %d students so far", count)
-				}
-			}
-		}(workerID)
-	}
-
-	// 分页生产任务
-	lastStuID := ""
-	for {
-		stuIDs, err := cluc.classRepo.GetStudentIDs(ctx, lastStuID, pageSize)
-		if err != nil {
-			log.Errorf("get ids failed: %v", err)
-			break
-		}
-		if len(stuIDs) == 0 {
-			log.Info("no more student ids to enqueue")
-			break
-		}
-
-		firstID := stuIDs[0]
-		lastPageID := stuIDs[len(stuIDs)-1]
-		log.Infof("enqueueing %d student ids range %s-%s", len(stuIDs), firstID, lastPageID)
-
-		for _, id := range stuIDs {
-			jobs <- id
-		}
-
-		lastStuID = lastPageID
-	}
-
-	close(jobs)
-	wg.Wait()
-
-	total := processed.Load()
-	log.Infof("Finished PullClassListTask processed=%d lastStuID=%s", total, lastStuID)
-}
-
 func (cluc *ClassUsecase) cacheClass(
 	ctx context.Context,
 	log logger.Logger,
@@ -737,4 +644,93 @@ func (cluc *ClassUsecase) cacheClass(
 
 	total := processed.Load()
 	log.Infof("Finished PullClassListTask processed=%d lastStuID=%s", total, lastStuID)
+}
+
+// cleanRecycleBinTask 定时清理回收站中 zset 里已经过期的元素
+func (cluc *ClassUsecase) cleanRecycleBinTask(
+	ctx context.Context,
+	log logger.Logger,
+) {
+	log.Info("Executing CleanRecycleBinTask")
+
+	const (
+		pageSize        = 200
+		workerCount     = 16
+		qps             = 200
+		progressLogStep = 200
+	)
+
+	// 使用官方令牌桶限流
+	limiter := rate.NewLimiter(rate.Limit(qps), qps)
+
+	jobs := make(chan string, 1000)
+
+	var (
+		wg        sync.WaitGroup
+		processed atomic.Int64
+	)
+
+	log.Infof("CleanRecycleBinTask started pageSize=%d workerCount=%d qps=%d", pageSize, workerCount, qps)
+
+	year, semester := tool.GetCurrentAcademicYearAndSemesterStr(time.Now())
+
+	// worker pool
+	for i := 0; i < workerCount; i++ {
+		workerID := i + 1
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			log.Infof("worker-%d started", id)
+			defer log.Infof("worker-%d stopped", id)
+
+			for stuID := range jobs {
+				// 等待令牌,如果上下文被取消则退出
+				if err := limiter.Wait(ctx); err != nil {
+					log.Warnf("worker-%d limiter wait canceled: %v", id, err)
+					return
+				}
+
+				log.Infof("worker-%d cleaning recycle bin for student %s", id, stuID)
+
+				if err := cluc.recycleBinRepo.CleanExpired(ctx, stuID, year, semester); err != nil {
+					log.Warnf("worker-%d clean recycle bin failed for student %s: %v", id, stuID, err)
+				}
+
+				count := processed.Add(1)
+				if count%progressLogStep == 0 {
+					log.Infof("processed %d students so far", count)
+				}
+			}
+		}(workerID)
+	}
+
+	// 分页生产任务
+	lastStuID := ""
+	for {
+		stuIDs, err := cluc.classRepo.GetStudentIDs(ctx, lastStuID, pageSize)
+		if err != nil {
+			log.Errorf("get ids failed: %v", err)
+			break
+		}
+		if len(stuIDs) == 0 {
+			log.Info("no more student ids to enqueue")
+			break
+		}
+
+		firstID := stuIDs[0]
+		lastPageID := stuIDs[len(stuIDs)-1]
+		log.Infof("enqueueing %d student ids range %s-%s", len(stuIDs), firstID, lastPageID)
+
+		for _, id := range stuIDs {
+			jobs <- id
+		}
+
+		lastStuID = lastPageID
+	}
+
+	close(jobs)
+	wg.Wait()
+
+	total := processed.Load()
+	log.Infof("Finished CleanRecycleBinTask processed=%d lastStuID=%s", total, lastStuID)
 }

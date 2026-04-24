@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	globalProxy *HttpProxy
+	globalProxy = new(HttpProxy)
 )
 
 func GlobalHttpProxyClient() Client {

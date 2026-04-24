@@ -1,4 +1,4 @@
-FROM golang:1.24 AS builder
+FROM golang:1.26 AS builder
 
 COPY . /src
 
@@ -8,7 +8,7 @@ RUN go env -w GOPROXY=https://goproxy.cn,direct
 
 RUN go mod tidy
 
-RUN go build -o ./bin/be-library ./cmd/be-library
+RUN go build -o ./bin/be-library  .
 
 FROM debian:stable-slim
 
@@ -20,12 +20,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         && rm -rf /var/lib/apt/lists/ \
         && apt-get autoremove -y && apt-get autoclean -y
 
+
 COPY --from=builder /src/be-library/bin /app
 
 WORKDIR /app
 
-EXPOSE 19093
+EXPOSE 19090
 
 VOLUME /data/conf
 
-CMD ["./be-library", "--conf", "/data/conf/config.yaml"]
+CMD ["./be-library", "--config", "/data/conf/config.yaml"]

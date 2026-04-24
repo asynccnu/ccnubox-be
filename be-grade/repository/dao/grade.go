@@ -126,7 +126,7 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 		}
 	}
 
-	affectedGrades = append(toInsert, toUpdate...)
+	affectedGrades = toInsert
 	return affectedGrades, nil
 }
 

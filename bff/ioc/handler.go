@@ -8,6 +8,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web/elecprice"
 	"github.com/asynccnu/ccnubox-be/bff/web/feed"
 	"github.com/asynccnu/ccnubox-be/bff/web/grade"
+	"github.com/asynccnu/ccnubox-be/bff/web/health"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/asynccnu/ccnubox-be/bff/web/library"
 	"github.com/asynccnu/ccnubox-be/bff/web/metrics"
@@ -28,19 +29,20 @@ import (
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/redis/go-redis/v9"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 // InitContentHandler 初始化 ContentHandler
 func InitContentHandler(
 	cfg *conf.ServerConf,
 	contentClient contentv1.ContentServiceClient,
+	counterClient counterv1.CounterServiceClient,
 	userClient userv1.UserServiceClient,
-	gradeClient gradev1.GradeServiceClient,
 ) *content.ContentHandler {
 	return content.NewContentHandler(
 		contentClient,
 		userClient,
-		gradeClient,
+		counterClient,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}))
@@ -62,11 +64,11 @@ func InitElecpriceHandler(cfg *conf.ServerConf, client elecpricev1.ElecpriceServ
 		}))
 }
 
-func InitClassHandler(cfg *conf.ServerConf, client1 classlistv1.ClasserClient, client2 cs.ClassServiceClient) *class.ClassHandler {
-	return class.NewClassListHandler(client1, client2,
+func InitClassHandler(cfg *conf.ServerConf, client1 classlistv1.ClasserClient, client2 cs.ClassServiceClient, client3 counterv1.CounterServiceClient, l logger.Logger) *class.ClassHandler {
+	return class.NewClassListHandler(client1, client2, client3,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
-		}))
+		}), l)
 }
 
 func InitClassRoomHandler(client cs.FreeClassroomSvcClient) *classroom.ClassRoomHandler {
@@ -93,7 +95,7 @@ func InitUserHandler(
 	return user.NewUserHandler(hdl, userClient, preLoader)
 }
 
-func InitLibraryHandler(cfg *conf.ServerConf, client libraryv1.LibraryClient) *library.LibraryHandler {
+func InitLibraryHandler(cfg *conf.ServerConf, client libraryv1.LibraryServiceClient) *library.LibraryHandler {
 	return library.NewLibraryHandler(client,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) { return element, struct{}{} }))
 }
@@ -108,4 +110,8 @@ func InitMetricsHandel(l logger.Logger, redisClient redis.Cmdable, prometheus *p
 
 func InitSwagHandler() *swag.SwagHandler {
 	return swag.NewSwagHandler()
+}
+
+func InitHealthHandler(clients map[string]healthpb.HealthClient) *health.HealthHandler {
+	return health.NewHealthHandler(clients)
 }

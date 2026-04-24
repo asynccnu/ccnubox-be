@@ -2,13 +2,19 @@ package grpc
 
 import (
 	"context"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-content/domain"
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
 )
 
 func (c *ContentServiceServer) GetSemester(ctx context.Context, in *contentv1.GetSemesterRequest) (*contentv1.GetSemesterResponse, error) {
-	semester, err := c.svcSemester.Get(ctx, in.GetDate())
+	//如果没传date默认是当前日期
+	date := in.GetDate()
+	if date == "" {
+		date = time.Now().Format("2006-01-02")
+	}
+	semester, err := c.svcSemester.Get(ctx, date)
 	if err != nil {
 		return nil, err
 	}

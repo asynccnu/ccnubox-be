@@ -7,6 +7,9 @@ import (
 )
 
 func (h *HttpTransport) Use(options ...RoundTripperOption) {
+	if len(options) == 0 {
+		return
+	}
 	for _, option := range options {
 		option(h)
 	}

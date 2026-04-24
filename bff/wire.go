@@ -5,6 +5,7 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/bff/conf"
+	"github.com/asynccnu/ccnubox-be/bff/cron"
 	"github.com/asynccnu/ccnubox-be/bff/ioc"
 	"github.com/asynccnu/ccnubox-be/bff/web/middleware"
 	"github.com/google/wire"
@@ -20,6 +21,9 @@ func InitApp() *App {
 		ioc.InitLogger,
 		ioc.InitRedis,
 		ioc.InitOTel,
+		ioc.InitRedisLock,
+		ioc.InitScheduler,
+		cron.NewTieredHandler,
 
 		//grpc注册
 		ioc.InitFeedClient,
@@ -29,6 +33,7 @@ func InitApp() *App {
 		ioc.InitGradeClient,
 		ioc.InitContentClient,
 		ioc.InitCounterClient,
+		ioc.InitHealthClient,
 		//基于kratos的微服务
 		ioc.InitClassListClient,
 		ioc.InitClassClient,
@@ -49,6 +54,7 @@ func InitApp() *App {
 		ioc.InitMetricsHandel,
 		ioc.InitLibraryHandler,
 		ioc.InitSwagHandler,
+		ioc.InitHealthHandler,
 
 		//中间件
 		middleware.NewLoggerMiddleware,

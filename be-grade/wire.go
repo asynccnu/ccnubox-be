@@ -5,7 +5,6 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/be-grade/conf"
-	"github.com/asynccnu/ccnubox-be/be-grade/cron"
 	"github.com/asynccnu/ccnubox-be/be-grade/events"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
 	"github.com/asynccnu/ccnubox-be/be-grade/grpc"
@@ -35,15 +34,9 @@ func InitApp() App {
 		ioc.InitUserClient,
 		ioc.InitProxyClient,
 		ioc.InitHttpProxyClient,
-		ioc.InitCounterClient,
-		ioc.InitFeedClient,
 		ioc.InitClassListClient,
-		ioc.InitRedisClient,
-		ioc.InitRedisLock,
 		ioc.InitKafka,
 		ioc.InitConsumers,
-		cron.NewGradeController,
-		cron.NewCron,
 		NewApp,
 	)
 	return App{}

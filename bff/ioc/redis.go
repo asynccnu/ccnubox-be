@@ -6,6 +6,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func InitRedis(cfg *conf.InfraConf) redis.Cmdable {
+func InitRedis(cfg *conf.InfraConf) *redis.Client {
 	return infra.InitRedis(cfg.Redis)
 }

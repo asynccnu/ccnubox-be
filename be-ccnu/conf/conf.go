@@ -16,6 +16,11 @@ type InfraConf struct {
 // ServerConf 服务配置
 type ServerConf struct {
 	conf.BaseServerConf `mapstructure:",squash"`
+	Crypto              *CryptoConf `yaml:"crypto"`
+}
+
+type CryptoConf struct {
+	Secret string `yaml:"secret"`
 }
 
 func InitServerConf() *ServerConf {

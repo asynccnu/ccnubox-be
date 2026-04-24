@@ -60,11 +60,11 @@ func (c *Passport) LoginPassport(ctx context.Context, stuId string, password str
 // 1. 前置请求：从 HTML 中提取参数
 func (c *Passport) getParamsFromHtml(ctx context.Context) (*accountRequestParams, error) {
 	params := &accountRequestParams{}
-
 	request, err := http.NewRequestWithContext(ctx, "GET", LoginCCNUPassPortURL, nil)
 	if err != nil {
 		return params, errorx.Errorf("create login request failed: %w", err)
 	}
+	request.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36")
 
 	resp, err := c.Client.Do(request)
 	if err != nil {
@@ -76,7 +76,6 @@ func (c *Passport) getParamsFromHtml(ctx context.Context) (*accountRequestParams
 	if err != nil {
 		return params, errorx.Errorf("read login html failed: %w", err)
 	}
-
 	var JSESSIONID string
 	for _, cookie := range resp.Cookies() {
 		if cookie.Name == "JSESSIONID" {
@@ -129,6 +128,12 @@ func (c *Passport) loginCCNUPassport(
 	v.Set("execution", params.execution)
 	v.Set("_eventId", params._eventId)
 	v.Set("submit", params.submit)
+	v.Set("visitorId", "")
+	v.Set("visitorid", "")
+	v.Set("visitorId1", "")
+	v.Set("bz", "")
+	v.Set("epid", "Edge145.0.0.0")
+	v.Set("ugt", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0")
 
 	urlstr := LoginCCNUPassPortURL + ";jsessionid=" + params.JSESSIONID
 	request, err := http.NewRequestWithContext(ctx, "POST", urlstr, strings.NewReader(v.Encode()))

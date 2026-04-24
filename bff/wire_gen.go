@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/bff/conf"
+	"github.com/asynccnu/ccnubox-be/bff/cron"
 	"github.com/asynccnu/ccnubox-be/bff/ioc"
 	"github.com/asynccnu/ccnubox-be/bff/web/middleware"
 )
@@ -44,15 +45,20 @@ func InitApp() *App {
 	counterServiceClient := ioc.InitCounterClient(client, infraConf)
 	gradeHandler := ioc.InitGradeHandler(serverConf, logger, gradeServiceClient, counterServiceClient)
 	classServiceClient := ioc.InitClassClient(client, infraConf)
-	classHandler := ioc.InitClassHandler(serverConf, classerClient, classServiceClient)
+	classHandler := ioc.InitClassHandler(serverConf, classerClient, classServiceClient, counterServiceClient, logger)
 	contentServiceClient := ioc.InitContentClient(client, infraConf)
-	contentHandler := ioc.InitContentHandler(serverConf, contentServiceClient, userServiceClient, gradeServiceClient)
+	contentHandler := ioc.InitContentHandler(serverConf, contentServiceClient, counterServiceClient, userServiceClient)
 	metricsHandler := ioc.InitMetricsHandel(logger, cmdable, prometheusCounter)
 	libraryClient := ioc.InitLibrary(client, infraConf)
 	libraryHandler := ioc.InitLibraryHandler(serverConf, libraryClient)
 	swagHandler := ioc.InitSwagHandler()
-	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, basicAuthMiddleware, prometheusMiddleware, otelMiddleware, classRoomHandler, tubeHandler, userHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, contentHandler, metricsHandler, libraryHandler, swagHandler)
-	v := ioc.InitOTel(serverConf)
-	app := NewApp(engine, serverConf, v)
+	v := ioc.InitHealthClient(client, infraConf)
+	healthHandler := ioc.InitHealthHandler(v)
+	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, basicAuthMiddleware, prometheusMiddleware, otelMiddleware, classRoomHandler, tubeHandler, userHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, contentHandler, metricsHandler, libraryHandler, swagHandler, healthHandler)
+	v2 := ioc.InitOTel(serverConf)
+	refreshHandler := cron.NewTieredHandler(classerClient, gradeServiceClient, feedServiceClient, contentServiceClient, counterServiceClient, logger)
+	redsync := ioc.InitRedisLock(cmdable)
+	tieredScheduler := ioc.InitScheduler(serverConf, refreshHandler, counterServiceClient, logger, redsync)
+	app := NewApp(engine, serverConf, v2, tieredScheduler)
 	return app
 }

@@ -7,15 +7,18 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/dao"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type RefreshLogRepo struct {
 	refDB *dao.RefreshLogDAO
+	log   logger.Logger
 }
 
-func NewRefreshLogRepo(refDB *dao.RefreshLogDAO) biz.RefreshLogRepo {
+func NewRefreshLogRepo(refDB *dao.RefreshLogDAO, l logger.Logger) biz.RefreshLogRepo {
 	return &RefreshLogRepo{
 		refDB: refDB,
+		log:   l,
 	}
 }
 

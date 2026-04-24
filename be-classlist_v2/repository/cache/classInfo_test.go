@@ -15,7 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func initTestLogger(t *testing.T) {
+func initTestLogger(t *testing.T) logger.Logger {
 	t.Helper()
 
 	logDir := "./debug_log"
@@ -33,8 +33,7 @@ func initTestLogger(t *testing.T) {
 		},
 	}
 
-	l := log.InitLogger(cfg.Log, 3)
-	logger.InitGlobalLogger(l)
+	return log.InitLogger(cfg.Log, 3)
 }
 
 func newRepoWithLogger(t *testing.T) (*ClassInfoCache, *miniredis.Miniredis) {
@@ -54,8 +53,8 @@ func newRepoWithLogger(t *testing.T) (*ClassInfoCache, *miniredis.Miniredis) {
 		},
 	}
 
-	initTestLogger(t)
-	return NewClassInfoCache(BaseCache{rdb: rdb}, cfg), mr
+	l := initTestLogger(t)
+	return NewClassInfoCache(BaseCache{rdb: rdb}, cfg, l), mr
 }
 
 func TestClassInfoCache_SetGet(t *testing.T) {

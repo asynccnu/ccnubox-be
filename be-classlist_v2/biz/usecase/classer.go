@@ -14,6 +14,7 @@ import (
 
 type ClassUsecase struct {
 	conf *conf.ServerConf
+	log  logger.Logger
 
 	classRepo      biz.ClassRepo
 	refreshLogRepo biz.RefreshLogRepo
@@ -33,9 +34,11 @@ func NewClassUsecase(
 	ccnu biz.CCNUService,
 	crawler biz.ClassCrawler,
 	queue biz.DelayQueue,
+	l logger.Logger,
 ) *ClassUsecase {
 	return &ClassUsecase{
 		conf:           conf,
+		log:            l,
 		classRepo:      cla,
 		refreshLogRepo: re,
 		jxbRepo:        jxb,
@@ -48,13 +51,12 @@ func NewClassUsecase(
 // 将实现暴露出的主函数与流程里使用到的工具函数分开放在两个文件里提高可读性
 func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester string, refresh bool) ([]*model.ClassInfoBO, *time.Time, error) {
 	// 能返回到最上层的错误，就统一在最上层打错误日志
-	logh := logger.From(ctx).With(
+	logh := cluc.log.WithContext(ctx).With(
 		logger.String("stu_id", stuID),
 		logger.String("year", year),
 		logger.String("semester", semester),
 		logger.Any("refresh", refresh),
 	)
-	ctx = logger.WithLogger(ctx, logh) // 把当前带额外字段的 logger 写入上下文
 
 	currentTime := time.Now()
 

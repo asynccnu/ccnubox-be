@@ -12,14 +12,15 @@ import (
 
 type ClassInfoDAO struct {
 	BaseDAO
+	log logger.Logger
 }
 
-func NewClassInfoDAO(base BaseDAO) *ClassInfoDAO {
-	return &ClassInfoDAO{BaseDAO: base}
+func NewClassInfoDAO(base BaseDAO, l logger.Logger) *ClassInfoDAO {
+	return &ClassInfoDAO{BaseDAO: base, log: l}
 }
 
 func (c ClassInfoDAO) SaveClassInfosToDB(ctx context.Context, classInfos []*model.ClassInfo) error {
-	logh := logger.From(ctx)
+	logh := c.log.WithContext(ctx)
 	if len(classInfos) == 0 {
 		logh.Warnf("no classinfo to save!")
 		return nil
@@ -42,7 +43,7 @@ func (c ClassInfoDAO) SaveClassInfosToDB(ctx context.Context, classInfos []*mode
 }
 
 func (c ClassInfoDAO) AddClassInfoToDB(ctx context.Context, classInfo *model.ClassInfo) error {
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := c.log.WithContext(ctx)
 	if classInfo == nil {
 		return nil
 	}
@@ -62,7 +63,7 @@ func (c ClassInfoDAO) AddClassInfoToDB(ctx context.Context, classInfo *model.Cla
 }
 
 func (c ClassInfoDAO) GetClassInfos(ctx context.Context, stuId, xnm, xqm string) ([]*model.ClassInfo, error) {
-	logh := logger.From(ctx)
+	logh := c.log.WithContext(ctx)
 	db := c.GetDB(ctx).WithContext(ctx)
 	cla := make([]*model.ClassInfo, 0)
 
@@ -88,7 +89,7 @@ func (c ClassInfoDAO) GetClassInfos(ctx context.Context, stuId, xnm, xqm string)
 }
 
 func (c ClassInfoDAO) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm string) ([]*model.ClassInfo, error) {
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := c.log.WithContext(ctx)
 	db := c.GetDB(ctx)
 	cla := make([]*model.ClassInfo, 0)
 	err := db.Table(model.ClassInfoTableName).Select(fmt.Sprintf("%s.*", model.ClassInfoTableName)).

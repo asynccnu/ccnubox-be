@@ -27,20 +27,22 @@ type ClassRepo struct {
 	ClaInfoCache   *cache.ClassInfoCache
 	StuCourseDAO   *dao.StudentCourseDAO
 	StuCourseCache *cache.StudentCourseCache
+	log            logger.Logger
 }
 
-func NewClassRepo(ClaInfoDAO *dao.ClassInfoDAO, ClaInfoCache *cache.ClassInfoCache, StuCourseDAO *dao.StudentCourseDAO, StuCourseCache *cache.StudentCourseCache) biz.ClassRepo {
+func NewClassRepo(ClaInfoDAO *dao.ClassInfoDAO, ClaInfoCache *cache.ClassInfoCache, StuCourseDAO *dao.StudentCourseDAO, StuCourseCache *cache.StudentCourseCache, l logger.Logger) biz.ClassRepo {
 	return &ClassRepo{
 		ClaInfoDAO:     ClaInfoDAO,
 		ClaInfoCache:   ClaInfoCache,
 		StuCourseDAO:   StuCourseDAO,
 		StuCourseCache: StuCourseCache,
+		log:            l,
 	}
 }
 
 // GetClassesFromLocal 从本地获取课程
 func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*bizModel.ClassInfoBO, error) {
-	logh := logger.From(ctx)
+	logh := cla.log.WithContext(ctx)
 	cacheGet := true
 
 	// 1.先检查缓存
@@ -93,7 +95,7 @@ func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semes
 
 // AddClass 添加课程信息
 func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string, classInfo *bizModel.ClassInfoBO, sc *bizModel.StudentCourseBO) error {
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := cla.log.WithContext(ctx)
 
 	// 类型转换
 	classInfoDo, scDo := classInfoBOToDO(classInfo), studentCourseBOToDO(sc)
@@ -138,7 +140,7 @@ func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string,
 
 // SaveClass 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
 func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*bizModel.ClassInfoBO, scs []*bizModel.StudentCourseBO) error {
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := cla.log.WithContext(ctx)
 	if len(classInfos) == 0 || len(scs) == 0 {
 		return errors.New("classInfos or scs is empty")
 	}
@@ -233,7 +235,7 @@ func (cla ClassRepo) fillClassMetaData(ctx context.Context, stuID, year, semeste
 	if len(classInfosBiz) == 0 {
 		return
 	}
-	logh := logger.From(ctx)
+	logh := cla.log.WithContext(ctx)
 
 	// 收集所有需要查询的claIds
 	claIds := make([]string, len(classInfosBiz))

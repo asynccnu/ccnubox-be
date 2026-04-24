@@ -6,6 +6,9 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+// TODO(classlist-v2): keep this compatibility layer until v1 services finish
+// migrating to constructor-injected logger.Logger, then delete this file.
+
 // 全局单例
 var GlobalLogger Logger
 

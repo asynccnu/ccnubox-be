@@ -17,23 +17,23 @@ import (
 type ClassListService struct {
 	clu  *usecase.ClassUsecase
 	conf *conf.ServerConf
+	log  logger.Logger
 }
 
-func NewClasserService(clu *usecase.ClassUsecase, conf *conf.ServerConf) *ClassListService {
+func NewClasserService(clu *usecase.ClassUsecase, conf *conf.ServerConf, l logger.Logger) *ClassListService {
 	return &ClassListService{
 		clu:  clu,
 		conf: conf,
+		log:  l,
 	}
 }
 
 func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest) (*pb.GetClassResponse, error) {
-	hlog := logger.From(ctx)
-	hlog = hlog.With(
+	hlog := s.log.WithContext(ctx).With(
 		logger.String("stu_id", req.GetStuId()),
 		logger.String("year", req.GetYear()),
 		logger.String("semester", req.GetSemester()),
 	)
-	ctx = logger.WithLogger(ctx, hlog)
 
 	defaultYear, defaultSemester := ctool.GetCurrentAcademicYearAndSemesterStr(time.Now())
 

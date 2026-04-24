@@ -25,12 +25,13 @@ var semesterMap = map[string]string{
 }
 
 type Crawler struct {
-	pg ProxyGetter
+	pg  ProxyGetter
+	log logger.Logger
 
 	clientPool sync.Pool
 }
 
-func NewClassCrawler(pg ProxyGetter) *Crawler {
+func NewClassCrawler(pg ProxyGetter, l logger.Logger) *Crawler {
 	newClient := func() interface{} {
 		return &http.Client{
 			Transport: &http.Transport{
@@ -56,7 +57,8 @@ func NewClassCrawler(pg ProxyGetter) *Crawler {
 		clientPool: sync.Pool{
 			New: newClient,
 		},
-		pg: pg,
+		pg:  pg,
+		log: l,
 	}
 
 	return c
@@ -77,7 +79,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	client := c.clientPool.Get().(*http.Client)
 	defer c.clientPool.Put(client)
 
-	logh := logger.From(ctx)
+	logh := c.log.WithContext(ctx)
 	xnm, xqm := year, semester
 
 	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])
@@ -141,7 +143,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	client := c.clientPool.Get().(*http.Client)
 	defer c.clientPool.Put(client)
 
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := c.log.WithContext(ctx)
 	xnm, xqm := year, semester
 
 	formdata := fmt.Sprintf("xnm=%s&xqm=%s&kzlx=ck&xsdm=", xnm, semesterMap[xqm])

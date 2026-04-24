@@ -31,10 +31,11 @@ var parseTimeDescRegexp = regexp.MustCompile(
 type Crawler3 struct {
 	pg          ProxyGetter
 	proxyClient proxy.Client
+	log         logger.Logger
 	clientPool  sync.Pool
 }
 
-func NewClassCrawler3(pg ProxyGetter, pc proxy.Client) *Crawler3 {
+func NewClassCrawler3(pg ProxyGetter, pc proxy.Client, l logger.Logger) *Crawler3 {
 	newClient := func() interface{} {
 		return &http.Client{
 			Transport: &http.Transport{
@@ -62,6 +63,7 @@ func NewClassCrawler3(pg ProxyGetter, pc proxy.Client) *Crawler3 {
 		},
 		pg:          pg,
 		proxyClient: pc,
+		log:         l,
 	}
 
 	return c2
@@ -90,7 +92,7 @@ func (c *Crawler3) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 		),
 	)
 
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := c.log.WithContext(ctx)
 
 	// 构造请求URL
 	base, _ := url.Parse("https://bkzhjw.ccnu.edu.cn/jsxsd/xskb/xskb_list.do")
@@ -375,7 +377,7 @@ func (c *Crawler3) GetClassInfoForGraduateStudent(ctx context.Context, stuID, ye
 	client := c.clientPool.Get().(*http.Client)
 	defer c.clientPool.Put(client)
 
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := c.log.WithContext(ctx)
 	xnm, xqm := year, semester
 
 	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])

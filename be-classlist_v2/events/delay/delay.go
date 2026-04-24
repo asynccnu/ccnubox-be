@@ -16,6 +16,7 @@ type DelayKafka struct {
 	p          *producer.Producer
 	c          *consumer.Consumer
 	delaySend  *consumer.DelaySendHandler
+	log        logger.Logger
 	delayTopic string
 	realTopic  string
 	delayTime  time.Duration
@@ -37,23 +38,24 @@ func NewDelayKafkaConfig() DelayKafkaConfig {
 	}
 }
 
-func NewDelayKafka(client sarama.Client, cf DelayKafkaConfig) (biz.DelayQueue, func(), error) {
+func NewDelayKafka(client sarama.Client, cf DelayKafkaConfig, l logger.Logger) (biz.DelayQueue, func(), error) {
 	dk := &DelayKafka{
 		delayTopic:   cf.DelayTopic,
 		realTopic:    cf.RealTopic,
 		delayTime:    cf.DelayTime,
 		proxyGroupID: topic.DelayTopic,
+		log:          l,
 	}
 
-	p, err := producer.NewProducer(dk.delayTopic, client)
+	p, err := producer.NewProducer(dk.delayTopic, client, l)
 	if err != nil {
 		return nil, nil, err
 	}
-	ds, err := consumer.NewDelaySendHandler(dk.realTopic, client, dk.delayTime)
+	ds, err := consumer.NewDelaySendHandler(dk.realTopic, client, dk.delayTime, l)
 	if err != nil {
 		return nil, nil, err
 	}
-	c := consumer.NewConsumer(client)
+	c := consumer.NewConsumer(client, l)
 
 	dk.p = p
 	dk.c = c
@@ -61,7 +63,7 @@ func NewDelayKafka(client sarama.Client, cf DelayKafkaConfig) (biz.DelayQueue, f
 
 	go func() {
 		if err := dk.consumeDelay(); err != nil {
-			logger.GlobalLogger.Errorf("Error consuming delay topic: %v", err)
+			dk.log.Errorf("Error consuming delay topic: %v", err)
 		}
 	}()
 
@@ -80,7 +82,7 @@ func (d *DelayKafka) Consume(groupID string, f func(ctx context.Context, key []b
 	if groupID == d.proxyGroupID {
 		return consumer.ErrInvalidGroupID
 	}
-	handler := consumer.NewFuncConsumeHandler(f)
+	handler := consumer.NewFuncConsumeHandler(f, d.log)
 	return d.c.Consume([]string{d.realTopic}, groupID, handler)
 }
 

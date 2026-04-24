@@ -11,16 +11,18 @@ import (
 
 type StudentCourseDAO struct {
 	BaseDAO
+	log logger.Logger
 }
 
-func NewStudentCourseDAO(base BaseDAO) *StudentCourseDAO {
+func NewStudentCourseDAO(base BaseDAO, l logger.Logger) *StudentCourseDAO {
 	return &StudentCourseDAO{
 		BaseDAO: base,
+		log:     l,
 	}
 }
 
 func (s *StudentCourseDAO) GetClassMetaData(ctx context.Context, stuID, year, semester string, claIds []string) map[string]model.ClassMetaData {
-	logh := logger.From(ctx)
+	logh := s.log.WithContext(ctx)
 
 	// 初始化返回的 map
 	res := make(map[string]model.ClassMetaData)
@@ -69,7 +71,7 @@ func (s *StudentCourseDAO) GetClassNum(ctx context.Context, stuID, year, semeste
 }
 
 func (s *StudentCourseDAO) SaveStudentAndCourseToDB(ctx context.Context, sc *model.StudentCourse) error {
-	logh := logger.From(ctx)
+	logh := s.log.WithContext(ctx)
 	if sc == nil {
 		logh.Warn("insert student_course 0 data")
 		return nil
@@ -84,7 +86,7 @@ func (s *StudentCourseDAO) SaveStudentAndCourseToDB(ctx context.Context, sc *mod
 }
 
 func (s *StudentCourseDAO) SaveManyStudentAndCourseToDB(ctx context.Context, scs []*model.StudentCourse) error {
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := s.log.WithContext(ctx)
 	if len(scs) == 0 {
 		logh.Warn("insert student_course 0 data")
 		return nil
@@ -100,7 +102,7 @@ func (s *StudentCourseDAO) SaveManyStudentAndCourseToDB(ctx context.Context, scs
 }
 
 func (s *StudentCourseDAO) DeleteStudentAndCourseByTimeFromDB(ctx context.Context, stuID, year, semester string) error {
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := s.log.WithContext(ctx)
 	db := s.GetDB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
 	// 注意:只删除非手动添加的课程，即官方课程
 	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND is_manually_added = false", year, semester, stuID).Delete(&model.StudentCourse{}).Error

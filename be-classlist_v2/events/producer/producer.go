@@ -13,9 +13,10 @@ import (
 type Producer struct {
 	topic string
 	kp    sarama.SyncProducer
+	log   logger.Logger
 }
 
-func NewProducer(topic string, client sarama.Client) (*Producer, error) {
+func NewProducer(topic string, client sarama.Client, l logger.Logger) (*Producer, error) {
 	kp, err := sarama.NewSyncProducerFromClient(client)
 	if err != nil {
 		return nil, err
@@ -23,6 +24,7 @@ func NewProducer(topic string, client sarama.Client) (*Producer, error) {
 	return &Producer{
 		topic: topic,
 		kp:    kp,
+		log:   l,
 	}, nil
 }
 
@@ -33,7 +35,7 @@ func (p *Producer) SendMessage(ctx context.Context, key, value []byte) error {
 	)
 	defer span.End()
 
-	tlog := logger.From(ctx)
+	tlog := p.log.WithContext(ctx)
 
 	msg := &sarama.ProducerMessage{
 		Topic:     p.topic,
@@ -52,8 +54,8 @@ func (p *Producer) SendMessage(ctx context.Context, key, value []byte) error {
 
 func (p *Producer) Close() {
 	if err := p.kp.Close(); err != nil {
-		logger.GlobalLogger.Errorf("Error closing kp: %v", err)
+		p.log.Errorf("Error closing kp: %v", err)
 		return
 	}
-	logger.GlobalLogger.Infof("Producer closed successfully")
+	p.log.Infof("Producer closed successfully")
 }

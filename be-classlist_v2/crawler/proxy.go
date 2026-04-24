@@ -17,6 +17,7 @@ type ProxyGetter interface {
 
 type proxyGetter struct {
 	pc                  proxyv1.ProxyClient
+	log                 logger.Logger
 	lastUpdateProxyTime int64 // 上一次更新代理时间的秒级时间戳
 	updateInterval      int64 // 更新代理间隔(s)
 
@@ -27,9 +28,10 @@ type proxyGetter struct {
 }
 
 // NewProxyGetter 初始化
-func NewProxyGetter(pc proxyv1.ProxyClient) ProxyGetter {
+func NewProxyGetter(pc proxyv1.ProxyClient, l logger.Logger) ProxyGetter {
 	return &proxyGetter{
 		pc:                  pc,
+		log:                 l,
 		lastUpdateProxyTime: -1,
 		updateInterval:      160,
 	}
@@ -84,7 +86,7 @@ func (p *proxyGetter) doFetchProxy(ctx context.Context) (*url.URL, error) {
 	}
 	p.proxyMutex.RUnlock()
 
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := p.log.WithContext(ctx)
 
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()

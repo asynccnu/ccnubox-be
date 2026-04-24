@@ -9,16 +9,18 @@ import (
 )
 
 type BaseDAO struct {
-	db *gorm.DB
+	db  *gorm.DB
+	log logger.Logger
 }
 
-func NewBaseDAO(db *gorm.DB) (BaseDAO, func(), error) {
+func NewBaseDAO(db *gorm.DB, l logger.Logger) (BaseDAO, func(), error) {
 	cleanup := func() {
-		logger.GlobalLogger.Info("closing mysql resources")
+		l.Info("closing mysql resources")
 	}
 
 	return BaseDAO{
-		db: db,
+		db:  db,
+		log: l,
 	}, cleanup, nil
 }
 

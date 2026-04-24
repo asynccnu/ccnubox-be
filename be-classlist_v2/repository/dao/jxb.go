@@ -10,16 +10,18 @@ import (
 
 type JxbDAO struct {
 	BaseDAO
+	log logger.Logger
 }
 
-func NewJxbDAO(base BaseDAO) *JxbDAO {
+func NewJxbDAO(base BaseDAO, l logger.Logger) *JxbDAO {
 	return &JxbDAO{
 		BaseDAO: base,
+		log:     l,
 	}
 }
 
 func (j *JxbDAO) SaveJxb(ctx context.Context, stuID string, jxbID []string) error {
-	logh := logger.From(ctx)
+	logh := j.log.WithContext(ctx)
 
 	if len(jxbID) == 0 {
 		return nil
@@ -43,7 +45,7 @@ func (j *JxbDAO) SaveJxb(ctx context.Context, stuID string, jxbID []string) erro
 }
 
 func (j *JxbDAO) FindStuIdsByJxbId(ctx context.Context, jxbId string) ([]string, error) {
-	logh := logger.GetLoggerFromCtx(ctx).WithContext(ctx)
+	logh := j.log.WithContext(ctx)
 
 	var stuIds []string
 	err := j.GetDB(ctx).Table(model.JxbTableName).WithContext(ctx).

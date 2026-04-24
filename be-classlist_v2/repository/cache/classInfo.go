@@ -19,9 +19,10 @@ type ClassInfoCache struct {
 	BaseCache
 	classExpiration     time.Duration
 	blackListExpiration time.Duration
+	log                 logger.Logger
 }
 
-func NewClassInfoCache(base BaseCache, cf *conf.ServerConf) *ClassInfoCache {
+func NewClassInfoCache(base BaseCache, cf *conf.ServerConf, l logger.Logger) *ClassInfoCache {
 	classExpire := 24 * time.Hour
 	if cf.ClassListConf.ClassExpiration > 0 {
 		classExpire = time.Duration(cf.ClassListConf.ClassExpiration) * time.Millisecond
@@ -34,6 +35,7 @@ func NewClassInfoCache(base BaseCache, cf *conf.ServerConf) *ClassInfoCache {
 		BaseCache:           base,
 		classExpiration:     classExpire,
 		blackListExpiration: blackListExpiration,
+		log:                 l,
 	}
 }
 
@@ -44,7 +46,7 @@ func (c ClassInfoCache) generateClassInfosKey(stuId, xnm, xqm string) string {
 // GetClassInfosFromCache 从缓存中获取课程信息
 func (c ClassInfoCache) GetClassInfosFromCache(ctx context.Context, stuId, xnm, xqm string) ([]*model.ClassInfo, error) {
 	key := c.generateClassInfosKey(stuId, xnm, xqm)
-	logh := logger.From(ctx)
+	logh := c.log.WithContext(ctx)
 
 	classInfos := make([]*model.ClassInfo, 0)
 	val, err := c.rdb.Get(ctx, key).Result()
@@ -74,7 +76,7 @@ func (c ClassInfoCache) AddClaInfosToCache(ctx context.Context, stuId, xnm, xqm 
 		expire time.Duration
 		// 根据是否为空指针，来决定过期时间
 	)
-	logh := logger.From(ctx)
+	logh := c.log.WithContext(ctx)
 	// 检查classInfos是否为空指针
 	if classInfos == nil {
 		val = RedisNull
@@ -100,7 +102,7 @@ func (c ClassInfoCache) AddClaInfosToCache(ctx context.Context, stuId, xnm, xqm 
 // DeleteClassInfoFromCache 删除课程信息缓存
 func (c ClassInfoCache) DeleteClassInfoFromCache(ctx context.Context, stuId, xnm, xqm string) error {
 	key := c.generateClassInfosKey(stuId, xnm, xqm)
-	logh := logger.From(ctx)
+	logh := c.log.WithContext(ctx)
 	if err := c.rdb.Del(ctx, key).Err(); err != nil {
 		logh.Errorf("redis delete key{%v} failed: %v", key, err)
 		return err

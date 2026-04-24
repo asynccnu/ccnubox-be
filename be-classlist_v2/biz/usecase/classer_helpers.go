@@ -9,13 +9,12 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
-	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 )
 
 // 统一本地查询逻辑 GetClassesFromLocal + GetLastRefreshTime
 func (cluc *ClassUsecase) loadLocal(ctx context.Context, stuID, year, semester string) (classes []*model.ClassInfoBO, lastRefresh *time.Time, err error) {
-	logh := logger.From(ctx)
+	logh := cluc.log.WithContext(ctx)
 	// 这里处理的是除了 获取的数据在数据库不存在 以外的错误，获取的数据在数据库不存在时 lastRefresh 返回为 nil
 	lastRefresh, err = cluc.refreshLogRepo.GetLastRefreshTime(ctx, stuID, year, semester, model.Ready, time.Now())
 	if err != nil {
@@ -33,7 +32,7 @@ func (cluc *ClassUsecase) loadLocal(ctx context.Context, stuID, year, semester s
 // 把是否刷新/是否pending/是否最近已刷新 这些判断集中在一起
 // 决定课程数据来源的状态机
 func (cluc *ClassUsecase) decideRefreshAction(ctx context.Context, stuID, year, semester string, refresh bool, localErr error, refreshInterval, waitCrawTime time.Duration) (action model.RefreshAction, refreshLog *model.ClassRefreshLogBO, waitBudget time.Duration) {
-	logh := logger.From(ctx)
+	logh := cluc.log.WithContext(ctx)
 	now := time.Now()
 
 	// 不要求更新且本地获取没有错误 则从本地获取课程
@@ -124,7 +123,7 @@ func (cluc *ClassUsecase) doCrawlWithSingleflight(ctx context.Context, key strin
 
 // 爬取课表并保存
 func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester string, logTime time.Time, localClassInfo []*model.ClassInfoBO, mergeAdd bool) ([]*model.ClassInfoBO, error) {
-	logh := logger.From(ctx)
+	logh := cluc.log.WithContext(ctx)
 
 	metaMap := make(map[string]model.ClassMetaDataBO, len(localClassInfo))
 	for _, lc := range localClassInfo {
@@ -193,7 +192,7 @@ func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester s
 }
 
 func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string, year string, semester string) ([]*model.ClassInfoBO, []*model.StudentCourseBO, int, error) {
-	logh := logger.From(ctx)
+	logh := cluc.log.WithContext(ctx)
 	crawSuccess := true
 	defer func(currentTime time.Time) {
 		logh.Info(fmt.Sprintf("[%v %v %v] getCourseFromCrawler(success:%v) took %v", stuID, year, semester, crawSuccess, time.Since(currentTime)))
@@ -259,7 +258,7 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 
 // 发送重试消息
 func (cluc *ClassUsecase) sendRetryMsg(ctx context.Context, stuID, year, semester string) error {
-	logh := logger.GetLoggerFromCtx(ctx).WithContext(ctx)
+	logh := cluc.log.WithContext(ctx)
 
 	retryInfo := map[string]string{
 		"stu_id":   stuID,

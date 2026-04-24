@@ -30,12 +30,13 @@ var (
 
 // Crawler2 爬取的是对于智慧教务的“培养服务/我的课表/学期课表/个人课表信息”那个HTML
 type Crawler2 struct {
-	pg ProxyGetter
+	pg  ProxyGetter
+	log logger.Logger
 
 	clientPool sync.Pool
 }
 
-func NewClassCrawler2(pg ProxyGetter) *Crawler2 {
+func NewClassCrawler2(pg ProxyGetter, l logger.Logger) *Crawler2 {
 	newClient := func() interface{} {
 		return &http.Client{
 			Transport: &http.Transport{
@@ -61,7 +62,8 @@ func NewClassCrawler2(pg ProxyGetter) *Crawler2 {
 		clientPool: sync.Pool{
 			New: newClient,
 		},
-		pg: pg,
+		pg:  pg,
+		log: l,
 	}
 
 	return c2
@@ -81,7 +83,7 @@ func (c *Crawler2) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	client := c.clientPool.Get().(*http.Client)
 	defer c.clientPool.Put(client)
 
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := c.log.WithContext(ctx)
 	classURL := fmt.Sprintf(
 		"https://bkzhjw.ccnu.edu.cn/jsxsd/framework/mainV_index_loadkb.htmlx?zc=&kbjcmsid=16FD8C2BE55E15F9E0630100007FF6B5&xnxq01id=%s&xswk=false",
 		c.getys(year, semester))
@@ -159,7 +161,7 @@ func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, ye
 	client := c.clientPool.Get().(*http.Client)
 	defer c.clientPool.Put(client)
 
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := c.log.WithContext(ctx)
 	xnm, xqm := year, semester
 
 	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])
@@ -205,7 +207,7 @@ func (c *Crawler2) getys(year, semester string) string {
 }
 
 func (c *Crawler2) extractCourses(ctx context.Context, year, semester string, html []byte) ([]*model.ClassInfoBO, error) {
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := c.log.WithContext(ctx)
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
 	if err != nil {
 		return nil, fmt.Errorf("NewDocumentFromReader err: %v", err)
@@ -281,7 +283,7 @@ func (c *Crawler2) extractAfterColon(s string) string {
 
 func (c *Crawler2) parseWeekDuration(ctx context.Context, s string) string {
 	// 使用字符串操作
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := c.log.WithContext(ctx)
 	start := strings.Index(s, "[")
 	end := strings.Index(s, "周]")
 	if start == -1 || end == -1 || start >= end {
@@ -322,7 +324,7 @@ func (c *Crawler2) parseNumber(s string) []int64 {
 }
 
 func (c *Crawler2) parseDay(ctx context.Context, s string) string {
-	logh := logger.GetLoggerFromCtx(ctx)
+	logh := c.log.WithContext(ctx)
 	if idx := strings.Index(s, "]"); idx != -1 && idx+1 < len(s) {
 		return s[idx+1:]
 	}

@@ -38,7 +38,7 @@ func NewGradeDetailEventConsumerHandler(
 			ConsumeNum:  cfg.ConsumeConf.ConsumeNum,
 		},
 		gradeService: gradeService,
-		stopChan:     make(chan struct{}),
+	 	stopChan:     make(chan struct{}),
 	}
 }
 

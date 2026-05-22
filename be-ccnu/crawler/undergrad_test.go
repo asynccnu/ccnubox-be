@@ -11,58 +11,47 @@ import (
 func Test_GetCookie(t *testing.T) {
 	p := NewPassport(NewCrawlerClient(10 * time.Second)) // 这里测试可以不传
 	ctx := context.Background()
-	_, err := p.LoginPassport(ctx, "", "")
+	_, err := p.LoginPassport(ctx, "xxx", "xxx")
 	if err != nil {
-		return
+		t.Fatal(err)
 	}
 
 	ug := NewUnderGrad(p.Client)
 	err = ug.LoginUnderGradSystem(ctx)
 	if err != nil {
-		return
+		t.Fatal(err)
 	}
 	cookie, err := ug.GetCookieFromUnderGradSystem()
 	if err != nil {
-		return
+		t.Fatal(err)
 	}
-	fmt.Printf("cookie:%s", cookie)
+	fmt.Printf("cookie:%s\n", cookie)
 	t.Log(cookie)
 }
 
 func Test_GetLibraryCookie(t *testing.T) {
-	p := NewPassport(NewCrawlerClient(10*time.Second, "")) // 这里测试可以不传
+	p := NewPassport(NewCrawlerClient(10 * time.Second)) // 这里测试可以不传
 	ctx := context.Background()
-	_, err := p.LoginPassport(ctx, "2024214743", "Xll810929")
+	_, err := p.LoginPassport(ctx, "xxx", "xxx")
 	if err != nil {
-		return
+		t.Fatal(err)
 	}
 
-	l := NewLibrary(p.Client)
+	l := NewLibrary(p.Client, "")
 	err = l.LoginLibrary(ctx)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	//token, err := l.GetSeatAuthTokenFromLibrary(ctx)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//t.Log(token)
-	//
-	//ok, err := l.CheckLibrarySeatToken(ctx, token)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//t.Log(ok)
 
 	discussionToken, err := l.GetDiscussionAuthTokenFromLibrary(ctx)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	t.Log(discussionToken)
 
 	valid, err := l.CheckLibraryDiscussionToken(ctx, discussionToken)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	t.Log(valid)
 }

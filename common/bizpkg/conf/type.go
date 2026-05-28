@@ -31,6 +31,7 @@ type InfraConf struct {
 	Mysql *MysqlConf `yaml:"mysql"`
 	Kafka *KafkaConf `yaml:"kafka"`
 	Grpc  *GrpcConfs `yaml:"grpc"`
+	Otel  *OtelConf  `yaml:"otel"`
 }
 
 type EtcdConf struct {
@@ -64,8 +65,7 @@ type LogConf struct {
 
 // BaseServerConf
 type BaseServerConf struct {
-	Otel *OtelConf `yaml:"otel"`
-	Log  *LogConf  `yaml:"log"`
+	Log *LogConf `yaml:"log"`
 }
 
 // GRPC
@@ -86,7 +86,6 @@ type GrpcConf struct {
 
 // OTel
 type OtelConf struct {
-	ServiceName    string `yaml:"serviceName"`
-	ServiceVersion string `yaml:"serviceVersion"`
-	Endpoint       string `yaml:"endpoint"`
+	ServiceName string `yaml:"serviceName"`
+	Endpoint    string `yaml:"endpoint"`
 }

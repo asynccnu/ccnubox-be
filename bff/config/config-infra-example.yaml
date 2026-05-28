@@ -1,5 +1,9 @@
 env: "prod"
 
+otel:
+  serviceName: "bff"
+  endpoint: "localhost:4318"
+
 mysql:
   dsn: "root:123456@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
 

@@ -33,7 +33,7 @@ func InitApp() *App {
 	userService := service.NewUserService(userDAO, userCache, crypto, ccnuServiceClient, logger, client2)
 	userServiceServer := grpc.NewUserServiceServer(userService)
 	server := ioc.InitGRPCxKratosServer(userServiceServer, client, logger, infraConf)
-	v := ioc.InitOTel(serverConf)
+	v := ioc.InitOTel(infraConf)
 	app := NewApp(server, v)
 	return app
 }

@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"github.com/asynccnu/ccnubox-be/be-content/conf"
+	bgrpc "github.com/asynccnu/ccnubox-be/common/bizpkg/grpc"
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/otel"
 )
 
 // InitOTel 初始化
-func InitOTel(cfg *conf.ServerConf) func(ctx context.Context) error {
-	return otel.InitOTel(cfg.Otel)
+func InitOTel(infraCfg *conf.InfraConf) func(ctx context.Context) error {
+	return otel.InitOTelFromInfra(infraCfg.InfraConf, bgrpc.CONTENT)
 }

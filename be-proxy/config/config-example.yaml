@@ -13,7 +13,3 @@ shenlongConf:
   password: "xxx"
 
 
-otel:
-  serviceName: "be-proxy"
-  serviceVersion: "1.0.0"
-  endpoint: "localhost:4318"

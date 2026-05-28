@@ -55,8 +55,3 @@ basicAuth:
   username: ""
   password: ""
 
-otel:
-  serviceName: "bff"
-  serviceVersion: "1.0.0"
-  endpoint: "localhost:4318"
-

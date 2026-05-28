@@ -35,7 +35,7 @@ func InitApp() *App {
 	feedServiceClient := ioc.InitFeedClient(client, infraConf)
 	elecpriceController := cron.NewElecpriceController(feedServiceClient, elecpriceService, logger, serverConf)
 	v := cron.NewCron(elecpriceController)
-	v2 := ioc.InitOTel(serverConf)
+	v2 := ioc.InitOTel(infraConf)
 	app := NewApp(server, v, v2)
 	return app
 }

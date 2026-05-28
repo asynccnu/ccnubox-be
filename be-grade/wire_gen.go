@@ -45,7 +45,7 @@ func InitApp() App {
 	v := cron.NewCron(gradeController)
 	gradeDetailEventConsumerHandler := events.NewGradeDetailEventConsumerHandler(saramaClient, logger, gradeService, serverConf)
 	v2 := ioc.InitConsumers(gradeDetailEventConsumerHandler)
-	v3 := ioc.InitOTel(serverConf)
+	v3 := ioc.InitOTel(infraConf)
 	app := NewApp(server, v, v2, v3)
 	return app
 }

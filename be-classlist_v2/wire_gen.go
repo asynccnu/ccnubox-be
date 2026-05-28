@@ -60,7 +60,7 @@ func InitApp() (*App, func(), error) {
 	classListService := service.NewClasserService(classUsecase, serverConf, logger)
 	classlistServiceServer := grpc.NewCalendarServiceServer(classListService)
 	server := ioc.InitGRPCxKratosServer(classlistServiceServer, clientv3Client, logger, infraConf)
-	v := ioc.InitOTel(serverConf)
+	v := ioc.InitOTel(infraConf)
 	app := NewApp(server, v)
 	return app, func() {
 		cleanup2()

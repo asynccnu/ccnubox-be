@@ -25,7 +25,7 @@ func InitApp() *App {
 	ccnuService := service.NewCCNUService(logger, client2)
 	ccnuServiceServer := grpc.NewCCNUServiceServer(ccnuService)
 	server := ioc.InitGRPCxKratosServer(ccnuServiceServer, client, logger, infraConf)
-	v := ioc.InitOTel(serverConf)
+	v := ioc.InitOTel(infraConf)
 	app := NewApp(server, v)
 	return app
 }

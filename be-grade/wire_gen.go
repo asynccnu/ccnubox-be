@@ -28,7 +28,7 @@ func InitApp() App {
 	userServiceClient := ioc.InitUserClient(client, infraConf)
 	classerClient := ioc.InitClassListClient(client, infraConf)
 	proxyClient := ioc.InitProxyClient(client, infraConf)
-	client2 := ioc.InitHttpProxyClient(proxyClient)
+	client2 := ioc.InitHttpProxyClient(proxyClient, logger)
 	saramaClient := ioc.InitKafka(infraConf)
 	producerProducer := producer.NewSaramaProducer(saramaClient)
 	gradeService := service.NewGradeService(gradeDAO, logger, userServiceClient, classerClient, client2, producerProducer)
@@ -38,7 +38,7 @@ func InitApp() App {
 	server := ioc.InitGRPCxKratosServer(gradeServiceServer, client, logger, infraConf)
 	gradeDetailEventConsumerHandler := events.NewGradeDetailEventConsumerHandler(saramaClient, logger, gradeService, serverConf)
 	v := ioc.InitConsumers(gradeDetailEventConsumerHandler)
-	v2 := ioc.InitOTel(serverConf)
+	v2 := ioc.InitOTel(infraConf)
 	app := NewApp(server, v, v2)
 	return app
 }

@@ -5,13 +5,20 @@ import (
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/grpc/client"
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 )
 
 func InitProxyClient(etcdClient *etcdv3.Client, cfg *conf.InfraConf) proxyv1.ProxyClient {
+	if cfg.Proxy.IsDirect() {
+		return nil
+	}
 	return client.InitProxy(etcdClient, cfg.Grpc, cfg.Env)
 }
 
-func InitHttpProxyClient(proxyClient proxyv1.ProxyClient) proxy.Client {
-	return proxy.NewHttpProxy(proxyClient)
+func InitHttpProxyClient(proxyClient proxyv1.ProxyClient, cfg *conf.InfraConf, l logger.Logger) proxy.Client {
+	if cfg.Proxy.IsDirect() {
+		return proxy.NewDirectHttpProxy(l)
+	}
+	return proxy.NewHttpProxy(proxyClient, l)
 }

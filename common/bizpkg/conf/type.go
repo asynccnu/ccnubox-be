@@ -31,6 +31,8 @@ type InfraConf struct {
 	Mysql *MysqlConf `yaml:"mysql"`
 	Kafka *KafkaConf `yaml:"kafka"`
 	Grpc  *GrpcConfs `yaml:"grpc"`
+	Otel  *OtelConf  `yaml:"otel"`
+	Proxy *ProxyConf `yaml:"proxy"`
 }
 
 type EtcdConf struct {
@@ -54,6 +56,14 @@ type KafkaConf struct {
 	Password string   `yaml:"password"`
 }
 
+type ProxyConf struct {
+	Mode string `yaml:"mode"`
+}
+
+func (p *ProxyConf) IsDirect() bool {
+	return p != nil && p.Mode == "direct"
+}
+
 type LogConf struct {
 	Path       string `yaml:"path"`
 	MaxSize    int    `yaml:"maxSize"`
@@ -64,8 +74,7 @@ type LogConf struct {
 
 // BaseServerConf
 type BaseServerConf struct {
-	Otel *OtelConf `yaml:"otel"`
-	Log  *LogConf  `yaml:"log"`
+	Log *LogConf `yaml:"log"`
 }
 
 // GRPC
@@ -86,7 +95,6 @@ type GrpcConf struct {
 
 // OTel
 type OtelConf struct {
-	ServiceName    string `yaml:"serviceName"`
-	ServiceVersion string `yaml:"serviceVersion"`
-	Endpoint       string `yaml:"endpoint"`
+	ServiceName string `yaml:"serviceName"`
+	Endpoint    string `yaml:"endpoint"`
 }

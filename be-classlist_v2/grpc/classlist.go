@@ -1,6 +1,9 @@
 package grpc
 
 import (
+	"context"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/service"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	"google.golang.org/grpc"
@@ -20,4 +23,34 @@ func NewCalendarServiceServer(svc *service.ClassListService) *ClasslistServiceSe
 // 注册为grpc服务
 func (c *ClasslistServiceServer) Register(server grpc.ServiceRegistrar) {
 	classlistv1.RegisterClasserServer(server, c)
+}
+
+// GetClass 获取课表
+// grpc 层只负责协议适配：pb 解包 → 调 service → BO 装箱回 pb
+func (c *ClasslistServiceServer) GetClass(ctx context.Context, req *classlistv1.GetClassRequest) (*classlistv1.GetClassResponse, error) {
+	classInfos, lastTime, err := c.svc.GetClass(ctx, req.GetStuId(), req.GetYear(), req.GetSemester(), req.GetRefresh())
+	if err != nil {
+		return &classlistv1.GetClassResponse{}, err
+	}
+
+	// BO → pb 装箱
+	pbClasses := make([]*classlistv1.Class, 0, len(classInfos))
+	for _, ci := range classInfos {
+		pbClasses = append(pbClasses, &classlistv1.Class{
+			Info: classInfoBOToPb(ci),
+		})
+	}
+
+	// lastTime 为 nil 时使用哨兵值（pb int64 无法表达 nil）
+	var lastTimeStamp int64
+	if lastTime != nil {
+		lastTimeStamp = toShanghaiTimeStamp(*lastTime)
+	} else {
+		lastTimeStamp = time.Date(1949, 10, 1, 0, 0, 0, 0, time.Local).Unix()
+	}
+
+	return &classlistv1.GetClassResponse{
+		Classes:  pbClasses,
+		LastTime: lastTimeStamp,
+	}, nil
 }

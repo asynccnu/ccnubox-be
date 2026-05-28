@@ -11,9 +11,8 @@ import (
 
 func InitOTel(cfg *conf.OtelConfig) func(ctx context.Context) error {
 	otelCfg := &com_cfg.OtelConf{
-		ServiceName:    cfg.GetServiceName(),
-		ServiceVersion: cfg.GetServiceVersion(),
-		Endpoint:       cfg.GetEndpoint(),
+		ServiceName: cfg.GetServiceName(),
+		Endpoint:    cfg.GetEndpoint(),
 	}
 
 	return otel.InitOTel(otelCfg)

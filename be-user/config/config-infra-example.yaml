@@ -1,5 +1,11 @@
 env: "prod"
 
+otel:
+  endpoint: "localhost:4318"
+
+proxy:
+  mode: "remote" # remote 使用 be-proxy，direct 本地开发直连
+
 mysql:
   dsn: "root:123456@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
 

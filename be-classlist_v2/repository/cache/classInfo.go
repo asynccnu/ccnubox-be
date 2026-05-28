@@ -9,6 +9,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
@@ -46,24 +47,20 @@ func (c ClassInfoCache) generateClassInfosKey(stuId, xnm, xqm string) string {
 // GetClassInfosFromCache 从缓存中获取课程信息
 func (c ClassInfoCache) GetClassInfosFromCache(ctx context.Context, stuId, xnm, xqm string) ([]*model.ClassInfo, error) {
 	key := c.generateClassInfosKey(stuId, xnm, xqm)
-	logh := c.log.WithContext(ctx)
 
 	classInfos := make([]*model.ClassInfo, 0)
 	val, err := c.rdb.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return nil, fmt.Errorf("error getting classlist info from cache: %w", err)
+			return nil, errorx.Errorf("cache.classInfo.GetClassInfosFromCache: key=%s miss: %w", key, err)
 		}
-		logh.Errorf("Redis:get key(%s) failed: %v", key, err)
-		return nil, err
+		return nil, errorx.Errorf("cache.classInfo.GetClassInfosFromCache: key=%s: %w", key, err)
 	}
 	if val == RedisNull {
 		return nil, nil
 	}
-	err = json.Unmarshal([]byte(val), &classInfos)
-	if err != nil {
-		logh.Errorf("json Unmarshal (%v) failed: %v", val, err)
-		return nil, err
+	if err := json.Unmarshal([]byte(val), &classInfos); err != nil {
+		return nil, errorx.Errorf("cache.classInfo.GetClassInfosFromCache: unmarshal key=%s, val=%q: %w", key, val, err)
 	}
 	return classInfos, nil
 }
@@ -74,27 +71,22 @@ func (c ClassInfoCache) AddClaInfosToCache(ctx context.Context, stuId, xnm, xqm 
 	var (
 		val    string
 		expire time.Duration
-		// 根据是否为空指针，来决定过期时间
 	)
-	logh := c.log.WithContext(ctx)
-	// 检查classInfos是否为空指针
+	// 根据是否为空指针，来决定过期时间
 	if classInfos == nil {
 		val = RedisNull
 		expire = c.blackListExpiration
 	} else {
 		valByte, err := json.Marshal(classInfos)
 		if err != nil {
-			logh.Errorf("json Marshal (%v) err: %v", classInfos, err)
-			return err
+			return errorx.Errorf("cache.classInfo.AddClaInfosToCache: marshal key=%s, count=%d: %w", key, len(classInfos), err)
 		}
 		val = string(valByte)
 		expire = c.classExpiration
 	}
 
-	err := c.rdb.Set(ctx, key, val, expire).Err()
-	if err != nil {
-		logh.Errorf("Redis:Set k(%s)-v(%s) failed: %v", key, val, err)
-		return err
+	if err := c.rdb.Set(ctx, key, val, expire).Err(); err != nil {
+		return errorx.Errorf("cache.classInfo.AddClaInfosToCache: set key=%s: %w", key, err)
 	}
 	return nil
 }
@@ -102,10 +94,8 @@ func (c ClassInfoCache) AddClaInfosToCache(ctx context.Context, stuId, xnm, xqm 
 // DeleteClassInfoFromCache 删除课程信息缓存
 func (c ClassInfoCache) DeleteClassInfoFromCache(ctx context.Context, stuId, xnm, xqm string) error {
 	key := c.generateClassInfosKey(stuId, xnm, xqm)
-	logh := c.log.WithContext(ctx)
 	if err := c.rdb.Del(ctx, key).Err(); err != nil {
-		logh.Errorf("redis delete key{%v} failed: %v", key, err)
-		return err
+		return errorx.Errorf("cache.classInfo.DeleteClassInfoFromCache: key=%s: %w", key, err)
 	}
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	b_conf "github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -20,6 +21,6 @@ func InitProxyClient(r *etcd.Registry, cf *conf.Registry, logger log.Logger, env
 	return proxyv1.NewProxyClient(conn), nil
 }
 
-func InitHttpProxyClient(proxyClient proxyv1.ProxyClient) proxy.Client {
-	return proxy.NewHttpProxy(proxyClient)
+func InitHttpProxyClient(proxyClient proxyv1.ProxyClient, l logger.Logger) proxy.Client {
+	return proxy.NewHttpProxy(proxyClient, l)
 }

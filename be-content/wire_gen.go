@@ -43,7 +43,7 @@ func InitApp() *App {
 	qiniuClient := ioc.InitQiniu(serverConf)
 	calendarController := cron.NewCalendarController(calendarService, qiniuClient, logger, serverConf)
 	v := cron.NewCron(calendarController)
-	v2 := ioc.InitOTel(infraConf)
+	v2 := ioc.InitOTel(serverConf)
 	app := NewApp(server, v, v2)
 	return app
 }

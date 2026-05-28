@@ -1,5 +1,3 @@
-serviceName: "bff"
-
 http:
   addr: ":8080"
 
@@ -51,6 +49,11 @@ prometheus:
 basicAuth:
   username: ""
   password: ""
+
+otel:
+  serviceName: "bff"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"
 
 tiered:
   high: 15  #单位是分钟

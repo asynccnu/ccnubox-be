@@ -55,7 +55,7 @@ func InitApp() *App {
 	v := ioc.InitHealthClient(client, infraConf)
 	healthHandler := ioc.InitHealthHandler(v)
 	engine := ioc.InitGinServer(loggerMiddleware, loginMiddleware, corsMiddleware, basicAuthMiddleware, prometheusMiddleware, otelMiddleware, classRoomHandler, tubeHandler, userHandler, feedHandler, elecPriceHandler, gradeHandler, classHandler, contentHandler, metricsHandler, libraryHandler, swagHandler, healthHandler)
-	v2 := ioc.InitOTel(serverConf, infraConf)
+	v2 := ioc.InitOTel(serverConf)
 	refreshHandler := cron.NewTieredHandler(classerClient, gradeServiceClient, feedServiceClient, contentServiceClient, counterServiceClient, logger)
 	redsync := ioc.InitRedisLock(cmdable)
 	tieredScheduler := ioc.InitScheduler(serverConf, refreshHandler, counterServiceClient, logger, redsync)

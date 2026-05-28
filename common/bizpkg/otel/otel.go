@@ -5,19 +5,10 @@ import (
 	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
-	bgrpc "github.com/asynccnu/ccnubox-be/common/bizpkg/grpc"
 	"github.com/asynccnu/ccnubox-be/common/pkg/otelx"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 )
-
-func InitOTelFromInfra(infraCfg *conf.InfraConf, serviceKey string) func(ctx context.Context) error {
-	cfg := &conf.OtelConf{
-		ServiceName: bgrpc.GetNamePrefix(infraCfg.Env, (*infraCfg.Grpc)[serviceKey].Name),
-		Endpoint:    infraCfg.Otel.Endpoint,
-	}
-	return InitOTel(cfg)
-}
 
 // InitOTel 初始化
 func InitOTel(cfg *conf.OtelConf) func(ctx context.Context) error {
@@ -27,6 +18,7 @@ func InitOTel(cfg *conf.OtelConf) func(ctx context.Context) error {
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceName(cfg.ServiceName),
+			semconv.ServiceVersion(cfg.ServiceVersion),
 		),
 	)
 	if err != nil {

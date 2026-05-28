@@ -39,10 +39,6 @@ func NewProxyGetter(pc proxyv1.ProxyClient, l logger.Logger) ProxyGetter {
 
 // GetProxy 获取代理
 func (p *proxyGetter) GetProxy(ctx context.Context) *url.URL {
-	if p.pc == nil {
-		return nil
-	}
-
 	currentTime := time.Now().Unix()
 
 	// 如果缓存有效，直接返回

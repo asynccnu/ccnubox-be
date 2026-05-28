@@ -16,7 +16,6 @@ type InfraConf struct {
 // ServerConf 服务配置
 type ServerConf struct {
 	conf.BaseServerConf `mapstructure:",squash"`
-	ServiceName         string          `yaml:"serviceName"`
 	ElecpriceController *ElecPriceConf  `yaml:"elecpriceController"`
 	Http                *HttpConf       `yaml:"http"`
 	Administrators      []string        `yaml:"administrators"`

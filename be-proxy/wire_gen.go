@@ -23,7 +23,7 @@ func InitApp() *App {
 	infraConf := conf.InitInfraConfig()
 	client := ioc.InitEtcdClient(infraConf)
 	server := ioc.InitGRPCxKratosServer(proxyServiceServer, client, logger, infraConf)
-	v := ioc.InitOTel(infraConf)
+	v := ioc.InitOTel(serverConf)
 	app := NewApp(server, v)
 	return app
 }

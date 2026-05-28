@@ -26,7 +26,7 @@ func InitApp() *App {
 	counterServiceServer := grpc.NewCounterServiceServer(counterService)
 	client := ioc.InitEtcdClient(infraConf)
 	server := ioc.InitGRPCxKratosServer(counterServiceServer, client, logger, infraConf)
-	v := ioc.InitOTel(infraConf)
+	v := ioc.InitOTel(serverConf)
 	app := NewApp(server, v)
 	return app
 }

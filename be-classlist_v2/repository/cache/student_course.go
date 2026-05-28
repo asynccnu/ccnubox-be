@@ -8,7 +8,6 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
-	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 )
 
 type StudentCourseCache struct {
@@ -42,7 +41,7 @@ func (s StudentCourseCache) GetSelectClassMetaData(ctx context.Context, stuId, x
 	// 使用HMGet批量获取指定的claIds
 	vals, err := s.rdb.HMGet(ctx, key, claIds...).Result()
 	if err != nil {
-		return nil, errorx.Errorf("cache.studentCourse.GetSelectClassMetaData: hmget key=%s, claIds=%v: %w", key, claIds, err)
+		return nil, err
 	}
 
 	metaDataMap := make(map[string]*model.ClassMetaData)
@@ -73,7 +72,7 @@ func (s StudentCourseCache) SetAllClassMetaData(ctx context.Context, stuId, xnm,
 	for claId, metaData := range metaDataMap {
 		data, err := json.Marshal(metaData)
 		if err != nil {
-			return errorx.Errorf("cache.studentCourse.SetAllClassMetaData: marshal key=%s, claId=%s: %w", key, claId, err)
+			return err
 		}
 		fields[claId] = data
 	}
@@ -83,21 +82,15 @@ func (s StudentCourseCache) SetAllClassMetaData(ctx context.Context, stuId, xnm,
 	}
 
 	if err := s.rdb.HSet(ctx, key, fields).Err(); err != nil {
-		return errorx.Errorf("cache.studentCourse.SetAllClassMetaData: hset key=%s: %w", key, err)
+		return err
 	}
 
 	// 设置过期时间
-	if err := s.rdb.Expire(ctx, key, s.metaDataExpire).Err(); err != nil {
-		return errorx.Errorf("cache.studentCourse.SetAllClassMetaData: expire key=%s: %w", key, err)
-	}
-	return nil
+	return s.rdb.Expire(ctx, key, s.metaDataExpire).Err()
 }
 
 // DeleteAllClassMetaData 删除学生某学期所有课程元数据缓存
 func (s StudentCourseCache) DeleteAllClassMetaData(ctx context.Context, stuId, xnm, xqm string) error {
 	key := s.generateClassMetaDataKey(stuId, xnm, xqm)
-	if err := s.rdb.Del(ctx, key).Err(); err != nil {
-		return errorx.Errorf("cache.studentCourse.DeleteAllClassMetaData: key=%s: %w", key, err)
-	}
-	return nil
+	return s.rdb.Del(ctx, key).Err()
 }

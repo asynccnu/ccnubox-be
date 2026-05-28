@@ -14,10 +14,7 @@ const Infra = "CCNUBOX_INFRA_NACOS_DSN"
 // InitInfraConfig 用来快速初始化infra的配置
 func InitInfraConfig(paths ...string) *InfraConf {
 	if len(paths) == 0 {
-		paths = []string{
-			"./config/config-infra.yaml",
-			"./config-infra.yaml",
-		}
+		paths = []string{"./config-infra.yaml"}
 	}
 	return InitConfig[InfraConf](Infra, paths...)
 }

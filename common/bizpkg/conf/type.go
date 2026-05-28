@@ -32,6 +32,7 @@ type InfraConf struct {
 	Kafka *KafkaConf `yaml:"kafka"`
 	Grpc  *GrpcConfs `yaml:"grpc"`
 	Otel  *OtelConf  `yaml:"otel"`
+	Proxy *ProxyConf `yaml:"proxy"`
 }
 
 type EtcdConf struct {
@@ -53,6 +54,14 @@ type KafkaConf struct {
 	Addrs    []string `yaml:"addrs"`
 	Username string   `yaml:"username"`
 	Password string   `yaml:"password"`
+}
+
+type ProxyConf struct {
+	Mode string `yaml:"mode"`
+}
+
+func (p *ProxyConf) IsDirect() bool {
+	return p != nil && p.Mode == "direct"
 }
 
 type LogConf struct {

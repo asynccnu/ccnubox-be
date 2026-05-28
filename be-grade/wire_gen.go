@@ -29,7 +29,7 @@ func InitApp() App {
 	userServiceClient := ioc.InitUserClient(client, infraConf)
 	classerClient := ioc.InitClassListClient(client, infraConf)
 	proxyClient := ioc.InitProxyClient(client, infraConf)
-	client2 := ioc.InitHttpProxyClient(proxyClient)
+	client2 := ioc.InitHttpProxyClient(proxyClient, logger)
 	saramaClient := ioc.InitKafka(infraConf)
 	producerProducer := producer.NewSaramaProducer(saramaClient)
 	gradeService := service.NewGradeService(gradeDAO, logger, userServiceClient, classerClient, client2, producerProducer)

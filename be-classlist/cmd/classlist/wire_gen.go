@@ -50,7 +50,7 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 		return nil, nil, err
 	}
 	proxyGetter := crawler.NewProxyGetter(proxyClient)
-	client2 := client.InitHttpProxyClient(proxyClient)
+	client2 := client.InitHttpProxyClient(proxyClient, logger)
 	crawler3 := crawler.NewClassCrawler3(proxyGetter, client2)
 	jxbDBRepo := data.NewJxbDBRepo(dataData)
 	userSvc, err := client.NewUserSvc(etcdRegistry, confRegistry, env)

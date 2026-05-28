@@ -47,7 +47,7 @@ func InitApp() (*App, func(), error) {
 	ccnuService := client.NewCCNUService(userServiceClient)
 	proxyClient := ioc.InitProxyClient(clientv3Client, infraConf)
 	proxyGetter := crawler.NewProxyGetter(proxyClient, logger)
-	client2 := ioc.InitHttpProxyClient(proxyClient)
+	client2 := ioc.InitHttpProxyClient(proxyClient, infraConf, logger)
 	crawler3 := crawler.NewClassCrawler3(proxyGetter, client2, logger)
 	saramaClient := ioc.InitKafka(infraConf)
 	delayKafkaConfig := delay.NewDelayKafkaConfig()

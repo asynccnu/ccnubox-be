@@ -21,7 +21,7 @@ func InitApp() *App {
 	infraConf := conf.InitInfraConfig()
 	client := ioc.InitEtcdClient(infraConf)
 	proxyClient := ioc.InitProxyClient(client, infraConf)
-	client2 := ioc.InitHttpProxyClient(proxyClient)
+	client2 := ioc.InitHttpProxyClient(proxyClient, infraConf, logger)
 	ccnuService := service.NewCCNUService(logger, client2)
 	ccnuServiceServer := grpc.NewCCNUServiceServer(ccnuService)
 	server := ioc.InitGRPCxKratosServer(ccnuServiceServer, client, logger, infraConf)

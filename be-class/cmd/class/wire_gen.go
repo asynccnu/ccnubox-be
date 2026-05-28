@@ -59,7 +59,7 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 		cleanup()
 		return nil, nil, err
 	}
-	client2 := client.InitHttpProxyClient(proxyClient)
+	client2 := client.InitHttpProxyClient(proxyClient, logger)
 	cultivateStrategy := biz.NewCultivateStrategyBiz(userSvc, cache, cultivateStrategyData, client2)
 	classServiceService := service.NewClassServiceService(classServiceUserCase, cultivateStrategy)
 	freeClassroomData := data.NewFreeClassroomData(elasticClient)

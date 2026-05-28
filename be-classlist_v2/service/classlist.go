@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/usecase"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/tool"
+	pb "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1" // 此处改成了api中的,方便其他服务调用.
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	ctool "github.com/asynccnu/ccnubox-be/common/tool"
 )
@@ -27,31 +28,55 @@ func NewClasserService(clu *usecase.ClassUsecase, conf *conf.ServerConf, l logge
 	}
 }
 
-// GetClass 获取课表
-// 业务默认：year/semester 为空时使用当前学年学期
-// 业务校验：CheckSY 校验学年学期格式
-func (s *ClassListService) GetClass(ctx context.Context, stuID, year, semester string, refresh bool) ([]*model.ClassInfoBO, *time.Time, error) {
+func (s *ClassListService) GetClass(ctx context.Context, req *pb.GetClassRequest) (*pb.GetClassResponse, error) {
 	hlog := s.log.WithContext(ctx).With(
-		logger.String("stu_id", stuID),
-		logger.String("year", year),
-		logger.String("semester", semester),
+		logger.String("stu_id", req.GetStuId()),
+		logger.String("year", req.GetYear()),
+		logger.String("semester", req.GetSemester()),
 	)
 
-	// 默认值填充
 	defaultYear, defaultSemester := ctool.GetCurrentAcademicYearAndSemesterStr(time.Now())
-	if year == "" {
-		year = defaultYear
-		hlog.Warnf("year 参数为空，使用默认值 %s", year)
-	}
-	if semester == "" {
-		semester = defaultSemester
-		hlog.Warnf("semester 参数为空，使用默认值 %s", semester)
+
+	if req.GetYear() == "" {
+		req.Year = defaultYear
+		hlog.Warn(fmt.Sprintf("获取 Year 参数为空，使用默认值 %s", req.Year))
 	}
 
-	// 参数校验
-	if !tool.CheckSY(semester, year) {
-		return nil, nil, errcode.ErrParam
+	if req.GetSemester() == "" {
+		req.Semester = defaultSemester
+		hlog.Warn(fmt.Sprintf("获取 Semester 参数为空，使用默认值 %s", req.Semester))
 	}
 
-	return s.clu.GetClasses(ctx, stuID, year, semester, refresh)
+	if !tool.CheckSY(req.Semester, req.Year) {
+		return &pb.GetClassResponse{}, errcode.ErrParam
+	}
+
+	classInfos, lastTime, err := s.clu.GetClasses(ctx, req.StuId, req.Year, req.Semester, req.Refresh)
+	if err != nil {
+		return &pb.GetClassResponse{}, err
+	}
+
+	pbClassInfos := make([]*pb.Class, 0, len(classInfos))
+	for _, classInfo := range classInfos {
+		pbClassInfo := classInfoBOToPb(classInfo)
+		pbClassInfos = append(pbClassInfos, &pb.Class{
+			Info: pbClassInfo,
+		})
+	}
+
+	var lastTimeStamp int64
+
+	if lastTime != nil {
+		lastTimeStamp = convertToShanghaiTimeStamp(*lastTime)
+	} else {
+		lastTimeStamp = time.Date(1949, 10, 1, 0, 0, 0, 0, time.Local).Unix()
+	}
+	return &pb.GetClassResponse{
+		Classes:  pbClassInfos,
+		LastTime: lastTimeStamp,
+	}, nil
+}
+
+func convertToShanghaiTimeStamp(t time.Time) int64 {
+	return tool.ToShanghaiTime(t).Unix()
 }

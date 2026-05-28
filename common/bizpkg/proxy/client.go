@@ -1,12 +1,9 @@
 package proxy
 
 import (
+	"context"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
-
-	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type HttpClient struct {
@@ -42,43 +39,22 @@ func WithTransport(tr *HttpTransport) Option {
 
 func WithProxyTransport(isBackup bool, options ...RoundTripperOption) Option {
 	return func(client *HttpClient) {
-		tr := globalProxy.NewProxyTransport()
-		if globalProxy.direct {
-			tr.Use(options...)
-			client.Transport = tr
+		proxyAddrs := globalProxy.GetProxyAddr(context.Background(), 2)
+		var proxyAddr string
+		if isBackup {
+			proxyAddr = proxyAddrs[1]
+		} else {
+			proxyAddr = proxyAddrs[0]
+		}
+
+		//适配没有代理的情况，否则会报错
+		if proxyAddr == "" {
 			return
 		}
 
-		tr.Proxy = func(req *http.Request) (*url.URL, error) {
-			ctx := req.Context()
-			proxyAddrs := globalProxy.GetProxyAddr(ctx, 2)
-			var proxyAddr string
-			if isBackup {
-				proxyAddr = proxyAddrs[1]
-			} else {
-				proxyAddr = proxyAddrs[0]
-			}
-
-			proxyAddr = strings.TrimSpace(proxyAddr)
-			if proxyAddr == "" {
-				if l := globalProxy.logger(ctx); l != nil {
-					l.Warn("代理地址为空，fallback 到直连")
-				}
-				return nil, nil
-			}
-
-			proxyURL, err := url.Parse(proxyAddr)
-			if err != nil {
-				if l := globalProxy.logger(ctx); l != nil {
-					l.Warn("代理地址解析失败，fallback 到直连",
-						logger.String("proxy_addr", proxyAddr),
-						logger.Error(err),
-					)
-				}
-				return nil, nil
-			}
-			return proxyURL, nil
-		}
+		tr := globalProxy.NewProxyTransport(
+			WithProxy(proxyAddr),
+		)
 
 		tr.Use(options...)
 		client.Transport = tr

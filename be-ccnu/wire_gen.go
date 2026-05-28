@@ -22,11 +22,11 @@ func InitApp() *App {
 	client := ioc.InitEtcdClient(infraConf)
 	proxyClient := ioc.InitProxyClient(client, infraConf)
 	string2 := ioc.ProvideLibrarySecret(serverConf)
-	client2 := ioc.InitHttpProxyClient(proxyClient, infraConf, logger)
-	ccnuService := service.NewCCNUService(logger, client2, string2)
+	client2 := ioc.InitHttpProxyClient(proxyClient)
+	ccnuService := service.NewCCNUService(logger, client2,string2)
 	ccnuServiceServer := grpc.NewCCNUServiceServer(ccnuService)
 	server := ioc.InitGRPCxKratosServer(ccnuServiceServer, client, logger, infraConf)
-	v := ioc.InitOTel(infraConf)
+	v := ioc.InitOTel(serverConf)
 	app := NewApp(server, v)
 	return app
 }

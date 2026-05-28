@@ -29,11 +29,11 @@ func InitApp() *App {
 	serverConf := conf.InitServerConf()
 	logger := ioc.InitLogger(serverConf)
 	proxyClient := ioc.InitProxyClient(client, infraConf)
-	client2 := ioc.InitHttpProxyClient(proxyClient, infraConf, logger)
+	client2 := ioc.InitHttpProxyClient(proxyClient)
 	userService := service.NewUserService(userDAO, userCache, crypto, ccnuServiceClient, logger, client2)
 	userServiceServer := grpc.NewUserServiceServer(userService)
 	server := ioc.InitGRPCxKratosServer(userServiceServer, client, logger, infraConf)
-	v := ioc.InitOTel(infraConf)
+	v := ioc.InitOTel(serverConf)
 	app := NewApp(server, v)
 	return app
 }

@@ -5,7 +5,6 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
-	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"gorm.io/gorm/clause"
 )
@@ -22,11 +21,13 @@ func NewStudentCourseDAO(base BaseDAO, l logger.Logger) *StudentCourseDAO {
 	}
 }
 
-func (s *StudentCourseDAO) GetClassMetaData(ctx context.Context, stuID, year, semester string, claIds []string) (map[string]model.ClassMetaData, error) {
+func (s *StudentCourseDAO) GetClassMetaData(ctx context.Context, stuID, year, semester string, claIds []string) map[string]model.ClassMetaData {
+	logh := s.log.WithContext(ctx)
+
 	// 初始化返回的 map
 	res := make(map[string]model.ClassMetaData)
 	if len(claIds) == 0 {
-		return res, nil
+		return res
 	}
 
 	// 定义一个内部结构体用于接收扫描结果，因为需要 cla_id 作为 map 的 key
@@ -45,8 +46,8 @@ func (s *StudentCourseDAO) GetClassMetaData(ctx context.Context, stuID, year, se
 		Where("stu_id = ? AND year = ? AND semester = ? AND cla_id IN (?)", stuID, year, semester, claIds).
 		Find(&results).Error
 	if err != nil {
-		return res, errorx.Errorf("dao.studentCourse.GetClassMetaData: stuID=%s, year=%s, semester=%s, claIds=%v: %w",
-			stuID, year, semester, claIds, err)
+		logh.Errorf("GetClassMetaData 数据库查询失败: %v, stuID: %s", err, stuID)
+		return res
 	}
 
 	// 将切片结果转换为 map
@@ -57,7 +58,7 @@ func (s *StudentCourseDAO) GetClassMetaData(ctx context.Context, stuID, year, se
 		}
 	}
 
-	return res, nil
+	return res
 }
 
 func (s *StudentCourseDAO) GetClassNum(ctx context.Context, stuID, year, semester string, isManuallyAdded bool) (num int64, err error) {

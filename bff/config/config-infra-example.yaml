@@ -1,7 +1,6 @@
 env: "prod"
 
 otel:
-  serviceName: "bff"
   endpoint: "localhost:4318"
 
 mysql:

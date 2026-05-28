@@ -10,8 +10,8 @@ import (
 )
 
 // InitOTel 初始化
-func InitOTel(infraCfg *conf.InfraConf) func(ctx context.Context) error {
-	serviceName := infraCfg.Otel.ServiceName
+func InitOTel(serverCfg *conf.ServerConf, infraCfg *conf.InfraConf) func(ctx context.Context) error {
+	serviceName := serverCfg.ServiceName
 	if serviceName == "" {
 		serviceName = "bff"
 	}

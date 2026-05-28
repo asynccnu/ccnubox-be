@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"gorm.io/gorm/clause"
 )
@@ -21,8 +22,6 @@ func NewJxbDAO(base BaseDAO, l logger.Logger) *JxbDAO {
 }
 
 func (j *JxbDAO) SaveJxb(ctx context.Context, stuID string, jxbID []string) error {
-	logh := j.log.WithContext(ctx)
-
 	if len(jxbID) == 0 {
 		return nil
 	}
@@ -36,23 +35,18 @@ func (j *JxbDAO) SaveJxb(ctx context.Context, stuID string, jxbID []string) erro
 		})
 	}
 
-	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&jxb).Error
-	if err != nil {
-		logh.Errorf("Mysql:create %v in %s failed: %v", jxb, model.JxbTableName, err)
-		return err
+	if err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&jxb).Error; err != nil {
+		return errorx.Errorf("dao.jxb.SaveJxb: stuID=%s, jxbIDs=%v, table=%s: %w", stuID, jxbID, model.JxbTableName, err)
 	}
 	return nil
 }
 
 func (j *JxbDAO) FindStuIdsByJxbId(ctx context.Context, jxbId string) ([]string, error) {
-	logh := j.log.WithContext(ctx)
-
 	var stuIds []string
 	err := j.GetDB(ctx).Table(model.JxbTableName).WithContext(ctx).
 		Select("stu_id").Where("jxb_id = ?", jxbId).Find(&stuIds).Error
 	if err != nil {
-		logh.Errorf("Mysql:find stu_id in %s where (jxb_id = %s) failed: %v", model.JxbTableName, jxbId, err)
-		return nil, err
+		return nil, errorx.Errorf("dao.jxb.FindStuIdsByJxbId: jxbId=%s, table=%s: %w", jxbId, model.JxbTableName, err)
 	}
 	return stuIds, nil
 }

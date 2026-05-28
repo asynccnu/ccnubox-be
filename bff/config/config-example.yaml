@@ -1,3 +1,5 @@
+serviceName: "bff"
+
 http:
   addr: ":8080"
 
@@ -54,4 +56,3 @@ prometheus:
 basicAuth:
   username: ""
   password: ""
-

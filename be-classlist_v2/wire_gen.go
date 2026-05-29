@@ -47,7 +47,7 @@ func InitApp() (*App, func(), error) {
 	ccnuService := client.NewCCNUService(userServiceClient)
 	proxyClient := ioc.InitProxyClient(clientv3Client, infraConf)
 	proxyGetter := crawler.NewProxyGetter(proxyClient, logger)
-	client2 := ioc.InitHttpProxyClient(proxyClient)
+	client2 := ioc.InitHttpProxyClient(proxyClient, infraConf, logger)
 	crawler3 := crawler.NewClassCrawler3(proxyGetter, client2, logger)
 	saramaClient := ioc.InitKafka(infraConf)
 	delayKafkaConfig := delay.NewDelayKafkaConfig()
@@ -60,7 +60,7 @@ func InitApp() (*App, func(), error) {
 	classListService := service.NewClasserService(classUsecase, serverConf, logger)
 	classlistServiceServer := grpc.NewCalendarServiceServer(classListService)
 	server := ioc.InitGRPCxKratosServer(classlistServiceServer, clientv3Client, logger, infraConf)
-	v := ioc.InitOTel(serverConf)
+	v := ioc.InitOTel(infraConf)
 	app := NewApp(server, v)
 	return app, func() {
 		cleanup2()

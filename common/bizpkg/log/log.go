@@ -1,6 +1,8 @@
 package log
 
 import (
+	"os"
+
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
@@ -25,7 +27,10 @@ func InitLogger(cfg *conf.LogConf, skip int) logger.Logger {
 	// 创建zap日志核心
 	core := zapcore.NewCore(
 		zapcore.NewJSONEncoder(zapx.ProdEncoderConfig()),
-		zapcore.AddSync(lumberjackLogger),
+		zapcore.NewMultiWriteSyncer(
+			zapcore.AddSync(lumberjackLogger),
+			zapcore.AddSync(os.Stdout),
+		),
 		zapcore.DebugLevel, // 设置日志级别
 	)
 
@@ -34,6 +39,5 @@ func InitLogger(cfg *conf.LogConf, skip int) logger.Logger {
 
 	// 这里默认会用带链路的日志
 	res = logger.NewTraceLogger(res, logger.TraceLevel(logger.ERROR))
-	logger.InitGlobalLogger(res)
 	return res
 }

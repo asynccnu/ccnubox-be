@@ -46,7 +46,7 @@ func InitApp() *App {
 	v := cron.NewCron(muxiController, holidayController)
 	feedEventConsumerHandler := events.NewFeedEventConsumerHandler(client, logger, feedEventService, pushService, serverConf)
 	v2 := ioc.InitConsumers(feedEventConsumerHandler)
-	v3 := ioc.InitOTel(serverConf)
+	v3 := ioc.InitOTel(infraConf)
 	app := NewApp(server, v, v2, v3)
 	return app
 }

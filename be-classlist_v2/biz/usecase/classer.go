@@ -66,7 +66,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 	// 1. 本地查询阶段
 	localClasses, localLastRefreshTime, localErr := cluc.loadLocal(ctx, stuID, year, semester)
 	if localErr != nil {
-		logh.Errorf("error load local:%v", localErr)
+		logh.Errorf("load local failed: %+v", localErr)
 	}
 
 	// 希望首次爬虫时间更长
@@ -91,7 +91,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 			// 刷新的课表保存到本地了，从本地拿就好了
 			newLocalClassInfo, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
 			if err != nil {
-				logh.Errorf("fetch class from local error=%v", err)
+				logh.Errorf("fetch class from local failed: %+v", err)
 				return localClasses, localLastRefreshTime, nil
 			}
 			return newLocalClassInfo, &readyLog.UpdatedAt, nil
@@ -115,7 +115,7 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 		return res, &currentTime, nil
 	}
 	if err != nil {
-		logh.Errorf("crawl error err=%v", err)
+		logh.Errorf("crawl failed: %+v", err)
 	}
 
 	return localClasses, localLastRefreshTime, nil

@@ -9,6 +9,8 @@ import (
 	b_conf "github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/log"
+
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger/adapter"
 )
 
 func InitProxyClient(r *etcd.Registry, cf *conf.Registry, logger log.Logger, env *b_conf.Env) (proxyv1.ProxyClient, error) {
@@ -20,6 +22,6 @@ func InitProxyClient(r *etcd.Registry, cf *conf.Registry, logger log.Logger, env
 	return proxyv1.NewProxyClient(conn), nil
 }
 
-func InitHttpProxyClient(proxyClient proxyv1.ProxyClient) proxy.Client {
-	return proxy.NewHttpProxy(proxyClient)
+func InitHttpProxyClient(proxyClient proxyv1.ProxyClient, logger log.Logger) proxy.Client {
+	return proxy.NewHttpProxy(proxyClient, adapter.NewLoggerFromKratos(logger))
 }

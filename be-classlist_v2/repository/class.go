@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/dao"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
@@ -22,6 +22,9 @@ const MaxNum = 20
 
 // 一表一个 DAO/cache 结构体
 // 一业务一个 repo 结构体 （面对上一层的业务）
+//
+// 注：该 repo 保留 log 字段，**仅用于** Cache Aside Pattern 下 best-effort 缓存失效
+// 的业务决策观测日志（retry warn）。纯错误路径一律用 errorx 包装上抛。
 type ClassRepo struct {
 	ClaInfoDAO     *dao.ClassInfoDAO
 	ClaInfoCache   *cache.ClassInfoCache
@@ -42,40 +45,26 @@ func NewClassRepo(ClaInfoDAO *dao.ClassInfoDAO, ClaInfoCache *cache.ClassInfoCac
 
 // GetClassesFromLocal 从本地获取课程
 func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*bizModel.ClassInfoBO, error) {
-	logh := cla.log.WithContext(ctx)
-	cacheGet := true
-
-	// 1.先检查缓存
+	// 1. 先检查缓存
 	classInfos, err := cla.ClaInfoCache.GetClassInfosFromCache(ctx, stuID, year, semester)
-	// 如果err!=nil(err==redis.Nil)说明该ID第一次进入（redis中没有这个KEY），且未经过数据库，则允许其查数据库，所以要设置cacheGet=false
-	// 如果err==nil说明其至少经过数据库了，redis中有这个KEY,但可能值为NULL，如果不为NULL，就说明缓存命中了,直接返回没有问题
-	// 如果为NULL，就说明数据库中没有的数据，其依然在请求，会影响数据库（缓存穿透），我们依然直接返回
-	// 这时我们就需要直接返回redis中的null，即直接返回nil,而不经过数据库
-	// 该ID第一次查询，允许其查数据库
-	if err != nil {
-		cacheGet = false
-		logh.Warnf("Get Class [%v %v %v] From Cache failed: %v", stuID, year, semester, err)
-	}
-	if !cacheGet {
-		// 缓存未命中，从数据库中获取数据
+	cacheHit := err == nil
+	// 缓存未命中走 DB 并回写缓存
+	// 缓存值可能是 RedisNull（防穿透），此时 classInfos 为 nil、err 为 nil，直接走到最后返回 ErrClassNotFound
+	if !cacheHit {
 		classInfos, err = cla.ClaInfoDAO.GetClassInfos(ctx, stuID, year, semester)
 		if err != nil {
-			logh.Errorf("Get Class [%v %v %v] From DB failed: %v", stuID, year, semester, err)
-			return nil, errcode.ErrClassFound
+			return nil, errorx.Errorf("repo.class.GetClassesFromLocal: stuID=%s, year=%s, semester=%s, dbErr=%s: %w",
+				stuID, year, semester, err.Error(), errcode.ErrClassFound)
 		}
 
-		// 在从数据库读取数据之后，同步写入缓存。
-		// 如果 classInfos 是 nil 或空数据，Redis 仍然会写入一个 NULL 值，用来防止缓存穿透。
-		if err := cla.ClaInfoCache.AddClaInfosToCache(ctx, stuID, year, semester, classInfos); err != nil {
-			logh.Warnf("Failed to populate cache for [%v %v %v]: %v", stuID, year, semester, err)
-			// 继续执行 —— 即使写入缓存失败，也要返回数据。
+		// 在从数据库读取数据之后，同步写入缓存
+		// 如果 classInfos 是 nil 或空数据，Redis 仍然会写入一个 NULL 值，用来防止缓存穿透
+		if cacheErr := cla.ClaInfoCache.AddClaInfosToCache(ctx, stuID, year, semester, classInfos); cacheErr != nil {
+			// best-effort：缓存回写失败不影响返回
+			cla.log.WithContext(ctx).Warnf("repo.class.GetClassesFromLocal: populate cache failed: %+v", cacheErr)
 		}
 	}
-	// 检查classInfos是否为空
-	// 如果不为空，直接返回就好
-	// 如果为空，则说明没有该数据，需要去查询
-	// 如果不添加此条件，即便你redis中有值为NULL的话，也不会返回错误，就导致不会去爬取更新，所以需要该条件
-	// 添加该条件，能够让查询数据库的操作效率更高，同时也保证了数据的获取
+
 	if len(classInfos) == 0 {
 		return nil, errcode.ErrClassNotFound
 	}
@@ -88,61 +77,47 @@ func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semes
 		classInfosBiz = append(classInfosBiz, classInfoDOToBO(classInfo, nil))
 	}
 
-	// 设置metaData
+	// 设置 metaData
 	cla.fillClassMetaData(ctx, stuID, year, semester, classInfosBiz)
 	return classInfosBiz, nil
 }
 
 // AddClass 添加课程信息
 func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string, classInfo *bizModel.ClassInfoBO, sc *bizModel.StudentCourseBO) error {
-	logh := cla.log.WithContext(ctx)
-
-	// 类型转换
 	classInfoDo, scDo := classInfoBOToDO(classInfo), studentCourseBOToDO(sc)
 
 	// Cache Aside Pattern: Update database first
 	errTx := transaction.InTx(cla.ClaInfoDAO.GetDB(ctx), ctx, func(ctx context.Context) error {
 		if err := cla.ClaInfoDAO.AddClassInfoToDB(ctx, classInfoDo); err != nil {
-			return errcode.ErrClassUpdate
+			return err
 		}
-		// 处理 StudentCourse
 		if err := cla.StuCourseDAO.SaveStudentAndCourseToDB(ctx, scDo); err != nil {
-			return errcode.ErrClassUpdate
+			return err
 		}
 		cnt, err := cla.StuCourseDAO.GetClassNum(ctx, stuID, year, semester, sc.IsManuallyAdded)
-		if err == nil && cnt > MaxNum {
-			return fmt.Errorf("classlist num limit")
+		if err != nil {
+			return err
+		}
+		if cnt > MaxNum {
+			return errorx.Errorf("repo.class.AddClass: classlist num limit, count=%d, max=%d: %w",
+				cnt, MaxNum, errcode.ErrClassUpdate)
 		}
 		return nil
 	})
 	if errTx != nil {
-		logh.Errorf("Add Class [%v,%v,%v,%+v,%+v] failed:%v", stuID, year, semester, classInfo, sc, errTx)
-		return errTx
+		return errorx.Errorf("repo.class.AddClass: stuID=%s, year=%s, semester=%s: %w",
+			stuID, year, semester, errTx)
 	}
 
-	// Invalidate cache synchronously after successful transaction with retry
-	err := retry.Do(
-		func() error {
-			return cla.ClaInfoCache.DeleteClassInfoFromCache(ctx, stuID, year, semester)
-		},
-		retry.Attempts(5),
-		retry.OnRetry(func(n uint, err error) {
-			logh.Warnf("Retry %d: Failed to invalidate cache for [%v %v %v]: %v", n+1, stuID, year, semester, err)
-		}),
-	)
-	if err != nil {
-		logh.Warnf("Failed to invalidate cache after retries for [%v %v %v]: %v", stuID, year, semester, err)
-		// Don't return error - database write succeeded
-	}
-
+	// 缓存失效（best-effort，DB 已成功）
+	cla.invalidateClassInfoCacheBestEffort(ctx, stuID, year, semester)
 	return nil
 }
 
 // SaveClass 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
 func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*bizModel.ClassInfoBO, scs []*bizModel.StudentCourseBO) error {
-	logh := cla.log.WithContext(ctx)
 	if len(classInfos) == 0 || len(scs) == 0 {
-		return errors.New("classInfos or scs is empty")
+		return errorx.Errorf("repo.class.SaveClass: classInfos or scs is empty: %w", errors.New("empty input"))
 	}
 
 	classInfosdo := make([]*repoModel.ClassInfo, 0, len(classInfos))
@@ -157,58 +132,25 @@ func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string
 
 	// Cache Aside Pattern: Update database first
 	err := transaction.InTx(cla.ClaInfoDAO.GetDB(ctx), ctx, func(ctx context.Context) error {
-		// 删除对应的所有关系[只删除官方课程]
-		err := cla.StuCourseDAO.DeleteStudentAndCourseByTimeFromDB(ctx, stuID, year, semester)
-		if err != nil {
+		if err := cla.StuCourseDAO.DeleteStudentAndCourseByTimeFromDB(ctx, stuID, year, semester); err != nil {
 			return err
 		}
-		// 保存课程信息到db
-		err = cla.ClaInfoDAO.SaveClassInfosToDB(ctx, classInfosdo)
-		if err != nil {
+		if err := cla.ClaInfoDAO.SaveClassInfosToDB(ctx, classInfosdo); err != nil {
 			return err
 		}
-		// 保存新的关系
-		err = cla.StuCourseDAO.SaveManyStudentAndCourseToDB(ctx, scsdo)
-		if err != nil {
+		if err := cla.StuCourseDAO.SaveManyStudentAndCourseToDB(ctx, scsdo); err != nil {
 			return err
 		}
 		return nil
 	})
 	if err != nil {
-		logh.Errorf("Save class [%+v] and scs [%v] failed:%v", classInfos, scs, err)
-		return err
+		return errorx.Errorf("repo.class.SaveClass: stuID=%s, year=%s, semester=%s, classCount=%d: %w",
+			stuID, year, semester, len(classInfos), err)
 	}
 
-	// Invalidate cache synchronously after successful transaction with retry
-	err = retry.Do(
-		func() error {
-			return cla.ClaInfoCache.DeleteClassInfoFromCache(ctx, stuID, year, semester)
-		},
-		retry.Attempts(5),
-		retry.OnRetry(func(n uint, err error) {
-			logh.Warnf("Retry %d: Failed to invalidate cache for [%v %v %v]: %v", n+1, stuID, year, semester, err)
-		}),
-	)
-	if err != nil {
-		logh.Warnf("Failed to invalidate cache after retries for [%v %v %v]: %v", stuID, year, semester, err)
-		// Don't return error - database write succeeded
-	}
-
-	// 删除metaData的缓存
-	err = retry.Do(
-		func() error {
-			return cla.StuCourseCache.DeleteAllClassMetaData(ctx, stuID, year, semester)
-		},
-		retry.Attempts(5),
-		retry.OnRetry(func(n uint, err error) {
-			logh.Warnf("Retry %d: Failed to invalidate cache for [%v %v %v]: %v", n+1, stuID, year, semester, err)
-		}),
-	)
-	if err != nil {
-		logh.Warnf("Failed to invalidate cache after retries for [%v %v %v]: %v", stuID, year, semester, err)
-		// Don't return error - database write succeeded
-	}
-
+	// 缓存失效（best-effort，DB 已成功）
+	cla.invalidateClassInfoCacheBestEffort(ctx, stuID, year, semester)
+	cla.invalidateMetaDataCacheBestEffort(ctx, stuID, year, semester)
 	return nil
 }
 
@@ -216,7 +158,8 @@ func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string
 func (cla ClassRepo) GetAddedClasses(ctx context.Context, stuID, year, semester string) ([]*bizModel.ClassInfoBO, error) {
 	classInfos, err := cla.ClaInfoDAO.GetAddedClassInfos(ctx, stuID, year, semester)
 	if err != nil {
-		return nil, err
+		return nil, errorx.Errorf("repo.class.GetAddedClasses: stuID=%s, year=%s, semester=%s: %w",
+			stuID, year, semester, err)
 	}
 
 	classInfosBiz := make([]*bizModel.ClassInfoBO, 0, len(classInfos))
@@ -224,7 +167,6 @@ func (cla ClassRepo) GetAddedClasses(ctx context.Context, stuID, year, semester 
 		if classInfo == nil {
 			continue
 		}
-
 		classInfosBiz = append(classInfosBiz, classInfoDOToBO(classInfo, nil))
 	}
 	cla.fillClassMetaData(ctx, stuID, year, semester, classInfosBiz)
@@ -235,22 +177,23 @@ func (cla ClassRepo) fillClassMetaData(ctx context.Context, stuID, year, semeste
 	if len(classInfosBiz) == 0 {
 		return
 	}
-	logh := cla.log.WithContext(ctx)
 
-	// 收集所有需要查询的claIds
 	claIds := make([]string, len(classInfosBiz))
 	for i, classInfo := range classInfosBiz {
 		claIds[i] = classInfo.ID
 	}
 
-	// 尝试从缓存获取指定课程的元数据
 	metaDataMap, err := cla.StuCourseCache.GetSelectClassMetaData(ctx, stuID, year, semester, claIds)
 	if err != nil || len(metaDataMap) < len(classInfosBiz) {
-		logh.Warnf("Get ClassMetaData from cache failed: %v", err)
-		// 缓存未命中，从数据库获取
-		metaDataMapDO := cla.StuCourseDAO.GetClassMetaData(ctx, stuID, year, semester, claIds)
+		// 缓存未命中或不完整，从数据库补齐
+		metaDataMapDO, dbErr := cla.StuCourseDAO.GetClassMetaData(ctx, stuID, year, semester, claIds)
+		if dbErr != nil {
+			// DB 失败：不污染缓存，MetaData 保持零值；repo 层就地 warn 作为业务降级观测点
+			cla.log.WithContext(ctx).Warnf("repo.class.fillClassMetaData: stuID=%s year=%s semester=%s, GetClassMetaData failed, skip cache refill: %+v",
+				stuID, year, semester, dbErr)
+			return
+		}
 
-		// 填充到classInfosBiz
 		for i := range classInfosBiz {
 			if classInfosBiz[i] == nil {
 				continue
@@ -260,14 +203,14 @@ func (cla ClassRepo) fillClassMetaData(ctx context.Context, stuID, year, semeste
 			}
 		}
 
-		// 将数据库查询结果写入缓存
+		// 回写缓存（best-effort）
 		cacheMetaDataMap := make(map[string]*repoModel.ClassMetaData)
 		for claId, metaDataDO := range metaDataMapDO {
 			cacheMetaDataMap[claId] = &metaDataDO
 		}
 		if len(cacheMetaDataMap) > 0 {
-			if err := cla.StuCourseCache.SetAllClassMetaData(ctx, stuID, year, semester, cacheMetaDataMap); err != nil {
-				logh.Warnf("Failed to cache ClassMetaData: %v", err)
+			if cacheErr := cla.StuCourseCache.SetAllClassMetaData(ctx, stuID, year, semester, cacheMetaDataMap); cacheErr != nil {
+				cla.log.WithContext(ctx).Warnf("repo.class.fillClassMetaData: populate cache failed: %+v", cacheErr)
 			}
 		}
 		return
@@ -278,5 +221,33 @@ func (cla ClassRepo) fillClassMetaData(ctx context.Context, stuID, year, semeste
 		if metaData, ok := metaDataMap[classInfosBiz[i].ID]; ok {
 			classInfosBiz[i].MetaData = metaDataDOToBO(*metaData)
 		}
+	}
+}
+
+// invalidateClassInfoCacheBestEffort 缓存失效：DB 已成功，这里失败不返回错误，仅记录 warn
+func (cla ClassRepo) invalidateClassInfoCacheBestEffort(ctx context.Context, stuID, year, semester string) {
+	err := retry.Do(
+		func() error {
+			return cla.ClaInfoCache.DeleteClassInfoFromCache(ctx, stuID, year, semester)
+		},
+		retry.Attempts(5),
+	)
+	if err != nil {
+		cla.log.WithContext(ctx).Warnf("repo.class.invalidateClassInfoCache: stuID=%s year=%s semester=%s: %+v",
+			stuID, year, semester, err)
+	}
+}
+
+// invalidateMetaDataCacheBestEffort 同上，针对 metaData 缓存
+func (cla ClassRepo) invalidateMetaDataCacheBestEffort(ctx context.Context, stuID, year, semester string) {
+	err := retry.Do(
+		func() error {
+			return cla.StuCourseCache.DeleteAllClassMetaData(ctx, stuID, year, semester)
+		},
+		retry.Attempts(5),
+	)
+	if err != nil {
+		cla.log.WithContext(ctx).Warnf("repo.class.invalidateMetaDataCache: stuID=%s year=%s semester=%s: %+v",
+			stuID, year, semester, err)
 	}
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"gorm.io/gorm/clause"
 )
@@ -20,9 +21,7 @@ func NewClassInfoDAO(base BaseDAO, l logger.Logger) *ClassInfoDAO {
 }
 
 func (c ClassInfoDAO) SaveClassInfosToDB(ctx context.Context, classInfos []*model.ClassInfo) error {
-	logh := c.log.WithContext(ctx)
 	if len(classInfos) == 0 {
-		logh.Warnf("no classinfo to save!")
 		return nil
 	}
 
@@ -37,33 +36,29 @@ func (c ClassInfoDAO) SaveClassInfosToDB(ctx context.Context, classInfos []*mode
 		}).
 		Create(&classInfos).Error
 	if err != nil {
-		return fmt.Errorf("Mysql:create %v in %s failed: %v", classInfos, model.ClassInfoTableName, err)
+		return errorx.Errorf("dao.classInfo.SaveClassInfosToDB: count=%d, table=%s: %w", len(classInfos), model.ClassInfoTableName, err)
 	}
 	return nil
 }
 
 func (c ClassInfoDAO) AddClassInfoToDB(ctx context.Context, classInfo *model.ClassInfo) error {
-	logh := c.log.WithContext(ctx)
 	if classInfo == nil {
 		return nil
 	}
 	if classInfo.Day < 1 || classInfo.Day > 7 {
-		logh.Errorf("Mysql:create %v in %s failed: %v", classInfo, model.ClassInfoTableName, fmt.Errorf("date must between 1 and 7"))
-		return errcode.ErrClassUpdate
+		return errorx.Errorf("dao.classInfo.AddClassInfoToDB: invalid day=%d, classInfo=%+v: %w", classInfo.Day, classInfo, errcode.ErrClassUpdate)
 	}
 
 	// 约定将事务 db 从 ctx 中取出来
 	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
 	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&classInfo).Error
 	if err != nil {
-		logh.Errorf("Mysql:create %v in %s failed: %v", classInfo, model.ClassInfoTableName, err)
-		return errcode.ErrClassUpdate
+		return errorx.Errorf("dao.classInfo.AddClassInfoToDB: classInfo=%+v, dbErr=%s: %w", classInfo, err.Error(), errcode.ErrClassUpdate)
 	}
 	return nil
 }
 
 func (c ClassInfoDAO) GetClassInfos(ctx context.Context, stuId, xnm, xqm string) ([]*model.ClassInfo, error) {
-	logh := c.log.WithContext(ctx)
 	db := c.GetDB(ctx).WithContext(ctx)
 	cla := make([]*model.ClassInfo, 0)
 
@@ -77,19 +72,15 @@ func (c ClassInfoDAO) GetClassInfos(ctx context.Context, stuId, xnm, xqm string)
 		).
 		Find(&cla).Error
 	if err != nil {
-		logh.Errorf("Mysql:find classinfos where (stu_id = %s,year = %s,semester = %s) failed:%v",
-			stuId, xnm, xqm, err)
-		return nil, err
+		return nil, errorx.Errorf("dao.classInfo.GetClassInfos: stuID=%s, year=%s, semester=%s: %w", stuId, xnm, xqm, err)
 	}
 	if len(cla) == 0 {
-		logh.Warnf("Mysql:no classlist has been found,stuID:%s,year:%s,semester:%s failed: %v", stuId, xnm, xqm, err)
 		return nil, nil
 	}
 	return cla, nil
 }
 
 func (c ClassInfoDAO) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm string) ([]*model.ClassInfo, error) {
-	logh := c.log.WithContext(ctx)
 	db := c.GetDB(ctx)
 	cla := make([]*model.ClassInfo, 0)
 	err := db.Table(model.ClassInfoTableName).Select(fmt.Sprintf("%s.*", model.ClassInfoTableName)).
@@ -101,8 +92,7 @@ func (c ClassInfoDAO) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm st
 			stuID, xnm, xqm, true,
 		).Find(&cla).Error
 	if err != nil {
-		logh.Errorf("mysql failed to find added class_infos[%v,%v,%v]: %v", stuID, xnm, xqm, err)
-		return nil, err
+		return nil, errorx.Errorf("dao.classInfo.GetAddedClassInfos: stuID=%s, year=%s, semester=%s: %w", stuID, xnm, xqm, err)
 	}
 	return cla, nil
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
-	"github.com/go-kratos/kratos/v2/log"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/robfig/cron/v3"
 	"net/http"
 	"net/http/cookiejar"
@@ -32,8 +32,17 @@ type HttpProxy struct {
 	Addr       string
 	AddrBackup string
 
-	mu sync.RWMutex
-	p  proxyv1.ProxyClient
+	direct bool
+	mu     sync.RWMutex
+	p      proxyv1.ProxyClient
+	l      logger.Logger
+}
+
+func (s *HttpProxy) logger(ctx context.Context) logger.Logger {
+	if s.l != nil {
+		return s.l.WithContext(ctx)
+	}
+	return nil
 }
 
 func (s *HttpProxy) getProxyAddrFromShenLong(_ context.Context, cnt int) ([]string, error) {
@@ -54,21 +63,33 @@ func (s *HttpProxy) getProxyAddrFromShenLong(_ context.Context, cnt int) ([]stri
 }
 
 func (s *HttpProxy) GetProxyAddr(ctx context.Context, cnt int) []string {
+	if s.direct {
+		return make([]string, cnt)
+	}
+
 	addrs, err := s.getProxyAddrFromShenLong(ctx, cnt)
 	if err != nil {
-		log.Warn("获取神龙代理地址失败: %v", err)
+		if l := s.logger(ctx); l != nil {
+			l.Warn("获取缓存代理地址失败", logger.Error(err))
+		}
 		return addrs
 	}
 	return addrs
 }
 
 func (s *HttpProxy) update() {
+	if s.direct {
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	res, err := s.p.GetProxyAddr(ctx, &proxyv1.GetProxyAddrRequest{})
 	if err != nil {
-		log.Warn("从神龙获取代理地址失败: %v", err)
+		if l := s.logger(ctx); l != nil {
+			l.Warn("从 be-proxy 获取代理地址失败", logger.Error(err))
+		}
 		s.mu.Lock()
 		s.Addr, s.AddrBackup = "", ""
 		s.mu.Unlock()
@@ -80,14 +101,22 @@ func (s *HttpProxy) update() {
 	s.mu.Unlock()
 }
 
-func NewHttpProxy(p proxyv1.ProxyClient) Client {
-	globalProxy = &HttpProxy{p: p}
+func NewHttpProxy(p proxyv1.ProxyClient, l logger.Logger) Client {
+	globalProxy = &HttpProxy{p: p, l: l}
 
 	globalProxy.update()
 	c := cron.New()
 	_, _ = c.AddFunc("@every 15s", globalProxy.update)
 	c.Start()
 
+	return globalProxy
+}
+
+func NewDirectHttpProxy(l logger.Logger) Client {
+	globalProxy = &HttpProxy{direct: true, l: l}
+	if l != nil {
+		l.Warn("proxy direct 模式已启用，请求将绕过 be-proxy")
+	}
 	return globalProxy
 }
 

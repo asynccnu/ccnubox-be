@@ -18,12 +18,12 @@ func (cluc *ClassUsecase) loadLocal(ctx context.Context, stuID, year, semester s
 	// 这里处理的是除了 获取的数据在数据库不存在 以外的错误，获取的数据在数据库不存在时 lastRefresh 返回为 nil
 	lastRefresh, err = cluc.refreshLogRepo.GetLastRefreshTime(ctx, stuID, year, semester, model.Ready, time.Now())
 	if err != nil {
-		logh.Errorf("GetLastRefreshTime error:%v", err)
+		logh.Errorf("GetLastRefreshTime failed: %+v", err)
 	}
 
 	classes, err = cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
 	if err != nil {
-		logh.Errorf("GetClassesFromLocal error:%v", err)
+		logh.Errorf("GetClassesFromLocal failed: %+v", err)
 	}
 
 	return classes, lastRefresh, err
@@ -43,7 +43,7 @@ func (cluc *ClassUsecase) decideRefreshAction(ctx context.Context, stuID, year, 
 	// 获取最新的课程刷新 Log，若没有 Log 说明没保存过课程，则执行爬虫
 	latestLog, err := cluc.refreshLogRepo.SearchNewestRefreshLog(ctx, stuID, year, semester, now)
 	if err != nil || latestLog == nil {
-		logh.Infof("first refresh or fetch log error=%v", err)
+		logh.Infof("first refresh or fetch log: %+v", err)
 		return model.ActionStartCrawl, nil, 0
 	}
 
@@ -207,7 +207,7 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 		cookie, err := cluc.ccnu.GetCookie(ctx, stuID)
 		if err != nil {
 			cookieSuccess = false
-			logh.Error(fmt.Sprintf("Error getting cookie(stu_id:%v) from other service: %v", stuID, err))
+			logh.Errorf("get cookie from ccnu failed stu_id=%s: %+v", stuID, err)
 		}
 		return cookie, err
 	}()
@@ -241,7 +241,7 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 
 		classinfos, scs, sum, err := stu.GetClass(ctx, stuID, year, semester, cookie, cluc.crawler)
 		if err != nil {
-			logh.Error(fmt.Sprintf("craw classlist(stu_id:%v year:%v semester:%v cookie:%v) failed: %v", stuID, year, semester, cookie, err))
+			logh.Errorf("craw classlist stu_id=%s year=%s semester=%s failed: %+v", stuID, year, semester, err)
 			return nil, nil, -1, err
 		}
 		if len(classinfos) == 0 || len(scs) == 0 {
@@ -272,7 +272,7 @@ func (cluc *ClassUsecase) sendRetryMsg(ctx context.Context, stuID, year, semeste
 	}
 	err = cluc.delayQue.Send(ctx, []byte(key), val)
 	if err != nil {
-		logh.Error(fmt.Sprintf("Error sending retry message: %v", err))
+		logh.Errorf("delayQue.Send retry msg failed: %+v", err)
 	}
 	return err
 }

@@ -82,7 +82,7 @@ func NewManager(log logger.Logger, opts ...Option) *Manager {
 	}
 
 	cfg := config{
-		ctx: context.Background(),
+		ctx:         context.Background(),
 		cronOptions: []cron.Option{},
 	}
 
@@ -205,7 +205,6 @@ func (m *Manager) wrapJob(id, spec string, job TaskFunc) func() {
 		if ctx == nil {
 			ctx = context.Background()
 		}
-		ctx = logger.WithLogger(ctx, taskLogger)
 
 		start := time.Now()
 		taskLogger.Debug("cron task started")

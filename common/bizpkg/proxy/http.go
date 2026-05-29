@@ -114,6 +114,9 @@ func NewHttpProxy(p proxyv1.ProxyClient, l logger.Logger) Client {
 
 func NewDirectHttpProxy(l logger.Logger) Client {
 	globalProxy = &HttpProxy{direct: true, l: l}
+	if l != nil {
+		l.Warn("proxy direct 模式已启用，请求将绕过 be-proxy")
+	}
 	return globalProxy
 }
 

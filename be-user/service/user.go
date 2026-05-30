@@ -50,7 +50,8 @@ type userService struct {
 }
 
 func NewUserService(dao dao.UserDAO, cache cache.UserCache, cryptoClient *crypto.Crypto, ccnu ccnuv1.CCNUServiceClient, l logger.Logger,
-	pClient proxy.Client) UserService {
+	pClient proxy.Client,
+) UserService {
 	return &userService{dao: dao, cache: cache, cryptoClient: cryptoClient, ccnu: ccnu, l: l, pClient: pClient}
 }
 
@@ -64,7 +65,7 @@ func (s *userService) Save(ctx context.Context, studentId string, password strin
 	user, err := s.dao.FindByStudentId(ctx, studentId)
 	switch {
 	case err == nil:
-		//如果需要更新则更新,否则直接返回
+		// 如果需要更新则更新,否则直接返回
 		if user.Password != encryptedPwd {
 			user.Password = encryptedPwd
 		} else {
@@ -128,6 +129,8 @@ func (s *userService) GetCookie(ctx context.Context, studentId string, tpe ...st
 	// 使用 Singleflight 防止热点学号瞬间击穿缓存请求教务
 	result, err, _ := s.sfGroup.Do(studentId, func() (interface{}, error) {
 		cookie, err := s.cache.GetCookie(ctx, studentId)
+		fmt.Println("缓存获取到cookie?", cookie, err)
+
 		// 缓存命中且校验有效，直接返回
 		if err == nil && s.checkCookie(ctx, cookie) {
 			return cookie, nil
@@ -170,6 +173,7 @@ func (s *userService) getNewCookie(ctx context.Context, studentId string, tpe ..
 	if err != nil {
 		return "", DECRYPT_ERROR(errorx.Errorf("sid: %s, err: %w", studentId, err))
 	}
+	fmt.Println("decryptedPwd", decryptPassword)
 
 	resp, err := tool.Retry(func() (*ccnuv1.GetXKCookieResponse, error) {
 		req := &ccnuv1.GetXKCookieRequest{StudentId: user.StudentId, Password: decryptPassword}
@@ -178,7 +182,6 @@ func (s *userService) getNewCookie(ctx context.Context, studentId string, tpe ..
 		}
 		return s.ccnu.GetXKCookie(ctx, req)
 	})
-
 	if err != nil {
 		return "", errorx.Errorf("rpc GetXKCookie failed, sid: %s, err: %w", studentId, err)
 	}
@@ -224,7 +227,6 @@ func (s *userService) GetLibraryToken(ctx context.Context, studentId string, ser
 		}(studentId, newToken)
 
 		return newToken, nil
-
 	})
 
 	if err != nil {

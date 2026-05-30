@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/rsa"
+	"fmt"
 	"net/http"
 
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
@@ -66,7 +67,7 @@ func (c *ccnuService) LoginCCNU(ctx context.Context, studentId string, password 
 }
 
 func (c *ccnuService) loginGrad(ctx context.Context, pg *crawler.PostGraduate, studentId string, password string) (bool, error) {
-	var isInCorrectPASSWORD = false
+	isInCorrectPASSWORD := false
 
 	pubkey, err := tool.Retry(func() (*rsa.PublicKey, error) {
 		return pg.FetchPublicKey(ctx)
@@ -115,6 +116,8 @@ func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password st
 		// 如果登录没有报错但返回 flag 为 false，通常也是账号密码问题
 		return "", Invalid_SidOrPwd_ERROR(errorx.New("getUnderGradCookie login failed"))
 	}
+
+	fmt.Println("client:", client)
 
 	ug.Client = client
 	_, err = tool.Retry(func() (string, error) {

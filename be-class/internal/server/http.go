@@ -5,17 +5,20 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-class/internal/metrics"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/pkg/encoder"
 	"github.com/asynccnu/ccnubox-be/be-class/internal/service"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/http"
 )
 
 // NewHTTPServer 创建 HTTP 服务器
-func NewHTTPServer(c *conf.Server, svc *service.SelectionUploader) *http.Server {
+func NewHTTPServer(c *conf.Server, svc *service.SelectionUploader, logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
 			metrics.QPSMiddleware(),
 			metrics.DelayMiddleware(),
+			logging.Server(logger),
 		),
 		http.ResponseEncoder(encoder.RespEncoder), // Notice: 将响应格式化
 	}

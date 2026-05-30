@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"os"
 
 	classLog "github.com/asynccnu/ccnubox-be/be-class/internal/log"
@@ -87,7 +88,13 @@ func main() {
 		}
 	}
 
-	logger := log.With(log.NewStdLogger(os.Stdout),
+	if err := os.MkdirAll(bc.Data.Database.LogPath, 0755); err != nil {
+		panic(err)
+	}
+	appLogFile := classLog.NewLumberjackLogger(bc.Data.Database.LogPath, "app.log", 100, 7, 7, true)
+	defer appLogFile.Close()
+
+	logger := log.With(log.NewStdLogger(io.MultiWriter(os.Stdout, appLogFile)),
 		"ts", log.DefaultTimestamp,
 		"caller", log.DefaultCaller,
 		"service.name", bc.Server.Name,

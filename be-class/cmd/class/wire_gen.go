@@ -67,7 +67,7 @@ func wireApp(string2 string, confServer *conf.Server, confData *conf.Data, confR
 	freeClassroomSvc := service.NewFreeClassroomSvc(freeClassroomBiz)
 	grpcServer := server.NewGRPCServer(confServer, classServiceService, freeClassroomSvc, logger)
 	selectionUploader := service.NewSelectionUploader(freeClassroomBiz)
-	httpServer := server.NewHTTPServer(confServer, selectionUploader)
+	httpServer := server.NewHTTPServer(confServer, selectionUploader, logger)
 	app := newApp(logger, grpcServer, httpServer, etcdRegistry, confServer, env)
 	task := timedTask.NewTask(classServiceUserCase, freeClassroomBiz, classListService)
 	mainAPP := NewApp(app, task)

@@ -55,3 +55,48 @@ func (s *ClassListService) GetClass(ctx context.Context, stuID, year, semester s
 
 	return s.clu.GetClasses(ctx, stuID, year, semester, refresh)
 }
+
+func (s *ClassListService) GetSchoolDay(ctx context.Context) (holidayTime, schoolTime string, err error) {
+	logh := s.log.WithContext(ctx)
+
+	if s.conf == nil || s.conf.ClassListConf == nil {
+		logh.Error("classlist school day config is empty")
+		return "", "", errcode.ErrConfig
+	}
+
+	holidayTime = s.conf.ClassListConf.HolidayTime
+	schoolTime = s.conf.ClassListConf.SchoolTime
+	if holidayTime == "" || schoolTime == "" {
+		logh.Error("classlist school day config is incomplete",
+			logger.String("holidayTime", holidayTime),
+			logger.String("schoolTime", schoolTime),
+		)
+		return "", "", errcode.ErrConfig
+	}
+
+	holiday, err := time.ParseInLocation("2006-01-02", holidayTime, time.Local)
+	if err != nil {
+		logh.Error("invalid classlist holidayTime config",
+			logger.String("holidayTime", holidayTime),
+			logger.Error(err),
+		)
+		return "", "", errcode.ErrConfig
+	}
+	school, err := time.ParseInLocation("2006-01-02", schoolTime, time.Local)
+	if err != nil {
+		logh.Error("invalid classlist schoolTime config",
+			logger.String("schoolTime", schoolTime),
+			logger.Error(err),
+		)
+		return "", "", errcode.ErrConfig
+	}
+	if !school.Before(holiday) {
+		logh.Error("classlist schoolTime must be before holidayTime",
+			logger.String("schoolTime", schoolTime),
+			logger.String("holidayTime", holidayTime),
+		)
+		return "", "", errcode.ErrConfig
+	}
+
+	return holidayTime, schoolTime, nil
+}

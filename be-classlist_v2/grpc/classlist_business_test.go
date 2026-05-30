@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/service"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
@@ -29,5 +30,23 @@ func TestGetClass_RejectsInvalidYearSemester(t *testing.T) {
 
 	if !errors.Is(err, errcode.ErrParam) {
 		t.Fatalf("expected ErrParam, got %v", err)
+	}
+}
+
+func TestGetSchoolDay_RejectsInvalidConfig(t *testing.T) {
+	testLogger := zapx.NewZapLogger(zap.NewNop())
+	server := NewCalendarServiceServer(service.NewClasserService(nil, &conf.ServerConf{
+		ClassListConf: &conf.ClassListConf{
+			SchoolTime:  "2025-07-05",
+			HolidayTime: "2025-02-17",
+		},
+	}, testLogger))
+
+	resp, err := server.GetSchoolDay(context.Background(), &classlistv1.GetSchoolDayReq{})
+	t.Logf("response: %+v", resp)
+	t.Logf("error: %v", err)
+
+	if !errors.Is(err, errcode.ErrSchoolDayConfig) {
+		t.Fatalf("expected ErrSchoolDayConfig, got %v", err)
 	}
 }

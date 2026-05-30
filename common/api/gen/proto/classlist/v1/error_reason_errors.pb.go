@@ -166,3 +166,15 @@ func IsClassisexist(err error) bool {
 func ErrorClassisexist(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, ErrorReason_CLASSISEXIST.String(), fmt.Sprintf(format, args...))
 }
+
+func IsConfigError(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_CONFIG_Error.String() && e.Code == 500
+}
+
+func ErrorConfigError(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, ErrorReason_CONFIG_Error.String(), fmt.Sprintf(format, args...))
+}

@@ -54,3 +54,14 @@ func (c *ClasslistServiceServer) GetClass(ctx context.Context, req *classlistv1.
 		LastTime: lastTimeStamp,
 	}, nil
 }
+
+func (c *ClasslistServiceServer) GetSchoolDay(ctx context.Context, _ *classlistv1.GetSchoolDayReq) (*classlistv1.GetSchoolDayResp, error) {
+	holidayTime, schoolTime, err := c.svc.GetSchoolDay(ctx)
+	if err != nil {
+		return &classlistv1.GetSchoolDayResp{}, err
+	}
+	return &classlistv1.GetSchoolDayResp{
+		HolidayTime: holidayTime,
+		SchoolTime:  schoolTime,
+	}, nil
+}

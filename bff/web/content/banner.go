@@ -30,12 +30,12 @@ func (h *ContentHandler) RegisterBannerRoute(group *gin.RouterGroup, authMiddlew
 // @Router /banner/getBanners [get]
 func (h *ContentHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 	go func() {
+		reqCtx := ctx.Request.Context()
 		// 此处做一个cookie预热和一个成绩预加载
 		// 为什么在这里做呢? 好问题
 		// 因为用户打开匣子必然会发送这个请求,如果短时间(5分钟)内要获取课表或者是成绩会体验感好很多
-		ctx := context.Background()
-		_, _ = h.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: uc.StudentId})
-		_, _ = h.counterClient.AddCounter(ctx, &counterv1.AddCounterReq{StudentId: uc.StudentId})
+		_, _ = h.userClient.GetCookie(reqCtx, &userv1.GetCookieRequest{StudentId: uc.StudentId})
+		_, _ = h.counterClient.AddCounter(reqCtx, &counterv1.AddCounterReq{StudentId: uc.StudentId})
 	}()
 
 	banners, err := h.contentClient.GetBanners(ctx, &contentv1.GetBannersRequest{})

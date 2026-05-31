@@ -95,6 +95,31 @@ func (c *ClasslistServiceServer) DeleteClass(ctx context.Context, req *classlist
 	}, nil
 }
 
+func (c *ClasslistServiceServer) UpdateClass(ctx context.Context, req *classlistv1.UpdateClassRequest) (*classlistv1.UpdateClassResponse, error) {
+	classID, msg, err := c.svc.UpdateClass(ctx,
+		req.GetStuId(),
+		req.GetYear(),
+		req.GetSemester(),
+		req.GetClassId(),
+		req.Name,
+		req.DurClass,
+		req.Where,
+		req.Teacher,
+		req.Weeks,
+		req.Day,
+		req.Credit,
+	)
+	if err != nil {
+		return &classlistv1.UpdateClassResponse{
+			Msg: msg,
+		}, err
+	}
+	return &classlistv1.UpdateClassResponse{
+		Msg:     msg,
+		ClassId: classID,
+	}, nil
+}
+
 func (c *ClasslistServiceServer) GetSchoolDay(ctx context.Context, _ *classlistv1.GetSchoolDayReq) (*classlistv1.GetSchoolDayResp, error) {
 	holidayTime, schoolTime, err := c.svc.GetSchoolDay(ctx)
 	if err != nil {

@@ -114,6 +114,34 @@ func (s *ClassListService) DeleteClass(ctx context.Context, stuID, year, semeste
 	return "删除课程成功", nil
 }
 
+func (s *ClassListService) UpdateClass(ctx context.Context, stuID, year, semester, classID string, name, durClass, where, teacher *string, weeks, day *int64, credit *float64) (string, string, error) {
+	logh := s.log.WithContext(ctx).With(
+		logger.String("stu_id", stuID),
+		logger.String("year", year),
+		logger.String("semester", semester),
+		logger.String("class_id", classID),
+	)
+
+	if !tool.CheckSY(semester, year) || classID == "" {
+		logh.Warn("update class param invalid")
+		return "", "", errcode.ErrParam
+	}
+	if weeks != nil && *weeks <= 0 {
+		logh.Warn("update class weeks invalid", logger.Int64("weeks", *weeks))
+		return "", "", errcode.ErrParam
+	}
+	if day != nil && (*day < 1 || *day > 7) {
+		logh.Warn("update class day invalid", logger.Int64("day", *day))
+		return "", "", errcode.ErrParam
+	}
+
+	newClassID, err := s.clu.UpdateClass(ctx, stuID, year, semester, classID, name, durClass, where, teacher, weeks, day, credit)
+	if err != nil {
+		return "", "修改失败", err
+	}
+	return newClassID, "成功修改", nil
+}
+
 func (s *ClassListService) GetSchoolDay(ctx context.Context) (holidayTime, schoolTime string, err error) {
 	logh := s.log.WithContext(ctx)
 

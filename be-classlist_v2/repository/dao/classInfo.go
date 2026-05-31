@@ -58,6 +58,41 @@ func (c ClassInfoDAO) AddClassInfoToDB(ctx context.Context, classInfo *model.Cla
 	return nil
 }
 
+func (c ClassInfoDAO) UpsertClassInfoToDB(ctx context.Context, classInfo *model.ClassInfo) error {
+	if classInfo == nil {
+		return nil
+	}
+	if classInfo.Day < 1 || classInfo.Day > 7 {
+		return errorx.Errorf("dao.classInfo.UpsertClassInfoToDB: invalid day=%d, classInfo=%+v: %w", classInfo.Day, classInfo, errcode.ErrClassUpdate)
+	}
+
+	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
+	err := db.Debug().
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"jxb_id",
+				"day",
+				"teacher",
+				"where",
+				"class_when",
+				"week_duration",
+				"class_name",
+				"credit",
+				"weeks",
+				"semester",
+				"year",
+				"nature",
+				"updated_at",
+			}),
+		}).
+		Create(&classInfo).Error
+	if err != nil {
+		return errorx.Errorf("dao.classInfo.UpsertClassInfoToDB: classInfo=%+v, dbErr=%s: %w", classInfo, err.Error(), errcode.ErrClassUpdate)
+	}
+	return nil
+}
+
 func (c ClassInfoDAO) DeleteAddedClassInfos(ctx context.Context, classIDs []string) error {
 	if len(classIDs) == 0 {
 		return nil

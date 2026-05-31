@@ -127,7 +127,14 @@ func (cluc *ClassUsecase) hasScheduleConflict(ctx context.Context, stuID string,
 }
 
 // 检查是否与现有课程有时间上的冲突
+// 包装一层 addclass 和 updateclass 大家就可以一起使用底层函数了喵
 func (cluc *ClassUsecase) hasScheduleConflictWithClasses(ctx context.Context, info *model.ClassInfoBO, classes []*model.ClassInfoBO) (bool, error) {
+	return cluc.hasScheduleConflictWithClassesExcept(ctx, info, classes, "")
+}
+
+// 课程冲突检测函数
+// 旧课还在旧课表里，需要排除 oldClassID
+func (cluc *ClassUsecase) hasScheduleConflictWithClassesExcept(ctx context.Context, info *model.ClassInfoBO, classes []*model.ClassInfoBO, ignoredClassID string) (bool, error) {
 	logh := cluc.log.WithContext(ctx)
 
 	// 解析节次
@@ -138,7 +145,7 @@ func (cluc *ClassUsecase) hasScheduleConflictWithClasses(ctx context.Context, in
 
 	for _, classInfo := range classes {
 		// 粗筛
-		if classInfo == nil || classInfo.Day != info.Day || classInfo.Weeks&info.Weeks == 0 {
+		if classInfo == nil || classInfo.ID == ignoredClassID || classInfo.Day != info.Day || classInfo.Weeks&info.Weeks == 0 {
 			continue
 		}
 

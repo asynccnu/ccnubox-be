@@ -139,6 +139,35 @@ func (cla ClassRepo) DeleteAddedClasses(ctx context.Context, stuID, year, semest
 	return nil
 }
 
+func (cla ClassRepo) UpdateAddedClass(ctx context.Context, stuID, year, semester, oldClassID string, classInfo *bizModel.ClassInfoBO, sc *bizModel.StudentCourseBO) error {
+	classInfoDo, scDo := classInfoBOToDO(classInfo), studentCourseBOToDO(sc)
+
+	errTx := transaction.InTx(cla.ClaInfoDAO.GetDB(ctx), ctx, func(ctx context.Context) error {
+		if err := cla.ClaInfoDAO.UpsertClassInfoToDB(ctx, classInfoDo); err != nil {
+			return err
+		}
+		if err := cla.StuCourseDAO.DeleteAddedStudentCourses(ctx, stuID, year, semester, []string{oldClassID}); err != nil {
+			return err
+		}
+		if err := cla.StuCourseDAO.SaveStudentAndCourseToDB(ctx, scDo); err != nil {
+			return err
+		}
+		if oldClassID != classInfo.ID {
+			if err := cla.ClaInfoDAO.DeleteAddedClassInfos(ctx, []string{oldClassID}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if errTx != nil {
+		return errorx.Errorf("repo.class.UpdateAddedClass: stuID=%s, year=%s, semester=%s, oldClassID=%s, newClassID=%s: %w",
+			stuID, year, semester, oldClassID, classInfo.ID, errTx)
+	}
+	cla.invalidateClassInfoCacheBestEffort(ctx, stuID, year, semester)
+	cla.invalidateMetaDataCacheBestEffort(ctx, stuID, year, semester)
+	return nil
+}
+
 // SaveClass 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
 func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*bizModel.ClassInfoBO, scs []*bizModel.StudentCourseBO) error {
 	if len(classInfos) == 0 || len(scs) == 0 {

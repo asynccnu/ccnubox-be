@@ -10,6 +10,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
+	classTool "github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/tool"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"golang.org/x/sync/singleflight"
 )
@@ -198,4 +199,113 @@ func (cluc *ClassUsecase) DeleteClass(ctx context.Context, stuID, year, semester
 		return err
 	}
 	return nil
+}
+
+func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester, oldClassID string, name, durClass, where, teacher *string, weeks, day *int64, credit *float64) (string, error) {
+	logh := cluc.log.WithContext(ctx)
+
+	// 拿数据库数据
+	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+	if err != nil {
+		if errors.Is(err, errcode.ErrClassNotFound) {
+			return "", errcode.ErrSCIDNOTEXIST
+		}
+		return "", err
+	}
+
+	var oldInfo *model.ClassInfoBO
+	for _, classInfo := range classes {
+		if classInfo != nil && classInfo.ID == oldClassID {
+			oldInfo = classInfo
+			break
+		}
+	}
+	if oldInfo == nil {
+		return "", errcode.ErrSCIDNOTEXIST
+	}
+	// 防御一下，正常情况不可能升级官方课程的，前端不会提供入口
+	if oldInfo.MetaData.IsOfficial {
+		logh.Warn("reject updating official class",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", oldClassID),
+		)
+		return "", errcode.ErrClassUpdate
+	}
+
+	newInfo := *oldInfo
+	if name != nil {
+		newInfo.Classname = *name
+	}
+	if durClass != nil {
+		newInfo.ClassWhen = *durClass
+	}
+	if where != nil {
+		newInfo.Where = *where
+	}
+	if teacher != nil {
+		newInfo.Teacher = *teacher
+	}
+	if weeks != nil {
+		newInfo.Weeks = *weeks
+		newInfo.WeekDuration = classTool.FormatWeeks(classTool.ParseWeeks(*weeks))
+	}
+	if day != nil {
+		newInfo.Day = *day
+	}
+	if credit != nil {
+		newInfo.Credit = *credit
+	}
+	newInfo.UpdateID()
+
+	if newInfo.ID != oldClassID && cluc.classRepo.AddedCourseExists(ctx, stuID, year, semester, newInfo.ID) {
+		logh.Error("class already exists",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", newInfo.ID),
+		)
+		return "", errcode.ErrClassIsExist
+	}
+
+	// 判定冲突
+	conflict, err := cluc.hasScheduleConflictWithClassesExcept(ctx, &newInfo, classes, oldClassID)
+	if err != nil {
+		return "", err
+	}
+	if conflict {
+		logh.Error("class schedule conflict",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("old_class_id", oldClassID),
+			logger.String("new_class_id", newInfo.ID),
+			logger.Int64("day", newInfo.Day),
+			logger.String("class_when", newInfo.ClassWhen),
+			logger.Int64("weeks", newInfo.Weeks),
+		)
+		return "", errcode.ErrClassScheduleConflict
+	}
+
+	sc := &model.StudentCourseBO{
+		StuID:           stuID,
+		ClaID:           newInfo.ID,
+		Year:            year,
+		Semester:        semester,
+		IsManuallyAdded: true,
+		Note:            oldInfo.MetaData.Note,
+	}
+	if err := cluc.classRepo.UpdateAddedClass(ctx, stuID, year, semester, oldClassID, &newInfo, sc); err != nil {
+		logh.Error("update added class failed",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("old_class_id", oldClassID),
+			logger.String("new_class_id", newInfo.ID),
+			logger.Error(err),
+		)
+		return "", err
+	}
+	return newInfo.ID, nil
 }

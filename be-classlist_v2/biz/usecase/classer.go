@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -153,4 +154,48 @@ func (cluc *ClassUsecase) AddClass(ctx context.Context, stuID string, info *mode
 	}
 
 	return cluc.classRepo.AddClass(ctx, stuID, info.Year, info.Semester, info, sc)
+}
+
+func (cluc *ClassUsecase) DeleteClass(ctx context.Context, stuID, year, semester, classID string) error {
+	logh := cluc.log.WithContext(ctx)
+
+	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+	if err != nil {
+		if errors.Is(err, errcode.ErrClassNotFound) {
+			return errcode.ErrSCIDNOTEXIST
+		}
+		return err
+	}
+
+	var target *model.ClassInfoBO
+	for _, classInfo := range classes {
+		if classInfo != nil && classInfo.ID == classID {
+			target = classInfo
+			break
+		}
+	}
+	if target == nil {
+		return errcode.ErrSCIDNOTEXIST
+	}
+	if target.MetaData.IsOfficial {
+		logh.Warn("reject deleting official class",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", classID),
+		)
+		return errcode.ErrClassDelete
+	}
+
+	if err := cluc.classRepo.DeleteAddedClasses(ctx, stuID, year, semester, []string{classID}); err != nil {
+		logh.Error("delete added class failed",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", classID),
+			logger.Error(err),
+		)
+		return err
+	}
+	return nil
 }

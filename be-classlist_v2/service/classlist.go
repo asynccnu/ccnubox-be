@@ -95,6 +95,25 @@ func (s *ClassListService) AddClass(ctx context.Context, stuID, name, durClass, 
 	return classInfo.ID, "成功添加", nil
 }
 
+func (s *ClassListService) DeleteClass(ctx context.Context, stuID, year, semester, classID string) (string, error) {
+	logh := s.log.WithContext(ctx).With(
+		logger.String("stu_id", stuID),
+		logger.String("year", year),
+		logger.String("semester", semester),
+		logger.String("class_id", classID),
+	)
+
+	if !tool.CheckSY(semester, year) || classID == "" {
+		logh.Warn("delete class param invalid")
+		return "", errcode.ErrParam
+	}
+
+	if err := s.clu.DeleteClass(ctx, stuID, year, semester, classID); err != nil {
+		return "删除课程失败", err
+	}
+	return "删除课程成功", nil
+}
+
 func (s *ClassListService) GetSchoolDay(ctx context.Context) (holidayTime, schoolTime string, err error) {
 	logh := s.log.WithContext(ctx)
 

@@ -78,6 +78,23 @@ func (c *ClasslistServiceServer) AddClass(ctx context.Context, req *classlistv1.
 	}, nil
 }
 
+func (c *ClasslistServiceServer) DeleteClass(ctx context.Context, req *classlistv1.DeleteClassRequest) (*classlistv1.DeleteClassResponse, error) {
+	msg, err := c.svc.DeleteClass(ctx,
+		req.GetStuId(),
+		req.GetYear(),
+		req.GetSemester(),
+		req.GetId(),
+	)
+	if err != nil {
+		return &classlistv1.DeleteClassResponse{
+			Msg: msg,
+		}, err
+	}
+	return &classlistv1.DeleteClassResponse{
+		Msg: msg,
+	}, nil
+}
+
 func (c *ClasslistServiceServer) GetSchoolDay(ctx context.Context, _ *classlistv1.GetSchoolDayReq) (*classlistv1.GetSchoolDayResp, error) {
 	holidayTime, schoolTime, err := c.svc.GetSchoolDay(ctx)
 	if err != nil {

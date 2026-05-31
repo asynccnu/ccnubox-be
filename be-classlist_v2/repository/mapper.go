@@ -13,13 +13,6 @@ func metaDataDOToBO(meta repoModel.ClassMetaData) bizModel.ClassMetaDataBO {
 	}
 }
 
-func metaDataBOToDO(meta bizModel.ClassMetaDataBO) repoModel.ClassMetaData {
-	return repoModel.ClassMetaData{
-		IsManuallyAdded: !meta.IsOfficial,
-		Note:            meta.Note,
-	}
-}
-
 func classInfoDOToBO(do *repoModel.ClassInfo, meta *repoModel.ClassMetaData) *bizModel.ClassInfoBO {
 	bo := &bizModel.ClassInfoBO{
 		ID:           do.ID,

@@ -56,6 +56,45 @@ func (s *ClassListService) GetClass(ctx context.Context, stuID, year, semester s
 	return s.clu.GetClasses(ctx, stuID, year, semester, refresh)
 }
 
+func (s *ClassListService) AddClass(ctx context.Context, stuID, name, durClass, where, teacher string, weeks int64, semester, year string, day int64, credit *float64) (id, msg string, err error) {
+	logh := s.log.WithContext(ctx).With(
+		logger.String("stu_id", stuID),
+		logger.String("year", year),
+		logger.String("semester", semester),
+	)
+
+	if !tool.CheckSY(semester, year) || weeks <= 0 || !tool.CheckIfThisYear(year, semester) {
+		logh.Warn("add class param invalid",
+			logger.Int64("weeks", weeks),
+			logger.Int64("day", day),
+		)
+		return "", "", errcode.ErrParam
+	}
+
+	weekDur := tool.FormatWeeks(tool.ParseWeeks(weeks))
+	classInfo := &model.ClassInfoBO{
+		Day:          day,
+		Teacher:      teacher,
+		Where:        where,
+		ClassWhen:    durClass,
+		WeekDuration: weekDur,
+		Classname:    name,
+		Weeks:        weeks,
+		Semester:     semester,
+		Year:         year,
+		JxbId:        "unavailable",
+	}
+	if credit != nil {
+		classInfo.Credit = *credit
+	}
+	classInfo.UpdateID()
+
+	if err := s.clu.AddClass(ctx, stuID, classInfo); err != nil {
+		return "", "", err
+	}
+	return classInfo.ID, "成功添加", nil
+}
+
 func (s *ClassListService) GetSchoolDay(ctx context.Context) (holidayTime, schoolTime string, err error) {
 	logh := s.log.WithContext(ctx)
 

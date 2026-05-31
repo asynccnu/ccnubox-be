@@ -11,6 +11,8 @@ type ClassRepo interface {
 	GetClassesFromLocal(ctx context.Context, stuID, year, semester string) ([]*model.ClassInfoBO, error)
 	AddClass(ctx context.Context, stuID, year, semester string, classInfo *model.ClassInfoBO, sc *model.StudentCourseBO) error
 	SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*model.ClassInfoBO, scs []*model.StudentCourseBO) error
+	AddedCourseExists(ctx context.Context, stuID, year, semester, classID string) bool
+	DeleteAddedClasses(ctx context.Context, stuID, year, semester string, classIDs []string) error
 	GetAddedClasses(ctx context.Context, stuID, year, semester string) ([]*model.ClassInfoBO, error)
 }
 

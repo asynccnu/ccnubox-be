@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
@@ -119,4 +120,37 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 	}
 
 	return localClasses, localLastRefreshTime, nil
+}
+
+func (cluc *ClassUsecase) AddClass(ctx context.Context, stuID string, info *model.ClassInfoBO) error {
+	logh := cluc.log.WithContext(ctx)
+
+	sc := &model.StudentCourseBO{
+		StuID:           stuID,
+		ClaID:           info.ID,
+		Year:            info.Year,
+		Semester:        info.Semester,
+		IsManuallyAdded: !info.MetaData.IsOfficial,
+		Note:            info.MetaData.Note,
+	}
+
+	// 判断这个课程是否与现成课程发生冲突
+	conflict, err := cluc.hasScheduleConflict(ctx, stuID, info)
+	if err != nil {
+		return err
+	}
+	if conflict {
+		logh.Error("class schedule conflict",
+			logger.String("stu_id", stuID),
+			logger.String("year", info.Year),
+			logger.String("semester", info.Semester),
+			logger.String("class_id", info.ID),
+			logger.Int64("day", info.Day),
+			logger.String("class_when", info.ClassWhen),
+			logger.Int64("weeks", info.Weeks),
+		)
+		return errcode.ErrClassScheduleConflict
+	}
+
+	return cluc.classRepo.AddClass(ctx, stuID, info.Year, info.Semester, info, sc)
 }

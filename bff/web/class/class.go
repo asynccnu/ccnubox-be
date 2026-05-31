@@ -126,7 +126,7 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.UserClaims) (web.Response, error) {
 	weeks := convertWeekFromArrayToInt(req.Weeks)
 
-	preq := &cs.AddClassRequest{
+	preq := &classlistv1.AddClassRequest{
 		StuId:    uc.StudentId,
 		Name:     req.Name,
 		DurClass: req.DurClass,
@@ -139,7 +139,7 @@ func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.U
 		Credit:   req.Credit,
 	}
 
-	_, err := c.ClassServiceClient.AddClass(ctx, preq)
+	_, err := c.ClassListClient.AddClass(ctx, preq)
 	if err != nil {
 		return web.Response{}, errs.ADD_CLASS_ERROR(err)
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 )
 
+// 这里是给前端看的错误码
 // TODO 细化错误码,根据错误类型区分不同的错误码
 // 现在这个错误码基本上是随便写的,因为微服务的错误码非常之多暂时没时间细化,所有的都先默认系统错误
 
@@ -66,6 +67,7 @@ var (
 var (
 	GET_CLASS_LIST_ERROR          = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取课程列表失败!"))
 	ADD_CLASS_ERROR               = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "添加课程失败!"))
+	ADD_CLASS_CONFLICT_ERROR      = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "课程时间冲突"))
 	DELETE_CLASS_ERROR            = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "删除课程失败!"))
 	UPDATE_CLASS_ERROR            = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "更新课程失败!"))
 	GET_RECYCLE_CLASS_ERROR       = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, INTERNAL_SERVER_ERROR_CODE, "获取回收站中的课程信息失败!"))

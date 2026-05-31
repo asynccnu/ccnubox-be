@@ -178,3 +178,15 @@ func IsConfigError(err error) bool {
 func ErrorConfigError(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, ErrorReason_CONFIG_Error.String(), fmt.Sprintf(format, args...))
 }
+
+func IsErrClassScheduleConflict(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_ErrClassScheduleConflict.String() && e.Code == 500
+}
+
+func ErrorErrClassScheduleConflict(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, ErrorReason_ErrClassScheduleConflict.String(), fmt.Sprintf(format, args...))
+}

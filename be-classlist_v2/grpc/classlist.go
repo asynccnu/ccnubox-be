@@ -55,6 +55,29 @@ func (c *ClasslistServiceServer) GetClass(ctx context.Context, req *classlistv1.
 	}, nil
 }
 
+// 增加自编课程
+func (c *ClasslistServiceServer) AddClass(ctx context.Context, req *classlistv1.AddClassRequest) (*classlistv1.AddClassResponse, error) {
+	id, msg, err := c.svc.AddClass(ctx,
+		req.GetStuId(),
+		req.GetName(),
+		req.GetDurClass(),
+		req.GetWhere(),
+		req.GetTeacher(),
+		req.GetWeeks(),
+		req.GetSemester(),
+		req.GetYear(),
+		req.GetDay(),
+		req.Credit,
+	)
+	if err != nil {
+		return &classlistv1.AddClassResponse{}, err
+	}
+	return &classlistv1.AddClassResponse{
+		Id:  id,
+		Msg: msg,
+	}, nil
+}
+
 func (c *ClasslistServiceServer) GetSchoolDay(ctx context.Context, _ *classlistv1.GetSchoolDayReq) (*classlistv1.GetSchoolDayResp, error) {
 	holidayTime, schoolTime, err := c.svc.GetSchoolDay(ctx)
 	if err != nil {

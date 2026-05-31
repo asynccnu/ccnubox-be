@@ -23,4 +23,5 @@ enum ErrorReason {
   GETSTUIDBYJXBID = 11;
   CLASSISEXIST = 12;
   CONFIG_Error = 13;
+  ErrClassScheduleConflict = 14;
 }

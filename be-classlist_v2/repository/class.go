@@ -114,6 +114,31 @@ func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string,
 	return nil
 }
 
+// 防止重复加课
+func (cla ClassRepo) AddedCourseExists(ctx context.Context, stuID, year, semester, classID string) bool {
+	return cla.StuCourseDAO.AddedCourseExists(ctx, stuID, year, semester, classID)
+}
+
+// 批次删除手动添加的课
+func (cla ClassRepo) DeleteAddedClasses(ctx context.Context, stuID, year, semester string, classIDs []string) error {
+	errTx := transaction.InTx(cla.ClaInfoDAO.GetDB(ctx), ctx, func(ctx context.Context) error {
+		if err := cla.StuCourseDAO.DeleteAddedStudentCourses(ctx, stuID, year, semester, classIDs); err != nil {
+			return err
+		}
+		if err := cla.ClaInfoDAO.DeleteAddedClassInfos(ctx, classIDs); err != nil {
+			return err
+		}
+		return nil
+	})
+	if errTx != nil {
+		return errorx.Errorf("repo.class.DeleteAddedClasses: stuID=%s, year=%s, semester=%s, classIDs=%v: %w",
+			stuID, year, semester, classIDs, errTx)
+	}
+	cla.invalidateClassInfoCacheBestEffort(ctx, stuID, year, semester)
+	cla.invalidateMetaDataCacheBestEffort(ctx, stuID, year, semester)
+	return nil
+}
+
 // SaveClass 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
 func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*bizModel.ClassInfoBO, scs []*bizModel.StudentCourseBO) error {
 	if len(classInfos) == 0 || len(scs) == 0 {

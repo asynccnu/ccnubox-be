@@ -39,6 +39,7 @@ const (
 	ErrorReason_GETSTUIDBYJXBID             ErrorReason = 11
 	ErrorReason_CLASSISEXIST                ErrorReason = 12
 	ErrorReason_CONFIG_Error                ErrorReason = 13
+	ErrorReason_ErrClassScheduleConflict    ErrorReason = 14
 )
 
 // Enum value maps for ErrorReason.
@@ -58,6 +59,7 @@ var (
 		11: "GETSTUIDBYJXBID",
 		12: "CLASSISEXIST",
 		13: "CONFIG_Error",
+		14: "ErrClassScheduleConflict",
 	}
 	ErrorReason_value = map[string]int32{
 		"DB_NOTFOUND":                 0,
@@ -74,6 +76,7 @@ var (
 		"GETSTUIDBYJXBID":             11,
 		"CLASSISEXIST":                12,
 		"CONFIG_Error":                13,
+		"ErrClassScheduleConflict":    14,
 	}
 )
 
@@ -109,7 +112,7 @@ var File_classlist_v1_error_reason_proto protoreflect.FileDescriptor
 const file_classlist_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
 	"\x1fclasslist/v1/error_reason.proto\x12\n" +
-	"classer.v1\x1a\x13errors/errors.proto*\xa8\x02\n" +
+	"classer.v1\x1a\x13errors/errors.proto*\xc6\x02\n" +
 	"\vErrorReason\x12\x0f\n" +
 	"\vDB_NOTFOUND\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -126,7 +129,8 @@ const file_classlist_v1_error_reason_proto_rawDesc = "" +
 	"\x12\x13\n" +
 	"\x0fGETSTUIDBYJXBID\x10\v\x12\x10\n" +
 	"\fCLASSISEXIST\x10\f\x12\x10\n" +
-	"\fCONFIG_Error\x10\r\x1a\x04\xa0E\xf4\x03BLZJgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1;classerv1b\x06proto3"
+	"\fCONFIG_Error\x10\r\x12\x1c\n" +
+	"\x18ErrClassScheduleConflict\x10\x0e\x1a\x04\xa0E\xf4\x03BLZJgithub.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1;classerv1b\x06proto3"
 
 var (
 	file_classlist_v1_error_reason_proto_rawDescOnce sync.Once

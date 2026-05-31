@@ -69,6 +69,23 @@ func (s *StudentCourseDAO) GetClassNum(ctx context.Context, stuID, year, semeste
 	return num, nil
 }
 
+func (s *StudentCourseDAO) AddedCourseExists(ctx context.Context, stuID, year, semester, classID string) bool {
+	var num int64
+	db := s.GetDB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
+	err := db.Where("stu_id = ? AND year = ? AND semester = ? AND cla_id = ?", stuID, year, semester, classID).Count(&num).Error
+	if err != nil {
+		s.log.WithContext(ctx).Error("Mysql:count student_course failed",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", classID),
+			logger.Error(err),
+		)
+		return false
+	}
+	return num > 0
+}
+
 func (s *StudentCourseDAO) SaveStudentAndCourseToDB(ctx context.Context, sc *model.StudentCourse) error {
 	logh := s.log.WithContext(ctx)
 	if sc == nil {
@@ -107,6 +124,23 @@ func (s *StudentCourseDAO) DeleteStudentAndCourseByTimeFromDB(ctx context.Contex
 	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND is_manually_added = false", year, semester, stuID).Delete(&model.StudentCourse{}).Error
 	if err != nil {
 		logh.Errorf("Mysql:delete student_course by time from db failed: %v", err)
+		return errcode.ErrClassDelete
+	}
+	return nil
+}
+
+func (s *StudentCourseDAO) DeleteAddedStudentCourses(ctx context.Context, stuID, year, semester string, classIDs []string) error {
+	if len(classIDs) == 0 {
+		return nil
+	}
+
+	logh := s.log.WithContext(ctx)
+	db := s.GetDB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
+	err := db.Debug().
+		Where("stu_id = ? AND year = ? AND semester = ? AND is_manually_added = true AND cla_id IN ?", stuID, year, semester, classIDs).
+		Delete(&model.StudentCourse{}).Error
+	if err != nil {
+		logh.Errorf("Mysql:delete added student_course failed: stuID=%s year=%s semester=%s classIDs=%v err=%v", stuID, year, semester, classIDs, err)
 		return errcode.ErrClassDelete
 	}
 	return nil

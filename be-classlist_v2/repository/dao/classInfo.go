@@ -58,6 +58,21 @@ func (c ClassInfoDAO) AddClassInfoToDB(ctx context.Context, classInfo *model.Cla
 	return nil
 }
 
+func (c ClassInfoDAO) DeleteAddedClassInfos(ctx context.Context, classIDs []string) error {
+	if len(classIDs) == 0 {
+		return nil
+	}
+
+	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
+	err := db.Debug().
+		Where("id IN ?", classIDs).
+		Delete(&model.ClassInfo{}).Error
+	if err != nil {
+		return errorx.Errorf("dao.classInfo.DeleteAddedClassInfos: classIDs=%v: %w", classIDs, errcode.ErrClassDelete)
+	}
+	return nil
+}
+
 func (c ClassInfoDAO) GetClassInfos(ctx context.Context, stuId, xnm, xqm string) ([]*model.ClassInfo, error) {
 	db := c.GetDB(ctx).WithContext(ctx)
 	cla := make([]*model.ClassInfo, 0)

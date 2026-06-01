@@ -5,9 +5,12 @@ on:
     branches:
       - main
     paths:
-      - 'be-classlist/**'
+      - 'be-classlist_v2/**'
+      - 'common/**'
+      - '.github/workflows/deploy-be-classlist.yaml'
 env:
   SERVICE_NAME: be-classlist  # 👈 这里设置的是全局环境变量
+  SERVICE_SOURCE: be-classlist_v2
   SERVICE_VERSION: BE_CLASSLIST  # 👈 这里设置的是 Docker Compose 文件中使用的环境变量名称
 
 
@@ -44,7 +47,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./${{ env.SERVICE_NAME }}/Dockerfile
+          file: ./${{ env.SERVICE_SOURCE }}/Dockerfile
           push: true
           tags: ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/ccnubox-${{ env.SERVICE_NAME }}:${{ steps.get-version-id.outputs.id }}
 

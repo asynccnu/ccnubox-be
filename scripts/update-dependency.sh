@@ -7,7 +7,7 @@ ds=(
   "be-calendar"
   "be-ccnu"
   "be-class"
-  "be-classlist"
+  "be-classlist_v2"
   "be-counter"
   "be-elecprice"
   "be-feed"

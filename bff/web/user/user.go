@@ -53,7 +53,11 @@ func (h *UserHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 // @Accept json
 // @Produce json
 // @Param request body LoginByCCNUReq true "登录请求体"
-// @Success 200 {object} web.Response "Success"
+// @Success 200 {object} web.Response "登录成功，token 通过响应头返回"
+// @Header 200 {string} x-jwt-token "短 token"
+// @Header 200 {string} x-refresh-token "刷新 token"
+// @Failure 401 {object} web.Response "账号或密码错误，code=40005"
+// @Failure 500 {object} web.Response "登录失败或 token 生成失败，code=50001"
 // @Router /users/login_ccnu [post]
 func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Response, error) {
 	// 记录学号存入 span
@@ -103,7 +107,10 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 // @Tags user
 // @Accept json
 // @Produce json
-// @Success 200 {object} web.Response "Success"
+// @Param Authorization header string true "Bearer 短 token，格式：Bearer {x-jwt-token}" default(Bearer <x-jwt-token>)
+// @Success 200 {object} web.Response "登出成功"
+// @Failure 401 {object} web.Response "Authorization 错误或过期，code=40001"
+// @Failure 500 {object} web.Response "登出失败，code=50001"
 // @Router /users/logout [get]
 func (h *UserHandler) Logout(ctx *gin.Context) (web.Response, error) {
 	err := h.ClearToken(ctx)
@@ -122,7 +129,11 @@ func (h *UserHandler) Logout(ctx *gin.Context) (web.Response, error) {
 // @Accept json
 // @Produce json
 // @Security Bearer Auth
-// @Success 200 {object} web.Response "Success"
+// @Param Authorization header string true "Bearer 刷新 token，格式：Bearer {x-refresh-token}" default(Bearer <x-refresh-token>)
+// @Success 200 {object} web.Response "刷新成功，新的短 token 通过响应头返回"
+// @Header 200 {string} x-jwt-token "新的短 token"
+// @Failure 401 {object} web.Response "刷新 token 无效或过期，code=40001"
+// @Failure 500 {object} web.Response "刷新 token 失败，code=50001"
 // @Router /users/refresh_token [get]
 func (h *UserHandler) RefreshToken(ctx *gin.Context) (web.Response, error) {
 	tokenStr := h.ExtractToken(ctx)
@@ -163,8 +174,11 @@ func (h *UserHandler) RefreshToken(ctx *gin.Context) (web.Response, error) {
 // @Accept json
 // @Produce json
 // @Security Bearer Auth
+// @Param Authorization header string true "Bearer 短 token，格式：Bearer {x-jwt-token}" default(Bearer <x-jwt-token>)
 // @Param request body DeleteAccountReq true "注销账户请求体"
-// @Success 200 {object} web.Response "Success"
+// @Success 200 {object} web.Response "注销成功"
+// @Failure 401 {object} web.Response "账号或密码错误，code=40005"
+// @Failure 500 {object} web.Response "注销失败或 token 清理失败，code=50001"
 // @Router /users/deactivate [post]
 func (h *UserHandler) DeleteAccount(ctx *gin.Context, req DeleteAccountReq, cla ijwt.UserClaims) (web.Response, error) {
 	// todo:这里目前只是伪逻辑，具体的身份验证、软删除、恢复码、恢复码等需要后续实现

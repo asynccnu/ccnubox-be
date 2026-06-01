@@ -1,8 +1,10 @@
 package user
 
 type LoginByCCNUReq struct {
-	StudentId string `json:"student_id" binding:"required"`
-	Password  string `json:"password" binding:"required"` // 密码
+	// 学号
+	StudentId string `json:"student_id" binding:"required" example:"2024210000"`
+	// 密码
+	Password string `json:"password" binding:"required" example:"your_password"`
 }
 
 type UserEditReq struct {
@@ -13,7 +15,8 @@ type UserEditReq struct {
 
 // DeleteAccountReq 注销账户前的身份验证信息
 type DeleteAccountReq struct {
-	Password string `json:"password" binding:"required"`
+	// 密码
+	Password string `json:"password" binding:"required" example:"your_password"`
 }
 
 // UserProfileVo 自己的信息

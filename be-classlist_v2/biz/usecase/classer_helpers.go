@@ -15,6 +15,14 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/tool"
 )
 
+const refreshRetryConsumerGroup = "be-classlist-refresh-retry-worker"
+
+type refreshRetryMessage struct {
+	StuID    string `json:"stu_id"`
+	Year     string `json:"year"`
+	Semester string `json:"semester"`
+}
+
 // 统一本地查询逻辑 GetClassesFromLocal + GetLastRefreshTime
 func (cluc *ClassUsecase) loadLocal(ctx context.Context, stuID, year, semester string) (classes []*model.ClassInfoBO, lastRefresh *time.Time, err error) {
 	logh := cluc.log.WithContext(ctx)
@@ -378,10 +386,10 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 func (cluc *ClassUsecase) sendRetryMsg(ctx context.Context, stuID, year, semester string) error {
 	logh := cluc.log.WithContext(ctx)
 
-	retryInfo := map[string]string{
-		"stu_id":   stuID,
-		"year":     year,
-		"semester": semester,
+	retryInfo := refreshRetryMessage{
+		StuID:    stuID,
+		Year:     year,
+		Semester: semester,
 	}
 	key := fmt.Sprintf("be-classlist-refresh-retry-%d", time.Now().UnixMilli())
 	val, err := json.Marshal(&retryInfo)
@@ -393,6 +401,40 @@ func (cluc *ClassUsecase) sendRetryMsg(ctx context.Context, stuID, year, semeste
 		logh.Errorf("delayQue.Send retry msg failed: %+v", err)
 	}
 	return err
+}
+
+func (cluc *ClassUsecase) startRetryConsumer() {
+	if cluc.delayQue == nil {
+		return
+	}
+
+	go func() {
+		if err := cluc.delayQue.Consume(refreshRetryConsumerGroup, cluc.handleRetryMessage); err != nil {
+			cluc.log.Errorf("delayQue.Consume retry msg failed: %+v", err)
+		}
+	}()
+}
+
+func (cluc *ClassUsecase) handleRetryMessage(ctx context.Context, _ []byte, value []byte) {
+	logh := cluc.log.WithContext(ctx)
+
+	var retryInfo refreshRetryMessage
+	if err := json.Unmarshal(value, &retryInfo); err != nil {
+		logh.Errorf("unmarshal refresh retry msg failed: value=%s, err=%+v", string(value), err)
+		return
+	}
+	if retryInfo.StuID == "" || retryInfo.Year == "" || retryInfo.Semester == "" {
+		logh.Errorf("invalid refresh retry msg: value=%s", string(value))
+		return
+	}
+
+	logh.Infof("consume refresh retry msg stu_id=%s year=%s semester=%s", retryInfo.StuID, retryInfo.Year, retryInfo.Semester)
+	_, _, err := cluc.GetClasses(ctx, retryInfo.StuID, retryInfo.Year, retryInfo.Semester, true)
+	if err != nil {
+		logh.Errorf("handle refresh retry msg failed stu_id=%s year=%s semester=%s: %+v", retryInfo.StuID, retryInfo.Year, retryInfo.Semester, err)
+		return
+	}
+	logh.Infof("handle refresh retry msg handled stu_id=%s year=%s semester=%s", retryInfo.StuID, retryInfo.Year, retryInfo.Semester)
 }
 
 func extractJxb(infos []*model.ClassInfoBO) []string {

@@ -38,7 +38,7 @@ func NewClassUsecase(
 	queue biz.DelayQueue,
 	l logger.Logger,
 ) *ClassUsecase {
-	return &ClassUsecase{
+	cluc := &ClassUsecase{
 		conf:           conf,
 		log:            l,
 		classRepo:      cla,
@@ -48,6 +48,8 @@ func NewClassUsecase(
 		crawler:        crawler,
 		delayQue:       queue,
 	}
+	cluc.startRetryConsumer()
+	return cluc
 }
 
 // 将实现暴露出的主函数与流程里使用到的工具函数分开放在两个文件里提高可读性

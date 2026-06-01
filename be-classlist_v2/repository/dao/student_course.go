@@ -145,3 +145,16 @@ func (s *StudentCourseDAO) DeleteAddedStudentCourses(ctx context.Context, stuID,
 	}
 	return nil
 }
+
+func (s *StudentCourseDAO) UpdateCourseNote(ctx context.Context, stuID, year, semester, classID, note string) error {
+	logh := s.log.WithContext(ctx)
+	db := s.GetDB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
+	err := db.Debug().
+		Where("stu_id = ? AND year = ? AND semester = ? AND cla_id = ?", stuID, year, semester, classID).
+		Update("note", note).Error
+	if err != nil {
+		logh.Errorf("Mysql:update course note failed: stuID=%s year=%s semester=%s classID=%s err=%v", stuID, year, semester, classID, err)
+		return errcode.ErrClassUpdate
+	}
+	return nil
+}

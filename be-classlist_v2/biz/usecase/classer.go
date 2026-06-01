@@ -309,3 +309,38 @@ func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester
 	}
 	return newInfo.ID, nil
 }
+
+func (cluc *ClassUsecase) UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error {
+	logh := cluc.log.WithContext(ctx)
+
+	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+	if err != nil {
+		if errors.Is(err, errcode.ErrClassNotFound) {
+			return errcode.ErrSCIDNOTEXIST
+		}
+		return err
+	}
+
+	var found bool
+	for _, classInfo := range classes {
+		if classInfo != nil && classInfo.ID == classID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return errcode.ErrSCIDNOTEXIST
+	}
+
+	if err := cluc.classRepo.UpdateClassNote(ctx, stuID, year, semester, classID, note); err != nil {
+		logh.Error("update class note failed",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", classID),
+			logger.Error(err),
+		)
+		return err
+	}
+	return nil
+}

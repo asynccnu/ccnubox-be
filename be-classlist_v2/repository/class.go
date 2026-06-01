@@ -168,6 +168,18 @@ func (cla ClassRepo) UpdateAddedClass(ctx context.Context, stuID, year, semester
 	return nil
 }
 
+func (cla ClassRepo) UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error {
+	errTx := transaction.InTx(cla.StuCourseDAO.GetDB(ctx), ctx, func(ctx context.Context) error {
+		return cla.StuCourseDAO.UpdateCourseNote(ctx, stuID, year, semester, classID, note)
+	})
+	if errTx != nil {
+		return errorx.Errorf("repo.class.UpdateClassNote: stuID=%s, year=%s, semester=%s, classID=%s: %w",
+			stuID, year, semester, classID, errTx)
+	}
+	cla.invalidateMetaDataCacheBestEffort(ctx, stuID, year, semester)
+	return nil
+}
+
 // SaveClass 保存课程[删除原本的，添加新的，主要是为了防止感知不到原本的和新增的之间有差异]
 func (cla ClassRepo) SaveClass(ctx context.Context, stuID, year, semester string, classInfos []*bizModel.ClassInfoBO, scs []*bizModel.StudentCourseBO) error {
 	if len(classInfos) == 0 || len(scs) == 0 {

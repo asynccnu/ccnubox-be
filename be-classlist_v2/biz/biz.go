@@ -14,6 +14,7 @@ type ClassRepo interface {
 	AddedCourseExists(ctx context.Context, stuID, year, semester, classID string) bool
 	DeleteAddedClasses(ctx context.Context, stuID, year, semester string, classIDs []string) error
 	UpdateAddedClass(ctx context.Context, stuID, year, semester, oldClassID string, classInfo *model.ClassInfoBO, sc *model.StudentCourseBO) error
+	UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error
 	GetAddedClasses(ctx context.Context, stuID, year, semester string) ([]*model.ClassInfoBO, error)
 }
 

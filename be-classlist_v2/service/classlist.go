@@ -142,6 +142,44 @@ func (s *ClassListService) UpdateClass(ctx context.Context, stuID, year, semeste
 	return newClassID, "成功修改", nil
 }
 
+func (s *ClassListService) UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) (string, error) {
+	logh := s.log.WithContext(ctx).With(
+		logger.String("stu_id", stuID),
+		logger.String("year", year),
+		logger.String("semester", semester),
+		logger.String("class_id", classID),
+	)
+
+	if !tool.CheckSY(semester, year) || classID == "" {
+		logh.Warn("update class note param invalid")
+		return "", errcode.ErrParam
+	}
+
+	if err := s.clu.UpdateClassNote(ctx, stuID, year, semester, classID, note); err != nil {
+		return "更新课程备注失败", err
+	}
+	return "更新课程备注成功", nil
+}
+
+func (s *ClassListService) DeleteClassNote(ctx context.Context, stuID, year, semester, classID string) (string, error) {
+	logh := s.log.WithContext(ctx).With(
+		logger.String("stu_id", stuID),
+		logger.String("year", year),
+		logger.String("semester", semester),
+		logger.String("class_id", classID),
+	)
+
+	if !tool.CheckSY(semester, year) || classID == "" {
+		logh.Warn("delete class note param invalid")
+		return "", errcode.ErrParam
+	}
+
+	if err := s.clu.UpdateClassNote(ctx, stuID, year, semester, classID, ""); err != nil {
+		return "删除课程备注失败", err
+	}
+	return "删除课程备注成功", nil
+}
+
 func (s *ClassListService) GetSchoolDay(ctx context.Context) (holidayTime, schoolTime string, err error) {
 	logh := s.log.WithContext(ctx)
 

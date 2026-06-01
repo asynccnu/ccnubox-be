@@ -130,3 +130,38 @@ func (c *ClasslistServiceServer) GetSchoolDay(ctx context.Context, _ *classlistv
 		SchoolTime:  schoolTime,
 	}, nil
 }
+
+func (c *ClasslistServiceServer) UpdateClassNote(ctx context.Context, req *classlistv1.UpdateClassNoteReq) (*classlistv1.UpdateClassNoteResp, error) {
+	msg, err := c.svc.UpdateClassNote(ctx,
+		req.GetStuId(),
+		req.GetYear(),
+		req.GetSemester(),
+		req.GetClassId(),
+		req.GetNote(),
+	)
+	if err != nil {
+		return &classlistv1.UpdateClassNoteResp{
+			Msg: msg,
+		}, err
+	}
+	return &classlistv1.UpdateClassNoteResp{
+		Msg: msg,
+	}, nil
+}
+
+func (c *ClasslistServiceServer) DeleteClassNote(ctx context.Context, req *classlistv1.DeleteClassNoteReq) (*classlistv1.DeleteClassNoteResp, error) {
+	msg, err := c.svc.DeleteClassNote(ctx,
+		req.GetStuId(),
+		req.GetYear(),
+		req.GetSemester(),
+		req.GetClassId(),
+	)
+	if err != nil {
+		return &classlistv1.DeleteClassNoteResp{
+			Msg: msg,
+		}, err
+	}
+	return &classlistv1.DeleteClassNoteResp{
+		Msg: msg,
+	}, nil
+}

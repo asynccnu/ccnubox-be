@@ -352,3 +352,7 @@ func (cluc *ClassUsecase) GetStuIdsByJxbId(ctx context.Context, jxbID string) ([
 	}
 	return stuIDs, nil
 }
+
+func (cluc *ClassUsecase) GetClassNatures(ctx context.Context, stuID string) ([]string, error) {
+	return cluc.classRepo.GetClassNatures(ctx, stuID)
+}

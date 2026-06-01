@@ -239,6 +239,21 @@ func (cla ClassRepo) GetAddedClasses(ctx context.Context, stuID, year, semester 
 	return classInfosBiz, nil
 }
 
+func (cla ClassRepo) GetClassNatures(ctx context.Context, stuID string) ([]string, error) {
+	classNatures, err := cla.ClaInfoDAO.GetClassNatures(ctx, stuID)
+	if err != nil {
+		return nil, errorx.Errorf("repo.class.GetClassNatures: stuID=%s: %w", stuID, err)
+	}
+
+	filteredNatures := make([]string, 0, len(classNatures))
+	for _, nature := range classNatures {
+		if nature != "" {
+			filteredNatures = append(filteredNatures, nature)
+		}
+	}
+	return filteredNatures, nil
+}
+
 func (cla ClassRepo) fillClassMetaData(ctx context.Context, stuID, year, semester string, classInfosBiz []*bizModel.ClassInfoBO) {
 	if len(classInfosBiz) == 0 {
 		return

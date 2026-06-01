@@ -194,6 +194,20 @@ func (s *ClassListService) GetStuIdsByJxbId(ctx context.Context, jxbID string) (
 	return stuIDs, nil
 }
 
+func (s *ClassListService) GetClassNatures(ctx context.Context, stuID string) ([]string, error) {
+	logh := s.log.WithContext(ctx).With(logger.String("stu_id", stuID))
+	if stuID == "" {
+		logh.Warn("get class natures param invalid")
+		return nil, errcode.ErrParam
+	}
+
+	natures, err := s.clu.GetClassNatures(ctx, stuID)
+	if err != nil {
+		return nil, err
+	}
+	return natures, nil
+}
+
 func (s *ClassListService) GetSchoolDay(ctx context.Context) (holidayTime, schoolTime string, err error) {
 	logh := s.log.WithContext(ctx)
 

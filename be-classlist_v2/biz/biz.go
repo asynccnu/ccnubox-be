@@ -16,6 +16,7 @@ type ClassRepo interface {
 	UpdateAddedClass(ctx context.Context, stuID, year, semester, oldClassID string, classInfo *model.ClassInfoBO, sc *model.StudentCourseBO) error
 	UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error
 	GetAddedClasses(ctx context.Context, stuID, year, semester string) ([]*model.ClassInfoBO, error)
+	GetClassNatures(ctx context.Context, stuID string) ([]string, error)
 }
 
 type RefreshLogRepo interface {

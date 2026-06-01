@@ -146,3 +146,23 @@ func (c ClassInfoDAO) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm st
 	}
 	return cla, nil
 }
+
+func (c ClassInfoDAO) GetClassNatures(ctx context.Context, stuID string) ([]string, error) {
+	db := c.GetDB(ctx).WithContext(ctx)
+	natures := make([]string, 0)
+
+	subQuery := db.
+		Table(model.StudentCourseTableName).
+		Select("cla_id").
+		Where("stu_id = ?", stuID)
+
+	err := db.
+		Table(model.ClassInfoTableName).
+		Distinct("nature").
+		Where("id IN (?) AND nature IS NOT NULL", subQuery).
+		Pluck("nature", &natures).Error
+	if err != nil {
+		return nil, errorx.Errorf("dao.classInfo.GetClassNatures: stuID=%s: %w", stuID, err)
+	}
+	return natures, nil
+}

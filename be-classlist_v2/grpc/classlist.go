@@ -175,3 +175,13 @@ func (c *ClasslistServiceServer) GetStuIdByJxbId(ctx context.Context, req *class
 		StuId: stuIDs,
 	}, nil
 }
+
+func (c *ClasslistServiceServer) GetClassNatures(ctx context.Context, req *classlistv1.GetClassNaturesReq) (*classlistv1.GetClassNaturesResp, error) {
+	natures, err := c.svc.GetClassNatures(ctx, req.GetStuId())
+	if err != nil {
+		return &classlistv1.GetClassNaturesResp{}, err
+	}
+	return &classlistv1.GetClassNaturesResp{
+		ClassNatures: natures,
+	}, nil
+}

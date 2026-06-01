@@ -77,40 +77,11 @@ type UpdateClassRequest struct {
 	ClassId string ` json:"classId" binding:"required"`
 }
 
-type RecoverClassRequest struct {
-	// 学年  "2024" 代表"2024-2025学年"
-	Year string ` json:"year" binding:"required"`
-	// 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
-	Semester string ` json:"semester" binding:"required"`
-	// 课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回
-	ClassId string ` json:"classId" binding:"required"`
-}
-
-type SearchRequest struct {
-	// 搜索关键词,匹配的是课程名称和教师姓名
-	SearchKeyWords string `form:"searchKeyWords" binding:"required"`
-	Year           string `form:"year" binding:"required"`      //学年,格式为"2024"代表"2024-2025学年"
-	Semester       string `form:"semester" binding:"required"`  //学期,格式为"1"代表第一学期，"2"代表第二学期，"3"代表第三学期
-	Page           int    `form:"page" binding:"required"`      //页码
-	PageSize       int    `form:"page_size" binding:"required"` //每页大小
-}
-
 type GetClassListResp struct {
 	Classes         []*ClassInfo `json:"classes" binding:"required"`
 	LastRefreshTime int64        `json:"last_refresh_time" binding:"required"` //上次刷新时间的时间戳,上海时区
 }
 
-type GetRecycleBinClassInfosReq struct {
-	Year     string `form:"year" binding:"required"`     //学年,格式为"2024"代表"2024-2025学年"
-	Semester string `form:"semester" binding:"required"` //学期,格式为"1"代表第一学期，"2"代表第二学期，"3"代表第三学期
-}
-type SearchClassResp struct {
-	ClassInfos []*ClassInfo `json:"classInfos" binding:"required"`
-}
-
-type GetRecycleBinClassInfosResp struct {
-	ClassInfos []*ClassInfo `json:"classInfos" binding:"required"`
-}
 type GetSchoolDayReq struct{}
 
 type GetSchoolDayResp struct {
@@ -129,23 +100,4 @@ type DeleteClassNoteReq struct {
 	Semester string `json:"semester" binding:"required"` //学期
 	Year     string `json:"year" binding:"required"`     //学年
 	ClassId  string `json:"classId" binding:"required"`  //课程ID
-}
-
-type ClassToBeStudiedInfo struct {
-	ID        string `json:"id" binding:"required"`        //课程ID
-	Name      string `json:"name" binding:"required"`      //课程名称
-	Status    string `json:"status" binding:"required"`    //课程状态，未修读/修读中/已修读
-	Property  string `json:"property" binding:"required"`  //课程性质，
-	Credit    string `json:"credit" binding:"required"`    //学分
-	Studiable string `json:"studiable" binding:"required"` //开设学年期
-}
-
-type GetToBeStudiedClassResp struct {
-	IdentityDevelop []ClassToBeStudiedInfo `json:"identity_develop" binding:"required"` // 个性发展课
-	SpecificSkill   []ClassToBeStudiedInfo `json:"specific_skill" binding:"required"`   // 专业主干课
-	CommonEducate   []ClassToBeStudiedInfo `json:"common_educate" binding:"required"`   // 通识教育课
-}
-
-type GetToBeStudiedClassReq struct {
-	Status string `form:"status" binding:"required"` // 课程状态，未修读/修读中/已修读
 }

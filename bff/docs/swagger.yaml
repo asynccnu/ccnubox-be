@@ -102,34 +102,6 @@ definitions:
     - where
     - year
     type: object
-  class.ClassToBeStudiedInfo:
-    properties:
-      credit:
-        description: 学分
-        type: string
-      id:
-        description: 课程ID
-        type: string
-      name:
-        description: 课程名称
-        type: string
-      property:
-        description: 课程性质，
-        type: string
-      status:
-        description: 课程状态，未修读/修读中/已修读
-        type: string
-      studiable:
-        description: 开设学年期
-        type: string
-    required:
-    - credit
-    - id
-    - name
-    - property
-    - status
-    - studiable
-    type: object
   class.DeleteClassNoteReq:
     properties:
       classId:
@@ -175,15 +147,6 @@ definitions:
     - classes
     - last_refresh_time
     type: object
-  class.GetRecycleBinClassInfosResp:
-    properties:
-      classInfos:
-        items:
-          $ref: '#/definitions/class.ClassInfo'
-        type: array
-    required:
-    - classInfos
-    type: object
   class.GetSchoolDayResp:
     properties:
       holiday_time:
@@ -193,61 +156,6 @@ definitions:
     required:
     - holiday_time
     - school_time
-    type: object
-  class.GetToBeStudiedClassReq:
-    properties:
-      status:
-        description: 课程状态，未修读/修读中/已修读
-        type: string
-    required:
-    - status
-    type: object
-  class.GetToBeStudiedClassResp:
-    properties:
-      common_educate:
-        description: 通识教育课
-        items:
-          $ref: '#/definitions/class.ClassToBeStudiedInfo'
-        type: array
-      identity_develop:
-        description: 个性发展课
-        items:
-          $ref: '#/definitions/class.ClassToBeStudiedInfo'
-        type: array
-      specific_skill:
-        description: 专业主干课
-        items:
-          $ref: '#/definitions/class.ClassToBeStudiedInfo'
-        type: array
-    required:
-    - common_educate
-    - identity_develop
-    - specific_skill
-    type: object
-  class.RecoverClassRequest:
-    properties:
-      classId:
-        description: 课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回
-        type: string
-      semester:
-        description: 学期 "1"代表第一学期，"2"代表第二学期，"3"代表第三学期
-        type: string
-      year:
-        description: 学年  "2024" 代表"2024-2025学年"
-        type: string
-    required:
-    - classId
-    - semester
-    - year
-    type: object
-  class.SearchClassResp:
-    properties:
-      classInfos:
-        items:
-          $ref: '#/definitions/class.ClassInfo'
-        type: array
-    required:
-    - classInfos
     type: object
   class.UpdateClassNoteReq:
     properties:
@@ -1605,40 +1513,6 @@ paths:
       summary: 获取课表
       tags:
       - class
-  /class/getRecycle:
-    get:
-      description: 获取已删除但未彻底清除的课表信息
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 学期,格式为"1"代表第一学期，"2"代表第二学期，"3"代表第三学期
-        in: query
-        name: semester
-        required: true
-        type: string
-      - description: 学年,格式为"2024"代表"2024-2025学年"
-        in: query
-        name: year
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功获取回收站课表信息
-          schema:
-            allOf:
-            - $ref: '#/definitions/web.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/class.GetRecycleBinClassInfosResp'
-              type: object
-      summary: 获取回收站课表信息
-      tags:
-      - class
   /class/note/delete:
     post:
       consumes:
@@ -1691,154 +1565,6 @@ paths:
           schema:
             $ref: '#/definitions/web.Response'
       summary: 插入课程备注
-      tags:
-      - class
-  /class/recover:
-    put:
-      consumes:
-      - application/json
-      description: 从回收站恢复课表
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 恢复课表请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/class.RecoverClassRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功恢复课表
-          schema:
-            $ref: '#/definitions/web.Response'
-      summary: 恢复课表
-      tags:
-      - class
-  /class/search:
-    get:
-      description: 根据关键词[教师或者课程名]搜索课程,**注意,但当返回的结果数量大于page_size时,代表还有下一页**,最开始请求的是第一页
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 页码
-        in: query
-        name: page
-        required: true
-        type: integer
-      - description: 每页大小
-        in: query
-        name: page_size
-        required: true
-        type: integer
-      - description: 搜索关键词,匹配的是课程名称和教师姓名
-        in: query
-        name: searchKeyWords
-        required: true
-        type: string
-      - description: 学期,格式为"1"代表第一学期，"2"代表第二学期，"3"代表第三学期
-        in: query
-        name: semester
-        required: true
-        type: string
-      - description: 学年,格式为"2024"代表"2024-2025学年"
-        in: query
-        name: year
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功搜索到课程
-          schema:
-            allOf:
-            - $ref: '#/definitions/web.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/class.SearchClassResp'
-              type: object
-      summary: 搜索课程
-      tags:
-      - class
-  /class/toBeStudied:
-    get:
-      consumes:
-      - application/json
-      description: 获取需要上的课程, 返回全部课程
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功获取待修课程
-          schema:
-            allOf:
-            - $ref: '#/definitions/web.Response'
-            - properties:
-                data:
-                  allOf:
-                  - $ref: '#/definitions/class.GetToBeStudiedClassResp'
-                  - properties:
-                      common_educate:
-                        items:
-                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
-                        type: array
-                      identity_develop:
-                        items:
-                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
-                        type: array
-                      specific_skill:
-                        items:
-                          $ref: '#/definitions/class.ClassToBeStudiedInfo'
-                        type: array
-                    type: object
-              type: object
-      summary: 获取人培课程(全部)
-      tags:
-      - class
-    post:
-      consumes:
-      - application/json
-      description: 根据用户选择返回各种状态的课程
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: 获取待修课请求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/class.GetToBeStudiedClassReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功获取待修课程
-          schema:
-            allOf:
-            - $ref: '#/definitions/web.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/class.GetToBeStudiedClassResp'
-              type: object
-      summary: 获取人培课程(部分)
       tags:
       - class
   /class/update:
@@ -2732,6 +2458,43 @@ paths:
       summary: 预加载总排名
       tags:
       - grade
+  /health/live:
+    get:
+      description: 返回服务存活状态，使用 BasicAuth 进行验证
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            $ref: '#/definitions/web.Response'
+      security:
+      - BasicAuth: []
+      summary: 健康存活检查
+      tags:
+      - health
+  /health/ready:
+    get:
+      description: 检查各依赖服务的健康状态，使用 BasicAuth 进行验证
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+      security:
+      - BasicAuth: []
+      summary: 依赖服务就绪检查
+      tags:
+      - health
   /library/cancel_reserve:
     post:
       consumes:

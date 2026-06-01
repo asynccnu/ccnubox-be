@@ -512,61 +512,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/class/getRecycle": {
-            "get": {
-                "description": "获取已删除但未彻底清除的课表信息",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "class"
-                ],
-                "summary": "获取回收站课表信息",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "学期,格式为\"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
-                        "name": "semester",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "学年,格式为\"2024\"代表\"2024-2025学年\"",
-                        "name": "year",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功获取回收站课表信息",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/class.GetRecycleBinClassInfosResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
         "/class/note/delete": {
             "post": {
                 "description": "根据课程 ID 删除课程备注",
@@ -644,245 +589,6 @@ const docTemplate = `{
                         "description": "成功插入课程备注",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/class/recover": {
-            "put": {
-                "description": "从回收站恢复课表",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "class"
-                ],
-                "summary": "恢复课表",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "恢复课表请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/class.RecoverClassRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功恢复课表",
-                        "schema": {
-                            "$ref": "#/definitions/web.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/class/search": {
-            "get": {
-                "description": "根据关键词[教师或者课程名]搜索课程,**注意,但当返回的结果数量大于page_size时,代表还有下一页**,最开始请求的是第一页",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "class"
-                ],
-                "summary": "搜索课程",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "页码",
-                        "name": "page",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页大小",
-                        "name": "page_size",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "搜索关键词,匹配的是课程名称和教师姓名",
-                        "name": "searchKeyWords",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "学期,格式为\"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
-                        "name": "semester",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "学年,格式为\"2024\"代表\"2024-2025学年\"",
-                        "name": "year",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功搜索到课程",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/class.SearchClassResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/class/toBeStudied": {
-            "get": {
-                "description": "获取需要上的课程, 返回全部课程",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "class"
-                ],
-                "summary": "获取人培课程(全部)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功获取待修课程",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "allOf": [
-                                                {
-                                                    "$ref": "#/definitions/class.GetToBeStudiedClassResp"
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "common_educate": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                                                            }
-                                                        },
-                                                        "identity_develop": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                                                            }
-                                                        },
-                                                        "specific_skill": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "根据用户选择返回各种状态的课程",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "class"
-                ],
-                "summary": "获取人培课程(部分)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "获取待修课请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/class.GetToBeStudiedClassReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功获取待修课程",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/class.GetToBeStudiedClassResp"
-                                        }
-                                    }
-                                }
-                            ]
                         }
                     }
                 }
@@ -2347,6 +2053,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/health/live": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "返回服务存活状态，使用 BasicAuth 进行验证",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "健康存活检查",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/health/ready": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "检查各依赖服务的健康状态，使用 BasicAuth 进行验证",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "依赖服务就绪检查",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/library/cancel_reserve": {
             "post": {
                 "description": "取消预约",
@@ -3681,43 +3452,6 @@ const docTemplate = `{
                 }
             }
         },
-        "class.ClassToBeStudiedInfo": {
-            "type": "object",
-            "required": [
-                "credit",
-                "id",
-                "name",
-                "property",
-                "status",
-                "studiable"
-            ],
-            "properties": {
-                "credit": {
-                    "description": "学分",
-                    "type": "string"
-                },
-                "id": {
-                    "description": "课程ID",
-                    "type": "string"
-                },
-                "name": {
-                    "description": "课程名称",
-                    "type": "string"
-                },
-                "property": {
-                    "description": "课程性质，",
-                    "type": "string"
-                },
-                "status": {
-                    "description": "课程状态，未修读/修读中/已修读",
-                    "type": "string"
-                },
-                "studiable": {
-                    "description": "开设学年期",
-                    "type": "string"
-                }
-            }
-        },
         "class.DeleteClassNoteReq": {
             "type": "object",
             "required": [
@@ -3781,20 +3515,6 @@ const docTemplate = `{
                 }
             }
         },
-        "class.GetRecycleBinClassInfosResp": {
-            "type": "object",
-            "required": [
-                "classInfos"
-            ],
-            "properties": {
-                "classInfos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/class.ClassInfo"
-                    }
-                }
-            }
-        },
         "class.GetSchoolDayResp": {
             "type": "object",
             "required": [
@@ -3807,85 +3527,6 @@ const docTemplate = `{
                 },
                 "school_time": {
                     "type": "integer"
-                }
-            }
-        },
-        "class.GetToBeStudiedClassReq": {
-            "type": "object",
-            "required": [
-                "status"
-            ],
-            "properties": {
-                "status": {
-                    "description": "课程状态，未修读/修读中/已修读",
-                    "type": "string"
-                }
-            }
-        },
-        "class.GetToBeStudiedClassResp": {
-            "type": "object",
-            "required": [
-                "common_educate",
-                "identity_develop",
-                "specific_skill"
-            ],
-            "properties": {
-                "common_educate": {
-                    "description": "通识教育课",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                    }
-                },
-                "identity_develop": {
-                    "description": "个性发展课",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                    }
-                },
-                "specific_skill": {
-                    "description": "专业主干课",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                    }
-                }
-            }
-        },
-        "class.RecoverClassRequest": {
-            "type": "object",
-            "required": [
-                "classId",
-                "semester",
-                "year"
-            ],
-            "properties": {
-                "classId": {
-                    "description": "课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回",
-                    "type": "string"
-                },
-                "semester": {
-                    "description": "学期 \"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
-                    "type": "string"
-                },
-                "year": {
-                    "description": "学年  \"2024\" 代表\"2024-2025学年\"",
-                    "type": "string"
-                }
-            }
-        },
-        "class.SearchClassResp": {
-            "type": "object",
-            "required": [
-                "classInfos"
-            ],
-            "properties": {
-                "classInfos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/class.ClassInfo"
-                    }
                 }
             }
         },

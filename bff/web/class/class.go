@@ -1,43 +1,32 @@
 package class
 
 import (
-	"errors"
-	"sort"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	cs "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classService/v1"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
-	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/copier"
 )
 
 type ClassHandler struct {
-	ClassListClient    classlistv1.ClasserClient
-	CounterClient      counterv1.CounterServiceClient
-	ClassServiceClient cs.ClassServiceClient
-	Administrators     map[string]struct{} // 这里注入的是管理员权限验证配置
-	l                  logger.Logger
+	ClassListClient classlistv1.ClasserClient
+	Administrators  map[string]struct{} // 这里注入的是管理员权限验证配置
+	l               logger.Logger
 }
 
 func NewClassListHandler(
 	ClassListClient classlistv1.ClasserClient,
-	ClassServiceClient cs.ClassServiceClient,
-	CounterClient counterv1.CounterServiceClient,
 	administrators map[string]struct{},
 	l logger.Logger,
 ) *ClassHandler {
 	return &ClassHandler{
-		ClassListClient:    ClassListClient,
-		ClassServiceClient: ClassServiceClient,
-		CounterClient:      CounterClient,
-		Administrators:     administrators,
-		l:                  l,
+		ClassListClient: ClassListClient,
+		Administrators:  administrators,
+		l:               l,
 	}
 }
 
@@ -47,14 +36,9 @@ func (c *ClassHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 	sg.POST("/add", authMiddleware, ginx.WrapClaimsAndReq(c.AddClass))
 	sg.POST("/delete", authMiddleware, ginx.WrapClaimsAndReq(c.DeleteClass))
 	sg.PUT("/update", authMiddleware, ginx.WrapClaimsAndReq(c.UpdateClass))
-	sg.GET("/getRecycle", authMiddleware, ginx.WrapClaimsAndReq(c.GetRecycleBinClassInfos))
-	sg.PUT("/recover", authMiddleware, ginx.WrapClaimsAndReq(c.RecoverClass))
-	sg.GET("/search", authMiddleware, ginx.WrapReq(c.SearchClass))
 	sg.GET("/day/get", ginx.Wrap(c.GetSchoolDay))
 	sg.POST("/note/insert", authMiddleware, ginx.WrapClaimsAndReq(c.InsertClassNote))
 	sg.POST("/note/delete", authMiddleware, ginx.WrapClaimsAndReq(c.DeleteClassNote))
-	sg.GET("/toBeStudied", authMiddleware, ginx.WrapClaims(c.GetToBeStudiedClass))
-	sg.POST("/toBeStudied", authMiddleware, ginx.WrapClaimsAndReq(c.GetToBeStudiedClassByStatus))
 }
 
 // GetClassList 获取课表
@@ -213,117 +197,6 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 	}, nil
 }
 
-// GetRecycleBinClassInfos 获取回收站中的课表信息
-// @Summary 获取回收站课表信息
-// @Description 获取已删除但未彻底清除的课表信息
-// @Tags class
-// @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Param request query GetRecycleBinClassInfosReq true "获取回收站中的课表信息参数"
-// @Success 200 {object} web.Response{data=GetRecycleBinClassInfosResp} "成功获取回收站课表信息"
-// @Router /class/getRecycle [get]
-func (c *ClassHandler) GetRecycleBinClassInfos(ctx *gin.Context, req GetRecycleBinClassInfosReq, uc ijwt.UserClaims) (web.Response, error) {
-	classes, err := c.ClassListClient.GetRecycleBinClassInfos(ctx, &classlistv1.GetRecycleBinClassRequest{
-		StuId:    uc.StudentId,
-		Semester: req.Semester,
-		Year:     req.Year,
-	})
-	if err != nil {
-		return web.Response{}, errs.GET_RECYCLE_CLASS_ERROR(err)
-	}
-	var resp GetRecycleBinClassInfosResp
-	err = copier.Copy(&resp.ClassInfos, &classes.ClassInfos)
-	if err != nil {
-		return web.Response{}, errs.TYPE_CHANGE_ERROR(err)
-	}
-
-	for i := 0; i < len(resp.ClassInfos); i++ {
-		resp.ClassInfos[i].Weeks = convertWeekFromIntToArray(classes.ClassInfos[i].Weeks)
-	}
-
-	return web.Response{
-		Msg:  "Success",
-		Data: resp,
-	}, nil
-}
-
-// RecoverClass 恢复课表
-// @Summary 恢复课表
-// @Description 从回收站恢复课表
-// @Tags class
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Param request body RecoverClassRequest true "恢复课表请求"
-// @Success 200 {object} web.Response "成功恢复课表"
-// @Router /class/recover [put]
-func (c *ClassHandler) RecoverClass(ctx *gin.Context, req RecoverClassRequest, uc ijwt.UserClaims) (web.Response, error) {
-	_, err := c.ClassListClient.RecoverClass(ctx, &classlistv1.RecoverClassRequest{
-		StuId:    uc.StudentId,
-		Semester: req.Semester,
-		Year:     req.Year,
-		ClassId:  req.ClassId,
-	})
-	if err != nil {
-		return web.Response{}, errs.RECOVER_CLASS_ERROR(err)
-	}
-	return web.Response{
-		Msg: "Success",
-	}, nil
-}
-
-// SearchClass 查询课程
-// @Summary 搜索课程
-// @Description 根据关键词[教师或者课程名]搜索课程,**注意,但当返回的结果数量大于page_size时,代表还有下一页**,最开始请求的是第一页
-// @Tags class
-// @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Param request query SearchRequest true "查询课程请求参数"
-// @Success 200 {object} web.Response{data=SearchClassResp} "成功搜索到课程"
-// @Router /class/search [get]
-func (c *ClassHandler) SearchClass(ctx *gin.Context, req SearchRequest) (web.Response, error) {
-	if req.Page <= 0 || req.PageSize <= 0 {
-		return web.Response{}, errs.INVALID_PARAM_VALUE_ERROR(errors.New("page or pageSize must be greater than 0"))
-	}
-
-	classes, err := c.ClassServiceClient.SearchClass(ctx, &cs.SearchRequest{
-		Year:           req.Year,
-		Semester:       req.Semester,
-		SearchKeyWords: req.SearchKeyWords,
-		Page:           int32(req.Page),
-		PageSize:       int32(req.PageSize),
-	})
-	if err != nil {
-		return web.Response{}, errs.SEARCH_CLASS_ERROR(err)
-	}
-	var resp SearchClassResp
-
-	respClasses := make([]*ClassInfo, 0, len(classes.ClassInfos))
-
-	for _, class := range classes.ClassInfos {
-		respClasses = append(respClasses, &ClassInfo{
-			ID:           class.Id,
-			Day:          class.Day,
-			Teacher:      class.Teacher,
-			Where:        class.Where,
-			ClassWhen:    class.ClassWhen,
-			WeekDuration: class.WeekDuration,
-			Classname:    class.Classname,
-			Credit:       class.Credit,
-			Weeks:        convertWeekFromIntToArray(class.Weeks),
-			Semester:     class.Semester,
-			Year:         class.Year,
-		})
-	}
-
-	resp.ClassInfos = respClasses
-
-	return web.Response{
-		Msg:  "Success",
-		Data: resp,
-	}, nil
-}
-
 // GetSchoolDay 获取当前周
 // @Summary 获取当前周
 // @Description 获取当前周
@@ -410,78 +283,6 @@ func (c *ClassHandler) DeleteClassNote(ctx *gin.Context, req DeleteClassNoteReq,
 	return web.Response{
 		Msg: resp.Msg,
 	}, nil
-}
-
-// GetToBeStudiedClass 获取人培课程(全部)
-// @Summary 获取人培课程(全部)
-// @Description 获取需要上的课程, 返回全部课程
-// @Tags class
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Success 200 {object} web.Response{data=GetToBeStudiedClassResp{identity_develop=[]ClassToBeStudiedInfo,specific_skill=[]ClassToBeStudiedInfo,common_educate=[]ClassToBeStudiedInfo}} "成功获取待修课程"
-// @Router /class/toBeStudied [get]
-func (c *ClassHandler) GetToBeStudiedClass(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
-	res, err := c.ClassServiceClient.GetClassToBeStudied(ctx, &cs.GetClassToBeStudiedRequest{
-		StuId: uc.StudentId,
-	})
-	if err != nil {
-		return web.Response{}, errs.GET_TO_BE_STUDIED_CLASS_ERROR(err)
-	}
-
-	var resp GetToBeStudiedClassResp
-	if err = copier.Copy(&resp, res); err != nil {
-		return web.Response{}, errs.TYPE_CHANGE_ERROR(err)
-	}
-	sortClassesResp(&resp)
-
-	return web.Response{
-		Msg:  "Success",
-		Data: resp,
-	}, nil
-}
-
-// GetToBeStudiedClassByStatus 根据状态获取待修课程
-// @Summary 获取人培课程(部分)
-// @Description 根据用户选择返回各种状态的课程
-// @Tags class
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Param request body GetToBeStudiedClassReq true "获取待修课请求"
-// @Success 200 {object} web.Response{data=GetToBeStudiedClassResp} "成功获取待修课程"
-// @Router /class/toBeStudied [post]
-func (c *ClassHandler) GetToBeStudiedClassByStatus(ctx *gin.Context, req GetToBeStudiedClassReq, uc ijwt.UserClaims) (web.Response, error) {
-	res, err := c.ClassServiceClient.GetClassToBeStudied(ctx, &cs.GetClassToBeStudiedRequest{
-		StuId:  uc.StudentId,
-		Status: req.Status,
-	})
-	if err != nil {
-		return web.Response{}, errs.GET_TO_BE_STUDIED_CLASS_ERROR(err)
-	}
-
-	var resp GetToBeStudiedClassResp
-	if err = copier.Copy(&resp, res); err != nil {
-		return web.Response{}, errs.TYPE_CHANGE_ERROR(err)
-	}
-	sortClassesResp(&resp)
-
-	return web.Response{
-		Msg:  "Success",
-		Data: resp,
-	}, nil
-}
-
-func sortClassesResp(r *GetToBeStudiedClassResp) {
-	sortClassesById(r.SpecificSkill)
-	sortClassesById(r.IdentityDevelop)
-	sortClassesById(r.CommonEducate)
-}
-
-func sortClassesById(classes []ClassToBeStudiedInfo) {
-	sort.Slice(classes, func(i, j int) bool {
-		return classes[i].ID < classes[j].ID
-	})
 }
 
 func convertWeekFromArrayToInt(weeks []int) int64 {

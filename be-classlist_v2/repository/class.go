@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	bizModel "github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/transaction"
 	repoModel "github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
@@ -53,8 +52,8 @@ func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semes
 	if !cacheHit {
 		classInfos, err = cla.ClaInfoDAO.GetClassInfos(ctx, stuID, year, semester)
 		if err != nil {
-			return nil, errorx.Errorf("repo.class.GetClassesFromLocal: stuID=%s, year=%s, semester=%s, dbErr=%s: %w",
-				stuID, year, semester, err.Error(), errcode.ErrClassFound)
+			return nil, errorx.Errorf("repo.class.GetClassesFromLocal: stuID=%s, year=%s, semester=%s: %w",
+				stuID, year, semester, err)
 		}
 
 		// 在从数据库读取数据之后，同步写入缓存
@@ -66,7 +65,8 @@ func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semes
 	}
 
 	if len(classInfos) == 0 {
-		return nil, errcode.ErrClassNotFound
+		return nil, errorx.Errorf("repo.class.GetClassesFromLocal: stuID=%s, year=%s, semester=%s: %w",
+			stuID, year, semester, biz.ErrClassNotFound)
 	}
 
 	classInfosBiz := make([]*bizModel.ClassInfoBO, 0, len(classInfos))
@@ -100,7 +100,7 @@ func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string,
 		}
 		if cnt > MaxNum {
 			return errorx.Errorf("repo.class.AddClass: classlist num limit, count=%d, max=%d: %w",
-				cnt, MaxNum, errcode.ErrClassUpdate)
+				cnt, MaxNum, biz.ErrClassUpdateRejected)
 		}
 		return nil
 	})

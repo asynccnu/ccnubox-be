@@ -3,7 +3,6 @@ package dao
 import (
 	"context"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
@@ -96,7 +95,7 @@ func (s *StudentCourseDAO) SaveStudentAndCourseToDB(ctx context.Context, sc *mod
 	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(sc).Error
 	if err != nil {
 		logh.Errorf("Mysql:create %v in %s failed: %v", sc, model.StudentCourseTableName, err)
-		return errcode.ErrClassUpdate
+		return errorx.Errorf("dao.studentCourse.SaveStudentAndCourseToDB: sc=%+v: %w", sc, err)
 	}
 	return nil
 }
@@ -112,7 +111,7 @@ func (s *StudentCourseDAO) SaveManyStudentAndCourseToDB(ctx context.Context, scs
 
 	if err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(scs).Error; err != nil {
 		logh.Errorf("Mysql:create %v in %s failed: %v", scs, model.StudentCourseTableName, err)
-		return errcode.ErrCourseSave
+		return errorx.Errorf("dao.studentCourse.SaveManyStudentAndCourseToDB: count=%d: %w", len(scs), err)
 	}
 	return nil
 }
@@ -124,7 +123,7 @@ func (s *StudentCourseDAO) DeleteStudentAndCourseByTimeFromDB(ctx context.Contex
 	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND is_manually_added = false", year, semester, stuID).Delete(&model.StudentCourse{}).Error
 	if err != nil {
 		logh.Errorf("Mysql:delete student_course by time from db failed: %v", err)
-		return errcode.ErrClassDelete
+		return errorx.Errorf("dao.studentCourse.DeleteStudentAndCourseByTimeFromDB: stuID=%s, year=%s, semester=%s: %w", stuID, year, semester, err)
 	}
 	return nil
 }
@@ -141,7 +140,7 @@ func (s *StudentCourseDAO) DeleteAddedStudentCourses(ctx context.Context, stuID,
 		Delete(&model.StudentCourse{}).Error
 	if err != nil {
 		logh.Errorf("Mysql:delete added student_course failed: stuID=%s year=%s semester=%s classIDs=%v err=%v", stuID, year, semester, classIDs, err)
-		return errcode.ErrClassDelete
+		return errorx.Errorf("dao.studentCourse.DeleteAddedStudentCourses: stuID=%s, year=%s, semester=%s, classIDs=%v: %w", stuID, year, semester, classIDs, err)
 	}
 	return nil
 }
@@ -154,7 +153,7 @@ func (s *StudentCourseDAO) UpdateCourseNote(ctx context.Context, stuID, year, se
 		Update("note", note).Error
 	if err != nil {
 		logh.Errorf("Mysql:update course note failed: stuID=%s year=%s semester=%s classID=%s err=%v", stuID, year, semester, classID, err)
-		return errcode.ErrClassUpdate
+		return errorx.Errorf("dao.studentCourse.UpdateCourseNote: stuID=%s, year=%s, semester=%s, classID=%s: %w", stuID, year, semester, classID, err)
 	}
 	return nil
 }

@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	classTool "github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/tool"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 )
@@ -111,13 +111,13 @@ func (cluc *ClassUsecase) hasScheduleConflict(ctx context.Context, stuID string,
 			logger.String("semester", info.Semester),
 			logger.String("class_id", info.ID),
 		)
-		return true, errcode.ErrClassIsExist
+		return true, errorx.Errorf("usecase.class.hasScheduleConflict: classID=%s: %w", info.ID, biz.ErrClassAlreadyExists)
 	}
 
 	// 拉取本地课表检查是否有冲突
 	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, info.Year, info.Semester)
 	if err != nil {
-		if errors.Is(err, errcode.ErrClassNotFound) {
+		if errors.Is(err, biz.ErrClassNotFound) {
 			return false, nil
 		}
 		return false, err
@@ -140,7 +140,8 @@ func (cluc *ClassUsecase) hasScheduleConflictWithClassesExcept(ctx context.Conte
 	// 解析节次
 	newSections, err := classTool.ParseClassSections(info.ClassWhen)
 	if err != nil {
-		return false, errcode.ErrParam
+		return false, errorx.Errorf("usecase.class.hasScheduleConflictWithClassesExcept: classWhen=%s: %w",
+			info.ClassWhen, biz.ErrInvalidParam)
 	}
 
 	for _, classInfo := range classes {

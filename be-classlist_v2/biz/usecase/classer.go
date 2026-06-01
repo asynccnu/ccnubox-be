@@ -2,15 +2,14 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
 	classTool "github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/tool"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"golang.org/x/sync/singleflight"
 )
@@ -151,7 +150,7 @@ func (cluc *ClassUsecase) AddClass(ctx context.Context, stuID string, info *mode
 			logger.String("class_when", info.ClassWhen),
 			logger.Int64("weeks", info.Weeks),
 		)
-		return errcode.ErrClassScheduleConflict
+		return errorx.Errorf("usecase.class.AddClass: class schedule conflict: %w", biz.ErrClassScheduleConflict)
 	}
 
 	return cluc.classRepo.AddClass(ctx, stuID, info.Year, info.Semester, info, sc)
@@ -162,9 +161,6 @@ func (cluc *ClassUsecase) DeleteClass(ctx context.Context, stuID, year, semester
 
 	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
 	if err != nil {
-		if errors.Is(err, errcode.ErrClassNotFound) {
-			return errcode.ErrSCIDNOTEXIST
-		}
 		return err
 	}
 
@@ -176,7 +172,7 @@ func (cluc *ClassUsecase) DeleteClass(ctx context.Context, stuID, year, semester
 		}
 	}
 	if target == nil {
-		return errcode.ErrSCIDNOTEXIST
+		return errorx.Errorf("usecase.class.DeleteClass: classID=%s: %w", classID, biz.ErrStudentCourseNotFound)
 	}
 	if target.MetaData.IsOfficial {
 		logh.Warn("reject deleting official class",
@@ -185,7 +181,7 @@ func (cluc *ClassUsecase) DeleteClass(ctx context.Context, stuID, year, semester
 			logger.String("semester", semester),
 			logger.String("class_id", classID),
 		)
-		return errcode.ErrClassDelete
+		return errorx.Errorf("usecase.class.DeleteClass: reject official classID=%s: %w", classID, biz.ErrClassDeleteRejected)
 	}
 
 	if err := cluc.classRepo.DeleteAddedClasses(ctx, stuID, year, semester, []string{classID}); err != nil {
@@ -207,9 +203,6 @@ func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester
 	// 拿数据库数据
 	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
 	if err != nil {
-		if errors.Is(err, errcode.ErrClassNotFound) {
-			return "", errcode.ErrSCIDNOTEXIST
-		}
 		return "", err
 	}
 
@@ -221,7 +214,7 @@ func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester
 		}
 	}
 	if oldInfo == nil {
-		return "", errcode.ErrSCIDNOTEXIST
+		return "", errorx.Errorf("usecase.class.UpdateClass: oldClassID=%s: %w", oldClassID, biz.ErrStudentCourseNotFound)
 	}
 	// 防御一下，正常情况不可能升级官方课程的，前端不会提供入口
 	if oldInfo.MetaData.IsOfficial {
@@ -231,7 +224,7 @@ func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester
 			logger.String("semester", semester),
 			logger.String("class_id", oldClassID),
 		)
-		return "", errcode.ErrClassUpdate
+		return "", errorx.Errorf("usecase.class.UpdateClass: reject official classID=%s: %w", oldClassID, biz.ErrClassUpdateRejected)
 	}
 
 	newInfo := *oldInfo
@@ -266,7 +259,7 @@ func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester
 			logger.String("semester", semester),
 			logger.String("class_id", newInfo.ID),
 		)
-		return "", errcode.ErrClassIsExist
+		return "", errorx.Errorf("usecase.class.UpdateClass: classID=%s: %w", newInfo.ID, biz.ErrClassAlreadyExists)
 	}
 
 	// 判定冲突
@@ -285,7 +278,8 @@ func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester
 			logger.String("class_when", newInfo.ClassWhen),
 			logger.Int64("weeks", newInfo.Weeks),
 		)
-		return "", errcode.ErrClassScheduleConflict
+		return "", errorx.Errorf("usecase.class.UpdateClass: class schedule conflict oldClassID=%s newClassID=%s: %w",
+			oldClassID, newInfo.ID, biz.ErrClassScheduleConflict)
 	}
 
 	sc := &model.StudentCourseBO{
@@ -315,9 +309,6 @@ func (cluc *ClassUsecase) UpdateClassNote(ctx context.Context, stuID, year, seme
 
 	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
 	if err != nil {
-		if errors.Is(err, errcode.ErrClassNotFound) {
-			return errcode.ErrSCIDNOTEXIST
-		}
 		return err
 	}
 
@@ -329,7 +320,7 @@ func (cluc *ClassUsecase) UpdateClassNote(ctx context.Context, stuID, year, seme
 		}
 	}
 	if !found {
-		return errcode.ErrSCIDNOTEXIST
+		return errorx.Errorf("usecase.class.UpdateClassNote: classID=%s: %w", classID, biz.ErrStudentCourseNotFound)
 	}
 
 	if err := cluc.classRepo.UpdateClassNote(ctx, stuID, year, semester, classID, note); err != nil {
@@ -347,8 +338,11 @@ func (cluc *ClassUsecase) UpdateClassNote(ctx context.Context, stuID, year, seme
 
 func (cluc *ClassUsecase) GetStuIdsByJxbId(ctx context.Context, jxbID string) ([]string, error) {
 	stuIDs, err := cluc.jxbRepo.FindStuIdsByJxbId(ctx, jxbID)
-	if err != nil || len(stuIDs) == 0 {
-		return []string{}, errcode.ErrGetStuIdByJxbId
+	if err != nil {
+		return []string{}, errorx.Errorf("usecase.class.GetStuIdsByJxbId: jxbID=%s: %w", jxbID, err)
+	}
+	if len(stuIDs) == 0 {
+		return []string{}, errorx.Errorf("usecase.class.GetStuIdsByJxbId: jxbID=%s: %w", jxbID, biz.ErrGetStuIDsByJxbID)
 	}
 	return stuIDs, nil
 }

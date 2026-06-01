@@ -43,12 +43,14 @@ func (c *ClassHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 
 // GetClassList 获取课表
 // @Summary 获取课表
-// @Description 根据学期、学年等条件获取课表
+// @Description 根据学年、学期获取当前登录学生的课表。refresh=false 优先读缓存/本地数据，refresh=true 会触发刷新。成功时 code=0；业务失败通常仍由统一响应体返回 code=50001 和 msg。
 // @Tags class
 // @Produce json
-// @Param Authorization header string true "Bearer Token"
+// @Param Authorization header string true "Bearer Token，例如 Bearer xxx"
 // @Param request query GetClassListRequest true "获取课表请求参数"
 // @Success 200 {object} web.Response{data=GetClassListResp} "成功返回课表"
+// @Failure 401 {object} web.Response "未登录或 token 无效，code=40001"
+// @Failure 422 {object} web.Response "请求参数错误，code=40002"
 // @Router /class/get [get]
 func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, uc ijwt.UserClaims) (web.Response, error) {
 	if req.Refresh == nil {
@@ -98,14 +100,16 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 }
 
 // AddClass 添加课表
-// @Summary 添加课表
-// @Description 添加新的课表
+// @Summary 添加自定义课程
+// @Description 给当前登录学生添加一门自定义课程。weeks 必须是周次数组，例如 [1,2,3]；dur_class 是节次范围，例如 "1-2"。成功时 code=0；添加失败、课程已存在、时间冲突等会返回 code=50001 和对应 msg。
 // @Tags class
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Param request body AddClassRequest true "课表信息"
-// @Success 200 {object} web.Response "成功添加课表"
+// @Param Authorization header string true "Bearer Token，例如 Bearer xxx"
+// @Param request body AddClassRequest true "自定义课程信息"
+// @Success 200 {object} web.Response "成功添加课程，code=0"
+// @Failure 401 {object} web.Response "未登录或 token 无效，code=40001"
+// @Failure 422 {object} web.Response "请求参数错误，code=40002"
 // @Router /class/add [post]
 func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.UserClaims) (web.Response, error) {
 	weeks := convertWeekFromArrayToInt(req.Weeks)
@@ -133,14 +137,16 @@ func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.U
 }
 
 // DeleteClass 删除课表
-// @Summary 删除课表
-// @Description 根据课表ID删除课表
+// @Summary 删除自定义课程
+// @Description 根据课程 ID 删除当前登录学生的自定义课程。教务系统导入课程不支持删除。成功时 code=0；删除失败或删除官方课程会返回 code=50001 和 msg。
 // @Tags class
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Param request body DeleteClassRequest true "删除课表请求"
-// @Success 200 {object} web.Response "成功删除课表"
+// @Param Authorization header string true "Bearer Token，例如 Bearer xxx"
+// @Param request body DeleteClassRequest true "删除课程请求"
+// @Success 200 {object} web.Response "成功删除课程，code=0"
+// @Failure 401 {object} web.Response "未登录或 token 无效，code=40001"
+// @Failure 422 {object} web.Response "请求参数错误，code=40002"
 // @Router /class/delete [post]
 func (c *ClassHandler) DeleteClass(ctx *gin.Context, req DeleteClassRequest, uc ijwt.UserClaims) (web.Response, error) {
 	_, err := c.ClassListClient.DeleteClass(ctx, &classlistv1.DeleteClassRequest{
@@ -158,14 +164,16 @@ func (c *ClassHandler) DeleteClass(ctx *gin.Context, req DeleteClassRequest, uc 
 }
 
 // UpdateClass 更新课表信息
-// @Summary 更新课表信息
-// @Description 根据课表ID更新课表信息
+// @Summary 更新自定义课程
+// @Description 根据课程 ID 更新当前登录学生的自定义课程。可更新课程名称、节次、地点、教师、周次、星期几、学分；更新后课程 ID 可能改变。成功时 code=0；更新失败或时间冲突会返回 code=50001 和 msg。
 // @Tags class
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Param request body UpdateClassRequest true "更新课表请求"
-// @Success 200 {object} web.Response "成功更新课表"
+// @Param Authorization header string true "Bearer Token，例如 Bearer xxx"
+// @Param request body UpdateClassRequest true "更新课程请求"
+// @Success 200 {object} web.Response "成功更新课程，code=0"
+// @Failure 401 {object} web.Response "未登录或 token 无效，code=40001"
+// @Failure 422 {object} web.Response "请求参数错误，code=40002"
 // @Router /class/update [put]
 func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc ijwt.UserClaims) (web.Response, error) {
 	var weeks *int64
@@ -198,12 +206,11 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 }
 
 // GetSchoolDay 获取当前周
-// @Summary 获取当前周
-// @Description 获取当前周
+// @Summary 获取学期日期配置
+// @Description 获取当前学期的开学日期和放假日期，返回秒级时间戳。前端用 school_time 计算当前周，用 holiday_time 判断学期边界。成功时 code=0；配置缺失或格式错误会返回 code=50001。
 // @Tags class
 // @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Success 200 {object} web.Response{data=GetSchoolDayResp} "成功获取到当前周"
+// @Success 200 {object} web.Response{data=GetSchoolDayResp} "成功返回学期日期配置"
 // @Router /class/day/get [get]
 func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
 	res, err := c.ClassListClient.GetSchoolDay(ctx, &classlistv1.GetSchoolDayReq{})
@@ -235,14 +242,16 @@ func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
 }
 
 // InsertClassNote 插入课程备注
-// @Summary 插入课程备注
-// @Description 根据课程 ID 更新课程备注
+// @Summary 添加或更新课程备注
+// @Description 根据课程 ID 给当前登录学生的课程添加或更新备注。成功时 code=0；课程不存在或保存失败会返回 code=50001 和 msg。
 // @Tags class
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer Token"
-// @Param request body UpdateClassNoteReq true "更新课程备注请求"
-// @Success 200 {object} web.Response "成功插入课程备注"
+// @Param Authorization header string true "Bearer Token，例如 Bearer xxx"
+// @Param request body UpdateClassNoteReq true "添加或更新课程备注请求"
+// @Success 200 {object} web.Response "成功添加或更新课程备注，code=0"
+// @Failure 401 {object} web.Response "未登录或 token 无效，code=40001"
+// @Failure 422 {object} web.Response "请求参数错误，code=40002"
 // @Router /class/note/insert [post]
 func (c *ClassHandler) InsertClassNote(ctx *gin.Context, req UpdateClassNoteReq, uc ijwt.UserClaims) (web.Response, error) {
 	resp, err := c.ClassListClient.UpdateClassNote(ctx, &classlistv1.UpdateClassNoteReq{
@@ -262,13 +271,15 @@ func (c *ClassHandler) InsertClassNote(ctx *gin.Context, req UpdateClassNoteReq,
 
 // DeleteClassNote 删除课程备注
 // @Summary 删除课程备注
-// @Description 根据课程 ID 删除课程备注
+// @Description 根据课程 ID 删除当前登录学生的课程备注。成功时 code=0；课程不存在或删除失败会返回 code=50001 和 msg。
 // @Tags class
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer Token"
+// @Param Authorization header string true "Bearer Token，例如 Bearer xxx"
 // @Param request body DeleteClassNoteReq true "删除课程备注请求"
-// @Success 200 {object} web.Response "成功删除课程备注"
+// @Success 200 {object} web.Response "成功删除课程备注，code=0"
+// @Failure 401 {object} web.Response "未登录或 token 无效，code=40001"
+// @Failure 422 {object} web.Response "请求参数错误，code=40002"
 // @Router /class/note/delete [post]
 func (c *ClassHandler) DeleteClassNote(ctx *gin.Context, req DeleteClassNoteReq, uc ijwt.UserClaims) (web.Response, error) {
 	resp, err := c.ClassListClient.DeleteClassNote(ctx, &classlistv1.DeleteClassNoteReq{

@@ -165,3 +165,13 @@ func (c *ClasslistServiceServer) DeleteClassNote(ctx context.Context, req *class
 		Msg: msg,
 	}, nil
 }
+
+func (c *ClasslistServiceServer) GetStuIdByJxbId(ctx context.Context, req *classlistv1.GetStuIdByJxbIdRequest) (*classlistv1.GetStuIdByJxbIdResponse, error) {
+	stuIDs, err := c.svc.GetStuIdsByJxbId(ctx, req.GetJxbId())
+	if err != nil {
+		return &classlistv1.GetStuIdByJxbIdResponse{}, err
+	}
+	return &classlistv1.GetStuIdByJxbIdResponse{
+		StuId: stuIDs,
+	}, nil
+}

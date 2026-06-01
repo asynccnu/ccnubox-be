@@ -180,6 +180,20 @@ func (s *ClassListService) DeleteClassNote(ctx context.Context, stuID, year, sem
 	return "删除课程备注成功", nil
 }
 
+func (s *ClassListService) GetStuIdsByJxbId(ctx context.Context, jxbID string) ([]string, error) {
+	logh := s.log.WithContext(ctx).With(logger.String("jxb_id", jxbID))
+	if jxbID == "" {
+		logh.Warn("get stu ids by jxb id param invalid")
+		return nil, errcode.ErrParam
+	}
+
+	stuIDs, err := s.clu.GetStuIdsByJxbId(ctx, jxbID)
+	if err != nil {
+		return nil, err
+	}
+	return stuIDs, nil
+}
+
 func (s *ClassListService) GetSchoolDay(ctx context.Context) (holidayTime, schoolTime string, err error) {
 	logh := s.log.WithContext(ctx)
 

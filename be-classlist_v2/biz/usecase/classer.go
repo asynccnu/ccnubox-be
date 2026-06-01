@@ -344,3 +344,11 @@ func (cluc *ClassUsecase) UpdateClassNote(ctx context.Context, stuID, year, seme
 	}
 	return nil
 }
+
+func (cluc *ClassUsecase) GetStuIdsByJxbId(ctx context.Context, jxbID string) ([]string, error) {
+	stuIDs, err := cluc.jxbRepo.FindStuIdsByJxbId(ctx, jxbID)
+	if err != nil || len(stuIDs) == 0 {
+		return []string{}, errcode.ErrGetStuIdByJxbId
+	}
+	return stuIDs, nil
+}

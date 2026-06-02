@@ -26,7 +26,7 @@ func (c ClassInfoDAO) SaveClassInfosToDB(ctx context.Context, classInfos []*mode
 	}
 
 	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
-	err := db.Debug().
+	err := db.
 		Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "id"}},
 			DoUpdates: clause.AssignmentColumns([]string{
@@ -51,7 +51,7 @@ func (c ClassInfoDAO) AddClassInfoToDB(ctx context.Context, classInfo *model.Cla
 
 	// 约定将事务 db 从 ctx 中取出来
 	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
-	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&classInfo).Error
+	err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&classInfo).Error
 	if err != nil {
 		return errorx.Errorf("dao.classInfo.AddClassInfoToDB: classInfo=%+v: %w", classInfo, err)
 	}
@@ -67,7 +67,7 @@ func (c ClassInfoDAO) UpsertClassInfoToDB(ctx context.Context, classInfo *model.
 	}
 
 	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
-	err := db.Debug().
+	err := db.
 		Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "id"}},
 			DoUpdates: clause.AssignmentColumns([]string{
@@ -99,7 +99,7 @@ func (c ClassInfoDAO) DeleteAddedClassInfos(ctx context.Context, classIDs []stri
 	}
 
 	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
-	err := db.Debug().
+	err := db.
 		Where("id IN ?", classIDs).
 		Delete(&model.ClassInfo{}).Error
 	if err != nil {

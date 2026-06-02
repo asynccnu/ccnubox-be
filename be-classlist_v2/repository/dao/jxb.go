@@ -35,7 +35,7 @@ func (j *JxbDAO) SaveJxb(ctx context.Context, stuID string, jxbID []string) erro
 		})
 	}
 
-	if err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&jxb).Error; err != nil {
+	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&jxb).Error; err != nil {
 		return errorx.Errorf("dao.jxb.SaveJxb: stuID=%s, jxbIDs=%v, table=%s: %w", stuID, jxbID, model.JxbTableName, err)
 	}
 	return nil

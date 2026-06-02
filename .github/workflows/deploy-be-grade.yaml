@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'be-grade/**'
+      - 'common/**'
+      - '.github/workflows/deploy-be-grade.yaml'
 env:
   SERVICE_NAME: be-grade  # 👈 这里设置的是全局环境变量
   SERVICE_VERSION: BE_GRADE  # 👈 这里设置的是 Docker Compose 文件中使用的环境变量名称

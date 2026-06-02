@@ -332,7 +332,7 @@ const docTemplate = `{
         },
         "/class/add": {
             "post": {
-                "description": "添加新的课表",
+                "description": "给当前登录学生添加一门自定义课程。weeks 必须是周次数组，例如 [1,2,3]；dur_class 是节次范围，例如 \"1-2\"。成功时 code=0；添加失败、课程已存在、时间冲突等会返回 code=50001 和对应 msg。",
                 "consumes": [
                     "application/json"
                 ],
@@ -342,17 +342,17 @@ const docTemplate = `{
                 "tags": [
                     "class"
                 ],
-                "summary": "添加课表",
+                "summary": "添加自定义课程",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "Bearer Token，例如 Bearer xxx",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
                     {
-                        "description": "课表信息",
+                        "description": "自定义课程信息",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -363,7 +363,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "成功添加课表",
+                        "description": "成功添加课程，code=0",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或 token 无效，code=40001",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "请求参数错误，code=40002",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -373,26 +385,17 @@ const docTemplate = `{
         },
         "/class/day/get": {
             "get": {
-                "description": "获取当前周",
+                "description": "获取当前学期的开学日期和放假日期，返回秒级时间戳。前端用 school_time 计算当前周，用 holiday_time 判断学期边界。成功时 code=0；配置缺失或格式错误会返回 code=50001。",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "class"
                 ],
-                "summary": "获取当前周",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
+                "summary": "获取学期日期配置",
                 "responses": {
                     "200": {
-                        "description": "成功获取到当前周",
+                        "description": "成功返回学期日期配置",
                         "schema": {
                             "allOf": [
                                 {
@@ -414,7 +417,7 @@ const docTemplate = `{
         },
         "/class/delete": {
             "post": {
-                "description": "根据课表ID删除课表",
+                "description": "根据课程 ID 删除当前登录学生的自定义课程。教务系统导入课程不支持删除。成功时 code=0；删除失败或删除官方课程会返回 code=50001 和 msg。",
                 "consumes": [
                     "application/json"
                 ],
@@ -424,17 +427,17 @@ const docTemplate = `{
                 "tags": [
                     "class"
                 ],
-                "summary": "删除课表",
+                "summary": "删除自定义课程",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "Bearer Token，例如 Bearer xxx",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
                     {
-                        "description": "删除课表请求",
+                        "description": "删除课程请求",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -445,7 +448,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "成功删除课表",
+                        "description": "成功删除课程，code=0",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或 token 无效，code=40001",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "请求参数错误，code=40002",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -455,7 +470,7 @@ const docTemplate = `{
         },
         "/class/get": {
             "get": {
-                "description": "根据学期、学年等条件获取课表",
+                "description": "根据学年、学期获取当前登录学生的课表。refresh=false 优先读缓存/本地数据，refresh=true 会触发刷新。成功时 code=0；业务失败通常仍由统一响应体返回 code=50001 和 msg。",
                 "produces": [
                     "application/json"
                 ],
@@ -466,26 +481,30 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "Bearer Token，例如 Bearer xxx",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "boolean",
+                        "example": false,
+                        "description": "是否强制刷新课表",
                         "name": "refresh",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "binding:\"required\" // 为添加默认值处理的妥协做法",
+                        "example": "2",
+                        "description": "学期,\"1\"第一学期,\"2\"第二学期,\"3\"第三学期",
                         "name": "semester",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "binding:\"required\" //学年,格式为\"2024\"代表\"2024-2025学年\"` + "`" + `",
+                        "example": "2025",
+                        "description": "学年,格式为\"2025\"代表\"2025-2026学年\"",
                         "name": "year",
                         "in": "query"
                     }
@@ -508,60 +527,17 @@ const docTemplate = `{
                                 }
                             ]
                         }
-                    }
-                }
-            }
-        },
-        "/class/getRecycle": {
-            "get": {
-                "description": "获取已删除但未彻底清除的课表信息",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "class"
-                ],
-                "summary": "获取回收站课表信息",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
                     },
-                    {
-                        "type": "string",
-                        "description": "学期,格式为\"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
-                        "name": "semester",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "学年,格式为\"2024\"代表\"2024-2025学年\"",
-                        "name": "year",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功获取回收站课表信息",
+                    "401": {
+                        "description": "未登录或 token 无效，code=40001",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/class.GetRecycleBinClassInfosResp"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "请求参数错误，code=40002",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
                         }
                     }
                 }
@@ -569,7 +545,7 @@ const docTemplate = `{
         },
         "/class/note/delete": {
             "post": {
-                "description": "根据课程 ID 删除课程备注",
+                "description": "根据课程 ID 删除当前登录学生的课程备注。成功时 code=0；课程不存在或删除失败会返回 code=50001 和 msg。",
                 "consumes": [
                     "application/json"
                 ],
@@ -583,7 +559,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "Bearer Token，例如 Bearer xxx",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -600,7 +576,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "成功删除课程备注",
+                        "description": "成功删除课程备注，code=0",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或 token 无效，code=40001",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "请求参数错误，code=40002",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -610,7 +598,7 @@ const docTemplate = `{
         },
         "/class/note/insert": {
             "post": {
-                "description": "根据课程 ID 更新课程备注",
+                "description": "根据课程 ID 给当前登录学生的课程添加或更新备注。成功时 code=0；课程不存在或保存失败会返回 code=50001 和 msg。",
                 "consumes": [
                     "application/json"
                 ],
@@ -620,17 +608,17 @@ const docTemplate = `{
                 "tags": [
                     "class"
                 ],
-                "summary": "插入课程备注",
+                "summary": "添加或更新课程备注",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "Bearer Token，例如 Bearer xxx",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
                     {
-                        "description": "更新课程备注请求",
+                        "description": "添加或更新课程备注请求",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -641,248 +629,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "成功插入课程备注",
+                        "description": "成功添加或更新课程备注，code=0",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
-                    }
-                }
-            }
-        },
-        "/class/recover": {
-            "put": {
-                "description": "从回收站恢复课表",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "class"
-                ],
-                "summary": "恢复课表",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
                     },
-                    {
-                        "description": "恢复课表请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/class.RecoverClassRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功恢复课表",
+                    "401": {
+                        "description": "未登录或 token 无效，code=40001",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
-                    }
-                }
-            }
-        },
-        "/class/search": {
-            "get": {
-                "description": "根据关键词[教师或者课程名]搜索课程,**注意,但当返回的结果数量大于page_size时,代表还有下一页**,最开始请求的是第一页",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "class"
-                ],
-                "summary": "搜索课程",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
                     },
-                    {
-                        "type": "integer",
-                        "description": "页码",
-                        "name": "page",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页大小",
-                        "name": "page_size",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "搜索关键词,匹配的是课程名称和教师姓名",
-                        "name": "searchKeyWords",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "学期,格式为\"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
-                        "name": "semester",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "学年,格式为\"2024\"代表\"2024-2025学年\"",
-                        "name": "year",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功搜索到课程",
+                    "422": {
+                        "description": "请求参数错误，code=40002",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/class.SearchClassResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/class/toBeStudied": {
-            "get": {
-                "description": "获取需要上的课程, 返回全部课程",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "class"
-                ],
-                "summary": "获取人培课程(全部)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功获取待修课程",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "allOf": [
-                                                {
-                                                    "$ref": "#/definitions/class.GetToBeStudiedClassResp"
-                                                },
-                                                {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "common_educate": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                                                            }
-                                                        },
-                                                        "identity_develop": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                                                            }
-                                                        },
-                                                        "specific_skill": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "根据用户选择返回各种状态的课程",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "class"
-                ],
-                "summary": "获取人培课程(部分)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "获取待修课请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/class.GetToBeStudiedClassReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功获取待修课程",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/web.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/class.GetToBeStudiedClassResp"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/web.Response"
                         }
                     }
                 }
@@ -890,7 +651,7 @@ const docTemplate = `{
         },
         "/class/update": {
             "put": {
-                "description": "根据课表ID更新课表信息",
+                "description": "根据课程 ID 更新当前登录学生的自定义课程。可更新课程名称、节次、地点、教师、周次、星期几、学分；更新后课程 ID 可能改变。成功时 code=0；更新失败或时间冲突会返回 code=50001 和 msg。",
                 "consumes": [
                     "application/json"
                 ],
@@ -900,17 +661,17 @@ const docTemplate = `{
                 "tags": [
                     "class"
                 ],
-                "summary": "更新课表信息",
+                "summary": "更新自定义课程",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "Bearer Token，例如 Bearer xxx",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
                     {
-                        "description": "更新课表请求",
+                        "description": "更新课程请求",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -921,7 +682,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "成功更新课表",
+                        "description": "成功更新课程，code=0",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或 token 无效，code=40001",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "请求参数错误，code=40002",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -2347,6 +2120,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/health/live": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "返回服务存活状态，使用 BasicAuth 进行验证",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "健康存活检查",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/health/ready": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "检查各依赖服务的健康状态，使用 BasicAuth 进行验证",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "依赖服务就绪检查",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/library/cancel_reserve": {
             "post": {
                 "description": "取消预约",
@@ -3562,42 +3400,54 @@ const docTemplate = `{
             "properties": {
                 "credit": {
                     "description": "学分",
-                    "type": "number"
+                    "type": "number",
+                    "example": 1
                 },
                 "day": {
                     "description": "星期几",
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "dur_class": {
-                    "description": "第几节 '形如 \"1-3\",\"1-1\"'",
-                    "type": "string"
+                    "description": "上课节次,形如 \"1-2\",\"9-10\"",
+                    "type": "string",
+                    "example": "1-2"
                 },
                 "name": {
                     "description": "课程名称",
-                    "type": "string"
+                    "type": "string",
+                    "example": "测试课程"
                 },
                 "semester": {
                     "description": "学期",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2"
                 },
                 "teacher": {
                     "description": "教师",
-                    "type": "string"
+                    "type": "string",
+                    "example": "测试老师"
                 },
                 "weeks": {
-                    "description": "哪些周",
+                    "description": "上课周次数组",
                     "type": "array",
                     "items": {
                         "type": "integer"
-                    }
+                    },
+                    "example": [
+                        1,
+                        2
+                    ]
                 },
                 "where": {
                     "description": "地点",
-                    "type": "string"
+                    "type": "string",
+                    "example": "测试教室"
                 },
                 "year": {
                     "description": "学年",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025"
                 }
             }
         },
@@ -3621,100 +3471,80 @@ const docTemplate = `{
             ],
             "properties": {
                 "class_when": {
-                    "description": "上课是第几节（如1-2,3-4）",
-                    "type": "string"
+                    "description": "上课节次",
+                    "type": "string",
+                    "example": "1-2"
                 },
                 "classname": {
                     "description": "课程名称",
-                    "type": "string"
+                    "type": "string",
+                    "example": "测试课程"
                 },
                 "credit": {
                     "description": "学分",
-                    "type": "number"
+                    "type": "number",
+                    "example": 1
                 },
                 "day": {
-                    "description": "星期几",
-                    "type": "integer"
-                },
-                "id": {
-                    "description": "集合了课程信息的字符串，便于标识（课程ID）",
-                    "type": "string"
-                },
-                "is_official": {
-                    "description": "是否为官方课程",
-                    "type": "boolean"
-                },
-                "nature": {
-                    "description": "课程性质",
-                    "type": "string"
-                },
-                "note": {
-                    "description": "备注",
-                    "type": "string"
-                },
-                "semester": {
-                    "description": "学期",
-                    "type": "string"
-                },
-                "teacher": {
-                    "description": "任课教师",
-                    "type": "string"
-                },
-                "week_duration": {
-                    "description": "上课的周数",
-                    "type": "string"
-                },
-                "weeks": {
-                    "description": "哪些周",
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "where": {
-                    "description": "上课地点",
-                    "type": "string"
-                },
-                "year": {
-                    "description": "学年",
-                    "type": "string"
-                }
-            }
-        },
-        "class.ClassToBeStudiedInfo": {
-            "type": "object",
-            "required": [
-                "credit",
-                "id",
-                "name",
-                "property",
-                "status",
-                "studiable"
-            ],
-            "properties": {
-                "credit": {
-                    "description": "学分",
-                    "type": "string"
+                    "description": "星期几,1-7表示周一到周日",
+                    "type": "integer",
+                    "example": 1
                 },
                 "id": {
                     "description": "课程ID",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Class:测试课程:2025:2:1:1-2:测试老师:测试教室:3"
                 },
-                "name": {
-                    "description": "课程名称",
-                    "type": "string"
+                "is_official": {
+                    "description": "是否为官方课程",
+                    "type": "boolean",
+                    "example": true
                 },
-                "property": {
-                    "description": "课程性质，",
-                    "type": "string"
+                "nature": {
+                    "description": "课程性质",
+                    "type": "string",
+                    "example": "专业主干课程"
                 },
-                "status": {
-                    "description": "课程状态，未修读/修读中/已修读",
-                    "type": "string"
+                "note": {
+                    "description": "备注",
+                    "type": "string",
+                    "example": "课前预习"
                 },
-                "studiable": {
-                    "description": "开设学年期",
-                    "type": "string"
+                "semester": {
+                    "description": "学期",
+                    "type": "string",
+                    "example": "2"
+                },
+                "teacher": {
+                    "description": "任课教师",
+                    "type": "string",
+                    "example": "测试老师"
+                },
+                "week_duration": {
+                    "description": "上课周数文本",
+                    "type": "string",
+                    "example": "1-2周"
+                },
+                "weeks": {
+                    "description": "上课周次数组",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "example": [
+                        1,
+                        2
+                    ]
+                },
+                "where": {
+                    "description": "上课地点",
+                    "type": "string",
+                    "example": "测试教室"
+                },
+                "year": {
+                    "description": "学年",
+                    "type": "string",
+                    "example": "2025"
                 }
             }
         },
@@ -3728,15 +3558,18 @@ const docTemplate = `{
             "properties": {
                 "classId": {
                     "description": "课程ID",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Class:测试课程:2025:2:1:1-2:测试老师:测试教室:3"
                 },
                 "semester": {
                     "description": "学期",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2"
                 },
                 "year": {
                     "description": "学年",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025"
                 }
             }
         },
@@ -3750,15 +3583,18 @@ const docTemplate = `{
             "properties": {
                 "id": {
                     "description": "要被删的课程id",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Class:测试课程:2025:2:1:1-2:测试老师:测试教室:3"
                 },
                 "semester": {
                     "description": "学期 \"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2"
                 },
                 "year": {
                     "description": "学年  \"2024\" -\u003e 代表\"2024-2025学年\"",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025"
                 }
             }
         },
@@ -3777,21 +3613,8 @@ const docTemplate = `{
                 },
                 "last_refresh_time": {
                     "description": "上次刷新时间的时间戳,上海时区",
-                    "type": "integer"
-                }
-            }
-        },
-        "class.GetRecycleBinClassInfosResp": {
-            "type": "object",
-            "required": [
-                "classInfos"
-            ],
-            "properties": {
-                "classInfos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/class.ClassInfo"
-                    }
+                    "type": "integer",
+                    "example": 1717248000
                 }
             }
         },
@@ -3803,89 +3626,14 @@ const docTemplate = `{
             ],
             "properties": {
                 "holiday_time": {
-                    "type": "integer"
+                    "description": "放假日期零点时间戳,秒级",
+                    "type": "integer",
+                    "example": 1751644800
                 },
                 "school_time": {
-                    "type": "integer"
-                }
-            }
-        },
-        "class.GetToBeStudiedClassReq": {
-            "type": "object",
-            "required": [
-                "status"
-            ],
-            "properties": {
-                "status": {
-                    "description": "课程状态，未修读/修读中/已修读",
-                    "type": "string"
-                }
-            }
-        },
-        "class.GetToBeStudiedClassResp": {
-            "type": "object",
-            "required": [
-                "common_educate",
-                "identity_develop",
-                "specific_skill"
-            ],
-            "properties": {
-                "common_educate": {
-                    "description": "通识教育课",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                    }
-                },
-                "identity_develop": {
-                    "description": "个性发展课",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                    }
-                },
-                "specific_skill": {
-                    "description": "专业主干课",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
-                    }
-                }
-            }
-        },
-        "class.RecoverClassRequest": {
-            "type": "object",
-            "required": [
-                "classId",
-                "semester",
-                "year"
-            ],
-            "properties": {
-                "classId": {
-                    "description": "课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回",
-                    "type": "string"
-                },
-                "semester": {
-                    "description": "学期 \"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
-                    "type": "string"
-                },
-                "year": {
-                    "description": "学年  \"2024\" 代表\"2024-2025学年\"",
-                    "type": "string"
-                }
-            }
-        },
-        "class.SearchClassResp": {
-            "type": "object",
-            "required": [
-                "classInfos"
-            ],
-            "properties": {
-                "classInfos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/class.ClassInfo"
-                    }
+                    "description": "开学日期零点时间戳,秒级",
+                    "type": "integer",
+                    "example": 1739721600
                 }
             }
         },
@@ -3900,19 +3648,23 @@ const docTemplate = `{
             "properties": {
                 "classId": {
                     "description": "课程ID",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Class:测试课程:2025:2:1:1-2:测试老师:测试教室:3"
                 },
                 "note": {
                     "description": "备注",
-                    "type": "string"
+                    "type": "string",
+                    "example": "课前预习"
                 },
                 "semester": {
                     "description": "学期",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2"
                 },
                 "year": {
                     "description": "学年",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025"
                 }
             }
         },
@@ -3926,46 +3678,59 @@ const docTemplate = `{
             "properties": {
                 "classId": {
                     "description": "课程的ID（唯一标识） 更新后这个可能会换，所以响应的时候会把新的ID返回",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Class:测试课程:2025:2:1:1-2:测试老师:测试教室:3"
                 },
                 "credit": {
                     "description": "学分",
-                    "type": "number"
+                    "type": "number",
+                    "example": 1
                 },
                 "day": {
                     "description": "星期几",
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "dur_class": {
-                    "description": "第几节 '形如 \"1-3\",\"1-1\"'",
-                    "type": "string"
+                    "description": "上课节次,形如 \"1-2\",\"9-10\"",
+                    "type": "string",
+                    "example": "1-2"
                 },
                 "name": {
                     "description": "课程名称",
-                    "type": "string"
+                    "type": "string",
+                    "example": "测试课程"
                 },
                 "semester": {
                     "description": "学期",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2"
                 },
                 "teacher": {
                     "description": "教师",
-                    "type": "string"
+                    "type": "string",
+                    "example": "测试老师"
                 },
                 "weeks": {
-                    "description": "哪些周",
+                    "description": "上课周次数组",
                     "type": "array",
                     "items": {
                         "type": "integer"
-                    }
+                    },
+                    "example": [
+                        1,
+                        2
+                    ]
                 },
                 "where": {
                     "description": "地点",
-                    "type": "string"
+                    "type": "string",
+                    "example": "测试教室"
                 },
                 "year": {
                     "description": "学年",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025"
                 }
             }
         },

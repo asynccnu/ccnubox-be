@@ -1,9 +1,7 @@
 package tool
 
 import (
-	"math/rand"
-	"os"
-	"path/filepath"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -95,6 +93,65 @@ func FormatWeeks(weeks []int) string {
 
 	return result.String()
 }
+
+func ParseClassSections(classWhen string) (int64, error) {
+	normalized := strings.NewReplacer(
+		"小节", "",
+		"节", "",
+		" ", "",
+		"，", ",",
+		"、", ",",
+		";", ",",
+		"；", ",",
+		"~", "-",
+		"－", "-",
+		"—", "-",
+	).Replace(classWhen)
+	if normalized == "" {
+		return 0, fmt.Errorf("empty class section")
+	}
+
+	var sections int64
+	for _, part := range strings.Split(normalized, ",") {
+		if part == "" {
+			return 0, fmt.Errorf("empty class section part")
+		}
+
+		start, end, err := parseSectionRange(part)
+		if err != nil {
+			return 0, err
+		}
+		for section := start; section <= end; section++ {
+			sections |= 1 << (section - 1)
+		}
+	}
+	return sections, nil
+}
+
+func parseSectionRange(part string) (int, int, error) {
+	rangeParts := strings.Split(part, "-")
+	if len(rangeParts) > 2 {
+		return 0, 0, fmt.Errorf("invalid class section range: %s", part)
+	}
+
+	start, err := strconv.Atoi(rangeParts[0])
+	if err != nil || start <= 0 {
+		return 0, 0, fmt.Errorf("invalid class section start: %s", part)
+	}
+
+	end := start
+	if len(rangeParts) == 2 {
+		end, err = strconv.Atoi(rangeParts[1])
+		if err != nil || end <= 0 {
+			return 0, 0, fmt.Errorf("invalid class section end: %s", part)
+		}
+	}
+	if start > end {
+		return 0, 0, fmt.Errorf("invalid class section range: %s", part)
+	}
+	return start, end, nil
+}
+
 func CheckIfThisYear(xnm, xqm string) bool {
 	y, _ := strconv.Atoi(xnm)
 	s, _ := strconv.Atoi(xqm)
@@ -115,52 +172,6 @@ func CheckIfThisYear(xnm, xqm string) bool {
 		return (y == currentYear-1) && (s == 3)
 	}
 	return false
-}
-
-func RandomBool(p float64) bool {
-	// 生成 0 到 1 之间的随机浮点数
-	const n int = 100000
-	randomValue := rand.Intn(n) // 生成 [0.0, 1.0) 之间的随机数
-	return randomValue < int(p*(float64(n)))
-}
-
-// IsExist 判断文件或者目录是否存在
-func IsExist(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil || os.IsExist(err)
-}
-
-func OpenFile(path string, name string) (*os.File, error) {
-	var logfile *os.File
-	var err error
-	filename := filepath.Join(path, name)
-	// 判断日志路径是否存在，如果不存在就创建
-	if exist := IsExist(path); !exist {
-		if err := os.MkdirAll(path, os.ModePerm); err != nil {
-			return nil, err
-		}
-	}
-	if exist := IsExist(filename); !exist {
-		logfile, err = os.Create(filepath.Join(filename))
-	} else {
-		logfile, err = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	}
-	if err != nil {
-		return nil, err
-	}
-	return logfile, nil
-}
-
-// FormatTimeInUTC 将 time.Time 转换为 UTC 时区的格式化时间字符串
-func FormatTimeInUTC(t time.Time) string {
-	// 获取 UTC 时区
-	location := time.UTC
-
-	// 将时间转换为 UTC 时区
-	utcTime := t.In(location)
-
-	// 格式化并返回，精确到微秒
-	return utcTime.Format("2006-01-02T15:04:05.000000")
 }
 
 // ToShanghaiTime 将 time.Time 转换为上海时区的 time.Time

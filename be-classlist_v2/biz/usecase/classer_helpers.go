@@ -9,8 +9,19 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
+	classTool "github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/tool"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 )
+
+const refreshRetryConsumerGroup = "be-classlist-refresh-retry-worker"
+
+type refreshRetryMessage struct {
+	StuID    string `json:"stu_id"`
+	Year     string `json:"year"`
+	Semester string `json:"semester"`
+}
 
 // 统一本地查询逻辑 GetClassesFromLocal + GetLastRefreshTime
 func (cluc *ClassUsecase) loadLocal(ctx context.Context, stuID, year, semester string) (classes []*model.ClassInfoBO, lastRefresh *time.Time, err error) {
@@ -97,10 +108,113 @@ func (cluc *ClassUsecase) waitPending(ctx context.Context, refreshLogID uint64, 
 	}
 }
 
+func (cluc *ClassUsecase) hasScheduleConflict(ctx context.Context, stuID string, info *model.ClassInfoBO) (bool, error) {
+	logh := cluc.log.WithContext(ctx)
+
+	// 判断这个课程是否存在，存在代表冲突
+	if cluc.classRepo.AddedCourseExists(ctx, stuID, info.Year, info.Semester, info.ID) {
+		logh.Error("class already exists",
+			logger.String("stu_id", stuID),
+			logger.String("year", info.Year),
+			logger.String("semester", info.Semester),
+			logger.String("class_id", info.ID),
+		)
+		return true, errorx.Errorf("usecase.class.hasScheduleConflict: classID=%s: %w", info.ID, biz.ErrClassAlreadyExists)
+	}
+
+	// 拉取本地课表检查是否有冲突
+	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, info.Year, info.Semester)
+	if err != nil {
+		if errors.Is(err, biz.ErrClassNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return cluc.hasScheduleConflictWithClasses(ctx, info, classes)
+}
+
+// 检查是否与现有课程有时间上的冲突
+// 包装一层 addclass 和 updateclass 大家就可以一起使用底层函数了喵
+func (cluc *ClassUsecase) hasScheduleConflictWithClasses(ctx context.Context, info *model.ClassInfoBO, classes []*model.ClassInfoBO) (bool, error) {
+	return cluc.hasScheduleConflictWithClassesExcept(ctx, info, classes, "")
+}
+
+// 课程冲突检测函数
+// 旧课还在旧课表里，需要排除 oldClassID
+func (cluc *ClassUsecase) hasScheduleConflictWithClassesExcept(ctx context.Context, info *model.ClassInfoBO, classes []*model.ClassInfoBO, ignoredClassID string) (bool, error) {
+	logh := cluc.log.WithContext(ctx)
+
+	// 解析节次
+	newSections, err := classTool.ParseClassSections(info.ClassWhen)
+	if err != nil {
+		return false, errorx.Errorf("usecase.class.hasScheduleConflictWithClassesExcept: classWhen=%s: %w",
+			info.ClassWhen, biz.ErrInvalidParam)
+	}
+
+	for _, classInfo := range classes {
+		// 粗筛
+		if classInfo == nil || classInfo.ID == ignoredClassID || classInfo.Day != info.Day || classInfo.Weeks&info.Weeks == 0 {
+			continue
+		}
+
+		sections, err := classTool.ParseClassSections(classInfo.ClassWhen)
+		if err != nil {
+			logh.Warn("skip invalid existing class section",
+				logger.String("class_id", classInfo.ID),
+				logger.String("class_when", classInfo.ClassWhen),
+			)
+			continue
+		}
+		if sections&newSections != 0 {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// 筛选出与官方课程有冲突的自写课程id（若与官方课程有冲突的话会删除自选课程）
+// 输入 官方课程 自写课程 输出 有冲突的自写课程id
+// 在 getclass 的 merge 自写阶段使用
+func (cluc *ClassUsecase) filterAddedClassesConflictingWithOfficial(ctx context.Context, officialClasses, addedClasses []*model.ClassInfoBO) ([]*model.ClassInfoBO, []string) {
+	logh := cluc.log.WithContext(ctx)
+	kept := make([]*model.ClassInfoBO, 0, len(addedClasses))
+	conflictIDs := make([]string, 0)
+
+	for _, added := range addedClasses {
+		if added == nil {
+			continue
+		}
+		conflict, err := cluc.hasScheduleConflictWithClasses(ctx, added, officialClasses)
+		if err != nil {
+			logh.Warn("skip invalid added class during official refresh conflict cleanup",
+				logger.String("class_id", added.ID),
+				logger.String("class_when", added.ClassWhen),
+				logger.Error(err),
+			)
+			kept = append(kept, added)
+			continue
+		}
+		if conflict {
+			logh.Warn("delete added class because official class conflicts",
+				logger.String("class_id", added.ID),
+				logger.String("class_when", added.ClassWhen),
+				logger.Int64("day", added.Day),
+				logger.Int64("weeks", added.Weeks),
+			)
+			conflictIDs = append(conflictIDs, added.ID)
+			continue
+		}
+		kept = append(kept, added)
+	}
+
+	return kept, conflictIDs
+}
+
 // 包一层 singleflight + crawClass 调用 + 超时处理
 func (cluc *ClassUsecase) doCrawlWithSingleflight(ctx context.Context, key string, stuID, year, semester string, local []*model.ClassInfoBO, logTime time.Time) ([]*model.ClassInfoBO, error) {
 	v, err, _ := cluc.sfGroup.Do(key, func() (interface{}, error) {
-		res, err := cluc.crawClass(ctx, stuID, year, semester, logTime, local, true)
+		res, err := cluc.crawMergedClass(ctx, stuID, year, semester, logTime, local, true)
 		if err != nil {
 			return nil, err
 		}
@@ -121,8 +235,8 @@ func (cluc *ClassUsecase) doCrawlWithSingleflight(ctx context.Context, key strin
 	return res, nil
 }
 
-// 爬取课表并保存
-func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester string, logTime time.Time, localClassInfo []*model.ClassInfoBO, mergeAdd bool) ([]*model.ClassInfoBO, error) {
+// 爬取课表并合并自写课程
+func (cluc *ClassUsecase) crawMergedClass(ctx context.Context, stuID, year, semester string, logTime time.Time, localClassInfo []*model.ClassInfoBO, mergeAdd bool) ([]*model.ClassInfoBO, error) {
 	logh := cluc.log.WithContext(ctx)
 
 	metaMap := make(map[string]model.ClassMetaDataBO, len(localClassInfo))
@@ -166,7 +280,6 @@ func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester s
 		}
 	}
 
-	// to be seen
 	jxbIDs := extractJxb(crawClassInfos)
 	err = cluc.classRepo.SaveClass(ctx, stuID, year, semester, crawClassInfos, crawScs)
 	if err != nil {
@@ -174,10 +287,10 @@ func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester s
 		_ = cluc.sendRetryMsg(ctx, stuID, year, semester)
 		return nil, err
 	}
-	_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, model.Ready)
-	_ = cluc.jxbRepo.SaveJxb(ctx, stuID, jxbIDs)
 
 	if !mergeAdd {
+		_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, model.Ready)
+		_ = cluc.jxbRepo.SaveJxb(ctx, stuID, jxbIDs)
 		return crawClassInfos, nil
 	}
 
@@ -186,6 +299,19 @@ func (cluc *ClassUsecase) crawClass(ctx context.Context, stuID, year, semester s
 		// 因为这里是非关键路径，失败了也不影响主流程，所以这里可以就地打日志而不是从上一层返回
 		logh.Warn("failed to find added class in the database")
 	}
+
+	addedInfos, conflictAddedIDs := cluc.filterAddedClassesConflictingWithOfficial(ctx, crawClassInfos, addedInfos)
+	if len(conflictAddedIDs) > 0 {
+		err := cluc.classRepo.DeleteAddedClasses(ctx, stuID, year, semester, conflictAddedIDs)
+		if err != nil {
+			_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, model.Failed)
+			_ = cluc.sendRetryMsg(ctx, stuID, year, semester)
+			return nil, err
+		}
+	}
+
+	_ = cluc.refreshLogRepo.UpdateRefreshLogStatus(ctx, logID, model.Ready)
+	_ = cluc.jxbRepo.SaveJxb(ctx, stuID, jxbIDs)
 
 	crawClassInfos = append(crawClassInfos, addedInfos...)
 	return crawClassInfos, nil
@@ -260,10 +386,10 @@ func (cluc *ClassUsecase) getCourseFromCrawler(ctx context.Context, stuID string
 func (cluc *ClassUsecase) sendRetryMsg(ctx context.Context, stuID, year, semester string) error {
 	logh := cluc.log.WithContext(ctx)
 
-	retryInfo := map[string]string{
-		"stu_id":   stuID,
-		"year":     year,
-		"semester": semester,
+	retryInfo := refreshRetryMessage{
+		StuID:    stuID,
+		Year:     year,
+		Semester: semester,
 	}
 	key := fmt.Sprintf("be-classlist-refresh-retry-%d", time.Now().UnixMilli())
 	val, err := json.Marshal(&retryInfo)
@@ -275,6 +401,40 @@ func (cluc *ClassUsecase) sendRetryMsg(ctx context.Context, stuID, year, semeste
 		logh.Errorf("delayQue.Send retry msg failed: %+v", err)
 	}
 	return err
+}
+
+func (cluc *ClassUsecase) startRetryConsumer() {
+	if cluc.delayQue == nil {
+		return
+	}
+
+	go func() {
+		if err := cluc.delayQue.Consume(refreshRetryConsumerGroup, cluc.handleRetryMessage); err != nil {
+			cluc.log.Errorf("delayQue.Consume retry msg failed: %+v", err)
+		}
+	}()
+}
+
+func (cluc *ClassUsecase) handleRetryMessage(ctx context.Context, _ []byte, value []byte) {
+	logh := cluc.log.WithContext(ctx)
+
+	var retryInfo refreshRetryMessage
+	if err := json.Unmarshal(value, &retryInfo); err != nil {
+		logh.Errorf("unmarshal refresh retry msg failed: value=%s, err=%+v", string(value), err)
+		return
+	}
+	if retryInfo.StuID == "" || retryInfo.Year == "" || retryInfo.Semester == "" {
+		logh.Errorf("invalid refresh retry msg: value=%s", string(value))
+		return
+	}
+
+	logh.Infof("consume refresh retry msg stu_id=%s year=%s semester=%s", retryInfo.StuID, retryInfo.Year, retryInfo.Semester)
+	_, _, err := cluc.GetClasses(ctx, retryInfo.StuID, retryInfo.Year, retryInfo.Semester, true)
+	if err != nil {
+		logh.Errorf("handle refresh retry msg failed stu_id=%s year=%s semester=%s: %+v", retryInfo.StuID, retryInfo.Year, retryInfo.Semester, err)
+		return
+	}
+	logh.Infof("handle refresh retry msg handled stu_id=%s year=%s semester=%s", retryInfo.StuID, retryInfo.Year, retryInfo.Semester)
 }
 
 func extractJxb(infos []*model.ClassInfoBO) []string {

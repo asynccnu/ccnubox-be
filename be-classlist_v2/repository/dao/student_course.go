@@ -3,7 +3,6 @@ package dao
 import (
 	"context"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
@@ -69,6 +68,23 @@ func (s *StudentCourseDAO) GetClassNum(ctx context.Context, stuID, year, semeste
 	return num, nil
 }
 
+func (s *StudentCourseDAO) AddedCourseExists(ctx context.Context, stuID, year, semester, classID string) bool {
+	var num int64
+	db := s.GetDB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
+	err := db.Where("stu_id = ? AND year = ? AND semester = ? AND cla_id = ?", stuID, year, semester, classID).Count(&num).Error
+	if err != nil {
+		s.log.WithContext(ctx).Error("Mysql:count student_course failed",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", classID),
+			logger.Error(err),
+		)
+		return false
+	}
+	return num > 0
+}
+
 func (s *StudentCourseDAO) SaveStudentAndCourseToDB(ctx context.Context, sc *model.StudentCourse) error {
 	logh := s.log.WithContext(ctx)
 	if sc == nil {
@@ -79,7 +95,7 @@ func (s *StudentCourseDAO) SaveStudentAndCourseToDB(ctx context.Context, sc *mod
 	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(sc).Error
 	if err != nil {
 		logh.Errorf("Mysql:create %v in %s failed: %v", sc, model.StudentCourseTableName, err)
-		return errcode.ErrClassUpdate
+		return errorx.Errorf("dao.studentCourse.SaveStudentAndCourseToDB: sc=%+v: %w", sc, err)
 	}
 	return nil
 }
@@ -95,7 +111,7 @@ func (s *StudentCourseDAO) SaveManyStudentAndCourseToDB(ctx context.Context, scs
 
 	if err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(scs).Error; err != nil {
 		logh.Errorf("Mysql:create %v in %s failed: %v", scs, model.StudentCourseTableName, err)
-		return errcode.ErrCourseSave
+		return errorx.Errorf("dao.studentCourse.SaveManyStudentAndCourseToDB: count=%d: %w", len(scs), err)
 	}
 	return nil
 }
@@ -107,7 +123,37 @@ func (s *StudentCourseDAO) DeleteStudentAndCourseByTimeFromDB(ctx context.Contex
 	err := db.Debug().Where("year = ? AND semester = ? AND stu_id = ? AND is_manually_added = false", year, semester, stuID).Delete(&model.StudentCourse{}).Error
 	if err != nil {
 		logh.Errorf("Mysql:delete student_course by time from db failed: %v", err)
-		return errcode.ErrClassDelete
+		return errorx.Errorf("dao.studentCourse.DeleteStudentAndCourseByTimeFromDB: stuID=%s, year=%s, semester=%s: %w", stuID, year, semester, err)
+	}
+	return nil
+}
+
+func (s *StudentCourseDAO) DeleteAddedStudentCourses(ctx context.Context, stuID, year, semester string, classIDs []string) error {
+	if len(classIDs) == 0 {
+		return nil
+	}
+
+	logh := s.log.WithContext(ctx)
+	db := s.GetDB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
+	err := db.Debug().
+		Where("stu_id = ? AND year = ? AND semester = ? AND is_manually_added = true AND cla_id IN ?", stuID, year, semester, classIDs).
+		Delete(&model.StudentCourse{}).Error
+	if err != nil {
+		logh.Errorf("Mysql:delete added student_course failed: stuID=%s year=%s semester=%s classIDs=%v err=%v", stuID, year, semester, classIDs, err)
+		return errorx.Errorf("dao.studentCourse.DeleteAddedStudentCourses: stuID=%s, year=%s, semester=%s, classIDs=%v: %w", stuID, year, semester, classIDs, err)
+	}
+	return nil
+}
+
+func (s *StudentCourseDAO) UpdateCourseNote(ctx context.Context, stuID, year, semester, classID, note string) error {
+	logh := s.log.WithContext(ctx)
+	db := s.GetDB(ctx).Table(model.StudentCourseTableName).WithContext(ctx)
+	err := db.Debug().
+		Where("stu_id = ? AND year = ? AND semester = ? AND cla_id = ?", stuID, year, semester, classID).
+		Update("note", note).Error
+	if err != nil {
+		logh.Errorf("Mysql:update course note failed: stuID=%s year=%s semester=%s classID=%s err=%v", stuID, year, semester, classID, err)
+		return errorx.Errorf("dao.studentCourse.UpdateCourseNote: stuID=%s, year=%s, semester=%s, classID=%s: %w", stuID, year, semester, classID, err)
 	}
 	return nil
 }

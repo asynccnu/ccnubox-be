@@ -54,3 +54,134 @@ func (c *ClasslistServiceServer) GetClass(ctx context.Context, req *classlistv1.
 		LastTime: lastTimeStamp,
 	}, nil
 }
+
+// 增加自编课程
+func (c *ClasslistServiceServer) AddClass(ctx context.Context, req *classlistv1.AddClassRequest) (*classlistv1.AddClassResponse, error) {
+	id, msg, err := c.svc.AddClass(ctx,
+		req.GetStuId(),
+		req.GetName(),
+		req.GetDurClass(),
+		req.GetWhere(),
+		req.GetTeacher(),
+		req.GetWeeks(),
+		req.GetSemester(),
+		req.GetYear(),
+		req.GetDay(),
+		req.Credit,
+	)
+	if err != nil {
+		return &classlistv1.AddClassResponse{}, err
+	}
+	return &classlistv1.AddClassResponse{
+		Id:  id,
+		Msg: msg,
+	}, nil
+}
+
+func (c *ClasslistServiceServer) DeleteClass(ctx context.Context, req *classlistv1.DeleteClassRequest) (*classlistv1.DeleteClassResponse, error) {
+	msg, err := c.svc.DeleteClass(ctx,
+		req.GetStuId(),
+		req.GetYear(),
+		req.GetSemester(),
+		req.GetId(),
+	)
+	if err != nil {
+		return &classlistv1.DeleteClassResponse{
+			Msg: msg,
+		}, err
+	}
+	return &classlistv1.DeleteClassResponse{
+		Msg: msg,
+	}, nil
+}
+
+func (c *ClasslistServiceServer) UpdateClass(ctx context.Context, req *classlistv1.UpdateClassRequest) (*classlistv1.UpdateClassResponse, error) {
+	classID, msg, err := c.svc.UpdateClass(ctx,
+		req.GetStuId(),
+		req.GetYear(),
+		req.GetSemester(),
+		req.GetClassId(),
+		req.Name,
+		req.DurClass,
+		req.Where,
+		req.Teacher,
+		req.Weeks,
+		req.Day,
+		req.Credit,
+	)
+	if err != nil {
+		return &classlistv1.UpdateClassResponse{
+			Msg: msg,
+		}, err
+	}
+	return &classlistv1.UpdateClassResponse{
+		Msg:     msg,
+		ClassId: classID,
+	}, nil
+}
+
+func (c *ClasslistServiceServer) GetSchoolDay(ctx context.Context, _ *classlistv1.GetSchoolDayReq) (*classlistv1.GetSchoolDayResp, error) {
+	holidayTime, schoolTime, err := c.svc.GetSchoolDay(ctx)
+	if err != nil {
+		return &classlistv1.GetSchoolDayResp{}, err
+	}
+	return &classlistv1.GetSchoolDayResp{
+		HolidayTime: holidayTime,
+		SchoolTime:  schoolTime,
+	}, nil
+}
+
+func (c *ClasslistServiceServer) UpdateClassNote(ctx context.Context, req *classlistv1.UpdateClassNoteReq) (*classlistv1.UpdateClassNoteResp, error) {
+	msg, err := c.svc.UpdateClassNote(ctx,
+		req.GetStuId(),
+		req.GetYear(),
+		req.GetSemester(),
+		req.GetClassId(),
+		req.GetNote(),
+	)
+	if err != nil {
+		return &classlistv1.UpdateClassNoteResp{
+			Msg: msg,
+		}, err
+	}
+	return &classlistv1.UpdateClassNoteResp{
+		Msg: msg,
+	}, nil
+}
+
+func (c *ClasslistServiceServer) DeleteClassNote(ctx context.Context, req *classlistv1.DeleteClassNoteReq) (*classlistv1.DeleteClassNoteResp, error) {
+	msg, err := c.svc.DeleteClassNote(ctx,
+		req.GetStuId(),
+		req.GetYear(),
+		req.GetSemester(),
+		req.GetClassId(),
+	)
+	if err != nil {
+		return &classlistv1.DeleteClassNoteResp{
+			Msg: msg,
+		}, err
+	}
+	return &classlistv1.DeleteClassNoteResp{
+		Msg: msg,
+	}, nil
+}
+
+func (c *ClasslistServiceServer) GetStuIdByJxbId(ctx context.Context, req *classlistv1.GetStuIdByJxbIdRequest) (*classlistv1.GetStuIdByJxbIdResponse, error) {
+	stuIDs, err := c.svc.GetStuIdsByJxbId(ctx, req.GetJxbId())
+	if err != nil {
+		return &classlistv1.GetStuIdByJxbIdResponse{}, err
+	}
+	return &classlistv1.GetStuIdByJxbIdResponse{
+		StuId: stuIDs,
+	}, nil
+}
+
+func (c *ClasslistServiceServer) GetClassNatures(ctx context.Context, req *classlistv1.GetClassNaturesReq) (*classlistv1.GetClassNaturesResp, error) {
+	natures, err := c.svc.GetClassNatures(ctx, req.GetStuId())
+	if err != nil {
+		return &classlistv1.GetClassNaturesResp{}, err
+	}
+	return &classlistv1.GetClassNaturesResp{
+		ClassNatures: natures,
+	}, nil
+}

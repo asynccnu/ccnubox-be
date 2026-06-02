@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	bizModel "github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/transaction"
 	repoModel "github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
@@ -53,8 +52,8 @@ func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semes
 	if !cacheHit {
 		classInfos, err = cla.ClaInfoDAO.GetClassInfos(ctx, stuID, year, semester)
 		if err != nil {
-			return nil, errorx.Errorf("repo.class.GetClassesFromLocal: stuID=%s, year=%s, semester=%s, dbErr=%s: %w",
-				stuID, year, semester, err.Error(), errcode.ErrClassFound)
+			return nil, errorx.Errorf("repo.class.GetClassesFromLocal: stuID=%s, year=%s, semester=%s: %w",
+				stuID, year, semester, err)
 		}
 
 		// 在从数据库读取数据之后，同步写入缓存
@@ -66,7 +65,8 @@ func (cla ClassRepo) GetClassesFromLocal(ctx context.Context, stuID, year, semes
 	}
 
 	if len(classInfos) == 0 {
-		return nil, errcode.ErrClassNotFound
+		return nil, errorx.Errorf("repo.class.GetClassesFromLocal: stuID=%s, year=%s, semester=%s: %w",
+			stuID, year, semester, biz.ErrClassNotFound)
 	}
 
 	classInfosBiz := make([]*bizModel.ClassInfoBO, 0, len(classInfos))
@@ -100,7 +100,7 @@ func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string,
 		}
 		if cnt > MaxNum {
 			return errorx.Errorf("repo.class.AddClass: classlist num limit, count=%d, max=%d: %w",
-				cnt, MaxNum, errcode.ErrClassUpdate)
+				cnt, MaxNum, biz.ErrClassUpdateRejected)
 		}
 		return nil
 	})
@@ -111,6 +111,72 @@ func (cla ClassRepo) AddClass(ctx context.Context, stuID, year, semester string,
 
 	// 缓存失效（best-effort，DB 已成功）
 	cla.invalidateClassInfoCacheBestEffort(ctx, stuID, year, semester)
+	return nil
+}
+
+// 防止重复加课
+func (cla ClassRepo) AddedCourseExists(ctx context.Context, stuID, year, semester, classID string) bool {
+	return cla.StuCourseDAO.AddedCourseExists(ctx, stuID, year, semester, classID)
+}
+
+// 批次删除手动添加的课
+func (cla ClassRepo) DeleteAddedClasses(ctx context.Context, stuID, year, semester string, classIDs []string) error {
+	errTx := transaction.InTx(cla.ClaInfoDAO.GetDB(ctx), ctx, func(ctx context.Context) error {
+		if err := cla.StuCourseDAO.DeleteAddedStudentCourses(ctx, stuID, year, semester, classIDs); err != nil {
+			return err
+		}
+		if err := cla.ClaInfoDAO.DeleteAddedClassInfos(ctx, classIDs); err != nil {
+			return err
+		}
+		return nil
+	})
+	if errTx != nil {
+		return errorx.Errorf("repo.class.DeleteAddedClasses: stuID=%s, year=%s, semester=%s, classIDs=%v: %w",
+			stuID, year, semester, classIDs, errTx)
+	}
+	cla.invalidateClassInfoCacheBestEffort(ctx, stuID, year, semester)
+	cla.invalidateMetaDataCacheBestEffort(ctx, stuID, year, semester)
+	return nil
+}
+
+func (cla ClassRepo) UpdateAddedClass(ctx context.Context, stuID, year, semester, oldClassID string, classInfo *bizModel.ClassInfoBO, sc *bizModel.StudentCourseBO) error {
+	classInfoDo, scDo := classInfoBOToDO(classInfo), studentCourseBOToDO(sc)
+
+	errTx := transaction.InTx(cla.ClaInfoDAO.GetDB(ctx), ctx, func(ctx context.Context) error {
+		if err := cla.ClaInfoDAO.UpsertClassInfoToDB(ctx, classInfoDo); err != nil {
+			return err
+		}
+		if err := cla.StuCourseDAO.DeleteAddedStudentCourses(ctx, stuID, year, semester, []string{oldClassID}); err != nil {
+			return err
+		}
+		if err := cla.StuCourseDAO.SaveStudentAndCourseToDB(ctx, scDo); err != nil {
+			return err
+		}
+		if oldClassID != classInfo.ID {
+			if err := cla.ClaInfoDAO.DeleteAddedClassInfos(ctx, []string{oldClassID}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if errTx != nil {
+		return errorx.Errorf("repo.class.UpdateAddedClass: stuID=%s, year=%s, semester=%s, oldClassID=%s, newClassID=%s: %w",
+			stuID, year, semester, oldClassID, classInfo.ID, errTx)
+	}
+	cla.invalidateClassInfoCacheBestEffort(ctx, stuID, year, semester)
+	cla.invalidateMetaDataCacheBestEffort(ctx, stuID, year, semester)
+	return nil
+}
+
+func (cla ClassRepo) UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error {
+	errTx := transaction.InTx(cla.StuCourseDAO.GetDB(ctx), ctx, func(ctx context.Context) error {
+		return cla.StuCourseDAO.UpdateCourseNote(ctx, stuID, year, semester, classID, note)
+	})
+	if errTx != nil {
+		return errorx.Errorf("repo.class.UpdateClassNote: stuID=%s, year=%s, semester=%s, classID=%s: %w",
+			stuID, year, semester, classID, errTx)
+	}
+	cla.invalidateMetaDataCacheBestEffort(ctx, stuID, year, semester)
 	return nil
 }
 
@@ -171,6 +237,21 @@ func (cla ClassRepo) GetAddedClasses(ctx context.Context, stuID, year, semester 
 	}
 	cla.fillClassMetaData(ctx, stuID, year, semester, classInfosBiz)
 	return classInfosBiz, nil
+}
+
+func (cla ClassRepo) GetClassNatures(ctx context.Context, stuID string) ([]string, error) {
+	classNatures, err := cla.ClaInfoDAO.GetClassNatures(ctx, stuID)
+	if err != nil {
+		return nil, errorx.Errorf("repo.class.GetClassNatures: stuID=%s: %w", stuID, err)
+	}
+
+	filteredNatures := make([]string, 0, len(classNatures))
+	for _, nature := range classNatures {
+		if nature != "" {
+			filteredNatures = append(filteredNatures, nature)
+		}
+	}
+	return filteredNatures, nil
 }
 
 func (cla ClassRepo) fillClassMetaData(ctx context.Context, stuID, year, semester string, classInfosBiz []*bizModel.ClassInfoBO) {

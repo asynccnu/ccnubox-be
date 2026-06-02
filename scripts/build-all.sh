@@ -29,7 +29,12 @@ for d in "${ds[@]}"; do
   echo -e "🔧🔧🔧 Building and pushing image for $d 🔧🔧🔧\n"
 
   # shellcheck disable=SC2046
-  docker build -t "$d:v1" -f "./$d/Dockerfile" .
+  dockerfile="./$d/Dockerfile"
+  if [[ "$d" == "be-classlist" ]]; then
+    dockerfile="./be-classlist_v2/Dockerfile"
+  fi
+
+  docker build -t "$d:v1" -f "$dockerfile" .
 
   if [[ -n "$imageRepo" ]]; then
     echo -e "📦 Tagging and pushing $d to $imageRepo ...\n"

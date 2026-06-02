@@ -8,6 +8,8 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/conf"
+	classTool "github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/tool"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"golang.org/x/sync/singleflight"
 )
@@ -36,7 +38,7 @@ func NewClassUsecase(
 	queue biz.DelayQueue,
 	l logger.Logger,
 ) *ClassUsecase {
-	return &ClassUsecase{
+	cluc := &ClassUsecase{
 		conf:           conf,
 		log:            l,
 		classRepo:      cla,
@@ -46,6 +48,8 @@ func NewClassUsecase(
 		crawler:        crawler,
 		delayQue:       queue,
 	}
+	cluc.startRetryConsumer()
+	return cluc
 }
 
 // 将实现暴露出的主函数与流程里使用到的工具函数分开放在两个文件里提高可读性
@@ -119,4 +123,232 @@ func (cluc *ClassUsecase) GetClasses(ctx context.Context, stuID, year, semester 
 	}
 
 	return localClasses, localLastRefreshTime, nil
+}
+
+func (cluc *ClassUsecase) AddClass(ctx context.Context, stuID string, info *model.ClassInfoBO) error {
+	logh := cluc.log.WithContext(ctx)
+
+	sc := &model.StudentCourseBO{
+		StuID:           stuID,
+		ClaID:           info.ID,
+		Year:            info.Year,
+		Semester:        info.Semester,
+		IsManuallyAdded: !info.MetaData.IsOfficial,
+		Note:            info.MetaData.Note,
+	}
+
+	// 判断这个课程是否与现成课程发生冲突
+	conflict, err := cluc.hasScheduleConflict(ctx, stuID, info)
+	if err != nil {
+		return err
+	}
+	if conflict {
+		logh.Error("class schedule conflict",
+			logger.String("stu_id", stuID),
+			logger.String("year", info.Year),
+			logger.String("semester", info.Semester),
+			logger.String("class_id", info.ID),
+			logger.Int64("day", info.Day),
+			logger.String("class_when", info.ClassWhen),
+			logger.Int64("weeks", info.Weeks),
+		)
+		return errorx.Errorf("usecase.class.AddClass: class schedule conflict: %w", biz.ErrClassScheduleConflict)
+	}
+
+	return cluc.classRepo.AddClass(ctx, stuID, info.Year, info.Semester, info, sc)
+}
+
+func (cluc *ClassUsecase) DeleteClass(ctx context.Context, stuID, year, semester, classID string) error {
+	logh := cluc.log.WithContext(ctx)
+
+	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+	if err != nil {
+		return err
+	}
+
+	var target *model.ClassInfoBO
+	for _, classInfo := range classes {
+		if classInfo != nil && classInfo.ID == classID {
+			target = classInfo
+			break
+		}
+	}
+	if target == nil {
+		return errorx.Errorf("usecase.class.DeleteClass: classID=%s: %w", classID, biz.ErrStudentCourseNotFound)
+	}
+	if target.MetaData.IsOfficial {
+		logh.Warn("reject deleting official class",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", classID),
+		)
+		return errorx.Errorf("usecase.class.DeleteClass: reject official classID=%s: %w", classID, biz.ErrClassDeleteRejected)
+	}
+
+	if err := cluc.classRepo.DeleteAddedClasses(ctx, stuID, year, semester, []string{classID}); err != nil {
+		logh.Error("delete added class failed",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", classID),
+			logger.Error(err),
+		)
+		return err
+	}
+	return nil
+}
+
+func (cluc *ClassUsecase) UpdateClass(ctx context.Context, stuID, year, semester, oldClassID string, name, durClass, where, teacher *string, weeks, day *int64, credit *float64) (string, error) {
+	logh := cluc.log.WithContext(ctx)
+
+	// 拿数据库数据
+	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+	if err != nil {
+		return "", err
+	}
+
+	var oldInfo *model.ClassInfoBO
+	for _, classInfo := range classes {
+		if classInfo != nil && classInfo.ID == oldClassID {
+			oldInfo = classInfo
+			break
+		}
+	}
+	if oldInfo == nil {
+		return "", errorx.Errorf("usecase.class.UpdateClass: oldClassID=%s: %w", oldClassID, biz.ErrStudentCourseNotFound)
+	}
+	// 防御一下，正常情况不可能升级官方课程的，前端不会提供入口
+	if oldInfo.MetaData.IsOfficial {
+		logh.Warn("reject updating official class",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", oldClassID),
+		)
+		return "", errorx.Errorf("usecase.class.UpdateClass: reject official classID=%s: %w", oldClassID, biz.ErrClassUpdateRejected)
+	}
+
+	newInfo := *oldInfo
+	if name != nil {
+		newInfo.Classname = *name
+	}
+	if durClass != nil {
+		newInfo.ClassWhen = *durClass
+	}
+	if where != nil {
+		newInfo.Where = *where
+	}
+	if teacher != nil {
+		newInfo.Teacher = *teacher
+	}
+	if weeks != nil {
+		newInfo.Weeks = *weeks
+		newInfo.WeekDuration = classTool.FormatWeeks(classTool.ParseWeeks(*weeks))
+	}
+	if day != nil {
+		newInfo.Day = *day
+	}
+	if credit != nil {
+		newInfo.Credit = *credit
+	}
+	newInfo.UpdateID()
+
+	if newInfo.ID != oldClassID && cluc.classRepo.AddedCourseExists(ctx, stuID, year, semester, newInfo.ID) {
+		logh.Error("class already exists",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", newInfo.ID),
+		)
+		return "", errorx.Errorf("usecase.class.UpdateClass: classID=%s: %w", newInfo.ID, biz.ErrClassAlreadyExists)
+	}
+
+	// 判定冲突
+	conflict, err := cluc.hasScheduleConflictWithClassesExcept(ctx, &newInfo, classes, oldClassID)
+	if err != nil {
+		return "", err
+	}
+	if conflict {
+		logh.Error("class schedule conflict",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("old_class_id", oldClassID),
+			logger.String("new_class_id", newInfo.ID),
+			logger.Int64("day", newInfo.Day),
+			logger.String("class_when", newInfo.ClassWhen),
+			logger.Int64("weeks", newInfo.Weeks),
+		)
+		return "", errorx.Errorf("usecase.class.UpdateClass: class schedule conflict oldClassID=%s newClassID=%s: %w",
+			oldClassID, newInfo.ID, biz.ErrClassScheduleConflict)
+	}
+
+	sc := &model.StudentCourseBO{
+		StuID:           stuID,
+		ClaID:           newInfo.ID,
+		Year:            year,
+		Semester:        semester,
+		IsManuallyAdded: true,
+		Note:            oldInfo.MetaData.Note,
+	}
+	if err := cluc.classRepo.UpdateAddedClass(ctx, stuID, year, semester, oldClassID, &newInfo, sc); err != nil {
+		logh.Error("update added class failed",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("old_class_id", oldClassID),
+			logger.String("new_class_id", newInfo.ID),
+			logger.Error(err),
+		)
+		return "", err
+	}
+	return newInfo.ID, nil
+}
+
+func (cluc *ClassUsecase) UpdateClassNote(ctx context.Context, stuID, year, semester, classID, note string) error {
+	logh := cluc.log.WithContext(ctx)
+
+	classes, err := cluc.classRepo.GetClassesFromLocal(ctx, stuID, year, semester)
+	if err != nil {
+		return err
+	}
+
+	var found bool
+	for _, classInfo := range classes {
+		if classInfo != nil && classInfo.ID == classID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return errorx.Errorf("usecase.class.UpdateClassNote: classID=%s: %w", classID, biz.ErrStudentCourseNotFound)
+	}
+
+	if err := cluc.classRepo.UpdateClassNote(ctx, stuID, year, semester, classID, note); err != nil {
+		logh.Error("update class note failed",
+			logger.String("stu_id", stuID),
+			logger.String("year", year),
+			logger.String("semester", semester),
+			logger.String("class_id", classID),
+			logger.Error(err),
+		)
+		return err
+	}
+	return nil
+}
+
+func (cluc *ClassUsecase) GetStuIdsByJxbId(ctx context.Context, jxbID string) ([]string, error) {
+	stuIDs, err := cluc.jxbRepo.FindStuIdsByJxbId(ctx, jxbID)
+	if err != nil {
+		return []string{}, errorx.Errorf("usecase.class.GetStuIdsByJxbId: jxbID=%s: %w", jxbID, err)
+	}
+	if len(stuIDs) == 0 {
+		return []string{}, errorx.Errorf("usecase.class.GetStuIdsByJxbId: jxbID=%s: %w", jxbID, biz.ErrGetStuIDsByJxbID)
+	}
+	return stuIDs, nil
+}
+
+func (cluc *ClassUsecase) GetClassNatures(ctx context.Context, stuID string) ([]string, error) {
+	return cluc.classRepo.GetClassNatures(ctx, stuID)
 }

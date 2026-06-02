@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/valyala/fastjson"
 )
@@ -88,7 +88,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	req, err := http.NewRequestWithContext(reqCtx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
-		return nil, nil, -1, errcode.ErrCrawler
+		return nil, nil, -1, errorx.Errorf("crawler.crawler1.GetClassInfoForGraduateStudent new request failed: %w", err)
 	}
 	req.Header = http.Header{
 		"Accept":             []string{"*/*"},
@@ -110,7 +110,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	resp, err := client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
-		return nil, nil, -1, errcode.ErrCrawler
+		return nil, nil, -1, errorx.Errorf("crawler.crawler1.GetClassInfoForGraduateStudent request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -123,7 +123,7 @@ func (c *Crawler) GetClassInfoForGraduateStudent(ctx context.Context, stuID, yea
 	infos, Scs, sum, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
 	if err != nil {
 		logh.Errorf("extractUndergraduateData err=%v", err)
-		return nil, nil, -1, errcode.ErrCrawler
+		return nil, nil, -1, errorx.Errorf("crawler.crawler1.GetClassInfoForGraduateStudent extract failed: %w", err)
 	}
 	return infos, Scs, sum, nil
 }
@@ -153,7 +153,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	req, err := http.NewRequestWithContext(reqCtx, "POST", "https://xk.ccnu.edu.cn/jwglxt/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
-		return nil, nil, -1, errcode.ErrCrawler
+		return nil, nil, -1, errorx.Errorf("crawler.crawler1.GetClassInfosForUndergraduate new request failed: %w", err)
 	}
 	req.Header = http.Header{
 		"Accept":             []string{"*/*"},
@@ -175,7 +175,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	resp, err := client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
-		return nil, nil, -1, errcode.ErrCrawler
+		return nil, nil, -1, errorx.Errorf("crawler.crawler1.GetClassInfosForUndergraduate request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -188,7 +188,7 @@ func (c *Crawler) GetClassInfosForUndergraduate(ctx context.Context, stuID, year
 	infos, Scs, sum, err := extractUndergraduateData(bodyBytes, stuID, xnm, xqm)
 	if err != nil {
 		logh.Errorf("extractUndergraduateData err=%v", err)
-		return nil, nil, -1, errcode.ErrCrawler
+		return nil, nil, -1, errorx.Errorf("crawler.crawler1.GetClassInfosForUndergraduate extract failed: %w", err)
 	}
 
 	return infos, Scs, sum, nil

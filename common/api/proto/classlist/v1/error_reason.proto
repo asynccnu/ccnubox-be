@@ -22,4 +22,6 @@ enum ErrorReason {
   RECOVERFAILED = 10 ;
   GETSTUIDBYJXBID = 11;
   CLASSISEXIST = 12;
+  CONFIG_Error = 13;
+  ErrClassScheduleConflict = 14;
 }

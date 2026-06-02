@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
+	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
@@ -46,14 +46,64 @@ func (c ClassInfoDAO) AddClassInfoToDB(ctx context.Context, classInfo *model.Cla
 		return nil
 	}
 	if classInfo.Day < 1 || classInfo.Day > 7 {
-		return errorx.Errorf("dao.classInfo.AddClassInfoToDB: invalid day=%d, classInfo=%+v: %w", classInfo.Day, classInfo, errcode.ErrClassUpdate)
+		return errorx.Errorf("dao.classInfo.AddClassInfoToDB: invalid day=%d, classInfo=%+v: %w", classInfo.Day, classInfo, biz.ErrInvalidParam)
 	}
 
 	// 约定将事务 db 从 ctx 中取出来
 	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
 	err := db.Debug().Clauses(clause.OnConflict{DoNothing: true}).Create(&classInfo).Error
 	if err != nil {
-		return errorx.Errorf("dao.classInfo.AddClassInfoToDB: classInfo=%+v, dbErr=%s: %w", classInfo, err.Error(), errcode.ErrClassUpdate)
+		return errorx.Errorf("dao.classInfo.AddClassInfoToDB: classInfo=%+v: %w", classInfo, err)
+	}
+	return nil
+}
+
+func (c ClassInfoDAO) UpsertClassInfoToDB(ctx context.Context, classInfo *model.ClassInfo) error {
+	if classInfo == nil {
+		return nil
+	}
+	if classInfo.Day < 1 || classInfo.Day > 7 {
+		return errorx.Errorf("dao.classInfo.UpsertClassInfoToDB: invalid day=%d, classInfo=%+v: %w", classInfo.Day, classInfo, biz.ErrInvalidParam)
+	}
+
+	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
+	err := db.Debug().
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"jxb_id",
+				"day",
+				"teacher",
+				"where",
+				"class_when",
+				"week_duration",
+				"class_name",
+				"credit",
+				"weeks",
+				"semester",
+				"year",
+				"nature",
+				"updated_at",
+			}),
+		}).
+		Create(&classInfo).Error
+	if err != nil {
+		return errorx.Errorf("dao.classInfo.UpsertClassInfoToDB: classInfo=%+v: %w", classInfo, err)
+	}
+	return nil
+}
+
+func (c ClassInfoDAO) DeleteAddedClassInfos(ctx context.Context, classIDs []string) error {
+	if len(classIDs) == 0 {
+		return nil
+	}
+
+	db := c.GetDB(ctx).Table(model.ClassInfoTableName).WithContext(ctx)
+	err := db.Debug().
+		Where("id IN ?", classIDs).
+		Delete(&model.ClassInfo{}).Error
+	if err != nil {
+		return errorx.Errorf("dao.classInfo.DeleteAddedClassInfos: classIDs=%v: %w", classIDs, err)
 	}
 	return nil
 }
@@ -95,4 +145,24 @@ func (c ClassInfoDAO) GetAddedClassInfos(ctx context.Context, stuID, xnm, xqm st
 		return nil, errorx.Errorf("dao.classInfo.GetAddedClassInfos: stuID=%s, year=%s, semester=%s: %w", stuID, xnm, xqm, err)
 	}
 	return cla, nil
+}
+
+func (c ClassInfoDAO) GetClassNatures(ctx context.Context, stuID string) ([]string, error) {
+	db := c.GetDB(ctx).WithContext(ctx)
+	natures := make([]string, 0)
+
+	subQuery := db.
+		Table(model.StudentCourseTableName).
+		Select("cla_id").
+		Where("stu_id = ?", stuID)
+
+	err := db.
+		Table(model.ClassInfoTableName).
+		Distinct("nature").
+		Where("id IN (?) AND nature IS NOT NULL", subQuery).
+		Pluck("nature", &natures).Error
+	if err != nil {
+		return nil, errorx.Errorf("dao.classInfo.GetClassNatures: stuID=%s: %w", stuID, err)
+	}
+	return natures, nil
 }

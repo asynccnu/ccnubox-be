@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/errcode"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/biz/model"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/pkg/tool"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/valyala/fastjson"
 )
@@ -170,7 +170,7 @@ func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, ye
 	req, err := http.NewRequestWithContext(reqCtx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
-		return nil, nil, -1, errcode.ErrCrawler
+		return nil, nil, -1, errorx.Errorf("crawler.crawler2.GetClassInfoForGraduateStudent new request failed: %w", err)
 	}
 	req.Header = http.Header{
 		"Cookie":       []string{cookie},
@@ -180,7 +180,7 @@ func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, ye
 	resp, err := client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
-		return nil, nil, -1, errcode.ErrCrawler
+		return nil, nil, -1, errorx.Errorf("crawler.crawler2.GetClassInfoForGraduateStudent request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -193,7 +193,7 @@ func (c *Crawler2) GetClassInfoForGraduateStudent(ctx context.Context, stuID, ye
 	infos, Scs, sum, err := extractGraduateData(bodyBytes, stuID, xnm, xqm)
 	if err != nil {
 		logh.Errorf("extractUndergraduateData err=%v", err)
-		return nil, nil, -1, errcode.ErrCrawler
+		return nil, nil, -1, errorx.Errorf("crawler.crawler2.GetClassInfoForGraduateStudent extract failed: %w", err)
 	}
 	return infos, Scs, sum, nil
 }

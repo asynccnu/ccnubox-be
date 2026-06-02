@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'be-elecprice/**'
+      - 'common/**'
+      - '.github/workflows/deploy-be-elecprice.yaml'
 env:
   SERVICE_NAME: be-elecprice  # 👈 这里设置的是全局环境变量
   SERVICE_VERSION: BE_ELECPRICE  # 👈 这里设置的是 Docker Compose 文件中使用的环境变量名称

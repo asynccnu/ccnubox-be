@@ -25,7 +25,7 @@ import (
 	libraryv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/asynccnu/ccnubox-be/common/pkg/prometheusx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/redis/go-redis/v9"
@@ -104,8 +104,8 @@ func InitTubeHandler(cfg *conf.ServerConf, tb *TubePolicies, mac *qbox.Mac) *tub
 	return tube.NewTubeHandler(tb.defaultPolicy, tb.officialSite, mac, cfg.Oss.DomainName)
 }
 
-func InitMetricsHandel(l logger.Logger, redisClient redis.Cmdable, prometheus *prometheusx.PrometheusCounter) *metrics.MetricsHandler {
-	return metrics.NewMetricsHandler(l, redisClient, prometheus)
+func InitMetricsHandler(l logger.Logger, redisClient redis.Cmdable, metricsx *metricsx.Metrics) *metrics.MetricsHandler {
+	return metrics.NewMetricsHandler(l, redisClient, metricsx)
 }
 
 func InitSwagHandler() *swag.SwagHandler {

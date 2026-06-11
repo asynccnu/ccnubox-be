@@ -9,3 +9,7 @@ import (
 func InitRedis(cfg *conf.InfraConf) *redis.Client {
 	return infra.InitRedis(cfg.Redis)
 }
+
+func RedisCmdable(client *redis.Client) redis.Cmdable {
+	return client
+}

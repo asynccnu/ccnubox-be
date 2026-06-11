@@ -16,13 +16,14 @@ func InitApp() *App {
 		conf.InitInfraConfig,
 		conf.InitServerConf,
 		// 组件
-		ioc.InitPrometheus,
 		ioc.InitEtcdClient,
 		ioc.InitLogger,
 		ioc.InitRedis,
+		ioc.RedisCmdable,
 		ioc.InitOTel,
 		ioc.InitRedisLock,
 		ioc.InitScheduler,
+		ioc.InitMetrics,
 		cron.NewTieredHandler,
 
 		//grpc注册
@@ -50,7 +51,7 @@ func InitApp() *App {
 		ioc.InitElecpriceHandler,
 		ioc.InitClassHandler,
 		ioc.InitGradeHandler,
-		ioc.InitMetricsHandel,
+		ioc.InitMetricsHandler,
 		ioc.InitLibraryHandler,
 		ioc.InitSwagHandler,
 		ioc.InitHealthHandler,

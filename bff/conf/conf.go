@@ -16,15 +16,15 @@ type InfraConf struct {
 // ServerConf 服务配置
 type ServerConf struct {
 	conf.BaseServerConf `mapstructure:",squash"`
-	ServiceName         string          `yaml:"serviceName"`
-	ElecpriceController *ElecPriceConf  `yaml:"elecpriceController"`
-	Http                *HttpConf       `yaml:"http"`
-	Administrators      []string        `yaml:"administrators"`
-	JWT                 *JWTConf        `yaml:"jwt"`
-	Oss                 *OssConf        `yaml:"oss"`
-	Prometheus          *PrometheusConf `yaml:"prometheus"`
-	BasicAuth           *BasicAuthConf  `yaml:"basicAuth"`
-	Tiered              *TieredConf     `yaml:"tiered"`
+	ServiceName         string         `yaml:"serviceName"`
+	ElecpriceController *ElecPriceConf `yaml:"elecpriceController"`
+	Http                *HttpConf      `yaml:"http"`
+	Administrators      []string       `yaml:"administrators"`
+	JWT                 *JWTConf       `yaml:"jwt"`
+	Oss                 *OssConf       `yaml:"oss"`
+	//Prometheus          *PrometheusConf `yaml:"prometheus"`
+	BasicAuth *BasicAuthConf `yaml:"basicAuth"`
+	Tiered    *TieredConf    `yaml:"tiered"`
 }
 type HttpConf struct {
 	Addr string `yaml:"addr"`
@@ -45,29 +45,29 @@ type OssConf struct {
 	FileName   string `yaml:"fileName"`
 }
 
-type PrometheusConf struct {
-	Namespace string `yaml:"namespace"` //项目名称
-
-	RouterCounter struct {
-		Name string `yaml:"name"`
-		Help string `yaml:"help"`
-	} `yaml:"routerCounter"`
-
-	ActiveConnections struct {
-		Name string `yaml:"name"`
-		Help string `yaml:"help"`
-	} `yaml:"activeConnections"`
-
-	DurationTime struct {
-		Name string `yaml:"name"`
-		Help string `yaml:"help"`
-	} `yaml:"durationTime"`
-
-	DailyActiveUsers struct {
-		Name string `yaml:"name"`
-		Help string `yaml:"help"`
-	} `yaml:"dailyActiveUsers"`
-}
+//type PrometheusConf struct {
+//	Namespace string `yaml:"namespace"` //项目名称
+//
+//	RouterCounter struct {
+//		Name string `yaml:"name"`
+//		Help string `yaml:"help"`
+//	} `yaml:"routerCounter"`
+//
+//	ActiveConnections struct {
+//		Name string `yaml:"name"`
+//		Help string `yaml:"help"`
+//	} `yaml:"activeConnections"`
+//
+//	DurationTime struct {
+//		Name string `yaml:"name"`
+//		Help string `yaml:"help"`
+//	} `yaml:"durationTime"`
+//
+//	DailyActiveUsers struct {
+//		Name string `yaml:"name"`
+//		Help string `yaml:"help"`
+//	} `yaml:"dailyActiveUsers"`
+//}
 
 type BasicAuthConf struct {
 	Username string `yaml:"username"`

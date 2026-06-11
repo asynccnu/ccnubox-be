@@ -29,4 +29,4 @@ EXPOSE 19083
 
 VOLUME /data/conf
 
-CMD ["./be-class", "-conf", "/data/conf/config.yaml"]
+CMD ["./be-class", "--config", "/data/conf/config.yaml"]

@@ -28,4 +28,4 @@ EXPOSE 19084
 VOLUME /data/conf
 
 ## 注意，这里的“classlist”是main.go所在的目录名（猜的）
-CMD ["./be-classlist", "-conf", "/data/conf/config.yaml"]
+CMD ["./be-classlist", "--config", "/data/conf/config.yaml"]

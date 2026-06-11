@@ -7,22 +7,22 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
-	"github.com/asynccnu/ccnubox-be/common/pkg/prometheusx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 )
 
 type PrometheusMiddleware struct {
-	prometheus  *prometheusx.PrometheusCounter
+	metrics     *metricsx.Metrics
 	redisClient redis.Cmdable
 }
 
 func NewPrometheusMiddleware(
-	prometheus *prometheusx.PrometheusCounter,
+	metrics *metricsx.Metrics,
 	redisClient redis.Cmdable,
 ) *PrometheusMiddleware {
 	return &PrometheusMiddleware{
-		prometheus:  prometheus,
+		metrics:     metrics,
 		redisClient: redisClient,
 	}
 }
@@ -31,12 +31,11 @@ func (m *PrometheusMiddleware) MiddlewareFunc() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		start := time.Now()
 
-		// path := ctx.Request.URL.Path
 		path := ctx.FullPath()
 		if path == "" {
 			path = "not found"
 		}
-		m.prometheus.ActiveConnections.WithLabelValues(path).Inc()
+		m.metrics.HTTP.ActiveConnections.WithLabelValues(path).Inc()
 
 		defer func() {
 			// 向 redis 存入学号数据
@@ -60,9 +59,9 @@ func (m *PrometheusMiddleware) MiddlewareFunc() gin.HandlerFunc {
 
 			// 记录响应信息
 			status := ctx.Writer.Status()
-			m.prometheus.ActiveConnections.WithLabelValues(path).Dec()
-			m.prometheus.RouterCounter.WithLabelValues(ctx.Request.Method, path, http.StatusText(status)).Inc()
-			m.prometheus.DurationTime.WithLabelValues(path, http.StatusText(status)).Observe(time.Since(start).Seconds())
+			m.metrics.HTTP.ActiveConnections.WithLabelValues(path).Dec()
+			m.metrics.HTTP.RequestsTotal.WithLabelValues(ctx.Request.Method, path, http.StatusText(status)).Inc()
+			m.metrics.HTTP.Duration.WithLabelValues(path, http.StatusText(status)).Observe(time.Since(start).Seconds())
 		}()
 
 		ctx.Next() // 执行后续逻辑

@@ -1,13 +1,11 @@
 package metrics
 
 import (
-	"time"
-
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/asynccnu/ccnubox-be/common/pkg/prometheusx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
@@ -16,18 +14,14 @@ import (
 type MetricsHandler struct {
 	l           logger.Logger
 	redisClient redis.Cmdable
-	prometheus  *prometheusx.PrometheusCounter
+	metrics     *metricsx.Metrics
 }
 
-func NewMetricsHandler(
-	l logger.Logger,
-	redisClient redis.Cmdable,
-	prometheus *prometheusx.PrometheusCounter,
-) *MetricsHandler {
+func NewMetricsHandler(l logger.Logger, redisClient redis.Cmdable, metrics *metricsx.Metrics) *MetricsHandler {
 	return &MetricsHandler{
 		l:           l,
 		redisClient: redisClient,
-		prometheus:  prometheus,
+		metrics:     metrics,
 	}
 }
 
@@ -46,25 +40,6 @@ func (h *MetricsHandler) RegisterRoutes(s *gin.RouterGroup, basicAuthMiddleware 
 // @Router /metrics [get]
 // @Security BasicAuth
 func (h *MetricsHandler) MetricsExporter(c *gin.Context) {
-	// DAU 处理
-	keys := make([]string, 0, 96)
-	currentBucket := time.Now().Truncate(15 * time.Minute)
-
-	// 取过去24个小时的96个桶
-	for i := 0; i < 96; i++ {
-		t := currentBucket.Add(-time.Duration(i) * 15 * time.Minute)
-		key := "dau:" + t.Format("2006-01-02-15-04")
-		keys = append(keys, key)
-	}
-
-	// Redis 内部会将这 96 个桶的数据取并集
-	count, err := h.redisClient.PFCount(c.Request.Context(), keys...).Result()
-	if err != nil {
-		h.l.Error("failed to get rolling dau", logger.String("err", err.Error()))
-	} else {
-		h.prometheus.DailyActiveUsers.WithLabelValues("ccnubox").Set(float64(count))
-	}
-
 	promhttp.Handler().ServeHTTP(c.Writer, c.Request)
 	c.Abort()
 }
@@ -84,7 +59,7 @@ func (h *MetricsHandler) Metrics(ctx *gin.Context, req MetricsReq, uc ijwt.UserC
 	fields := []logger.Field{
 		logger.String("path", "/api/v1/metrics/"+t+"/"+name),
 		logger.String("msg", req.Msg),
-		logger.String("user:", uc.StudentId),
+		logger.String("user", uc.StudentId),
 	}
 
 	switch req.Level {

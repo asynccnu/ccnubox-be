@@ -1,16 +1,49 @@
-#成绩自动提醒
+env: "prod"
+
+server:
+  name: "grade"
+  grpc:
+    addr: "0.0.0.0:19089"
+    timeout: 10s
+
+data:
+  mysql:
+    dsn: "root:password@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+  redis:
+    addr: "localhost:6379"
+    password: ""
+  kafka:
+    brokers:
+      - "localhost:9092"
+  etcd:
+    endpoints:
+      - "localhost:2379"
+    username: "root"
+    password: ""
+
+registry:
+  etcd:
+    addr: "localhost:2379"
+    username: "root"
+    password: ""
+
 gradeConf:
-  high: 15  #单位是分钟
-  middle: 30 #单位是分钟
-  low: 60 #单位是分钟
-  
+  high: 15      # 高优先级刷新间隔(分钟)
+  middle: 30    # 中优先级刷新间隔(分钟)
+  low: 60       # 低优先级刷新间隔(分钟)
+
 consumeConf:
-  consumeTime: 1 #强制插入的时间(如果长期没有消息被消费的话),单位是分钟
-  consumeNum: 100 #批量存入,每次最多一次存入500条数据(设置最大值不能超过一千,否则请自行修改dao层的gorm插入feedEvent的最大上限值)
+  consumeTime: 1   # 强制插入的时间(分钟)
+  consumeNum: 100  # 批量存入条数上限
 
 log:
-  path: "/logs/app.log"  # 日志文件路径
-  maxSize: 100           # 单个日志文件的最大大小（MB）
-  maxBackups: 7          # 保留旧日志文件的最大数量
-  maxAge: 30             # 日志文件保留天数
-  compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  path: "/logs/app.log"
+  maxSize: 100
+  maxBackups: 7
+  maxAge: 30
+  compress: 1
+
+otel:
+  serviceName: "be-grade"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"

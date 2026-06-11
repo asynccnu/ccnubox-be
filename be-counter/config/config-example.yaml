@@ -1,13 +1,43 @@
+env: "prod"
+
+server:
+  name: "counter"
+  grpc:
+    addr: "0.0.0.0:19085"
+    timeout: 10s
+
+data:
+  mysql:
+    dsn: "root:password@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+  redis:
+    addr: "localhost:6379"
+    password: ""
+  etcd:
+    endpoints:
+      - "localhost:2379"
+    username: "root"
+    password: ""
+
+registry:
+  etcd:
+    addr: "localhost:2379"
+    username: "root"
+    password: ""
+
 countLevel:
-  low: 0 #轮询低位起始点
-  middle: 3 #轮询中位起始点
-  high: 6 #轮询高位起始点
-  step: 3 #轮询降级与升级步数,即一次更改一级
+  low: 0      # 轮询低位起始点
+  middle: 3   # 轮询中位起始点
+  high: 6     # 轮询高位起始点
+  step: 3     # 轮询降级与升级步数
 
 log:
-  path: "/logs/app.log"  # 日志文件路径
-  maxSize: 100           # 单个日志文件的最大大小（MB）
-  maxBackups: 7          # 保留旧日志文件的最大数量
-  maxAge: 30             # 日志文件保留天数
-  compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  path: "/logs/app.log"
+  maxSize: 100
+  maxBackups: 7
+  maxAge: 30
+  compress: 1
 
+otel:
+  serviceName: "be-counter"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"

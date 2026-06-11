@@ -1,3 +1,48 @@
+env: "prod"
+
+server:
+  name: "classlist_v2"
+  grpc:
+    addr: "0.0.0.0:20002"
+    timeout: 10s
+
+data:
+  mysql:
+    dsn: "root:password@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+  redis:
+    addr: "localhost:6379"
+    password: ""
+  kafka:
+    brokers:
+      - "localhost:9092"
+  etcd:
+    endpoints:
+      - "localhost:2379"
+    username: "root"
+    password: ""
+
+registry:
+  etcd:
+    addr: "localhost:2379"
+    username: "root"
+    password: ""
+
+classListConf:
+  waitCrawTime: 5000        # 等待爬虫抓取数据的时间(ms)
+  classExpiration: 604800   # 课程过期时间(秒)
+  recycleExpiration: 2592000  # 回收站课程过期时间(秒)
+  blackListExpiration: 60   # 黑名单过期时间(秒)
+  waitUserSvcTime: 10000    # 等待用户服务的时间(ms)
+  refreshInterval: 60       # 刷新间隔(秒)
+
+schoolday:
+  holidayTime: "2025-07-05"
+  schoolTime: "2025-02-17"
+
+defaults:
+  year: "2025"
+  semester: "1"
+
 log:
   path: "/logs/app.log"
   maxSize: 100
@@ -5,12 +50,7 @@ log:
   maxAge: 30
   compress: 1
 
-classListConf:
-  waitCrawTime: 5000
-  classExpiration: 604800000
-  recycleExpiration: 2592000000
-  blackListExpiration: 60000
-  waitUserSvcTime: 10000
-  refreshInterval: 60000
-  holidayTime: "2025-07-05"
-  schoolTime: "2025-02-17"
+otel:
+  serviceName: "be-classlist_v2"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"

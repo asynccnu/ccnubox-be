@@ -1,17 +1,50 @@
+env: "prod"
+
+server:
+  name: "content"
+  grpc:
+    addr: "0.0.0.0:19081"
+    timeout: 10s
+
+data:
+  mysql:
+    dsn: "root:password@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+  redis:
+    addr: "localhost:6379"
+    password: ""
+  kafka:
+    brokers:
+      - "localhost:9092"
+  etcd:
+    endpoints:
+      - "localhost:2379"
+    username: "root"
+    password: ""
+
+registry:
+  etcd:
+    addr: "localhost:2379"
+    username: "root"
+    password: ""
+
 calendarController:
-  durationTime: 24 #爬取频率,单位是小时
+  durationTime: 24  # 爬取频率(小时)
 
 qiniu:
-  accessKey : ""#秘钥
-  secretKey : ""#秘钥x2
-  bucket: "ccnubox"#仓库名
-  domain : "http://xxxxx"#默认域名
-  baseName : "calendar/"
+  accessKey: ""      # 七牛 AccessKey
+  secretKey: ""     # 七牛 SecretKey
+  bucket: "ccnubox" # 仓库名
+  domain: "http://xxxxx"  # 默认域名
+  baseName: "calendar/"
 
 log:
-  path: "/logs/app.log"  # 日志文件路径
-  maxSize: 100           # 单个日志文件的最大大小（MB）
-  maxBackups: 7          # 保留旧日志文件的最大数量
-  maxAge: 30             # 日志文件保留天数
-  compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  path: "/logs/app.log"
+  maxSize: 100
+  maxBackups: 7
+  maxAge: 30
+  compress: 1
 
+otel:
+  serviceName: "be-content"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"

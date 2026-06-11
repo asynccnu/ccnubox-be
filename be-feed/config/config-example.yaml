@@ -1,25 +1,55 @@
-#消费者的消费配置
+env: "prod"
+
+server:
+  name: "feed"
+  grpc:
+    addr: "0.0.0.0:19088"
+    timeout: 10s
+
+data:
+  mysql:
+    dsn: "root:password@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+  redis:
+    addr: "localhost:6379"
+    password: ""
+  kafka:
+    brokers:
+      - "localhost:9092"
+  etcd:
+    endpoints:
+      - "localhost:2379"
+    username: "root"
+    password: ""
+
+registry:
+  etcd:
+    addr: "localhost:2379"
+    username: "root"
+    password: ""
+
 consume:
-  consumeTime: 1 #强制插入的时间(如果长期没有消息被消费的话),单位是分钟
-  consumeNum: 100 #批量存入,每次最多一次存入500条数据(设置最大值不能超过一千,否则请自行修改dao层的gorm插入feedEvent的最大上限值)
+  consumeTime: 1       # 强制插入的时间(分钟)
+  consumeNum: 100      # 批量存入条数上限
 
-#假期自动提醒
 holidayController:
-  durationTime: 24 #单位是小时,每多少小时尝试去获取一次,这个应该是写死的,不要更改,一天一次很合理
-  advanceDay: 4 #提前四天进行提醒
-#木犀定时发布任务的扫描
-muxiController:
-  durationTime: 1 #单位是秒,间隔越短实时性越强
+  durationTime: 24     # 检查周期(小时)
+  advanceDay: 4        # 提前提醒天数
 
-#极光推送配置
+muxiController:
+  durationTime: 1      # 定时任务扫描间隔(秒)
+
 jpush:
   appKey: ""
   masterSecret: ""
 
 log:
-  path: "./logs/app.log"  # 日志文件路径
-  maxSize: 100           # 单个日志文件的最大大小（MB）
-  maxBackups: 7          # 保留旧日志文件的最大数量
-  maxAge: 30             # 日志文件保留天数
-  compress: 1             # 是否压缩旧日志文件（1 表示压缩，0 表示不压缩）
+  path: "/logs/app.log"
+  maxSize: 100
+  maxBackups: 7
+  maxAge: 30
+  compress: 1
 
+otel:
+  serviceName: "be-feed"
+  serviceVersion: "1.0.0"
+  endpoint: "localhost:4318"

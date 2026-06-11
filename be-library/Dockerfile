@@ -25,7 +25,7 @@ COPY --from=builder /src/be-library/bin /app
 
 WORKDIR /app
 
-EXPOSE 19090
+EXPOSE 19093
 
 VOLUME /data/conf
 

@@ -26,4 +26,6 @@ WORKDIR /app
 
 EXPOSE 20002
 
-CMD ["./be-classlist"]
+VOLUME /data/conf
+
+CMD ["./be-classlist", "--config", "/data/conf/config.yaml"]

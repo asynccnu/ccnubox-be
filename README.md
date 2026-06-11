@@ -1,80 +1,131 @@
 # 华师匣子后端
 
-## 目录
+华师匣子后端是一个基于 Go 的微服务架构项目，为华师匣子应用提供后端支持。
 
-- [一、简述](#一简述)
-- [二、组成模块](#二组成模块)
-- [三、依赖组件](#三依赖组件)
-- [四、如何运行](#四如何运行)
-- [五、API文档](#五api文档)
+## 项目特性
 
-## 一、简述
+- **微服务架构**：12 个独立服务，解耦设计
+- **服务注册与发现**：基于 etcd 的服务治理
+- **日志追踪**：集成 OpenTelemetry，支持分布式追踪
+- **多协议支持**：同时支持 gRPC 和 HTTP
+- **消息队列**：Kafka 实现异步消息处理
+- **搜索能力**：Elasticsearch 提供全文搜索支持
 
-`ccnubox-be` 是华师匣子后端项目，提供了多个模块的功能支持，包括日历、信息汇总、部门管理、课程管理、电费提醒、订阅管理、问题管理、成绩查询以及常用网站管理等功能模块。
+## 技术栈
 
-## 二、组成模块
+| 组件 | 版本 | 用途 |
+|------|------|------|
+| Go | 1.26+ | 开发语言 |
+| etcd | latest | 服务注册与发现 |
+| MySQL | latest | 数据存储 |
+| Redis | latest | 缓存与分布式锁 |
+| Kafka | latest | 消息队列 |
+| Elasticsearch | 7.17.23 | 搜索引擎 |
 
-**模块解释**
-- **`common`** : 定义了各个微服务的API，主要由protobuf定义，同时提供了通用的基础pkg
-- **`be-content`** : 内容服务，提供校历，部门信息，信息汇总，常用网站，banner等内容
-- **`be-ccnu`**: CCNU服务，管理CCNU一站式登录服务
-- **`be-class`**: 课程服务，提供蹭课功能,以及空闲教室的查询
-- **`be-classlist`**: 课表服务，管理课表的增删查改等功能
-- **`be-counnter`**: 区分是否是核心用户服务
-- **`be-elecprice`**: 电费服务，管理电费信息
-- **`be-feed`**: feed服务，管理消息推送服务
-- **`be-grade`**: 成绩服务，管理成绩查询服务
-- **`be-user`**: 用户服务，为其他服务提供cookie
-- **`be-proxy`**: 代理服务, ip代理池
-- **`bff`**: 提供给前端使用的api
+## 目录结构
 
+```
+ccnubox-be/
+├── bff/                  # BFF 层，聚合后端服务
+├── common/               # 公共定义，protobuf 文件
+├── be-content/           # 内容服务
+├── be-ccnu/              # CCNU 一站式登录
+├── be-class/             # 课程服务
+├── be-classlist/         # 课表服务
+├── be-classlist_v2/      # 课表服务 v2
+├── be-counter/           # 核心用户判断
+├── be-elecprice/         # 电费服务
+├── be-feed/              # 消息推送服务
+├── be-grade/             # 成绩服务
+├── be-user/              # 用户服务
+├── be-proxy/             # IP 代理池
+├── be-library/           # 图书馆服务
+├── scripts/              # 工具脚本
+└── deploy/               # 部署配置
+```
 
+## 服务说明
 
-**各个服务对应默认端口**
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| bff | 8080 | BFF 层，聚合服务给前端 |
+| be-content | 19081 | 校历、部门、信息汇总、banner |
+| be-ccnu | 19082 | 一站式登录服务 |
+| be-class | 18000/19083 | 蹭课、空闲教室查询 |
+| be-classlist | 19084 | 课表管理 |
+| be-counter | 19085 | 核心用户判断 |
+| be-elecprice | 19087 | 电费查询 |
+| be-feed | 19088 | 消息推送 |
+| be-grade | 19089 | 成绩查询 |
+| be-user | 19091 | 用户服务，提供 cookie |
+| be-library | 19093 | 图书馆服务 |
+| be-proxy | 19094 | IP 代理池 |
 
-| 服务            | 默认端口  |
-|---------------|-------|
-| be-content    | 19081 |
-| be-ccnu       | 19082 |
-| be-class      | 19083 |
-| be-classlist  | 19084 |
-| be-counter    | 19085 |
-| be-elecprice  | 19087 |
-| be-feed       | 19088 |
-| be-grade      | 19089 |
-| be-user       | 19091 |
-| be-library    | 19093 |
-| be-proxy      | 19094 |
-| bff           | 8080  |
+## 快速开始
 
+### 环境要求
 
+- Go 1.26+
+- Docker & Docker Compose
 
-**项目架构示意图**
+### 启动服务
+
+1. 复制基础架构配置
+
+```bash
+# 复制各服务的 infra 配置
+cp deploy/config-infra.yaml docker-config.yaml
+```
+
+2. 修改 `docker-config.yaml` 中的配置（数据库地址、密码等）
+
+3. 启动基础组件
+
+```bash
+docker compose -f deploy/docker-compose-infra.yaml up -d
+```
+
+4. 构建并启动所有服务
+
+```bash
+# 构建所有服务镜像
+./scripts/build-all.sh
+
+# 或构建单个服务
+./scripts/build-be-class.sh
+```
+
+5. 查看服务状态
+
+```bash
+docker compose ps
+```
+
+## 架构图
 
 ```mermaid
 graph TD
     subgraph TopService ["网关服务"]
-        bff_node["BFF"]
+        bff_node["BFF:8080"]
     end
 
     subgraph MidService ["中游服务"]
-        be_content["be-content"]
-        be_course["be-class"]
-        be_course_list["be-classlist"]
-        be_grade["be-grade"]
-        be_elecprice["be-elecprice"]
-        be_feed["be-feed"]
-        be_user["be-user"]
-                be_library["be-library"]
+        be_content["be-content:19081"]
+        be_course["be-class:19083"]
+        be_course_list["be-classlist:19084"]
+        be_grade["be-grade:19089"]
+        be_elecprice["be-elecprice:19087"]
+        be_feed["be-feed:19088"]
+        be_user["be-user:19091"]
+        be_library["be-library:19093"]
     end
 
     subgraph BotService ["底层服务"]
-        be_ccnu["be-ccnu"]
-        be_counter["be-counter"]
-        be_proxy["be-proxy"]
+        be_ccnu["be-ccnu:19082"]
+        be_counter["be-counter:19085"]
+        be_proxy["be-proxy:19094"]
     end
 
-    %% BFF 核心调用
     bff_node --> be_content
     bff_node --> be_course
     bff_node --> be_course_list
@@ -83,176 +134,107 @@ graph TD
     bff_node --> be_user
     bff_node --> be_library
 
-    %% 根据图片修正的内部依赖
     be_course --> be_course_list
     be_course_list --> be_user
     be_course_list --> be_proxy
-    
+
     be_grade --> be_feed
     be_grade --> be_user
     be_grade --> be_proxy
-    
+
     be_elecprice --> be_feed
     be_elecprice --> be_proxy
 
     be_user --> be_ccnu
     be_user --> be_counter
-    
 ```
 
-**工具文件/目录**
+## 配置说明
 
-**`build-{service}.sh`** : 用来构建`service`服务镜像的脚本文件
+每个服务目录下都有配置文件：
 
-**`build-all.sh`** : 用来构建所有服务镜像的脚本文件
+| 文件 | 说明 |
+|------|------|
+| `config-example.yaml` | 运行配置示例 |
+| `config-infra-example.yaml` | 基础组件配置示例 |
 
-**`deploy/`** : 部署相关文件
-
-
-
-## 三、依赖组件
-
-+ **`etcd`** : 注册中心，承担服务注册与发现的职责
-+ **`mysql`** : 数据库，存储数据
-+ **`redis`** : 用作缓存，并提供分布式锁的功能
-+ **`kafka`** ： 消息队列
-+ **`ElasticSearch`** : 为部分服务提供搜索功能
-
-
-
-## 四、如何运行？
-
-这里只提供在`docker`中的快速搭建
-
-复制`deploy/docker/docker-compose.yaml`
+### 配置示例（config-example.yaml）
 
 ```yaml
-services:
-  be-content:
-    container_name: be-content
-    image: be-content:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/be-content/:/logs/
-      - ./configs/be-content.yaml:/data/conf/config.yaml
-  be-ccnu:
-    container_name: be-ccnu
-    image: be-ccnu:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/be-ccnu/:/logs/
-      - ./configs/be-ccnu.yaml:/data/conf/config.yaml
-  be-class:
-    container_name: be-class
-    image: be-class:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-    #   - ./logs/be-class/:/logs/
-      - ./configs/be-class.yaml:/data/conf/config.yaml
-      - ./configs/classrooms.json:/data/conf/classrooms.json
-  be-classlist:
-    container_name: be-classlist
-    image: be-classlist:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/be-classlist/:/logs/
-      - ./configs/be-classlist.yaml:/data/conf/config.yaml
-  be-counter:
-    container_name: be-counter
-    image: be-counter:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/be-counter/:/logs/
-      - ./configs/be-counter.yaml:/data/conf/config.yaml
-  be-elecprice:
-    container_name: be-elecprice
-    image: be-elecprice:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/be-elecprice/:/logs/
-      - ./configs/be-elecprice.yaml:/data/conf/config.yaml
-  be-feed:
-    container_name: be-feed
-    image: be-feed:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/be-feed/:/logs/
-      - ./configs/be-feed.yaml:/data/conf/config.yaml
-  be-grade:
-    container_name: be-grade
-    image: be-grade:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/be-grade/:/logs/
-      - ./configs/be-grade.yaml:/data/conf/config.yaml
-  be-user:
-    container_name: be-user
-    image: be-user:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/be-user/:/logs/
-      - ./configs/be-user.yaml:/data/conf/config.yaml
-  be-proxy:
-    container_name: be-proxy
-    image: be-proxy:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/be-proxy/:/logs/
-      - ./configs/be-proxy.yaml:/data/conf/config.yaml  
-  bff:
-    container_name: bff
-    image: bff:v1
-    restart: "always"
-    network_mode: host
-    volumes:
-      - ./logs/bff/:/logs/
-      - ./configs/bff.yaml:/data/conf/config.yaml
+env: "prod"
 
+server:
+  name: "服务名"
+  grpc:
+    addr: "0.0.0.0:端口"
+    timeout: 10s
 
+data:
+  database:
+    source: "用户名:密码@tcp(主机:端口)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
+  redis:
+    addr: "主机:6379"
+    password: "密码"
+  kafka:
+    brokers:
+      - "主机:9092"
+
+registry:
+  etcd:
+    addr: "主机:2379"
+    username: "用户名"
+    password: "密码"
+
+log:
+  path: "/logs/app.log"
+  maxSize: 100
+  maxBackups: 7
+  maxAge: 30
+  compress: 1
 ```
 
+## 开发指南
 
+### 添加新服务
 
-可以看到其中的挂载文件，有相关的配置文件，这个你可以从各个服务里面找到相应的配置文件，根据你的需要做修改即可
+1. 在根目录创建服务目录
+2. 编写 Dockerfile（参考现有服务）
+3. 添加 config-example.yaml 和 config-infra-example.yaml
+4. 在 deploy/ 目录添加 docker-compose 配置
+5. 更新本 README 的服务说明
 
-最后你的文件结构应该是这样
-
-```
-.
-├── configs
-│   ├── be-content.yaml
-│   ├── be-ccnu.yaml
-│   ├── be-classlist.yaml
-│   ├── be-class.yaml
-│   ├── be-counter.yaml
-│   ├── be-elecprice.yaml
-│   ├── be-feed.yaml
-│   ├── be-grade.yaml
-│   ├── be-user.yaml
-│   ├── bff.yaml
-│   └── classrooms.json
-├── docker-compose.yaml
-└── logs
-```
-
-注意你需要准备好对应的基础组件
-
-然后执行
+### 本地调试
 
 ```bash
-docker compose up -d
+# 进入服务目录
+cd be-class
+
+# 下载依赖
+go mod tidy
+
+# 运行服务
+go run ./cmd/class -conf ./configs/config.yaml
 ```
 
-## 五、API文档
+## API 文档
 
-想查看API文档，可以到[这里](./bff/docs/)
+API 文档位于 [bff/docs/](bff/docs/)
+
+## 脚本说明
+
+| 脚本 | 说明 |
+|------|------|
+| `build-{service}.sh` | 构建单个服务镜像 |
+| `build-all.sh` | 构建所有服务镜像 |
+| `sync-config.sh` | 同步配置到部署环境 |
+
+## 常见问题
+
+**Q: 服务启动失败怎么办？**
+A: 检查 etcd、MySQL、Redis 是否正常运行，确保配置正确。
+
+**Q: 如何查看日志？**
+A: 日志挂载在 `/logs` 目录，容器内查看：`docker exec -it <container> tail -f /logs/app.log`
+
+**Q: 如何添加新的 API？**
+A: 在 common/ 目录下修改 protobuf 定义，重新生成代码后更新对应服务。

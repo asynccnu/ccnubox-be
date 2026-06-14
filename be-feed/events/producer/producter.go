@@ -2,8 +2,8 @@ package producer
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
-	"strings"
 
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
@@ -96,17 +96,21 @@ func (p *instrumentedProducer) SendMessage(topic string, msgData domain.FeedEven
 
 // classifyError 将 Kafka/Sarama 错误分类
 func classifyError(err error) string {
-	errStr := err.Error()
-	if strings.Contains(errStr, "leader not available") {
+	var producerErr *sarama.ProducerError
+	if errors.As(err, &producerErr) {
+		err = producerErr.Err
+	}
+
+	if errors.Is(err, sarama.ErrLeaderNotAvailable) {
 		return "leader_not_available"
 	}
-	if strings.Contains(errStr, "not enough replicas") {
+	if errors.Is(err, sarama.ErrNotEnoughReplicas) || errors.Is(err, sarama.ErrNotEnoughReplicasAfterAppend) {
 		return "not_enough_replicas"
 	}
-	if strings.Contains(errStr, "message too large") {
+	if errors.Is(err, sarama.ErrMessageTooLarge) || errors.Is(err, sarama.ErrMessageSizeTooLarge) {
 		return "message_too_large"
 	}
-	if strings.Contains(errStr, "invalid topic") {
+	if errors.Is(err, sarama.ErrInvalidTopic) {
 		return "invalid_topic"
 	}
 	return "produce_error"

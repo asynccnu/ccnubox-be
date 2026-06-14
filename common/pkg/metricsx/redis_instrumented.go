@@ -229,10 +229,14 @@ func (r *InstrumentedRedis) Ping(ctx context.Context) *redis.StatusCmd {
 	return cmd
 }
 
+// Pipeline 返回的 pipeline 暂时直接透传, 不会对 pipeline 内部的命令做埋点。
+// 已知限制: 使用 Pipeline 的链路(批量 MSET/MGET 等)目前不会出现在 ccnubox_redis_* 指标里。
+// TODO: 实现一个 instrumentedPipeliner, 在 Exec() 时统一上报整体耗时和错误数。
 func (r *InstrumentedRedis) Pipeline() redis.Pipeliner {
 	return r.Cmdable.Pipeline()
 }
 
+// TxPipeline 同 Pipeline, 暂未埋点。详见 Pipeline 的注释。
 func (r *InstrumentedRedis) TxPipeline() redis.Pipeliner {
 	return r.Cmdable.TxPipeline()
 }

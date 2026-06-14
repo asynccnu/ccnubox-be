@@ -3,7 +3,6 @@ package consumer
 import (
 	"context"
 	"errors"
-	"strings"
 	"sync"
 	"time"
 
@@ -18,28 +17,32 @@ import (
 
 // DelaySendHandler 消费延迟 topic消息并转发到真实 topic
 type DelaySendHandler struct {
+	delayTopic    string
 	topic         string
 	kp            sarama.SyncProducer
 	delayTime     time.Duration
 	log           logger.Logger
 	setOnce       sync.Once
 	downOnce      sync.Once
+	producedTotal *prometheus.CounterVec
 	consumedTotal *prometheus.CounterVec
 	mqFailedTotal *prometheus.CounterVec
 }
 
-func NewDelaySendHandler(topic string, client sarama.Client, delayTime time.Duration, l logger.Logger, m *metricsx.Metrics) (*DelaySendHandler, error) {
+func NewDelaySendHandler(delayTopic, topic string, client sarama.Client, delayTime time.Duration, l logger.Logger, m *metricsx.Metrics) (*DelaySendHandler, error) {
 	kp, err := sarama.NewSyncProducerFromClient(client)
 	if err != nil {
 		return nil, err
 	}
 	return &DelaySendHandler{
+		delayTopic:    delayTopic,
 		topic:         topic,
 		kp:            kp,
 		delayTime:     delayTime,
 		log:           l,
-		consumedTotal: m.MQ().ConsumedTotal,
-		mqFailedTotal: m.MQ().FailedTotal,
+		producedTotal: m.MQMetrics.ProducedTotal,
+		consumedTotal: m.MQMetrics.ConsumedTotal,
+		mqFailedTotal: m.MQMetrics.FailedTotal,
 	}, nil
 }
 
@@ -84,13 +87,19 @@ func (c *DelaySendHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 				if c.mqFailedTotal != nil {
 					c.mqFailedTotal.WithLabelValues(c.topic, classifyError(err)).Inc()
 				}
+				// 失败也要提交 offset, 否则 rebalance/重启后会无限重投同一条消息。
+				// 真正的重试/告警应该走独立的失败队列或外部告警通道, 不在消费循环里死磕。
+				session.MarkMessage(message, "")
 				span.End()
 				return nil
 			}
 
 			// 消费计数
+			if c.producedTotal != nil {
+				c.producedTotal.WithLabelValues(c.topic, "OK").Inc()
+			}
 			if c.consumedTotal != nil {
-				c.consumedTotal.WithLabelValues(c.topic, "OK").Inc()
+				c.consumedTotal.WithLabelValues(c.delayTopic, "OK").Inc()
 			}
 
 			session.MarkMessage(message, "")
@@ -133,8 +142,8 @@ func NewFuncConsumeHandler(f func(ctx context.Context, key []byte, value []byte)
 	return FuncConsumeHandler{
 		f:             f,
 		log:           l,
-		consumedTotal: m.MQ().ConsumedTotal,
-		mqFailedTotal: m.MQ().FailedTotal,
+		consumedTotal: m.MQMetrics.ConsumedTotal,
+		mqFailedTotal: m.MQMetrics.FailedTotal,
 	}
 }
 
@@ -217,17 +226,21 @@ var ErrInvalidGroupID = errors.New("the groupID is not allowed")
 
 // classifyError 将 Kafka/Sarama 错误分类，用于 mq_failed_total 标签
 func classifyError(err error) string {
-	errStr := err.Error()
-	if strings.Contains(errStr, "leader not available") {
+	var producerErr *sarama.ProducerError
+	if errors.As(err, &producerErr) {
+		err = producerErr.Err
+	}
+
+	if errors.Is(err, sarama.ErrLeaderNotAvailable) {
 		return "leader_not_available"
 	}
-	if strings.Contains(errStr, "not enough replicas") {
+	if errors.Is(err, sarama.ErrNotEnoughReplicas) || errors.Is(err, sarama.ErrNotEnoughReplicasAfterAppend) {
 		return "not_enough_replicas"
 	}
-	if strings.Contains(errStr, "message too large") {
+	if errors.Is(err, sarama.ErrMessageTooLarge) || errors.Is(err, sarama.ErrMessageSizeTooLarge) {
 		return "message_too_large"
 	}
-	if strings.Contains(errStr, "invalid topic") {
+	if errors.Is(err, sarama.ErrInvalidTopic) {
 		return "invalid_topic"
 	}
 	return "consume_error"

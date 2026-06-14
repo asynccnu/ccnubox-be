@@ -53,7 +53,7 @@ func NewDelayKafka(client sarama.Client, cf DelayKafkaConfig, l logger.Logger, m
 	if err != nil {
 		return nil, nil, err
 	}
-	ds, err := consumer.NewDelaySendHandler(dk.realTopic, client, dk.delayTime, l, m)
+	ds, err := consumer.NewDelaySendHandler(dk.delayTopic, dk.realTopic, client, dk.delayTime, l, m)
 	if err != nil {
 		return nil, nil, err
 	}

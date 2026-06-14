@@ -2,7 +2,7 @@ package producer
 
 import (
 	"context"
-	"strings"
+	"errors"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -30,8 +30,8 @@ func NewProducer(topic string, client sarama.Client, l logger.Logger, m *metrics
 		topic:         topic,
 		kp:            kp,
 		log:           l,
-		producedTotal: m.MQ().ProducedTotal,
-		mqFailedTotal: m.MQ().FailedTotal,
+		producedTotal: m.MQMetrics.ProducedTotal,
+		mqFailedTotal: m.MQMetrics.FailedTotal,
 	}, nil
 }
 
@@ -75,17 +75,21 @@ func (p *Producer) Close() {
 
 // classifyError 将 Kafka/Sarama 错误分类，用于 mq_failed_total 标签
 func classifyError(err error) string {
-	errStr := err.Error()
-	if strings.Contains(errStr, "leader not available") {
+	var producerErr *sarama.ProducerError
+	if errors.As(err, &producerErr) {
+		err = producerErr.Err
+	}
+
+	if errors.Is(err, sarama.ErrLeaderNotAvailable) {
 		return "leader_not_available"
 	}
-	if strings.Contains(errStr, "not enough replicas") {
+	if errors.Is(err, sarama.ErrNotEnoughReplicas) || errors.Is(err, sarama.ErrNotEnoughReplicasAfterAppend) {
 		return "not_enough_replicas"
 	}
-	if strings.Contains(errStr, "message too large") {
+	if errors.Is(err, sarama.ErrMessageTooLarge) || errors.Is(err, sarama.ErrMessageSizeTooLarge) {
 		return "message_too_large"
 	}
-	if strings.Contains(errStr, "invalid topic") {
+	if errors.Is(err, sarama.ErrInvalidTopic) {
 		return "invalid_topic"
 	}
 	return "produce_error"

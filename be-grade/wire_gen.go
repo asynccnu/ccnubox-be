@@ -37,9 +37,10 @@ func InitApp() App {
 	rankService := service.NewRankService(rankDAO, logger, userServiceClient)
 	gradeServiceServer := grpc.NewGradeGrpcService(gradeService, rankService)
 	server := ioc.InitGRPCxKratosServer(gradeServiceServer, client, logger, infraConf)
+	metricsxServer := ioc.InitMetricsServer(infraConf)
 	gradeDetailEventConsumerHandler := events.NewGradeDetailEventConsumerHandler(saramaClient, logger, gradeService, serverConf, metrics)
 	v := ioc.InitConsumers(gradeDetailEventConsumerHandler)
 	v2 := ioc.InitOTel(infraConf)
-	app := NewApp(server, v, v2)
+	app := NewApp(server, metricsxServer, v, v2)
 	return app
 }

@@ -50,6 +50,7 @@ func InitApp() *App {
 		ioc.InitLogger,
 		ioc.InitKafka,
 		ioc.InitMetrics,
+		ioc.InitMetricsServer,
 		ioc.InitOTel,
 		ioc.InitJPushClient,
 		ioc.InitGRPCxKratosServer,

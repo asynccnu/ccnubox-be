@@ -16,4 +16,5 @@ var ProviderSet = wire.NewSet(
 	InitKafka,
 	InitRedis,
 	InitMetrics,
+	InitMetricsServer,
 )

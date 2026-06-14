@@ -25,7 +25,6 @@ func InitApp() App {
 		service.NewRankService,
 		dao.NewGradeDAO,
 		dao.NewRankDAO,
-		// 第三方
 		ioc.InitEtcdClient,
 		ioc.InitOTel,
 		ioc.InitDB,
@@ -37,6 +36,7 @@ func InitApp() App {
 		ioc.InitClassListClient,
 		ioc.InitKafka,
 		ioc.InitMetrics,
+		ioc.InitMetricsServer,
 		ioc.InitConsumers,
 		NewApp,
 	)

@@ -42,12 +42,13 @@ func InitApp() *App {
 	feedServiceServer := grpc.NewFeedServiceServer(feedEventService, feedUserConfigService, muxiOfficialMSGService, pushService, logger)
 	clientv3Client := ioc.InitEtcdClient(infraConf)
 	server := ioc.InitGRPCxKratosServer(feedServiceServer, clientv3Client, logger, infraConf)
+	metricsxServer := ioc.InitMetricsServer(infraConf)
 	muxiController := cron.NewMuxiController(muxiOfficialMSGService, feedEventService, pushService, logger, serverConf)
 	holidayController := cron.NewHolidayController(feedEventService, logger, serverConf)
 	v := cron.NewCron(muxiController, holidayController)
 	feedEventConsumerHandler := events.NewFeedEventConsumerHandler(client, logger, feedEventService, pushService, serverConf, metrics)
 	v2 := ioc.InitConsumers(feedEventConsumerHandler)
 	v3 := ioc.InitOTel(infraConf)
-	app := NewApp(server, v, v2, v3)
+	app := NewApp(server, metricsxServer, v, v2, v3)
 	return app
 }

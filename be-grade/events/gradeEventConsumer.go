@@ -11,6 +11,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-grade/events/topic"
 	"github.com/asynccnu/ccnubox-be/be-grade/service"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 )
 
@@ -21,6 +22,7 @@ type GradeDetailEventConsumerHandler struct {
 	stopChan     chan struct{}        //用于停止的管道,没用上
 	gradeService service.GradeService // 事件数据的存储库
 	cfg          *saramax.HandlerConfig
+	m            *metricsx.Metrics
 }
 
 func NewGradeDetailEventConsumerHandler(
@@ -28,6 +30,7 @@ func NewGradeDetailEventConsumerHandler(
 	l logger.Logger,
 	gradeService service.GradeService,
 	cfg *conf.ServerConf,
+	m *metricsx.Metrics,
 ) *GradeDetailEventConsumerHandler {
 	cg := consumer.NewSaramaConsumer(kafkaClient, topic.GradeDetailEvent)
 	return &GradeDetailEventConsumerHandler{
@@ -38,7 +41,8 @@ func NewGradeDetailEventConsumerHandler(
 			ConsumeNum:  cfg.ConsumeConf.ConsumeNum,
 		},
 		gradeService: gradeService,
-	 	stopChan:     make(chan struct{}),
+		stopChan:     make(chan struct{}),
+		m:            m,
 	}
 }
 
@@ -67,11 +71,19 @@ func (f *GradeDetailEventConsumerHandler) Start() error {
 // 接收 Kafka 消息和事件数组作为参数,并存储到到临时变量里面去
 func (f *GradeDetailEventConsumerHandler) Consume(events []domain.NeedDetailGrade) error {
 	var ctx = context.Background()
+	var failed int
 	for _, event := range events {
 		err := f.gradeService.UpdateDetailScore(ctx, event)
 		if err != nil {
 			f.l.Warn(fmt.Sprintf("更新%s成绩详情失败:", event.StudentID), logger.Error(err))
+			failed++
 		}
+	}
+	if f.m != nil {
+		if failed > 0 {
+			f.m.MQMetrics.FailedTotal.WithLabelValues(topic.GradeDetailEvent, "consume_error").Add(float64(failed))
+		}
+		f.m.MQMetrics.ConsumedTotal.WithLabelValues(topic.GradeDetailEvent, "OK").Add(float64(len(events) - failed))
 	}
 	return nil
 }

@@ -6,17 +6,22 @@ import (
 
 // Metrics 所有监控指标的顶层组合
 type Metrics struct {
-	HTTP  *HTTPMetrics
-	Redis *RedisMetrics
-	MQ    *MQMetrics
+	HTTP      *HTTPMetrics
+	Redis     *RedisMetrics
+	MQMetrics *MQMetrics
+}
+
+// MQ 返回 MQ 指标，供 wire 绑定使用
+func (m *Metrics) MQ() *MQMetrics {
+	return m.MQMetrics
 }
 
 // New 创建并初始化所有监控指标，自动注册到 Prometheus
 func New(namespace string) *Metrics {
 	m := &Metrics{
-		HTTP:  newHTTPMetrics(namespace),
-		Redis: newRedisMetrics(namespace),
-		MQ:    newMQMetrics(namespace),
+		HTTP:      newHTTPMetrics(namespace),
+		Redis:     newRedisMetrics(namespace),
+		MQMetrics: newMQMetrics(namespace),
 	}
 
 	prometheus.MustRegister(
@@ -26,10 +31,10 @@ func New(namespace string) *Metrics {
 		m.Redis.RequestsTotal,
 		m.Redis.ErrorsTotal,
 		m.Redis.Duration,
-		m.MQ.ProducedTotal,
-		m.MQ.ConsumedTotal,
-		m.MQ.FailedTotal,
-		m.MQ.RetryTotal,
+		m.MQMetrics.ProducedTotal,
+		m.MQMetrics.ConsumedTotal,
+		m.MQMetrics.FailedTotal,
+		m.MQMetrics.RetryTotal,
 	)
 
 	return m

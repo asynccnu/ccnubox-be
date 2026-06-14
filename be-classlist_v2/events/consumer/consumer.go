@@ -3,36 +3,43 @@ package consumer
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/otelx/otelsarama"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
 
-// 因为 DelaySendHandler 实现的是 ConsumerGroupSession 本质上还是 comsumer 只不过他的消费逻辑是发送
+// DelaySendHandler 消费延迟 topic消息并转发到真实 topic
 type DelaySendHandler struct {
-	topic     string
-	kp        sarama.SyncProducer
-	delayTime time.Duration
-	log       logger.Logger
-	setOnce   sync.Once
-	downOnce  sync.Once
+	topic         string
+	kp            sarama.SyncProducer
+	delayTime     time.Duration
+	log           logger.Logger
+	setOnce       sync.Once
+	downOnce      sync.Once
+	consumedTotal *prometheus.CounterVec
+	mqFailedTotal *prometheus.CounterVec
 }
 
-func NewDelaySendHandler(topic string, client sarama.Client, delayTime time.Duration, l logger.Logger) (*DelaySendHandler, error) {
+func NewDelaySendHandler(topic string, client sarama.Client, delayTime time.Duration, l logger.Logger, m *metricsx.Metrics) (*DelaySendHandler, error) {
 	kp, err := sarama.NewSyncProducerFromClient(client)
 	if err != nil {
 		return nil, err
 	}
 	return &DelaySendHandler{
-		topic:     topic,
-		kp:        kp,
-		delayTime: delayTime,
-		log:       l,
+		topic:         topic,
+		kp:            kp,
+		delayTime:     delayTime,
+		log:           l,
+		consumedTotal: m.MQ().ConsumedTotal,
+		mqFailedTotal: m.MQ().FailedTotal,
 	}, nil
 }
 
@@ -74,8 +81,16 @@ func (c *DelaySendHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 			err := c.forwardMessage(ctx, message)
 			if err != nil {
 				tlog.Errorf("Error forwarding message: %s", string(message.Value))
+				if c.mqFailedTotal != nil {
+					c.mqFailedTotal.WithLabelValues(c.topic, classifyError(err)).Inc()
+				}
 				span.End()
 				return nil
+			}
+
+			// 消费计数
+			if c.consumedTotal != nil {
+				c.consumedTotal.WithLabelValues(c.topic, "OK").Inc()
 			}
 
 			session.MarkMessage(message, "")
@@ -106,15 +121,20 @@ func (c *DelaySendHandler) forwardMessage(ctx context.Context, msg *sarama.Consu
 	return err
 }
 
+// FuncConsumeHandler 消费真实 topic 消息并交付给应用
 type FuncConsumeHandler struct {
-	f   func(ctx context.Context, key []byte, value []byte)
-	log logger.Logger
+	f             func(ctx context.Context, key []byte, value []byte)
+	log           logger.Logger
+	consumedTotal *prometheus.CounterVec
+	mqFailedTotal *prometheus.CounterVec
 }
 
-func NewFuncConsumeHandler(f func(ctx context.Context, key []byte, value []byte), l logger.Logger) FuncConsumeHandler {
+func NewFuncConsumeHandler(f func(ctx context.Context, key []byte, value []byte), l logger.Logger, m *metricsx.Metrics) FuncConsumeHandler {
 	return FuncConsumeHandler{
-		f:   f,
-		log: l,
+		f:             f,
+		log:           l,
+		consumedTotal: m.MQ().ConsumedTotal,
+		mqFailedTotal: m.MQ().FailedTotal,
 	}
 }
 
@@ -141,6 +161,10 @@ func (fc FuncConsumeHandler) ConsumeClaim(session sarama.ConsumerGroupSession, c
 
 		tlog.Debugf("Message claimed: key:%s, value:%s", string(message.Key), string(message.Value))
 		fc.f(ctx, message.Key, message.Value)
+
+		if fc.consumedTotal != nil {
+			fc.consumedTotal.WithLabelValues(message.Topic, "OK").Inc()
+		}
 		session.MarkMessage(message, "")
 
 		span.End()
@@ -190,3 +214,21 @@ func (c *Consumer) Close() {
 }
 
 var ErrInvalidGroupID = errors.New("the groupID is not allowed")
+
+// classifyError 将 Kafka/Sarama 错误分类，用于 mq_failed_total 标签
+func classifyError(err error) string {
+	errStr := err.Error()
+	if strings.Contains(errStr, "leader not available") {
+		return "leader_not_available"
+	}
+	if strings.Contains(errStr, "not enough replicas") {
+		return "not_enough_replicas"
+	}
+	if strings.Contains(errStr, "message too large") {
+		return "message_too_large"
+	}
+	if strings.Contains(errStr, "invalid topic") {
+		return "invalid_topic"
+	}
+	return "consume_error"
+}

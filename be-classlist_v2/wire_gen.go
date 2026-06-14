@@ -51,7 +51,8 @@ func InitApp() (*App, func(), error) {
 	crawler3 := crawler.NewClassCrawler3(proxyGetter, client2, logger)
 	saramaClient := ioc.InitKafka(infraConf)
 	delayKafkaConfig := delay.NewDelayKafkaConfig()
-	delayQueue, cleanup2, err := delay.NewDelayKafka(saramaClient, delayKafkaConfig, logger)
+	metrics := ioc.InitMetrics()
+	delayQueue, cleanup2, err := delay.NewDelayKafka(saramaClient, delayKafkaConfig, logger, metrics)
 	if err != nil {
 		cleanup()
 		return nil, nil, err

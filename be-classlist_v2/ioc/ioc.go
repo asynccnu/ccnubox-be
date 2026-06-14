@@ -15,4 +15,5 @@ var ProviderSet = wire.NewSet(
 	InitHttpProxyClient,
 	InitKafka,
 	InitRedis,
+	InitMetrics,
 )

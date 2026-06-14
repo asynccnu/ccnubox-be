@@ -12,6 +12,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/events/topic"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 )
 
@@ -23,6 +24,7 @@ type FeedEventConsumerHandler struct {
 	feedService service.FeedEventService // 事件数据的存储库
 	pushService service.PushService      //用于推送给客户端的服务
 	cfg         *saramax.HandlerConfig
+	m           *metricsx.Metrics
 }
 
 // NewFeedEventConsumerHandler 是 FeedEventConsumerHandler 的构造函数
@@ -33,6 +35,7 @@ func NewFeedEventConsumerHandler(
 	feedService service.FeedEventService,
 	pushService service.PushService,
 	cfg *conf.ServerConf,
+	m *metricsx.Metrics,
 ) *FeedEventConsumerHandler {
 	cg := consumer.NewSaramaConsumer(kafkaClient, topic.FeedEvent)
 	return &FeedEventConsumerHandler{
@@ -45,6 +48,7 @@ func NewFeedEventConsumerHandler(
 		feedService: feedService,
 		stopChan:    make(chan struct{}),
 		pushService: pushService,
+		m:           m,
 	}
 }
 
@@ -56,7 +60,7 @@ func (f *FeedEventConsumerHandler) Start() error {
 		for {
 			f.l.Info("开始消费")
 			// 开始消费主题为 "feed_event" 的消息，并使用自定义的处理函数
-			er := f.cg.Consume(context.Background(), []string{topic.FeedEvent}, saramax.NewHandler(f.l,f.cfg,  f.Consume))
+			er := f.cg.Consume(context.Background(), []string{topic.FeedEvent}, saramax.NewHandler(f.l, f.cfg, f.Consume))
 			if er != nil {
 				// 如果消费循环中出现错误，记录错误日志
 				f.l.Error("退出了消费循环异常", logger.Error(er))
@@ -76,6 +80,9 @@ func (f *FeedEventConsumerHandler) Consume(events []domain.FeedEvent) error {
 	var ctx = context.Background()
 	errs := f.feedService.InsertEventList(ctx, events)
 	if errs != nil {
+		if f.m != nil {
+			f.m.MQMetrics.FailedTotal.WithLabelValues(topic.FeedEvent, "db_error").Add(float64(len(events)))
+		}
 		return errors.Join(errs...)
 	}
 	errWithData := f.pushService.PushMSGS(ctx, events)
@@ -88,10 +95,20 @@ func (f *FeedEventConsumerHandler) Consume(events []domain.FeedEvent) error {
 
 		err := f.pushService.InsertFailFeedEvents(ctx, failEvent)
 		if err != nil {
+			if f.m != nil {
+				f.m.MQMetrics.FailedTotal.WithLabelValues(topic.FeedEvent, "push_error").Add(float64(len(errWithData)))
+			}
 			return err
 		}
 
+		if f.m != nil {
+			f.m.MQMetrics.FailedTotal.WithLabelValues(topic.FeedEvent, "push_error").Add(float64(len(errWithData)))
+			f.m.MQMetrics.ConsumedTotal.WithLabelValues(topic.FeedEvent, "OK").Add(float64(len(events) - len(errWithData)))
+		}
 		return errors.New(fmt.Sprintf("批量消费发生错误! 原数据量为%d, 发生错误次数为:%d, 发生错误为:%v", len(events), len(errWithData), errWithData))
+	}
+	if f.m != nil {
+		f.m.MQMetrics.ConsumedTotal.WithLabelValues(topic.FeedEvent, "OK").Add(float64(len(events)))
 	}
 	return nil
 }

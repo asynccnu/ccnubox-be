@@ -41,7 +41,7 @@ func InitApp() *App {
 		//event消费者控制服务
 		events.NewFeedEventConsumerHandler,
 		//push服务,consumer服务,producer服务
-		producer.NewSaramaProducer,
+		producer.NewInstrumentedSaramaProducer,
 
 		ioc.InitConsumers,
 		ioc.InitDB,
@@ -49,6 +49,7 @@ func InitApp() *App {
 		ioc.InitEtcdClient,
 		ioc.InitLogger,
 		ioc.InitKafka,
+		ioc.InitMetrics,
 		ioc.InitOTel,
 		ioc.InitJPushClient,
 		ioc.InitGRPCxKratosServer,

@@ -16,6 +16,7 @@ const (
 	dauLockKey   = "dau:daily:lock"
 	dauLatestKey = "dau:latest"
 	dauBucketMin = 15
+	dauDayPrefix = "dau:day:"
 )
 
 // DAURefresher 负责每天定时把昨天的 DAU 写入 Prometheus Gauge
@@ -31,6 +32,18 @@ type DAURefresher struct {
 
 func NewDAURefresher(r redis.Cmdable, g prometheus.Gauge, rs *redsync.Redsync, l logger.Logger) *DAURefresher {
 	return &DAURefresher{redis: r, gauge: g, rs: rs, log: l}
+}
+
+func DAUBucketKey(t time.Time) string {
+	return "dau:" + t.Local().Truncate(dauBucketMin*time.Minute).Format("2006-01-02-15-04")
+}
+
+func DAUDayKey(date string) string {
+	return dauDayPrefix + date
+}
+
+func DAUDayKeyForTime(t time.Time) string {
+	return DAUDayKey(t.Local().Format("2006-01-02"))
 }
 
 func (d *DAURefresher) Refresh(ctx context.Context) {
@@ -83,7 +96,8 @@ func (d *DAURefresher) Bootstrap(ctx context.Context) {
 func (d *DAURefresher) countDay(ctx context.Context, date string) (int64, error) {
 	tempKey := "dau:tmp:" + date
 
-	srcKeys := make([]string, 0, 24*60/dauBucketMin)
+	srcKeys := make([]string, 0, 1+24*60/dauBucketMin)
+	srcKeys = append(srcKeys, DAUDayKey(date))
 	for h := 0; h < 24; h++ {
 		for m := 0; m < 60; m += dauBucketMin {
 			srcKeys = append(srcKeys, fmt.Sprintf("dau:%s-%02d-%02d", date, h, m))

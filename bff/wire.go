@@ -20,7 +20,6 @@ func InitApp() *App {
 		ioc.InitLogger,
 		ioc.InitRedis,
 		ioc.InitMetrics,
-		ioc.InitDAURefresher,
 		ioc.RedisCmdable,
 		ioc.InitOTel,
 		ioc.InitRedisLock,

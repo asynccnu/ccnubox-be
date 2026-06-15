@@ -103,8 +103,25 @@ func TestDAURefresher_Refresh_Ok(t *testing.T) {
 	}
 }
 
-// TestDAURefresher_Refresh_EmptyDay 没有 HLL 数据时, Refresh 不应 panic
-// gauge 写 0, Redis 兜底写 0
+// TestDAURefresher_Refresh_MergesDayKeyAndBuckets keeps rollout data compatible.
+func TestDAURefresher_Refresh_MergesDayKeyAndBuckets(t *testing.T) {
+	mr, client := newTestRedis(t)
+	rs := newTestRedsync(client)
+	gauge := newTestGauge()
+	d := NewDAURefresher(client, gauge, rs, nopLogger{})
+
+	yesterday := time.Now().Local().AddDate(0, 0, -1).Format("2006-01-02")
+	mr.PfAdd(DAUDayKey(yesterday), "stu-day")
+	mr.PfAdd(fmt.Sprintf("dau:%s-12-30", yesterday), "stu-bucket")
+
+	d.Refresh(context.Background())
+
+	if v := readGauge(t, gauge); v != 2 {
+		t.Errorf("gauge: got %v, want 2", v)
+	}
+}
+
+// TestDAURefresher_Refresh_EmptyDay keeps empty days at zero.
 func TestDAURefresher_Refresh_EmptyDay(t *testing.T) {
 	_, client := newTestRedis(t)
 	rs := newTestRedsync(client)

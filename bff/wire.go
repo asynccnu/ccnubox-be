@@ -20,10 +20,11 @@ func InitApp() *App {
 		ioc.InitLogger,
 		ioc.InitRedis,
 		ioc.InitMetrics,
-		ioc.InitDAUCollector, // 新增
+		ioc.InitDAURefresher,
 		ioc.RedisCmdable,
 		ioc.InitOTel,
 		ioc.InitRedisLock,
+		ioc.InitCronxManager,
 		ioc.InitScheduler,
 		cron.NewTieredHandler,
 

@@ -119,17 +119,25 @@ func (s *HttpProxy) fetchIp() {
 			addrs := strings.Split(strings.TrimSpace(bodyStr), "\n")
 
 			if len(addrs) > 0 {
-				s.mu.Lock()
-				s.Addr = s.wrapRes(addrs[0])
-				// 容错处理：如果只返回了一个 IP，则备份 IP 与主 IP 一致
-				if len(addrs) > 1 {
-					s.AddrBackup = s.wrapRes(addrs[1])
-				} else {
-					s.AddrBackup = s.Addr
+				newAddr := s.wrapRes(addrs[0])
+				if newAddr == "" {
+					lastErr = fmt.Errorf("wrapRes produced empty address from: %s", addrs[0])
+					s.l.Error("proxy: wrapRes returned empty",
+						logger.String("raw", addrs[0]),
+						logger.Int("attempt", i+1),
+					)
+					time.Sleep(2 * time.Second)
+					continue
 				}
+
+				s.mu.Lock()
+				s.rotateAddr(newAddr)
 				s.mu.Unlock()
 
-				s.l.Info("proxy: fetch ip success", logger.String("primary", addrs[0]))
+				s.l.Info("proxy: fetch ip success",
+					logger.String("primary", s.Addr),
+					logger.String("backup", s.AddrBackup),
+				)
 				return // 成功后直接退出重试循环
 			}
 		}
@@ -142,10 +150,14 @@ func (s *HttpProxy) fetchIp() {
 		time.Sleep(2 * time.Second)
 	}
 
-	s.mu.Lock()
-	s.Addr = ""
-	s.AddrBackup = ""
-	s.mu.Unlock()
+	// 失败时保留已有地址,避免清除仍然可用的 IP
+	s.mu.RLock()
+	clearedDuringFetch := s.Addr == "" && s.AddrBackup == ""
+	s.mu.RUnlock()
+
+	if clearedDuringFetch {
+		// 从未成功获取过 IP,无地址可保留
+	}
 
 	if lastErr != nil {
 		s.l.Error("proxy: all attempts failed to fetch new ip",
@@ -179,4 +191,16 @@ func (s *HttpProxy) wrapRes(res string) string {
 	}
 
 	return proxyURL.String()
+}
+
+// rotateAddr atomically promotes the current Addr to AddrBackup
+// and sets Addr to newAddr. Caller must hold s.mu.
+func (s *HttpProxy) rotateAddr(newAddr string) {
+	if s.Addr != "" {
+		s.AddrBackup = s.Addr
+	}
+	s.Addr = newAddr
+	if s.AddrBackup == "" {
+		s.AddrBackup = newAddr
+	}
 }

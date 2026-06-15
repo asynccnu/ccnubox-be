@@ -19,13 +19,12 @@ func InitApp() App {
 		conf.InitInfraConfig,
 		conf.InitServerConf,
 		events.NewGradeDetailEventConsumerHandler,
-		producer.NewSaramaProducer,
+		producer.NewInstrumentedSaramaProducer,
 		grpc.NewGradeGrpcService,
 		service.NewGradeService,
 		service.NewRankService,
 		dao.NewGradeDAO,
 		dao.NewRankDAO,
-		// 第三方
 		ioc.InitEtcdClient,
 		ioc.InitOTel,
 		ioc.InitDB,
@@ -36,6 +35,8 @@ func InitApp() App {
 		ioc.InitHttpProxyClient,
 		ioc.InitClassListClient,
 		ioc.InitKafka,
+		ioc.InitMetrics,
+		ioc.InitMetricsServer,
 		ioc.InitConsumers,
 		NewApp,
 	)

@@ -10,18 +10,19 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/events/producer"
 	"github.com/asynccnu/ccnubox-be/be-classlist_v2/events/topic"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 )
 
 type DelayKafka struct {
-	p          *producer.Producer
-	c          *consumer.Consumer
-	delaySend  *consumer.DelaySendHandler
-	log        logger.Logger
-	delayTopic string
-	realTopic  string
-	delayTime  time.Duration
-
+	p            *producer.Producer
+	c            *consumer.Consumer
+	delaySend    *consumer.DelaySendHandler
+	log          logger.Logger
+	delayTopic   string
+	realTopic    string
+	delayTime    time.Duration
 	proxyGroupID string
+	m            *metricsx.Metrics
 }
 
 type DelayKafkaConfig struct {
@@ -38,20 +39,21 @@ func NewDelayKafkaConfig() DelayKafkaConfig {
 	}
 }
 
-func NewDelayKafka(client sarama.Client, cf DelayKafkaConfig, l logger.Logger) (biz.DelayQueue, func(), error) {
+func NewDelayKafka(client sarama.Client, cf DelayKafkaConfig, l logger.Logger, m *metricsx.Metrics) (biz.DelayQueue, func(), error) {
 	dk := &DelayKafka{
 		delayTopic:   cf.DelayTopic,
 		realTopic:    cf.RealTopic,
 		delayTime:    cf.DelayTime,
 		proxyGroupID: topic.DelayTopic,
 		log:          l,
+		m:            m,
 	}
 
-	p, err := producer.NewProducer(dk.delayTopic, client, l)
+	p, err := producer.NewProducer(dk.delayTopic, client, l, m)
 	if err != nil {
 		return nil, nil, err
 	}
-	ds, err := consumer.NewDelaySendHandler(dk.realTopic, client, dk.delayTime, l)
+	ds, err := consumer.NewDelaySendHandler(dk.delayTopic, dk.realTopic, client, dk.delayTime, l, m)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -82,7 +84,7 @@ func (d *DelayKafka) Consume(groupID string, f func(ctx context.Context, key []b
 	if groupID == d.proxyGroupID {
 		return consumer.ErrInvalidGroupID
 	}
-	handler := consumer.NewFuncConsumeHandler(f, d.log)
+	handler := consumer.NewFuncConsumeHandler(f, d.log, d.m)
 	return d.c.Consume([]string{d.realTopic}, groupID, handler)
 }
 

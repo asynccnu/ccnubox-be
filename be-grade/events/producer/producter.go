@@ -2,10 +2,13 @@ package producer
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
+	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Producer 接口定义了 Kafka Producer 的行为
@@ -55,4 +58,60 @@ func (p *saramaProducer) SendMessage(topic string, msgData domain.NeedDetailGrad
 // Close 关闭 Kafka Client
 func (p *saramaProducer) Close() error {
 	return p.producer.Close()
+}
+
+// instrumentedProducer 包装 Producer 接口，添加 metrics
+type instrumentedProducer struct {
+	Producer
+	producedTotal *prometheus.CounterVec
+	mqFailedTotal *prometheus.CounterVec
+}
+
+// NewInstrumentedProducer 创建带 metrics 的 Producer包装器
+func NewInstrumentedProducer(p Producer, producedTotal *prometheus.CounterVec, mqFailedTotal *prometheus.CounterVec) Producer {
+	return &instrumentedProducer{
+		Producer:      p,
+		producedTotal: producedTotal,
+		mqFailedTotal: mqFailedTotal,
+	}
+}
+
+func NewInstrumentedSaramaProducer(kafkaClient sarama.Client, m *metricsx.Metrics) Producer {
+	return NewInstrumentedProducer(NewSaramaProducer(kafkaClient), m.MQMetrics.ProducedTotal, m.MQMetrics.FailedTotal)
+}
+
+func (p *instrumentedProducer) SendMessage(topic string, msgData domain.NeedDetailGrade) error {
+	err := p.Producer.SendMessage(topic, msgData)
+	if err != nil {
+		if p.mqFailedTotal != nil {
+			p.mqFailedTotal.WithLabelValues(topic, classifyError(err)).Inc()
+		}
+		return err
+	}
+	if p.producedTotal != nil {
+		p.producedTotal.WithLabelValues(topic, "OK").Inc()
+	}
+	return nil
+}
+
+// classifyError 将 Kafka/Sarama 错误分类，用于 mq_failed_total 标签
+func classifyError(err error) string {
+	var producerErr *sarama.ProducerError
+	if errors.As(err, &producerErr) {
+		err = producerErr.Err
+	}
+
+	if errors.Is(err, sarama.ErrLeaderNotAvailable) {
+		return "leader_not_available"
+	}
+	if errors.Is(err, sarama.ErrNotEnoughReplicas) || errors.Is(err, sarama.ErrNotEnoughReplicasAfterAppend) {
+		return "not_enough_replicas"
+	}
+	if errors.Is(err, sarama.ErrMessageTooLarge) || errors.Is(err, sarama.ErrMessageSizeTooLarge) {
+		return "message_too_large"
+	}
+	if errors.Is(err, sarama.ErrInvalidTopic) {
+		return "invalid_topic"
+	}
+	return "produce_error"
 }

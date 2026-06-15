@@ -19,11 +19,11 @@ func InitApp() *App {
 		ioc.InitEtcdClient,
 		ioc.InitLogger,
 		ioc.InitRedis,
+		ioc.InitMetrics,
 		ioc.RedisCmdable,
 		ioc.InitOTel,
 		ioc.InitRedisLock,
 		ioc.InitScheduler,
-		ioc.InitMetrics,
 		cron.NewTieredHandler,
 
 		//grpc注册

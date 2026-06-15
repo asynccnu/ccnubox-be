@@ -51,7 +51,8 @@ func InitApp() (*App, func(), error) {
 	crawler3 := crawler.NewClassCrawler3(proxyGetter, client2, logger)
 	saramaClient := ioc.InitKafka(infraConf)
 	delayKafkaConfig := delay.NewDelayKafkaConfig()
-	delayQueue, cleanup2, err := delay.NewDelayKafka(saramaClient, delayKafkaConfig, logger)
+	metrics := ioc.InitMetrics()
+	delayQueue, cleanup2, err := delay.NewDelayKafka(saramaClient, delayKafkaConfig, logger, metrics)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
@@ -60,8 +61,9 @@ func InitApp() (*App, func(), error) {
 	classListService := service.NewClasserService(classUsecase, serverConf, logger)
 	classlistServiceServer := grpc.NewCalendarServiceServer(classListService)
 	server := ioc.InitGRPCxKratosServer(classlistServiceServer, clientv3Client, logger, infraConf)
+	metricsxServer := ioc.InitMetricsServer(infraConf)
 	v := ioc.InitOTel(infraConf)
-	app := NewApp(server, v)
+	app := NewApp(server, metricsxServer, v)
 	return app, func() {
 		cleanup2()
 		cleanup()

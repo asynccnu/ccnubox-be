@@ -23,6 +23,7 @@ func InitApp() *App {
 	client := ioc.InitRedis(infraConf)
 	metrics := ioc.InitMetrics(serverConf)
 	cmdable := ioc.RedisCmdable(client, metrics)
+	_ = ioc.InitDAUCollector(metrics, cmdable, logger)
 	handler := ioc.InitJwtHandler(cmdable, serverConf)
 	clientv3Client := ioc.InitEtcdClient(infraConf)
 	userServiceClient := ioc.InitUserClient(clientv3Client, infraConf)

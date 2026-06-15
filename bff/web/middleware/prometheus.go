@@ -56,7 +56,7 @@ func (m *PrometheusMiddleware) MiddlewareFunc() gin.HandlerFunc {
 					defer cancel()
 
 					m.redisClient.PFAdd(ctx, key, studentId)
-					m.redisClient.Expire(ctx, key, 26*time.Hour)
+					m.redisClient.Expire(ctx, key, 30*24*time.Hour+1*time.Hour)
 				}(StudentId)
 			}
 

@@ -11,6 +11,7 @@ type Metrics struct {
 	HTTP      *HTTPMetrics
 	Redis     *RedisMetrics
 	MQMetrics *MQMetrics
+	User      *UserMetrics
 }
 
 // New 创建并初始化所有监控指标，自动注册到 Prometheus 默认 registerer。
@@ -26,6 +27,7 @@ func NewWithRegisterer(reg prometheus.Registerer, namespace string) *Metrics {
 		HTTP:      newHTTPMetrics(namespace),
 		Redis:     newRedisMetrics(namespace),
 		MQMetrics: newMQMetrics(namespace),
+		User:      newUserMetrics(namespace),
 	}
 
 	m.HTTP.RequestsTotal = registerVec(reg, m.HTTP.RequestsTotal)

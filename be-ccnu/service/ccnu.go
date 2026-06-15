@@ -46,7 +46,7 @@ func (c *ccnuService) LoginCCNU(ctx context.Context, studentId string, password 
 
 	switch stuType {
 	case tool.PostGraduate:
-		pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.timeout))
+		pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.p, c.timeout))
 		ok, err := c.loginGrad(ctx, pg, studentId, password)
 		if err != nil {
 			return false, err
@@ -94,7 +94,7 @@ func (c *ccnuService) loginGrad(ctx context.Context, pg *crawler.PostGraduate, s
 }
 
 func (c *ccnuService) loginUnderGrad(ctx context.Context, studentId string, password string) (*http.Client, bool, error) {
-	ps := crawler.NewPassport(crawler.NewCrawlerClient(c.timeout))
+	ps := crawler.NewPassport(crawler.NewCrawlerClient(c.p, c.timeout))
 	flag, err := ps.LoginPassport(ctx, studentId, password)
 	if err != nil {
 		if errorx.Is(err, crawler.INCorrectPASSWORD) {
@@ -106,7 +106,7 @@ func (c *ccnuService) loginUnderGrad(ctx context.Context, studentId string, pass
 }
 
 func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password string, tpe ...string) (string, error) {
-	ug := crawler.NewUnderGrad(crawler.NewCrawlerClient(c.timeout))
+	ug := crawler.NewUnderGrad(crawler.NewCrawlerClient(c.p, c.timeout))
 	client, ok, err := c.loginUnderGrad(ctx, stuId, password)
 	if err != nil {
 		return "", errorx.Errorf("getUnderGradCookie loginUnderGrad error: %w", err)
@@ -137,7 +137,7 @@ func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password st
 }
 
 func (c *ccnuService) getGradCookie(ctx context.Context, stuId, password string) (string, error) {
-	pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.timeout))
+	pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.p, c.timeout))
 	pubkey, err := tool.Retry(func() (*rsa.PublicKey, error) {
 		return pg.FetchPublicKey(ctx)
 	})
@@ -153,7 +153,7 @@ func (c *ccnuService) getGradCookie(ctx context.Context, stuId, password string)
 }
 
 func (c *ccnuService) GetLibraryToken(ctx context.Context, studentId, password string, service ccnuv1.LIBRARY_TYPE) (string, error) {
-	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout, proxy.WithoutProxy()), c.secret) // 这里简化了，实际可按需加 Proxy
+	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.p, c.timeout, proxy.WithoutProxy()), c.secret) // 这里简化了，实际可按需加 Proxy
 	client, ok, err := c.loginUnderGrad(ctx, studentId, password)
 	if err != nil {
 		return "", errorx.Errorf("GetLibraryDiscussionToken loginUnderGrad error: %w", err)
@@ -183,7 +183,7 @@ func (c *ccnuService) GetLibraryToken(ctx context.Context, studentId, password s
 
 func (c *ccnuService) CheckLibraryToken(ctx context.Context, token string, service ccnuv1.LIBRARY_TYPE) (bool, error) {
 	var err error
-	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.timeout, proxy.WithoutProxy()), c.secret)
+	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.p, c.timeout, proxy.WithoutProxy()), c.secret)
 	var ok bool
 	switch service {
 	case ccnuv1.LIBRARY_TYPE_LIBRARY_SEAT:

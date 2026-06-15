@@ -40,7 +40,7 @@ func WithTransport(tr *HttpTransport) Option {
 	}
 }
 
-func WithProxyTransport(isBackup bool, options ...RoundTripperOption) Option {
+func WithProxyTransport(options ...RoundTripperOption) Option {
 	return func(client *HttpClient) {
 		tr := globalProxy.NewProxyTransport()
 		if globalProxy.direct {
@@ -51,22 +51,11 @@ func WithProxyTransport(isBackup bool, options ...RoundTripperOption) Option {
 
 		tr.Proxy = func(req *http.Request) (*url.URL, error) {
 			ctx := req.Context()
-			proxyAddrs := globalProxy.GetProxyAddr(ctx, 2)
-			var proxyAddr string
-			if isBackup {
-				proxyAddr = proxyAddrs[1]
-			} else {
-				proxyAddr = proxyAddrs[0]
-			}
-
-			proxyAddr = strings.TrimSpace(proxyAddr)
+			addrs := globalProxy.GetProxyAddr(ctx, 1)
+			proxyAddr := strings.TrimSpace(addrs[0])
 			if proxyAddr == "" {
-				if l := globalProxy.logger(ctx); l != nil {
-					l.Warn("代理地址为空，fallback 到直连")
-				}
 				return nil, nil
 			}
-
 			proxyURL, err := url.Parse(proxyAddr)
 			if err != nil {
 				if l := globalProxy.logger(ctx); l != nil {

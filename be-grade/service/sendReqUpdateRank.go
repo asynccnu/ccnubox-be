@@ -56,15 +56,15 @@ func generateTimestamp() string {
 	return strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
 }
 
-func SendReqUpdateRank(cookie, xmnBegin, xmnEnd string) (*domain.GetRankByTermResp, error) {
-	data, err := Send(cookie, xmnBegin, xmnEnd)
+func SendReqUpdateRank(cookie, xmnBegin, xmnEnd string, pc proxy.Client) (*domain.GetRankByTermResp, error) {
+	data, err := Send(cookie, xmnBegin, xmnEnd, pc)
 	if err != nil {
 		return nil, errorx.Errorf("crawler: update rank failed, xmnBegin: %s, xmnEnd: %s, err: %w", xmnBegin, xmnEnd, err)
 	}
 	return data, nil
 }
 
-func Send(cookie, ksxq, jsxq string) (*domain.GetRankByTermResp, error) {
+func Send(cookie, ksxq, jsxq string, pc proxy.Client) (*domain.GetRankByTermResp, error) {
 	formData := url.Values{}
 	formData.Set("ksxq", ksxq) // 开始学期
 	formData.Set("jsxq", jsxq) // 结束学期
@@ -101,7 +101,7 @@ func Send(cookie, ksxq, jsxq string) (*domain.GetRankByTermResp, error) {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0")
 	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 
-	resp, err := proxy.NewHttpProxyClient(proxy.WithProxyTransport(false)).Do(req)
+	resp, err := pc.NewProxyClient(proxy.WithProxyTransport()).Do(req)
 	if err != nil {
 		return nil, errorx.Errorf("crawler: http post failed, err: %w", err)
 	}

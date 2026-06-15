@@ -246,7 +246,7 @@ func (c *CultivateStrategyBiz) GetCultivateStrategyFromCCNU(ctx context.Context,
 		"Content-Type": []string{"application/x-www-form-urlencoded;charset=UTF-8"},
 	}
 
-	resp, err := c.proxyCli.NewProxyClient(proxy.WithProxyTransport(false)).Do(req)
+	resp, err := c.proxyCli.NewProxyClient(proxy.WithProxyTransport()).Do(req)
 	if err != nil {
 		return service.ToBeStudiedClasses{}, err
 	}

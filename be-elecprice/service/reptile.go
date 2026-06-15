@@ -15,7 +15,7 @@ import (
 )
 
 // 通用 HTTP 请求函数
-func sendRequest(url string, useBackupProxy bool) (string, error) {
+func sendRequest(pc proxy.Client, url string) (string, error) {
 	var (
 		resp *http.Response
 		err  error
@@ -30,19 +30,7 @@ func sendRequest(url string, useBackupProxy bool) (string, error) {
 	req.Header.Set("Host", "jnb.ccnu.edu.cn")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0")
 
-	if useBackupProxy {
-		resp, err = proxy.NewHttpProxyClient(
-			proxy.WithProxyTransport(
-				useBackupProxy,
-			),
-		).Do(req)
-	} else {
-		resp, err = proxy.NewHttpProxyClient(
-			proxy.WithProxyTransport(
-				false,
-			),
-		).Do(req)
-	}
+	resp, err = pc.NewProxyClient(proxy.WithProxyTransport()).Do(req)
 	if err != nil {
 		return "", fmt.Errorf("发送请求失败: %w", err)
 	}
@@ -212,12 +200,12 @@ func isBlackListed(name string) bool {
 }
 
 // handleDirtyArch 处理一下学校拉的屎, 楼层显示不对, 宿舍楼栋不匹配
-func handleDirtyArch(ctx context.Context, res *domain.ResultArchitectureInfo, name string) {
+func handleDirtyArch(ctx context.Context, res *domain.ResultArchitectureInfo, name string, pc proxy.Client) {
 	switch name {
 	case YuanBaoShan:
 		removeDong23(res)
 	case EastRegion:
-		addDong23(ctx, res)
+		addDong23(ctx, res, pc)
 	case SouthEast:
 		adjustFloor(res)
 	}
@@ -235,8 +223,8 @@ func removeDong23(res *domain.ResultArchitectureInfo) {
 	res.ArchitectureInfoList.ArchitectureInfo = list[:i]
 }
 
-func addDong23(ctx context.Context, res *domain.ResultArchitectureInfo) {
-	body, err := sendRequest(fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", ConstantMap[YuanBaoShan]), false)
+func addDong23(ctx context.Context, res *domain.ResultArchitectureInfo, pc proxy.Client) {
+	body, err := sendRequest(pc, fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", ConstantMap[YuanBaoShan]))
 	if err != nil {
 		return
 	}

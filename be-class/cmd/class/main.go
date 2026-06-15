@@ -47,7 +47,7 @@ func init() {
 	// 预加载.env文件,用于本地开发
 	_ = godotenv.Load()
 	prometheus.MustRegister(metrics.Counter, metrics.Summary)
-	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
+	flag.StringVar(&flagconf, "config", "../../configs", "config path, eg: -config config.yaml")
 }
 
 func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, r *etcd.Registry, server *conf.Server, env *b_conf.Env) *kratos.App {

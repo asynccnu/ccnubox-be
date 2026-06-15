@@ -14,6 +14,9 @@ import (
 )
 
 func InitProxyClient(r *etcd.Registry, cf *conf.Registry, logger log.Logger, env *b_conf.Env) (proxyv1.ProxyClient, error) {
+	if cf.Proxysvc == "" {
+		return nil, nil
+	}
 	conn, err := InitClient(r, cf.Proxysvc, env)
 	if err != nil {
 		log.NewHelper(logger).WithContext(context.Background()).Errorw("kind", "grpc-client", "reason", "GRPC_CLIENT_INIT_ERROR", "err", err)
@@ -23,5 +26,8 @@ func InitProxyClient(r *etcd.Registry, cf *conf.Registry, logger log.Logger, env
 }
 
 func InitHttpProxyClient(proxyClient proxyv1.ProxyClient, logger log.Logger) proxy.Client {
+	if proxyClient == nil {
+		return proxy.NewDirectHttpProxy(adapter.NewLoggerFromKratos(logger))
+	}
 	return proxy.NewHttpProxy(proxyClient, adapter.NewLoggerFromKratos(logger))
 }

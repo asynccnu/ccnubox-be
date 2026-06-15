@@ -188,7 +188,7 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 			}
 			stu = &UndergraduateStudent{ug: ug}
 		case tool.PostGraduate:
-			gc, err := crawler.NewGraduate(crawler.NewCrawlerClientWithCookieJar(30*time.Second, nil))
+			gc, err := crawler.NewGraduate(crawler.NewCrawlerClientWithCookieJar(30*time.Second, nil, s.proxyClient))
 			if err != nil {
 				return nil, errorx.Errorf("service: init graduate crawler failed, err: %w", err)
 			}
@@ -264,6 +264,7 @@ func (s *gradeService) newUGWithCookie(ctx context.Context, studentId string) (*
 		crawler.NewCrawlerClientWithCookieJar(
 			30*time.Second,
 			crawler.NewJarWithCookie(crawler.PG_URL, cookieResp.Cookie),
+			s.proxyClient,
 		),
 	)
 	if err != nil {

@@ -2,14 +2,14 @@ package proxy
 
 import (
 	"context"
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"github.com/robfig/cron/v3"
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
 	"time"
+
+	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/robfig/cron/v3"
 )
 
 var (
@@ -45,40 +45,33 @@ func (s *HttpProxy) logger(ctx context.Context) logger.Logger {
 	return nil
 }
 
-func (s *HttpProxy) getProxyAddrFromShenLong(_ context.Context, cnt int) ([]string, error) {
-	addrs := make([]string, cnt)
-	switch cnt {
-	case 1:
-		s.mu.RLock()
-		addrs[0] = s.Addr
-		s.mu.RUnlock()
-	case 2:
-		s.mu.RLock()
-		addrs[0], addrs[1] = s.Addr, s.AddrBackup
-		s.mu.RUnlock()
-	default:
-		return addrs, errorx.New("不支持的代理地址数量")
-	}
-	return addrs, nil
-}
-
-func (s *HttpProxy) GetProxyAddr(ctx context.Context, cnt int) []string {
+func (s *HttpProxy) GetProxyAddr(_ context.Context, cnt int) []string {
 	if s.direct {
 		return make([]string, cnt)
 	}
 
-	addrs, err := s.getProxyAddrFromShenLong(ctx, cnt)
-	if err != nil {
-		if l := s.logger(ctx); l != nil {
-			l.Warn("获取缓存代理地址失败", logger.Error(err))
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	addrs := make([]string, cnt)
+	for i := 0; i < cnt; i++ {
+		if i == 0 {
+			addrs[i] = s.Addr
+		} else {
+			addrs[i] = s.AddrBackup
 		}
-		return addrs
+		if addrs[i] == "" && i > 0 {
+			addrs[i] = addrs[0]
+		}
 	}
 	return addrs
 }
 
 func (s *HttpProxy) update() {
 	if s.direct {
+		return
+	}
+	if s.p == nil {
 		return
 	}
 
@@ -90,9 +83,6 @@ func (s *HttpProxy) update() {
 		if l := s.logger(ctx); l != nil {
 			l.Warn("从 be-proxy 获取代理地址失败", logger.Error(err))
 		}
-		s.mu.Lock()
-		s.Addr, s.AddrBackup = "", ""
-		s.mu.Unlock()
 		return
 	}
 

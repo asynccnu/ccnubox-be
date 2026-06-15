@@ -44,3 +44,63 @@ func TestHttpProxyWrapResAllowsPlainAddressWithoutAuth(t *testing.T) {
 		t.Fatalf("wrapRes() = %q, want %q", got, want)
 	}
 }
+
+func TestRotateAddrFirstFetch(t *testing.T) {
+	svc := &HttpProxy{l: nopLogger{}}
+	// Both empty initially
+	if svc.Addr != "" || svc.AddrBackup != "" {
+		t.Fatal("expected both empty initially")
+	}
+
+	svc.rotateAddr("http://1.2.3.4:8080")
+	if svc.Addr != "http://1.2.3.4:8080" {
+		t.Fatalf("Addr = %q, want http://1.2.3.4:8080", svc.Addr)
+	}
+	if svc.AddrBackup != "http://1.2.3.4:8080" {
+		t.Fatalf("AddrBackup = %q, want http://1.2.3.4:8080 (mirrors primary on first fetch)", svc.AddrBackup)
+	}
+}
+
+func TestRotateAddrNormalRotation(t *testing.T) {
+	svc := &HttpProxy{
+		Addr:       "http://1.2.3.4:8080",
+		AddrBackup: "http://5.6.7.8:8080",
+		l:          nopLogger{},
+	}
+
+	svc.rotateAddr("http://9.10.11.12:8080")
+	if svc.Addr != "http://9.10.11.12:8080" {
+		t.Fatalf("Addr = %q, want http://9.10.11.12:8080", svc.Addr)
+	}
+	if svc.AddrBackup != "http://1.2.3.4:8080" {
+		t.Fatalf("AddrBackup = %q, want previous Addr http://1.2.3.4:8080", svc.AddrBackup)
+	}
+}
+
+func TestRotateAddrMultipleRotations(t *testing.T) {
+	svc := &HttpProxy{l: nopLogger{}}
+
+	// first
+	svc.rotateAddr("http://a:1")
+	if svc.Addr != "http://a:1" || svc.AddrBackup != "http://a:1" {
+		t.Fatal("first rotation mismatch")
+	}
+
+	// second
+	svc.rotateAddr("http://b:2")
+	if svc.Addr != "http://b:2" || svc.AddrBackup != "http://a:1" {
+		t.Fatal("second rotation mismatch")
+	}
+
+	// third
+	svc.rotateAddr("http://c:3")
+	if svc.Addr != "http://c:3" || svc.AddrBackup != "http://b:2" {
+		t.Fatal("third rotation mismatch")
+	}
+
+	// fourth
+	svc.rotateAddr("http://d:4")
+	if svc.Addr != "http://d:4" || svc.AddrBackup != "http://c:3" {
+		t.Fatal("fourth rotation mismatch")
+	}
+}

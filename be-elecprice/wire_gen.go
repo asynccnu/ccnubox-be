@@ -28,7 +28,7 @@ func InitApp() *App {
 	elecPriceCache := cache.NewRedisElecPriceCache(cmdable)
 	client := ioc.InitEtcdClient(infraConf)
 	proxyClient := ioc.InitProxyClient(client, infraConf)
-	client2 := ioc.InitHttpProxyClient(proxyClient, logger)
+	client2 := ioc.InitHttpProxyClient(proxyClient, infraConf, logger)
 	elecpriceService := service.NewElecpriceService(elecpriceDAO, logger, elecPriceCache, client2)
 	elecpriceServiceServer := grpc.NewElecpriceGrpcService(elecpriceService)
 	server := ioc.InitGRPCxKratosServer(elecpriceServiceServer, client, logger, infraConf)

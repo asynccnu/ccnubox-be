@@ -2,17 +2,20 @@ package client
 
 import (
 	"context"
-	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/conf"
 	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
 	b_conf "github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
 func InitProxyClient(r *etcd.Registry, cf *conf.Registry, logger log.Logger, env *b_conf.Env) (proxyv1.ProxyClient, error) {
+	if cf.Proxysvc == "" {
+		return nil, nil
+	}
 	conn, err := InitClient(r, cf.Proxysvc, env)
 	if err != nil {
 		log.NewHelper(logger).WithContext(context.Background()).Errorw("kind", "grpc-client", "reason", "GRPC_CLIENT_INIT_ERROR", "err", err)
@@ -22,5 +25,8 @@ func InitProxyClient(r *etcd.Registry, cf *conf.Registry, logger log.Logger, env
 }
 
 func InitHttpProxyClient(proxyClient proxyv1.ProxyClient, l logger.Logger) proxy.Client {
+	if proxyClient == nil {
+		return proxy.NewDirectHttpProxy(l)
+	}
 	return proxy.NewHttpProxy(proxyClient, l)
 }

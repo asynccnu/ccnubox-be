@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 )
 
 // 随便写的,比较随意
 func Test_GetCookie(t *testing.T) {
-	p := NewPassport(NewCrawlerClient(10 * time.Second)) // 这里测试可以不传
+	p := NewPassport(NewCrawlerClient(proxy.NewDirectHttpProxy(nil), 10 * time.Second))
 	ctx := context.Background()
 	_, err := p.LoginPassport(ctx, "xxx", "xxx")
 	if err != nil {
@@ -30,7 +32,7 @@ func Test_GetCookie(t *testing.T) {
 }
 
 func Test_GetLibraryCookie(t *testing.T) {
-	p := NewPassport(NewCrawlerClient(10 * time.Second)) // 这里测试可以不传
+	p := NewPassport(NewCrawlerClient(proxy.NewDirectHttpProxy(nil), 10 * time.Second))
 	ctx := context.Background()
 	_, err := p.LoginPassport(ctx, "xxx", "xxx")
 	if err != nil {

@@ -2,6 +2,7 @@ package cron
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -67,7 +68,11 @@ func (d *DAURefresher) Refresh(ctx context.Context) {
 func (d *DAURefresher) Bootstrap(ctx context.Context) {
 	v, err := d.redis.Get(ctx, dauLatestKey).Int64()
 	if err != nil {
-		d.log.Info("dau bootstrap: no previous value", logger.Error(err))
+		if errors.Is(err, redis.Nil) {
+			d.log.Info("dau bootstrap: no previous value")
+		} else {
+			d.log.Warn("dau bootstrap: read latest failed", logger.Error(err))
+		}
 		return
 	}
 	d.gauge.Set(float64(v))

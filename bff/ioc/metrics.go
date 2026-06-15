@@ -12,7 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const dauCronSpec = "0 5 0 * * *" // 每天 00:05:00 触发
+const dauCronSpec = "5 0 * * *" // 每天 00:05:00 触发
 
 func InitMetrics(cfg *conf.ServerConf) *metricsx.Metrics {
 	return metricsx.New("ccnubox")

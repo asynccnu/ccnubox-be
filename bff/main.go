@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/conf"
-	"github.com/asynccnu/ccnubox-be/bff/cron"
+	"github.com/asynccnu/ccnubox-be/common/pkg/cronx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/tieredx"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -25,7 +25,7 @@ func main() {
 type App struct {
 	shutdown func(ctx context.Context) error
 	tiered   *tieredx.TieredScheduler
-	dau      *cron.DAURefresher
+	cronMgr  *cronx.Manager
 	g        *gin.Engine
 	cfg      *conf.HttpConf
 }
@@ -35,23 +35,29 @@ func NewApp(
 	cfg *conf.ServerConf,
 	shutdown func(ctx context.Context) error,
 	tiered *tieredx.TieredScheduler,
-	dau *cron.DAURefresher,
+	cronMgr *cronx.Manager,
 ) *App {
 	return &App{
 		g:        g,
 		cfg:      cfg.Http,
 		shutdown: shutdown,
 		tiered:   tiered,
-		dau:      dau,
+		cronMgr:  cronMgr,
 	}
 }
 
 func (app *App) Start() {
 	// 优雅关闭
 	defer func() {
-		app.tiered.Stop()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+
+		if app.cronMgr != nil {
+			app.cronMgr.Stop(ctx)
+		}
+
+		app.tiered.Stop()
+
 		if err := app.shutdown(ctx); err != nil {
 			panic(fmt.Sprintln("shutdown error:", err))
 		}

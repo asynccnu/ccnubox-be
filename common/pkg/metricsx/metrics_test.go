@@ -1,6 +1,7 @@
 package metricsx
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -39,5 +40,22 @@ func TestNewUsesDefaultRegisterer(t *testing.T) {
 	}
 	if m.MQMetrics.FailedTotal == nil {
 		t.Fatal("expected MQ failed total to be initialized")
+	}
+}
+
+func TestNewWithRegistererInitializesUserMetrics(t *testing.T) {
+	registry := prometheus.NewRegistry()
+	m := NewWithRegisterer(registry, "ccnubox_test")
+
+	if m.User == nil {
+		t.Fatal("expected User metrics to be initialized")
+	}
+	if m.User.DAU == nil {
+		t.Fatal("expected User.DAU desc to be initialized")
+	}
+	// FQDN 形如 "ccnubox_test_dau", namespace 与子系统名用下划线拼接
+	got := m.User.DAU.String()
+	if !strings.Contains(got, "ccnubox_test_dau") {
+		t.Fatalf("expected desc to contain 'ccnubox_test_dau', got: %s", got)
 	}
 }

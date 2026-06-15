@@ -403,7 +403,7 @@ func (f *FreeClassroomBiz) sendReqFindFreeClassRoom(campus int, preYear, semeste
 		"User-Agent":   []string{"Mozilla/5.0"}, // 精简UA
 	}
 	resp, err := f.p.NewProxyClient(
-		proxy.WithProxyTransport(false),
+		proxy.WithProxyTransport(),
 		proxy.WithRedirectPolicy(proxy.RedirectPolicyDefault),
 		proxy.WithTimeout(30*time.Second),
 	).Do(req)

@@ -10,7 +10,7 @@ import (
 
 func InitCrawlerHttpClient(p proxy.Client) *http.Client {
 	cli := p.NewProxyClient(
-		proxy.WithProxyTransport(false),
+		proxy.WithProxyTransport(),
 		proxy.WithTimeout(10*time.Second),
 	)
 	return cli.Client

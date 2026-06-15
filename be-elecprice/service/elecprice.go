@@ -176,7 +176,7 @@ func (s *elecpriceService) GetArchitecture(ctx context.Context, area string) (do
 
 	// 2. 爬取数据
 	apiURL := fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getArchitectureInfo?Area_ID=%s", code)
-	body, err := sendRequest(apiURL, false)
+	body, err := sendRequest(s.Proxy, apiURL)
 	if err != nil {
 		return domain.ResultArchitectureInfo{}, INTERNET_ERROR(errorx.Errorf("service: request architecture info failed, area: %s, err: %w", area, err))
 	}
@@ -185,7 +185,7 @@ func (s *elecpriceService) GetArchitecture(ctx context.Context, area string) (do
 		return domain.ResultArchitectureInfo{}, INTERNET_ERROR(errorx.Errorf("service: unmarshal architecture xml failed, area: %s, body: %s, err: %w", area, body, err))
 	}
 
-	handleDirtyArch(ctx, &resp, area)
+	handleDirtyArch(ctx, &resp, area, s.Proxy)
 
 	// 3. 异步回填缓存
 	go func() {
@@ -211,7 +211,7 @@ func (s *elecpriceService) GetRoomInfo(ctx context.Context, archiID string, floo
 
 	// 2. 爬取
 	apiURL := fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getRoomInfo?Architecture_ID=%s&Floor=%s", archiID, floor)
-	body, err := sendRequest(apiURL, false)
+	body, err := sendRequest(s.Proxy, apiURL)
 	if err != nil {
 		return resp, INTERNET_ERROR(errorx.Errorf("service: request room info failed, archiID: %s, floor: %s, err: %w", archiID, floor, err))
 	}
@@ -321,7 +321,7 @@ func (s *elecpriceService) GetMeterID(ctx context.Context, RoomID string) (strin
 
 	// 2. 远程请求
 	apiURL := fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getRoomMeterInfo?Room_ID=%s", RoomID)
-	body, err := sendRequest(apiURL, false)
+	body, err := sendRequest(s.Proxy, apiURL)
 	if err != nil {
 		return "", INTERNET_ERROR(errorx.Errorf("service: request meter id failed, rid: %s, err: %w", RoomID, err))
 	}
@@ -353,7 +353,7 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 	)
 
 	apiURL := fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getReserveHKAM?AmMeter_ID=%s", meterID)
-	body, err_ := sendRequest(apiURL, false)
+	body, err_ := sendRequest(s.Proxy, apiURL)
 	if err_ != nil {
 		return nil, INTERNET_ERROR(errorx.Errorf("service: request reserve HKAM failed, mid: %s, err: %w", meterID, err_))
 	}
@@ -364,7 +364,7 @@ func (s *elecpriceService) GetFinalInfo(ctx context.Context, meterID string) (*d
 
 	encodedDate := url.QueryEscape(time.Now().AddDate(0, 0, -1).Format("2006/1/2"))
 	apiURL = fmt.Sprintf("https://jnb.ccnu.edu.cn/ICBS/PurchaseWebService.asmx/getMeterDayValue?AmMeter_ID=%s&startDate=%s&endDate=%s", meterID, encodedDate, encodedDate)
-	body, err := sendRequest(apiURL, true)
+	body, err := sendRequest(s.Proxy, apiURL)
 	if err != nil {
 		return nil, INTERNET_ERROR(errorx.Errorf("service: request meter day value failed, mid: %s, date: %s, err: %w", meterID, encodedDate, err))
 	}

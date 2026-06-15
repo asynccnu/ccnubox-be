@@ -1,29 +1,20 @@
 package proxy
 
 import (
-	"net/http"
+	"net/url"
 	"testing"
 )
 
-func TestWithProxyParsesEscapedCredentials(t *testing.T) {
-	tr := &HttpTransport{&http.Transport{}}
-	WithProxy("http://user%40example.com:p%40ss%3A%2F%3F%23word@127.0.0.1:8080")(tr)
-
-	req, err := http.NewRequest(http.MethodGet, "https://account.ccnu.edu.cn", nil)
+func TestParseURLPreservesCredentials(t *testing.T) {
+	// This test verifies that url.Parse correctly handles already-encoded credentials,
+	// which is what be-proxy sends back in its addr/backup fields.
+	u, err := url.Parse("http://user%40example.com:p%40ss%3A%2F%3F%23word@127.0.0.1:8080")
 	if err != nil {
-		t.Fatalf("NewRequest() error = %v", err)
+		t.Fatalf("url.Parse() error = %v", err)
 	}
 
-	proxyURL, err := tr.Proxy(req)
-	if err != nil {
-		t.Fatalf("Proxy() error = %v", err)
-	}
-	if proxyURL == nil {
-		t.Fatal("Proxy() returned nil URL")
-	}
-
-	username := proxyURL.User.Username()
-	password, _ := proxyURL.User.Password()
+	username := u.User.Username()
+	password, _ := u.User.Password()
 	if username != "user@example.com" {
 		t.Fatalf("username = %q, want %q", username, "user@example.com")
 	}

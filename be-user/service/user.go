@@ -265,7 +265,7 @@ func (s *userService) checkCookie(ctx context.Context, cookie string) bool {
 	req.Header.Set("Cookie", cookie)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0")
 
-	client := s.pClient.NewProxyClient(proxy.WithProxyTransport(false))
+	client := s.pClient.NewProxyClient(proxy.WithProxyTransport())
 	resp, err := client.Do(req)
 	if err != nil {
 		return false

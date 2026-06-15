@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -10,18 +11,15 @@ import (
 
 const PG_URL = "https://bkzhjw.ccnu.edu.cn/"
 
-func NewCrawlerClientWithCookieJar(t time.Duration, jar *cookiejar.Jar) *http.Client {
-	client := &http.Client{
-		Transport: nil,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return nil
-		},
-		Timeout: t,
+func NewCrawlerClientWithCookieJar(t time.Duration, jar *cookiejar.Jar, proxyClient proxy.Client) *http.Client {
+	options := []proxy.Option{
+		proxy.WithRedirectPolicy(proxy.RedirectPolicyAllow),
+		proxy.WithTimeout(t),
 	}
 	if jar != nil {
-		client.Jar = jar
+		options = append(options, proxy.WithCookieJar(jar))
 	}
-	return client
+	return proxyClient.NewProxyClient(options...).Client
 }
 
 func NewJarWithCookie(targetURL, rawCookie string) *cookiejar.Jar {

@@ -10,6 +10,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
@@ -32,13 +33,14 @@ type RankService interface {
 }
 
 type rankService struct {
-	userClient userv1.UserServiceClient
-	rankDAO    dao.RankDAO
-	l          logger.Logger
+	userClient  userv1.UserServiceClient
+	rankDAO     dao.RankDAO
+	l           logger.Logger
+	proxyClient proxy.Client
 }
 
-func NewRankService(rankDAO dao.RankDAO, l logger.Logger, userClient userv1.UserServiceClient) RankService {
-	return &rankService{rankDAO: rankDAO, l: l, userClient: userClient}
+func NewRankService(rankDAO dao.RankDAO, l logger.Logger, userClient userv1.UserServiceClient, proxyClient proxy.Client) RankService {
+	return &rankService{rankDAO: rankDAO, l: l, userClient: userClient, proxyClient: proxyClient}
 }
 
 func (s *rankService) GetRankByTerm(ctx context.Context, req *domain.GetRankByTermReq) (*domain.GetRankByTermResp, error) {
@@ -95,7 +97,7 @@ func (s *rankService) UpdateRank(ctx context.Context, studentId string, t *dao.P
 
 	begin, end := ChangeToFormTime(t)
 
-	data, err := SendReqUpdateRank(cookieResp.GetCookie(), begin, end)
+	data, err := SendReqUpdateRank(cookieResp.GetCookie(), begin, end, s.proxyClient)
 	if err != nil {
 		return nil, errorx.Errorf("service: fetch rank from school system failed, sid: %s, period: %s-%s, err: %w", studentId, begin, end, err)
 	}

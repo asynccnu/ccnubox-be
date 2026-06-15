@@ -6,5 +6,4 @@ var ProviderSet = wire.NewSet(
 	NewClassCrawler,
 	NewClassCrawler2,
 	NewClassCrawler3,
-	NewProxyGetter,
 )

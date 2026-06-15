@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"net/http"
-	"net/url"
 	"time"
 )
 
@@ -19,13 +18,6 @@ type HttpTransport struct {
 	*http.Transport
 }
 type RoundTripperOption func(transport *HttpTransport)
-
-func WithProxy(addr string) RoundTripperOption {
-	return func(transport *HttpTransport) {
-		proxyAddr, _ := url.Parse(addr)
-		transport.Proxy = http.ProxyURL(proxyAddr)
-	}
-}
 
 func WithKeepAliveDisabled(disabled bool) RoundTripperOption {
 	return func(transport *HttpTransport) {

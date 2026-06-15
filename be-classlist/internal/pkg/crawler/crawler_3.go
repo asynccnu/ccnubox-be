@@ -12,7 +12,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-classlist/internal/biz"
@@ -28,41 +27,14 @@ var (
 	)
 )
 
-// Crawler3 爬取的是对于智慧教务的“培养服务/我的课表/学期课表/有课表课程”那个列表
+// Crawler3 爬取的是对于智慧教务的”培养服务/我的课表/学期课表/有课表课程”那个列表
 // 注意：Crawler3开始才有课程性质这个字段
 type Crawler3 struct {
-	pg          ProxyGetter
 	proxyClient proxy.Client
-	clientPool  sync.Pool
 }
 
-func NewClassCrawler3(pg ProxyGetter, pc proxy.Client) *Crawler3 {
-	newClient := func() interface{} {
-		return &http.Client{
-			Transport: &http.Transport{
-				MaxIdleConns:        10, // 既然使用sync.Pool管理对象，这个不宜过大
-				IdleConnTimeout:     90 * time.Second,
-				TLSHandshakeTimeout: 10 * time.Second,
-				DisableKeepAlives:   false,
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					// 从 request 的 context 中获取代理地址
-					if p, ok := req.Context().Value("proxy_url").(*url.URL); ok {
-						return p, nil
-					}
-					return nil, nil
-				},
-			},
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return nil
-			},
-		}
-	}
-
+func NewClassCrawler3(pc proxy.Client) *Crawler3 {
 	c2 := &Crawler3{
-		clientPool: sync.Pool{
-			New: newClient,
-		},
-		pg:          pg,
 		proxyClient: pc,
 	}
 
@@ -70,22 +42,8 @@ func NewClassCrawler3(pg ProxyGetter, pc proxy.Client) *Crawler3 {
 }
 
 func (c *Crawler3) GetClassInfosForUndergraduate(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
-	// 获取代理并将其存入请求的上下文
-	proxyURL := c.pg.GetProxy(ctx)
-
-	var reqCtx context.Context
-	reqCtx = ctx
-	if proxyURL != nil {
-		reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
-	}
-
-	// 使用连接池获取 HTTP 客户端
-	//client := c.clientPool.Get().(*http.Client)
-	//defer c.clientPool.Put(client)
-
 	client := c.proxyClient.NewProxyClient(
 		proxy.WithProxyTransport(
-			false,
 			proxy.WithMaxIdleConns(10),
 			proxy.WithIdleConnTimeout(90*time.Second),
 			proxy.WithTLSHandshakeTimeout(10*time.Second),
@@ -111,7 +69,7 @@ func (c *Crawler3) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 	base.RawQuery = q.Encode()
 	classURL := base.String()
 
-	req, err := http.NewRequestWithContext(reqCtx, "GET", classURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", classURL, nil)
 	if err != nil {
 		logh.Errorf("http.NewRequest err=%v", err)
 		return nil, nil, -1, err
@@ -133,7 +91,7 @@ func (c *Crawler3) GetClassInfosForUndergraduate(ctx context.Context, stuID, yea
 		"User-Agent":         []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"},
 		"X-Requested-With":   []string{"XMLHttpRequest"},
 	}
-	resp, err := client.Do(req)
+	resp, err := client.Client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
 		return nil, nil, -1, err
@@ -364,18 +322,13 @@ func (c *Crawler3) parseTimeDesc(s string) (day string, sections []int, weeks []
 }
 
 func (c *Crawler3) GetClassInfoForGraduateStudent(ctx context.Context, stuID, year, semester, cookie string) ([]*biz.ClassInfoBO, []*biz.StudentCourse, int, error) {
-	// 获取代理并将其存入请求的上下文
-	proxyURL := c.pg.GetProxy(ctx)
-
-	var reqCtx context.Context
-	reqCtx = ctx
-	if proxyURL != nil {
-		reqCtx = context.WithValue(ctx, "proxy_url", proxyURL)
-	}
-
-	// 使用连接池获取 HTTP 客户端
-	client := c.clientPool.Get().(*http.Client)
-	defer c.clientPool.Put(client)
+	client := c.proxyClient.NewProxyClient(
+		proxy.WithProxyTransport(
+			proxy.WithMaxIdleConns(10),
+			proxy.WithIdleConnTimeout(90*time.Second),
+			proxy.WithTLSHandshakeTimeout(10*time.Second),
+		),
+	)
 
 	logh := logger.GetLoggerFromCtx(ctx)
 	xnm, xqm := year, semester
@@ -383,7 +336,7 @@ func (c *Crawler3) GetClassInfoForGraduateStudent(ctx context.Context, stuID, ye
 	param := fmt.Sprintf("xnm=%s&xqm=%s", xnm, semesterMap[xqm])
 	var data = strings.NewReader(param)
 
-	req, err := http.NewRequestWithContext(reqCtx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://grd.ccnu.edu.cn/yjsxt/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151", data)
 	if err != nil {
 		logh.Errorf("http.NewRequestWithContext err=%v", err)
 		return nil, nil, -1, errcode.ErrCrawler
@@ -393,7 +346,7 @@ func (c *Crawler3) GetClassInfoForGraduateStudent(ctx context.Context, stuID, ye
 		"Content-Type": []string{"application/x-www-form-urlencoded;charset=UTF-8"},
 		"User-Agent":   []string{"Mozilla/5.0"}, // 精简UA
 	}
-	resp, err := client.Do(req)
+	resp, err := client.Client.Do(req)
 	if err != nil {
 		logh.Errorf("client.Do err=%v", err)
 		return nil, nil, -1, errcode.ErrCrawler

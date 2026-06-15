@@ -3,15 +3,21 @@ package crawler
 import (
 	"context"
 	"fmt"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"testing"
 	"time"
 )
+
+func nopProxyClient() *proxy.HttpProxy {
+	return &proxy.HttpProxy{}
+}
 
 func Test_GetDetail(t *testing.T) {
 	ug, err := NewUnderGrad(
 		NewCrawlerClientWithCookieJar(
 			10*time.Second,
 			NewJarWithCookie(PG_URL, ""),
+			nopProxyClient(),
 		),
 	)
 	if err != nil {

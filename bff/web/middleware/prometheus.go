@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/bff/cron"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
@@ -48,15 +49,10 @@ func (m *PrometheusMiddleware) MiddlewareFunc() gin.HandlerFunc {
 					// DAU 聚合是 best-effort, 失败会通过下面的 InstrumentedRedis 记录到
 					// ccnubox_redis_errors_total{operation="PFADD"|"EXPIRE"} 指标里。
 					// 告警建议: rate(ccnubox_redis_errors_total{operation=~"PFADD|EXPIRE"}[5m]) > 0
-					now := time.Now()
-					bucketTime := now.Truncate(15 * time.Minute)
-					key := "dau:" + bucketTime.Format("2006-01-02-15-04")
-
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 					defer cancel()
 
-					m.redisClient.PFAdd(ctx, key, studentId)
-					m.redisClient.Expire(ctx, key, 30*24*time.Hour+1*time.Hour)
+					_ = m.recordDAU(ctx, studentId, time.Now())
 				}(StudentId)
 			}
 
@@ -69,4 +65,34 @@ func (m *PrometheusMiddleware) MiddlewareFunc() gin.HandlerFunc {
 
 		ctx.Next() // 执行后续逻辑
 	}
+}
+
+func (m *PrometheusMiddleware) recordDAU(ctx context.Context, studentId string, now time.Time) error {
+	if studentId == "" {
+		return nil
+	}
+
+	bucketKey := cron.DAUBucketKey(now)
+	dayKey := cron.DAUDayKeyForTime(now)
+	ttl := 30*24*time.Hour + time.Hour
+
+	if err := m.redisClient.PFAdd(ctx, bucketKey, studentId).Err(); err != nil {
+		return err
+	}
+	if err := m.redisClient.Expire(ctx, bucketKey, ttl).Err(); err != nil {
+		return err
+	}
+	if err := m.redisClient.PFAdd(ctx, dayKey, studentId).Err(); err != nil {
+		return err
+	}
+	count, err := m.redisClient.PFCount(ctx, dayKey).Result()
+	if err != nil {
+		return err
+	}
+	if err := m.redisClient.Expire(ctx, dayKey, ttl).Err(); err != nil {
+		return err
+	}
+
+	m.metrics.User.DAU.Set(float64(count))
+	return nil
 }

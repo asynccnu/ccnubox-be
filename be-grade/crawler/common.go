@@ -1,12 +1,13 @@
 package crawler
 
 import (
-	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 )
 
 const PG_URL = "https://bkzhjw.ccnu.edu.cn/"
@@ -15,6 +16,11 @@ func NewCrawlerClientWithCookieJar(t time.Duration, jar *cookiejar.Jar, proxyCli
 	options := []proxy.Option{
 		proxy.WithRedirectPolicy(proxy.RedirectPolicyAllow),
 		proxy.WithTimeout(t),
+		proxy.WithProxyTransport(
+			proxy.WithMaxIdleConns(10),
+			proxy.WithIdleConnTimeout(90*time.Second),
+			proxy.WithTLSHandshakeTimeout(10*time.Second),
+		),
 	}
 	if jar != nil {
 		options = append(options, proxy.WithCookieJar(jar))

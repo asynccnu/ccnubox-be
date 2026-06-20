@@ -67,14 +67,12 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, req *domain.GetGradeB
 	if req.Refresh {
 		// 强制更新：拉取远程
 		fetchdata, err = s.fetchGradesWithSingleFlight(ctx, req.StudentID)
-		if err != nil || len(fetchdata.final) == 0 {
-			l.Warn("service: force refresh failed, using local fallback", logger.String("sid", req.StudentID), logger.Error(err))
-			// 拉取失败本地作为兜底
-			grades, err = s.gradeDAO.FindGrades(ctx, req.StudentID, 0, 0)
-			if err != nil {
-				return nil, errorx.Errorf("service: fallback dao find failed, sid: %s, err: %w", req.StudentID, err)
-			}
-			return modelConvDomainAndFilter(grades, req.Terms, req.Kcxzmcs), nil
+		if err != nil {
+			l.Warn("service: force refresh failed", logger.String("sid", req.StudentID), logger.Error(err))
+			return nil, ErrGetGrade(errorx.Errorf("service: force refresh fetch failed, sid: %s, err: %w", req.StudentID, err))
+		}
+		if len(fetchdata.final) == 0 {
+			return nil, ErrGetGrade(errorx.Errorf("service: force refresh returned no grades, sid: %s", req.StudentID))
 		}
 		grades = fetchdata.final
 		return modelConvDomainAndFilter(grades, req.Terms, req.Kcxzmcs), nil
@@ -105,8 +103,11 @@ func (s *gradeService) GetGradeScore(ctx context.Context, studentId string) ([]d
 	grades, err := s.gradeDAO.FindGrades(ctx, studentId, 0, 0)
 	if err != nil || len(grades) == 0 {
 		fetchdata, err := s.fetchGradesWithSingleFlight(ctx, studentId)
-		if err != nil || len(fetchdata.final) == 0 {
+		if err != nil {
 			return nil, ErrGetGrade(errorx.Errorf("service: get grade score fetch failed, sid: %s, err: %w", studentId, err))
+		}
+		if len(fetchdata.final) == 0 {
+			return nil, ErrGetGrade(errorx.Errorf("service: get grade score returned no grades, sid: %s", studentId))
 		}
 		return aggregateGradeScore(fetchdata.final), nil
 	}
@@ -319,7 +320,7 @@ func (u *UndergraduateStudent) GetGrades(ctx context.Context, cookie string, xnm
 
 	details := make(map[string]crawler.Score)
 	for _, g := range grade {
-		detail, err := u.ug.GetDetail(ctx, g.XS0101ID, g.JX0404ID, g.KCH, g.ZCJ)
+		detail, err := u.ug.GetDetail(ctx, g.XS0101ID, g.JX0404ID, g.CJ0708ID, g.ZCJ)
 		if err != nil {
 			return nil, errorx.Errorf("crawler: ug get detail failed, jxb: %s, err: %w", g.JX0404ID, err)
 		}

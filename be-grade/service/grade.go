@@ -178,23 +178,8 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 
-		var stu Student
-
-		sType := tool.ParseStudentType(studentId)
-		switch sType {
-		case tool.UnderGraduate:
-			ug, err := s.newUGWithCookie(ctx, studentId)
-			if err != nil {
-				return nil, errorx.Errorf("service: init undergraduate crawler failed, err: %w", err)
-			}
-			stu = &UndergraduateStudent{ug: ug}
-		case tool.PostGraduate:
-			gc, err := crawler.NewGraduate(crawler.NewCrawlerClientWithCookieJar(30*time.Second, nil, s.proxyClient))
-			if err != nil {
-				return nil, errorx.Errorf("service: init graduate crawler failed, err: %w", err)
-			}
-			stu = &GraduateStudent{gc: gc}
-		default:
+		studentType := tool.ParseStudentType(studentId)
+		if studentType != tool.UnderGraduate && studentType != tool.PostGraduate {
 			return nil, errorx.New("service: invalid student type")
 		}
 
@@ -202,12 +187,20 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		if err != nil {
 			return nil, errorx.Errorf("service: rpc get cookie failed, sid: %s, err: %w", studentId, err)
 		}
+		stu, err := s.newStudent(studentId, cookieResp.Cookie)
+		if err != nil {
+			return nil, err
+		}
 
 		remote, err := stu.GetGrades(ctx, cookieResp.Cookie, 0, 0, 300)
 		if errors.Is(err, crawler.ErrCookieTimeout) {
 			cookieResp, err = s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
 			if err != nil {
 				return nil, errorx.Errorf("service: retry rpc get cookie failed, sid: %s, err: %w", studentId, err)
+			}
+			stu, err = s.newStudent(studentId, cookieResp.Cookie)
+			if err != nil {
+				return nil, err
 			}
 			remote, err = stu.GetGrades(ctx, cookieResp.Cookie, 0, 0, 300)
 		}
@@ -255,16 +248,38 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 	return fetchGrades, err
 }
 
+func (s *gradeService) newStudent(studentId, cookie string) (Student, error) {
+	switch tool.ParseStudentType(studentId) {
+	case tool.UnderGraduate:
+		ug, err := s.newUG(cookie)
+		if err != nil {
+			return nil, errorx.Errorf("service: init undergraduate crawler failed, err: %w", err)
+		}
+		return &UndergraduateStudent{ug: ug}, nil
+	case tool.PostGraduate:
+		gc, err := crawler.NewGraduate(crawler.NewCrawlerClientWithCookieJar(30*time.Second, nil, s.proxyClient))
+		if err != nil {
+			return nil, errorx.Errorf("service: init graduate crawler failed, err: %w", err)
+		}
+		return &GraduateStudent{gc: gc}, nil
+	default:
+		return nil, errorx.New("service: invalid student type")
+	}
+}
+
 func (s *gradeService) newUGWithCookie(ctx context.Context, studentId string) (*crawler.UnderGrad, error) {
 	cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
 	if err != nil {
 		return nil, errorx.Errorf("service: newUG rpc cookie failed, sid: %s, err: %w", studentId, err)
 	}
+	return s.newUG(cookieResp.Cookie)
+}
 
+func (s *gradeService) newUG(cookie string) (*crawler.UnderGrad, error) {
 	grad, err := crawler.NewUnderGrad(
 		crawler.NewCrawlerClientWithCookieJar(
 			30*time.Second,
-			crawler.NewJarWithCookie(crawler.PG_URL, cookieResp.Cookie),
+			crawler.NewJarWithCookie(crawler.PG_URL, cookie),
 			s.proxyClient,
 		),
 	)
@@ -318,17 +333,8 @@ func (u *UndergraduateStudent) GetGrades(ctx context.Context, cookie string, xnm
 		return nil, errorx.Errorf("crawler: ug get grade failed, err: %w", err)
 	}
 
-	details := make(map[string]crawler.Score)
-	for _, g := range grade {
-		detail, err := u.ug.GetDetail(ctx, g.XS0101ID, g.JX0404ID, g.CJ0708ID, g.ZCJ)
-		if err != nil {
-			return nil, errorx.Errorf("crawler: ug get detail failed, jxb: %s, err: %w", g.JX0404ID, err)
-		}
-		key := g.XS0101ID + g.JX0404ID
-		details[key] = detail
-	}
-
-	return aggregateGrade(grade, details), nil
+	// 详情页逐科抓取耗时且部分课程没有详情数据。列表先入库，详情由 GradeDetailEvent 异步补全。
+	return aggregateGrade(grade, make(map[string]crawler.Score)), nil
 }
 
 type GraduateStudent struct {

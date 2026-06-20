@@ -154,6 +154,7 @@ func normalizeJxbId(g *model.Grade) string {
 func isGradeEqual(a, b model.Grade, ifDetail bool) bool {
 	// 基础比较字段
 	baseEqual := a.Kcmc == b.Kcmc &&
+		a.KcId == b.KcId &&
 		a.Xnm == b.Xnm &&
 		a.Xqm == b.Xqm &&
 		a.Xf == b.Xf &&

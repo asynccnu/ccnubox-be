@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/crawler"
@@ -11,6 +14,12 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
 	"go.uber.org/zap"
 )
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
 
 type cachedGradeDAO struct {
 	findCalls int
@@ -71,5 +80,38 @@ func TestAggregateGradePreservesDetailRecordID(t *testing.T) {
 	}
 	if grades[0].KcId != "grade-record-id" {
 		t.Fatalf("aggregateGrade() KcId = %q, want %q", grades[0].KcId, "grade-record-id")
+	}
+}
+
+func TestUndergraduateStudentFetchesOnlyGradeList(t *testing.T) {
+	requestCount := 0
+	client := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		requestCount++
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body: io.NopCloser(strings.NewReader(
+				`{"code":0,"msg":"success","data":[{"cj0708id":"grade-id","xs0101id":"student-id","jx0404id":"class-id","xqmc":"2025-2026-1"}]}`,
+			)),
+			Request: req,
+		}, nil
+	})}
+	ug, err := crawler.NewUnderGrad(client)
+	if err != nil {
+		t.Fatalf("NewUnderGrad() error = %v", err)
+	}
+
+	grades, err := (&UndergraduateStudent{ug: ug}).GetGrades(context.Background(), "unused-cookie", 0, 0, 300)
+	if err != nil {
+		t.Fatalf("GetGrades() error = %v", err)
+	}
+	if requestCount != 1 {
+		t.Fatalf("HTTP request count = %d, want 1 list request", requestCount)
+	}
+	if len(grades) != 1 || grades[0].KcId != "grade-id" {
+		t.Fatalf("GetGrades() grades = %#v", grades)
+	}
+	if grades[0].RegularGradePercent != RegularGradePercentMSG || grades[0].FinalGradePercent != FinalGradePercentMAG {
+		t.Fatalf("detail placeholders not set: %#v", grades[0])
 	}
 }

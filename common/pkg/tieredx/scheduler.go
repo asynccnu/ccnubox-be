@@ -154,8 +154,7 @@ func (s *TieredScheduler) runRefresh(label string) {
 				return
 			}
 
-			//防止refresh超时
-			ct, cancel := context.WithTimeout(ctx, 10*time.Second)
+			ct, cancel := context.WithTimeout(ctx, 30*time.Second)
 			defer cancel()
 			err = s.handler.Refresh(ct, stuID)
 			if err != nil {

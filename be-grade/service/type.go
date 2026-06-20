@@ -199,6 +199,7 @@ func aggregateGrade(grades []crawler.Grade, details map[string]crawler.Score) []
 
 		result[i] = model.Grade{
 			StudentId:           grade.XS0101ID,
+			KcId:                grade.CJ0708ID,
 			JxbId:               grade.JX0404ID,
 			Kcmc:                grade.KCMC,
 			Xnm:                 int64(xnm),

@@ -92,6 +92,9 @@ func (c *UnderGrad) GetGrade(ctx context.Context, xnm, xqm int64, showCount int)
 		return nil, errorx.Errorf("crawler: do undergrad request failed, err: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, errorx.Errorf("crawler: undergrad system status error, code: %d", resp.StatusCode)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -99,13 +102,24 @@ func (c *UnderGrad) GetGrade(ctx context.Context, xnm, xqm int64, showCount int)
 	}
 
 	// 优先检测是否重定向到了登录页
-	if strings.Contains(string(body), Login_URL) {
+	if strings.Contains(string(body), Login_URL) ||
+		(resp.Request != nil && resp.Request.URL != nil && strings.Contains(resp.Request.URL.String(), Login_URL)) {
 		return nil, ErrCookieTimeout
 	}
 
+	return parseGradeResponse(body)
+}
+
+func parseGradeResponse(body []byte) ([]Grade, error) {
 	var gradeResp GradeResponse
 	if err := json.Unmarshal(body, &gradeResp); err != nil {
 		return nil, errorx.Errorf("crawler: unmarshal undergrad grade failed, body_sample: %.100s, err: %w", string(body), err)
+	}
+	if gradeResp.Code != 0 {
+		return nil, errorx.Errorf("crawler: undergrad system returned error, code: %d, msg: %s", gradeResp.Code, gradeResp.Msg)
+	}
+	if gradeResp.Data == nil {
+		return nil, errorx.New("crawler: undergrad system returned null grade data")
 	}
 
 	return gradeResp.Data, nil

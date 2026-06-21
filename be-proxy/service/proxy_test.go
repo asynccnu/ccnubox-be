@@ -104,3 +104,18 @@ func TestRotateAddrMultipleRotations(t *testing.T) {
 		t.Fatal("fourth rotation mismatch")
 	}
 }
+
+func TestRotateAddrsUsesTwoFreshAddresses(t *testing.T) {
+	svc := &HttpProxy{
+		Addr:       "http://old-primary:1",
+		AddrBackup: "http://old-backup:2",
+		l:          nopLogger{},
+	}
+	svc.rotateAddrs("http://new-primary:3", "http://new-backup:4")
+	if svc.Addr != "http://new-primary:3" {
+		t.Fatalf("Addr = %q", svc.Addr)
+	}
+	if svc.AddrBackup != "http://new-backup:4" {
+		t.Fatalf("AddrBackup = %q", svc.AddrBackup)
+	}
+}

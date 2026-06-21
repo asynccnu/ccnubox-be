@@ -163,7 +163,6 @@ func (c *UnderGrad) GetDetail(ctx context.Context, xs0101id string, jx0404id str
 	}
 
 	score, err := ParseScoreFromHTML(string(body))
-	fmt.Println(string(body))
 	if err != nil {
 		return Score{}, errorx.Errorf("crawler: parse detail html failed, sid_info: %s, err: %w", cj0708id, err)
 	}

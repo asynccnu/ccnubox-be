@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -127,12 +128,19 @@ func parseGradeResponse(body []byte) ([]Grade, error) {
 
 // GetDetail 获取成绩详情（平时分、期末分比例等）
 func (c *UnderGrad) GetDetail(ctx context.Context, xs0101id string, jx0404id string, cj0708id string, zcj float32) (Score, error) {
-	reqURL := fmt.Sprintf(
-		"%s?xs0101id=%s&jx0404id=%s&cj0708id=%s&zcj=%0.1f",
-		DETAIL_GRADE, xs0101id, jx0404id, cj0708id, zcj,
-	)
+	u, err := url.Parse(DETAIL_GRADE)
+	if err != nil {
+		return Score{}, errorx.Errorf("crawler: parse detail url failed, err: %w", err)
+	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
+	q := u.Query()
+	q.Set("xs0101id", xs0101id)
+	q.Set("jx0404id", jx0404id)
+	q.Set("cj0708id", cj0708id)
+	q.Set("zcj", fmt.Sprintf("%.1f", zcj))
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
 	if err != nil {
 		return Score{}, errorx.Errorf("crawler: create detail request failed, err: %w", err)
 	}
@@ -155,6 +163,7 @@ func (c *UnderGrad) GetDetail(ctx context.Context, xs0101id string, jx0404id str
 	}
 
 	score, err := ParseScoreFromHTML(string(body))
+	fmt.Println(string(body))
 	if err != nil {
 		return Score{}, errorx.Errorf("crawler: parse detail html failed, sid_info: %s, err: %w", cj0708id, err)
 	}

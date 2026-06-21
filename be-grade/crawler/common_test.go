@@ -14,8 +14,8 @@ func TestNewCrawlerClientWithCookieJarUsesProxyTransport(t *testing.T) {
 	if client.Transport == nil {
 		t.Fatal("crawler client transport is nil; requests would bypass be-proxy")
 	}
-	if _, ok := client.Transport.(*proxy.HttpTransport); !ok {
-		t.Fatalf("crawler client transport = %T, want *proxy.HttpTransport", client.Transport)
+	if _, ok := client.Transport.(*proxy.FailoverTransport); !ok {
+		t.Fatalf("crawler client transport = %T, want *proxy.FailoverTransport", client.Transport)
 	}
 	if client.CheckRedirect == nil {
 		t.Fatal("crawler client redirect policy is nil")

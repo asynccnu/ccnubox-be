@@ -119,7 +119,7 @@ func (s *HttpProxy) fetchIp() {
 			addrs := strings.Split(strings.TrimSpace(bodyStr), "\n")
 
 			if len(addrs) > 0 {
-				newAddr := s.wrapRes(addrs[0])
+				newAddr, newBackup := s.wrapRes(addrs[0]), ""
 				if newAddr == "" {
 					lastErr = fmt.Errorf("wrapRes produced empty address from: %s", addrs[0])
 					s.l.Error("proxy: wrapRes returned empty",
@@ -129,9 +129,12 @@ func (s *HttpProxy) fetchIp() {
 					time.Sleep(2 * time.Second)
 					continue
 				}
+				if len(addrs) > 1 {
+					newBackup = s.wrapRes(addrs[1])
+				}
 
 				s.mu.Lock()
-				s.rotateAddr(newAddr)
+				s.rotateAddrs(newAddr, newBackup)
 				s.mu.Unlock()
 
 				s.l.Info("proxy: fetch ip success",
@@ -203,4 +206,13 @@ func (s *HttpProxy) rotateAddr(newAddr string) {
 	if s.AddrBackup == "" {
 		s.AddrBackup = newAddr
 	}
+}
+
+func (s *HttpProxy) rotateAddrs(primary, backup string) {
+	if backup == "" || backup == primary {
+		s.rotateAddr(primary)
+		return
+	}
+	s.Addr = primary
+	s.AddrBackup = backup
 }

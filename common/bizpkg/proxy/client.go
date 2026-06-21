@@ -2,11 +2,7 @@ package proxy
 
 import (
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
-
-	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type HttpClient struct {
@@ -42,35 +38,14 @@ func WithTransport(tr *HttpTransport) Option {
 
 func WithProxyTransport(options ...RoundTripperOption) Option {
 	return func(client *HttpClient) {
-		tr := globalProxy.NewProxyTransport()
 		if globalProxy.direct {
+			tr := globalProxy.NewProxyTransport()
 			tr.Use(options...)
 			client.Transport = tr
 			return
 		}
 
-		tr.Proxy = func(req *http.Request) (*url.URL, error) {
-			ctx := req.Context()
-			addrs := globalProxy.GetProxyAddr(ctx, 1)
-			proxyAddr := strings.TrimSpace(addrs[0])
-			if proxyAddr == "" {
-				return nil, nil
-			}
-			proxyURL, err := url.Parse(proxyAddr)
-			if err != nil {
-				if l := globalProxy.logger(ctx); l != nil {
-					l.Warn("代理地址解析失败，fallback 到直连",
-						logger.String("proxy_addr", proxyAddr),
-						logger.Error(err),
-					)
-				}
-				return nil, nil
-			}
-			return proxyURL, nil
-		}
-
-		tr.Use(options...)
-		client.Transport = tr
+		client.Transport = NewFailoverTransport(options...)
 	}
 }
 

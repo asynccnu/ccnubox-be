@@ -71,7 +71,7 @@ func getGradeEventUrl(semester string, courseType string) string {
 }
 
 func formatSemester(xnm int64, xqm int64) string {
-	return fmt.Sprintf("%d-%d-%d", xnm, xnm+1, xqm)
+	return fmt.Sprintf("%d-%d", xnm, xqm)
 }
 
 func (p *TieredHandler) gradeRefresh(ctx context.Context, studentId string) error {
@@ -101,7 +101,7 @@ func (p *TieredHandler) gradeRefresh(ctx context.Context, studentId string) erro
 		}
 
 		semester := formatSemester(g.Xnm, g.Xqm)
-		url := getGradeEventUrl(semester, g.Kclbmc)
+		url := getGradeEventUrl(semester, g.Kcxzmc)
 		//成绩更新消息推送
 		_, err = p.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
 			StudentId: studentId,

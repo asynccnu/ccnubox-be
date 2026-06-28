@@ -14,15 +14,15 @@ type InfraConf struct {
 // ServerConf 服务配置
 type ServerConf struct {
 	conf.BaseServerConf `mapstructure:",squash"`
-	CountLevel          *CountLevelConfig `yaml:"countLevel"`
+	//CountLevel          *CountLevelConfig `yaml:"countLevel"`
 }
 
-type CountLevelConfig struct {
-	Low    int64 `yaml:"low"`
-	Middle int64 `yaml:"middle"`
-	High   int64 `yaml:"high"`
-	Step   int64 `yaml:"step"`
-}
+//type CountLevelConfig struct {
+//	Low    int64 `yaml:"low"`
+//	Middle int64 `yaml:"middle"`
+//	High   int64 `yaml:"high"`
+//	Step   int64 `yaml:"step"`
+//}
 
 func InitServerConf() *ServerConf {
 	return conf.InitConfig[ServerConf](ServerEnv)

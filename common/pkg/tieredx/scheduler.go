@@ -114,6 +114,13 @@ func (s *TieredScheduler) runRefresh(label string) {
 
 	ctx := context.Background()
 
+	//每次刷新开始前重建zset
+	_, err := s.counter.RebuildCounter(ctx, &counterv1.RebuildCounterReq{})
+	if err != nil {
+		s.l.Errorf("rebuild counter failed: %w", err)
+		return
+	}
+
 	resp, err := s.counter.GetCounterLevels(ctx, &counterv1.GetCounterLevelsReq{
 		Label: label,
 	})
@@ -172,10 +179,9 @@ func (s *TieredScheduler) runRefresh(label string) {
 
 	wg.Wait()
 
-	_, err = s.counter.ChangeCounterLevels(ctx, &counterv1.ChangeCounterLevelsReq{
+	//活跃度降级
+	_, err = s.counter.DecayCounter(ctx, &counterv1.DecayCounterReq{
 		StudentIds: resp.StudentIds,
-		IsReduce:   true,
-		Step:       7,
 	})
 	if err != nil {
 		s.l.Errorf("降级失败:%v", err)

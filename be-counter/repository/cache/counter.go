@@ -2,21 +2,45 @@ package cache
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"strconv"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/redis/go-redis/v9"
 )
 
-const REDISKEY = "ccnubox:FUC"
+const RedisPrefix = "ccnubox:FUC"
+
+const (
+	ExpireTime = 7 * 24 * time.Hour // 每日Hash过期时间
+	DedupTime  = 1 * time.Hour      // 1h去重窗口
+)
+
+// 每日hash存储当日活跃度完整数据
+func dailyHashKey(t time.Time) string {
+	return fmt.Sprintf("%s:%s", RedisPrefix, t.Format("2006-01-02"))
+}
+
+// string标记去重
+func dedupKey(studentId string) string {
+	return fmt.Sprintf("%s:dedup:%s", RedisPrefix, studentId)
+}
+
+// ZSet聚合综合活跃度
+func aggZSetKey() string {
+	return RedisPrefix + ":aggregated"
+}
 
 type CounterCache interface {
-	GetCounterByStudentId(ctx context.Context, StudentId string) (count int64, err error)
-	SetCounterByStudentId(ctx context.Context, StudentId string, count int64) error
-	GetAllCounter(ctx context.Context) (Counters []*Counter, err error)
-	GetCounters(ctx context.Context, StudentIds []string) (Counters []*Counter, err error)
-	SetCounters(ctx context.Context, Counters []*Counter) error
-	CleanZeroCounter(ctx context.Context) error
+	AddCounter(ctx context.Context, studentId string) (bool, error)
+	RebuildCounter(ctx context.Context) error
+	DecayCounter(ctx context.Context, studentIds []string) error
+	BoostScores(ctx context.Context, studentIds []string) error
+	GetStudentCounter(ctx context.Context, studentId string) (int64, error)
+	GetCounterByRank(ctx context.Context, start, stop int64) ([]string, error)
+	GetCounterCount(ctx context.Context) (int64, error)
 }
 
 type RedisCounterCache struct {
@@ -27,137 +51,223 @@ func NewRedisCounterCache(cmd redis.Cmdable) CounterCache {
 	return &RedisCounterCache{cmd: cmd}
 }
 
-func (cache *RedisCounterCache) GetCounterByStudentId(ctx context.Context, StudentId string) (count int64, err error) {
+// AddCounter 活跃度+1
+func (c *RedisCounterCache) AddCounter(ctx context.Context, studentId string) (bool, error) {
+	now := time.Now()
+	key := dailyHashKey(now)
+	if _, err := c.cmd.HIncrBy(ctx, key, studentId, 1).Result(); err != nil {
+		return false, errorx.Errorf("cache: hincrby failed, studentId: %s, err: %w", studentId, err)
+	}
+	_, _ = c.cmd.Expire(ctx, key, ExpireTime).Result()
+	return true, nil
+}
 
-	val, err := cache.cmd.HGet(ctx, REDISKEY, StudentId).Int64()
+// RebuildCounter 聚合近7天Hash，重建ZSet
+func (c *RedisCounterCache) RebuildCounter(ctx context.Context) error {
+	now := time.Now()
+	pipe := c.cmd.Pipeline()
+	cmds := make([]*redis.MapStringStringCmd, 7)
+	for i := 0; i < 7; i++ {
+		cmds[i] = pipe.HGetAll(ctx, dailyHashKey(now.AddDate(0, 0, -i)))
+	}
+	if _, err := pipe.Exec(ctx); err != nil {
+		return errorx.Errorf("cache: rebuild hgetall failed: %w", err)
+	}
+
+	totals := make(map[string]int64)
+	for _, cmd := range cmds {
+		result, err := cmd.Result()
+		if err != nil || result == nil {
+			continue
+		}
+		for sid, s := range result {
+			v, _ := strconv.ParseInt(s, 10, 64)
+			totals[sid] += v
+		}
+	}
+	if len(totals) == 0 {
+		return nil
+	}
+
+	pipe2 := c.cmd.TxPipeline()
+	pipe2.Del(ctx, aggZSetKey())
+	for sid, sum := range totals {
+		if sum <= 0 {
+			continue
+		}
+		pipe2.ZAdd(ctx, aggZSetKey(), redis.Z{
+			Member: sid,
+			Score:  float64(sum),
+		})
+	}
+	_, err := pipe2.Exec(ctx)
+	if err != nil {
+		return errorx.Errorf("cache: rebuild zadd failed: %w", err)
+	}
+	return nil
+}
+
+// DecayCounter 活跃度衰减
+func (c *RedisCounterCache) DecayCounter(ctx context.Context, studentIds []string) error {
+	if len(studentIds) == 0 {
+		return nil
+	}
+
+	now := time.Now()
+	todayKey := dailyHashKey(now)
+
+	scores, err := c.cmd.ZMScore(ctx, aggZSetKey(), studentIds...).Result()
+	if err != nil {
+		return errorx.Errorf("cache: zmscore failed: %w", err)
+	}
+
+	pipe := c.cmd.Pipeline()
+	hasWork := false
+
+	for i, sid := range studentIds {
+		score := int64(0)
+		if i < len(scores) {
+			score = int64(scores[i])
+		}
+		if score <= 0 {
+			continue
+		}
+		//拟合的一个活跃度衰减的指数函数，活跃度越高降低的幅度越大，衰减率控制在[5%,30%]
+		rate := 0.05 + 0.25*(1-math.Exp(-float64(score)/20))
+		decay := calcVariation(score, rate)
+		if decay <= 0 {
+			continue
+		}
+		pipe.HIncrBy(ctx, todayKey, sid, -decay)
+		hasWork = true
+	}
+	if !hasWork {
+		return nil
+	}
+	pipe.Expire(ctx, todayKey, ExpireTime)
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		return errorx.Errorf("cache: decay failed: %w", err)
+	}
+	return nil
+}
+
+// calcVariation 变化量 = ceil(score * rate)
+func calcVariation(score int64, rate float64) int64 {
+	if score <= 0 || rate <= 0 {
+		return 0
+	}
+	decay := int64(math.Ceil(float64(score) * rate))
+
+	return min(decay, score)
+}
+
+// BoostScores 为指定学生提升综合活跃度的20%
+func (c *RedisCounterCache) BoostScores(ctx context.Context, studentIds []string) error {
+	if len(studentIds) == 0 {
+		return nil
+	}
+
+	// 批量去重
+	pipe := c.cmd.Pipeline()
+	cmds := make([]*redis.BoolCmd, len(studentIds))
+	for i, sid := range studentIds {
+		cmds[i] = pipe.SetNX(ctx, dedupKey(sid), "1", DedupTime)
+	}
+	if _, err := pipe.Exec(ctx); err != nil {
+		return errorx.Errorf("cache: boost dedup failed: %w", err)
+	}
+
+	var needBoost []string
+	for i, cmd := range cmds {
+		ok, _ := cmd.Result()
+		if ok {
+			needBoost = append(needBoost, studentIds[i])
+		}
+	}
+	if len(needBoost) == 0 {
+		return nil
+	}
+
+	// 读当前分数
+	scores, err := c.cmd.ZMScore(ctx, aggZSetKey(), needBoost...).Result()
+	if err != nil {
+		return errorx.Errorf("cache: boost zmscore failed: %w", err)
+	}
+
+	// 提升综合活跃度
+	now := time.Now()
+	todayKey := dailyHashKey(now)
+	pipe2 := c.cmd.Pipeline()
+	hasWork := false
+	for i, sid := range needBoost {
+		score := int64(0)
+		if i < len(scores) {
+			score = int64(scores[i])
+		}
+		//和降低的函数相反，分数越高提升的越少，分数越低提升的越多
+		rate := 0.3 - 0.25*(1-math.Exp(-float64(score)/20))
+		boost := calcVariation(score, rate)
+		if boost <= 0 {
+			continue
+		}
+		pipe2.HIncrBy(ctx, todayKey, sid, boost)
+		hasWork = true
+	}
+	if !hasWork {
+		return nil
+	}
+	pipe2.Expire(ctx, todayKey, ExpireTime)
+	_, err = pipe2.Exec(ctx)
+	if err != nil {
+		return errorx.Errorf("cache: boost write failed: %w", err)
+	}
+	return nil
+}
+
+// GetCounter 获取单个学生聚合活跃度
+func (c *RedisCounterCache) GetStudentCounter(ctx context.Context, studentId string) (int64, error) {
+	s, err := c.cmd.ZScore(ctx, aggZSetKey(), studentId).Result()
 	if err != nil {
 		if errorx.Is(err, redis.Nil) {
 			return 0, nil
 		}
-		return 0, errorx.Errorf("cache: get counter failed, studentId: %s, err: %w", StudentId, err)
+		return 0, errorx.Errorf("cache: zscore failed, studentId: %s, err: %w", studentId, err)
 	}
-	return val, nil
+	return int64(s), nil
 }
 
-func (cache *RedisCounterCache) SetCounterByStudentId(ctx context.Context, StudentId string, count int64) error {
-	err := cache.cmd.HSet(ctx, REDISKEY, StudentId, count).Err()
+// GetAllCounter 获取所有学生聚合活跃度
+func (c *RedisCounterCache) GetAllCounter(ctx context.Context) ([]*Counter, error) {
+	results, err := c.cmd.ZRangeWithScores(ctx, aggZSetKey(), 0, -1).Result()
 	if err != nil {
-		return errorx.Errorf("cache: set counter failed, studentId: %s, err: %w", StudentId, err)
+		return nil, errorx.Errorf("cache: zrange with scores failed: %w", err)
 	}
-	return nil
+	out := make([]*Counter, 0, len(results))
+	for _, z := range results {
+		out = append(out, &Counter{
+			StudentId: z.Member.(string),
+			Count:     int64(z.Score),
+		})
+	}
+	return out, nil
 }
 
-// 获取所有 Counter
-func (cache *RedisCounterCache) GetAllCounter(ctx context.Context) (Counters []*Counter, err error) {
-	var cursor uint64
-	var result []string
-	for {
-		result, cursor, err = cache.cmd.HScan(ctx, REDISKEY, cursor, "*", 500).Result()
-		if err != nil {
-			return nil, errorx.Errorf("cache: HGetAll keys failed: %w", err)
-		}
-
-		for i := 0; i < len(result); i += 2 {
-			id := result[i]
-			key := result[i+1]
-			cnt, err := strconv.ParseInt(key, 10, 64)
-			if err != nil {
-				return nil, errorx.Errorf("cache: get all parse failed, key: %s, err: %w", id, err)
-			}
-			Counters = append(Counters, &Counter{StudentId: id, Count: cnt})
-		}
-
-		if cursor == 0 {
-			break
-		}
-
-	}
-
-	return Counters, nil
-}
-
-// 删除所有计数为 0 的 Counter
-func (cache *RedisCounterCache) CleanZeroCounter(ctx context.Context) error {
-	var cursor uint64
-	var countPerScan int64 = 100
-	var result []string
-	var err error
-	var delFields []string
-	for {
-		result, cursor, err = cache.cmd.HScan(ctx, REDISKEY, cursor, "*", countPerScan).Result()
-		if err != nil {
-			return errorx.Errorf("cache: clean scan failed: %w", err)
-		}
-
-		for i := 0; i < len(result); i += 2 {
-			key := result[i]
-			val := result[i+1]
-			cnt, err := strconv.ParseInt(val, 10, 64)
-			if err != nil {
-				return errorx.Errorf("cache: get clean parse failed, key: %s, err: %w", key, err)
-			}
-			if cnt == 0 {
-				delFields = append(delFields, key)
-			}
-		}
-
-		if cursor == 0 {
-			break
-		}
-	}
-
-	if len(delFields) > 0 {
-		_, err := cache.cmd.HDel(ctx, REDISKEY, delFields...).Result()
-		if err != nil {
-			return errorx.Errorf("cache: del fields failed,err:%w", err)
-		}
-	}
-	return nil
-}
-
-// 批量设置多个 Counter
-func (cache *RedisCounterCache) SetCounters(ctx context.Context, Counters []*Counter) error {
-	pipe := cache.cmd.Pipeline()
-
-	for _, c := range Counters {
-		pipe.HSet(ctx, c.StudentId, REDISKEY, c.Count)
-	}
-
-	_, err := pipe.Exec(ctx)
+// GetCounterByRank 按排名区间取学生ID
+func (c *RedisCounterCache) GetCounterByRank(ctx context.Context, start, stop int64) ([]string, error) {
+	members, err := c.cmd.ZRange(ctx, aggZSetKey(), start, stop).Result()
 	if err != nil {
-		return errorx.Errorf("cache: pipeline set counters failed: %w", err)
+		return nil, errorx.Errorf("cache: zrange failed: %w", err)
 	}
-
-	return nil
+	return members, nil
 }
 
-// 批量获取多个 Counter
-func (cache *RedisCounterCache) GetCounters(ctx context.Context, StudentIds []string) (Counters []*Counter, err error) {
-	fields := make([]string, len(StudentIds))
-	for i, sid := range StudentIds {
-		fields[i] = sid
-	}
-
-	values, err := cache.cmd.HMGet(ctx, REDISKEY, fields...).Result()
+func (c *RedisCounterCache) GetCounterCount(ctx context.Context) (int64, error) {
+	count, err := c.cmd.ZCount(ctx, aggZSetKey(), "-inf", "+inf").Result()
 	if err != nil {
-		return nil, errorx.Errorf("cache: batch get counters failed: %w", err)
+		return 0, errorx.Errorf("cache: zcount failed: %w", err)
 	}
-
-	for i, value := range values {
-		if value != nil {
-			count, err := strconv.ParseInt(value.(string), 10, 64)
-			if err != nil {
-				return nil, errorx.Errorf("cache: parse batch count failed, studentId: %s, err: %w", StudentIds[i], err)
-			}
-
-			Counters = append(Counters, &Counter{
-				StudentId: StudentIds[i],
-				Count:     count,
-			})
-		}
-	}
-
-	return Counters, nil
+	return count, nil
 }
 
 type Counter struct {

@@ -22,7 +22,7 @@ func InitApp() *App {
 	counterCache := cache.NewRedisCounterCache(cmdable)
 	serverConf := conf.InitServerConf()
 	logger := ioc.InitLogger(serverConf)
-	counterService := service.NewCachedCounterService(counterCache, logger, serverConf)
+	counterService := service.NewCachedCounterService(counterCache, logger)
 	counterServiceServer := grpc.NewCounterServiceServer(counterService)
 	client := ioc.InitEtcdClient(infraConf)
 	server := ioc.InitGRPCxKratosServer(counterServiceServer, client, logger, infraConf)

@@ -90,10 +90,8 @@ func (p *TieredHandler) gradeRefresh(ctx context.Context, studentId string) erro
 		}
 
 		//把等级提到最高
-		_, err = p.counter.ChangeCounterLevels(ctx, &counterv1.ChangeCounterLevelsReq{
+		_, err = p.counter.BoostScores(ctx, &counterv1.BoostScoresReq{
 			StudentIds: res.StuId,
-			IsReduce:   false,
-			Step:       int64(counterv1.CounterLevel_LEVEL_THERE),
 		})
 		if err != nil {
 			p.l.Error("更改优先级发生错误", logger.Error(err))

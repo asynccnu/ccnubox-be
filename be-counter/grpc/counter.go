@@ -3,7 +3,6 @@ package grpc
 import (
 	"context"
 
-	"github.com/asynccnu/ccnubox-be/be-counter/domain"
 	"github.com/asynccnu/ccnubox-be/be-counter/service"
 	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
 	"google.golang.org/grpc"
@@ -18,43 +17,43 @@ func NewCounterServiceServer(svc service.CounterService) *CounterServiceServer {
 	return &CounterServiceServer{svc: svc}
 }
 
-func (d *CounterServiceServer) AddCounter(ctx context.Context, request *counterv1.AddCounterReq) (*counterv1.AddCounterResp, error) {
-	err := d.svc.AddCounter(ctx, request.GetStudentId())
+func (d *CounterServiceServer) AddCounter(ctx context.Context, req *counterv1.AddCounterReq) (*counterv1.AddCounterResp, error) {
+	err := d.svc.AddCounter(ctx, req.GetStudentId())
 	if err != nil {
 		return nil, err
 	}
 	return &counterv1.AddCounterResp{}, nil
 }
 
-func (d *CounterServiceServer) ChangeCounterLevels(ctx context.Context, request *counterv1.ChangeCounterLevelsReq) (*counterv1.ChangeCounterLevelsResp, error) {
-	err := d.svc.ChangeCounterLevels(ctx, domain.ChangeCounterLevels{
-		StudentIds: request.StudentIds,
-		IsReduce:   request.IsReduce,
-		Steps:      request.Step,
-	})
+func (d *CounterServiceServer) GetCounterLevels(ctx context.Context, req *counterv1.GetCounterLevelsReq) (*counterv1.GetCounterLevelsResp, error) {
+	ids, err := d.svc.GetCounterLevels(ctx, req.GetLabel())
 	if err != nil {
 		return nil, err
 	}
-	return &counterv1.ChangeCounterLevelsResp{}, nil
+	return &counterv1.GetCounterLevelsResp{StudentIds: ids}, nil
 }
 
-func (d *CounterServiceServer) GetCounterLevels(ctx context.Context, request *counterv1.GetCounterLevelsReq) (*counterv1.GetCounterLevelsResp, error) {
-	levels, err := d.svc.GetCounterLevels(ctx, request.GetLabel())
-	if err != nil {
+func (d *CounterServiceServer) RebuildCounter(ctx context.Context, req *counterv1.RebuildCounterReq) (*counterv1.RebuildCounterResp, error) {
+	if err := d.svc.RebuildCounter(ctx); err != nil {
 		return nil, err
 	}
-	return &counterv1.GetCounterLevelsResp{StudentIds: levels}, nil
+	return &counterv1.RebuildCounterResp{}, nil
 }
 
-func (d *CounterServiceServer) ClearCounterLevels(ctx context.Context, req *counterv1.ClearCounterLevelsReq) (*counterv1.ClearCounterLevelsResp, error) {
-	err := d.svc.ClearCounterLevels(ctx)
-	if err != nil {
+func (d *CounterServiceServer) DecayCounter(ctx context.Context, req *counterv1.DecayCounterReq) (*counterv1.DecayCounterResp, error) {
+	if err := d.svc.DecayCounter(ctx, req.GetStudentIds()); err != nil {
 		return nil, err
 	}
-	return &counterv1.ClearCounterLevelsResp{}, nil
+	return &counterv1.DecayCounterResp{}, nil
 }
 
-// 注册为grpc服务
+func (d *CounterServiceServer) BoostScores(ctx context.Context, req *counterv1.BoostScoresReq) (*counterv1.BoostScoresResp, error) {
+	if err := d.svc.BoostScores(ctx, req.GetStudentIds()); err != nil {
+		return nil, err
+	}
+	return &counterv1.BoostScoresResp{}, nil
+}
+
 func (d *CounterServiceServer) Register(server grpc.ServiceRegistrar) {
 	counterv1.RegisterCounterServiceServer(server, d)
 }

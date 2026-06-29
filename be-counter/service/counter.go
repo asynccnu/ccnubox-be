@@ -2,125 +2,97 @@ package service
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/asynccnu/ccnubox-be/be-counter/conf"
-	"github.com/asynccnu/ccnubox-be/be-counter/domain"
 	"github.com/asynccnu/ccnubox-be/be-counter/repository/cache"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
 type CounterService interface {
-	AddCounter(ctx context.Context, StudentId string) error
-	GetCounterLevels(ctx context.Context, label string) (StudentIds []string, err error)
-	ChangeCounterLevels(ctx context.Context, req domain.ChangeCounterLevels) error
-	ClearCounterLevels(ctx context.Context) error
+	AddCounter(ctx context.Context, studentId string) error
+	DecayCounter(ctx context.Context, studentIds []string) error
+	BoostScores(ctx context.Context, studentIds []string) error
+	RebuildCounter(ctx context.Context) error
+	GetCounterLevels(ctx context.Context, label string) ([]string, error)
 }
 
 type CachedCounterService struct {
-	cache  cache.CounterCache
-	l      logger.Logger
-	config *conf.CountLevelConfig
+	cache cache.CounterCache
+	l     logger.Logger
 }
 
-func NewCachedCounterService(cache cache.CounterCache, l logger.Logger, cfg *conf.ServerConf) CounterService {
-	return &CachedCounterService{
-		cache:  cache,
-		l:      l,
-		config: cfg.CountLevel,
-	}
+func NewCachedCounterService(cache cache.CounterCache, l logger.Logger) CounterService {
+	return &CachedCounterService{cache: cache, l: l}
 }
 
-func (s *CachedCounterService) AddCounter(ctx context.Context, StudentId string) error {
-	// 获取当前计数
-	count, err := s.cache.GetCounterByStudentId(ctx, StudentId)
+func (s *CachedCounterService) AddCounter(ctx context.Context, studentId string) error {
+	_, err := s.cache.AddCounter(ctx, studentId)
 	if err != nil {
-		// 注意：如果 cache 层处理了 redis.Nil 并返回 0, nil，则这里不会报错
-		// 如果 cache 层报错，说明是 Redis 连接等问题
-		return errorx.Errorf("service: failed to get current counter for student %s: %w", StudentId, err)
+		return errorx.Errorf("service: add counter failed: %w", err)
 	}
+	return nil
+}
 
-	// 增加计数
-	err = s.cache.SetCounterByStudentId(ctx, StudentId, count+1)
-	if err != nil {
-		return errorx.Errorf("service: failed to increment counter for student %s: %w", StudentId, err)
+func (s *CachedCounterService) RebuildCounter(ctx context.Context) error {
+	if err := s.cache.RebuildCounter(ctx); err != nil {
+		return errorx.Errorf("service: rebuild failed: %w", err)
 	}
-
 	return nil
 }
 
 func (s *CachedCounterService) GetCounterLevels(ctx context.Context, label string) ([]string, error) {
-	counts, err := s.cache.GetAllCounter(ctx)
+	total, err := s.cache.GetCounterCount(ctx)
 	if err != nil {
-		return nil, errorx.Errorf("service: failed to fetch all counters from cache: %w", err)
+		return nil, err
 	}
-
-	lowThreshold := s.config.Low
-	middleThreshold := s.config.Middle
-	highThreshold := s.config.High
-
-	StudentIds := make([]string, 0, len(counts))
-
+	//这两种情况会导致total为负，每个label都查询到所有学生
+	if total == 0 {
+		return []string{}, nil
+	}
+	if total < 3 {
+		switch label {
+		case "high":
+			return s.cache.GetCounterByRank(ctx, 0, total-1)
+		default:
+			return []string{}, nil
+		}
+	}
+	third := total / 3
 	switch label {
 	case "low":
-		for _, c := range counts {
-			if c.Count >= lowThreshold && c.Count < middleThreshold {
-				StudentIds = append(StudentIds, c.StudentId)
-			}
+		res, err := s.cache.GetCounterByRank(ctx, 0, third-1)
+		if err != nil {
+			return nil, errorx.Errorf("service: get counter low level failed: %w", err)
 		}
+		return res, nil
 	case "middle":
-		for _, c := range counts {
-			if c.Count >= middleThreshold && c.Count < highThreshold {
-				StudentIds = append(StudentIds, c.StudentId)
-			}
+		res, err := s.cache.GetCounterByRank(ctx, third, third*2-1)
+		if err != nil {
+			return nil, errorx.Errorf("service: get counter middle level failed: %w", err)
 		}
+		return res, nil
 	case "high":
-		for _, c := range counts {
-			if c.Count >= highThreshold {
-				StudentIds = append(StudentIds, c.StudentId)
-			}
+		res, err := s.cache.GetCounterByRank(ctx, third*2, total-1)
+		if err != nil {
+			return nil, errorx.Errorf("service: get counter high level failed: %w", err)
 		}
-	default:
-		// 参数校验错误，使用 errorx 封装
-		return nil, errorx.Errorf("service: invalid level label: %s", label)
+		return res, nil
 	}
 
-	return StudentIds, nil
+	return nil, fmt.Errorf("service: invalid label: %s", label)
 }
 
-func (s *CachedCounterService) ChangeCounterLevels(ctx context.Context, req domain.ChangeCounterLevels) error {
-	counts, err := s.cache.GetCounters(ctx, req.StudentIds)
-	if err != nil {
-		return errorx.Errorf("service: failed to get counters for batch update: %w", err)
-	}
-
-	step := s.config.Step * req.Steps
-
-	if req.IsReduce {
-		for i := range counts {
-			if counts[i].Count >= step {
-				counts[i].Count -= step
-			} else {
-				counts[i].Count = 0
-			}
-		}
-	} else {
-		for i := range counts {
-			counts[i].Count += step
-		}
-	}
-
-	err = s.cache.SetCounters(ctx, counts)
-	if err != nil {
-		return errorx.Errorf("service: failed to save updated counters: %w", err)
+func (s *CachedCounterService) DecayCounter(ctx context.Context, studentIds []string) error {
+	if err := s.cache.DecayCounter(ctx, studentIds); err != nil {
+		return errorx.Errorf("service: decay failed: %w", err)
 	}
 	return nil
 }
 
-func (s *CachedCounterService) ClearCounterLevels(ctx context.Context) error {
-	err := s.cache.CleanZeroCounter(ctx)
-	if err != nil {
-		return errorx.Errorf("service: failed to clear zero counters: %w", err)
+func (s *CachedCounterService) BoostScores(ctx context.Context, studentIds []string) error {
+	if err := s.cache.BoostScores(ctx, studentIds); err != nil {
+		return errorx.Errorf("service: boost failed: %w", err)
 	}
 	return nil
 }

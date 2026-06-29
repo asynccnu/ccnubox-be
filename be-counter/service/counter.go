@@ -46,22 +46,34 @@ func (s *CachedCounterService) GetCounterLevels(ctx context.Context, label strin
 	if err != nil {
 		return nil, err
 	}
+	//这两种情况会导致total为负，每个label都查询到所有学生
+	if total == 0 {
+		return []string{}, nil
+	}
+	if total < 3 {
+		switch label {
+		case "high":
+			return s.cache.GetCounterByRank(ctx, 0, total-1)
+		default:
+			return []string{}, nil
+		}
+	}
 	third := total / 3
 	switch label {
 	case "low":
-		res, err := s.cache.GetCounterByRank(ctx, 0, third)
+		res, err := s.cache.GetCounterByRank(ctx, 0, third-1)
 		if err != nil {
 			return nil, errorx.Errorf("service: get counter low level failed: %w", err)
 		}
 		return res, nil
 	case "middle":
-		res, err := s.cache.GetCounterByRank(ctx, third+1, third*2)
+		res, err := s.cache.GetCounterByRank(ctx, third, third*2-1)
 		if err != nil {
 			return nil, errorx.Errorf("service: get counter middle level failed: %w", err)
 		}
 		return res, nil
 	case "high":
-		res, err := s.cache.GetCounterByRank(ctx, third*2+1, third*3)
+		res, err := s.cache.GetCounterByRank(ctx, third*2, total-1)
 		if err != nil {
 			return nil, errorx.Errorf("service: get counter high level failed: %w", err)
 		}

@@ -18,6 +18,8 @@ const (
 	DedupTime  = 1 * time.Hour      // 1h去重窗口
 )
 
+const InitialBoost = 3
+
 // 每日hash存储当日活跃度完整数据
 func dailyHashKey(t time.Time) string {
 	return fmt.Sprintf("%s:%s", RedisPrefix, t.Format("2006-01-02"))
@@ -85,9 +87,6 @@ func (c *RedisCounterCache) RebuildCounter(ctx context.Context) error {
 			totals[sid] += v
 		}
 	}
-	if len(totals) == 0 {
-		return nil
-	}
 
 	pipe2 := c.cmd.TxPipeline()
 	pipe2.Del(ctx, aggZSetKey())
@@ -132,8 +131,8 @@ func (c *RedisCounterCache) DecayCounter(ctx context.Context, studentIds []strin
 		if score <= 0 {
 			continue
 		}
-		//拟合的一个活跃度衰减的指数函数，活跃度越高降低的幅度越大，衰减率控制在[5%,30%]
-		rate := 0.05 + 0.25*(1-math.Exp(-float64(score)/20))
+		//拟合的一个活跃度衰减的指数函数，活跃度越高降低的幅度越大，衰减率控制在[10%,60%]
+		rate := 0.1 + 0.5*(1-math.Exp(-float64(score)/20))
 		decay := calcVariation(score, rate)
 		if decay <= 0 {
 			continue
@@ -157,12 +156,10 @@ func calcVariation(score int64, rate float64) int64 {
 	if score <= 0 || rate <= 0 {
 		return 0
 	}
-	decay := int64(math.Ceil(float64(score) * rate))
-
-	return min(decay, score)
+	return int64(math.Ceil(float64(score) * rate))
 }
 
-// BoostScores 为指定学生提升综合活跃度的20%
+// BoostScores 为指定学生提升综合活跃度
 func (c *RedisCounterCache) BoostScores(ctx context.Context, studentIds []string) error {
 	if len(studentIds) == 0 {
 		return nil
@@ -205,8 +202,14 @@ func (c *RedisCounterCache) BoostScores(ctx context.Context, studentIds []string
 		if i < len(scores) {
 			score = int64(scores[i])
 		}
+		//给分数为0的学生固定的分数提升（否则按照函数永远为0）
+		if score <= 0 {
+			pipe2.HIncrBy(ctx, todayKey, sid, InitialBoost)
+			hasWork = true
+			continue
+		}
 		//和降低的函数相反，分数越高提升的越少，分数越低提升的越多
-		rate := 0.3 - 0.25*(1-math.Exp(-float64(score)/20))
+		rate := 0.6 - 0.5*(1-math.Exp(-float64(score)/20))
 		boost := calcVariation(score, rate)
 		if boost <= 0 {
 			continue

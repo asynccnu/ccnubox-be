@@ -9,7 +9,7 @@ service CounterService {
   rpc GetCounterLevels(GetCounterLevelsReq) returns (GetCounterLevelsResp);
   rpc RebuildCounter(RebuildCounterReq) returns (RebuildCounterResp);
   rpc DecayCounter(DecayCounterReq) returns (DecayCounterResp);
-  rpc BoostScores(BoostScoresReq) returns (BoostScoresResp); // 为指定学生提升20%综合活跃度
+  rpc BoostScores(BoostScoresReq) returns (BoostScoresResp);
 }
 
 message AddCounterReq {

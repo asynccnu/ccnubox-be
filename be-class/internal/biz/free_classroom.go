@@ -214,6 +214,12 @@ func (f *FreeClassroomBiz) SearchAvailableClassroom(ctx context.Context, year, s
 
 	// 先获取全部教室
 	classroomSet, err := f.getAllClassrooms(ctx, wherePrefix)
+	if err != nil {
+		return nil, err
+	}
+	if len(classroomSet) == 0 {
+		return []service.AvailableClassroomStat{}, nil
+	}
 
 	//爬取失败就使用本地数据
 	localFreeClassrooms, err := f.queryAvailableClassroomFromLocal(ctx, year, semester, week, day, sections, wherePrefix, classroomSet)
@@ -293,10 +299,6 @@ func (f *FreeClassroomBiz) getAllClassrooms(ctx context.Context, wherePrefix str
 	rooms, err := f.freeClassRoomData.GetAllClassroom(ctx, wherePrefix)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(rooms) == 0 {
-		return []string{}, fmt.Errorf("no classrooms found with prefix %s", wherePrefix)
 	}
 
 	_ = f.cache.SAdd(ctx, key, rooms)

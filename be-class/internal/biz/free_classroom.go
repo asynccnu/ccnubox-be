@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-class/internal/lock"
@@ -21,6 +20,9 @@ import (
 const (
 	FreeClassRoomCacheKeyPrefix = "ccnubox_freeclassroom"
 	TimeForCache                = 5 * time.Second //缓存的超时时间
+	TimeForCacheRead            = 800 * time.Millisecond
+	TimeForLocalQuery           = 2 * time.Second
+	TimeForCrawlFallback        = 6 * time.Second
 	TimeForNext                 = 5 * time.Second
 	TimeForWaitForCookie        = 5 * time.Minute
 	Expire                      = 7 * 24 * time.Hour //缓存数据的时长
@@ -221,77 +223,75 @@ func (f *FreeClassroomBiz) SearchAvailableClassroom(ctx context.Context, year, s
 		return []service.AvailableClassroomStat{}, nil
 	}
 
-	//爬取失败就使用本地数据
-	localFreeClassrooms, err := f.queryAvailableClassroomFromLocal(ctx, year, semester, week, day, sections, wherePrefix, classroomSet)
-	if err != nil {
-		return nil, err
+	type crawlResult struct {
+		stats map[string][]bool
+		err   error
 	}
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	var mu sync.RWMutex
-
-	var crawClassroomStats = make(map[string][]bool)
-
-	var crawOk = false
+	crawlResultCh := make(chan crawlResult, 1)
 
 	go func() {
-		var once sync.Once
-		done := func() {
-			once.Do(func() {
-				wg.Done()
-			})
-		}
-
-		// 保证在主协程最多等待1.5秒
-		time.AfterFunc(1500*time.Millisecond, done)
-
-		defer done()
-
-		//从教务系统中爬取
 		freeClassroomMp, err := f.getFreeClassrooms(ctx, year, semester, stuID, week, day, sections, wherePrefix)
 		if err != nil {
+			crawlResultCh <- crawlResult{err: err}
 			return
 		}
-		mu.Lock()
-		defer func() {
-			crawOk = true
-			mu.Unlock()
-		}()
-		//如果爬取成功，则使用爬取的数据
+
+		crawClassroomStats := make(map[string][]bool, len(classroomSet))
 		for _, classroom := range classroomSet {
 			crawClassroomStats[classroom] = make([]bool, len(sections))
 		}
-		var secIdx = make(map[int]int)
+		secIdx := make(map[int]int, len(sections))
 		for k, v := range sections {
 			secIdx[v] = k
 		}
 		for sec, freeClassrooms := range freeClassroomMp {
+			idx, ok := secIdx[sec]
+			if !ok {
+				continue
+			}
 			for _, freeClassroom := range freeClassrooms {
 				if stats, ok := crawClassroomStats[freeClassroom]; ok {
-					stats[secIdx[sec]] = true
+					stats[idx] = true
 				}
 			}
 		}
+		crawlResultCh <- crawlResult{stats: crawClassroomStats}
 	}()
 
-	wg.Wait()
+	localQueryCtx, cancel := context.WithTimeout(ctx, TimeForLocalQuery)
+	localFreeClassrooms, localErr := f.queryAvailableClassroomFromLocal(localQueryCtx, year, semester, week, day, sections, wherePrefix, classroomSet)
+	cancel()
 
-	mu.RLock()
-	defer mu.RUnlock()
-
-	if crawOk {
-		return toSerializableClassroomStats(crawClassroomStats), nil
+	if localErr == nil {
+		select {
+		case crawResult := <-crawlResultCh:
+			if crawResult.err == nil {
+				return toSerializableClassroomStats(crawResult.stats), nil
+			}
+		case <-time.After(1500 * time.Millisecond):
+		case <-ctx.Done():
+		}
+		return toSerializableClassroomStats(localFreeClassrooms), nil
 	}
 
-	return toSerializableClassroomStats(localFreeClassrooms), nil
+	select {
+	case crawResult := <-crawlResultCh:
+		if crawResult.err == nil {
+			return toSerializableClassroomStats(crawResult.stats), nil
+		}
+	case <-time.After(TimeForCrawlFallback):
+	case <-ctx.Done():
+	}
+
+	return nil, localErr
 }
 
 func (f *FreeClassroomBiz) getAllClassrooms(ctx context.Context, wherePrefix string) ([]string, error) {
 	key := fmt.Sprintf("all_classrooms:%s", wherePrefix)
 
-	res, err := f.cache.SMembers(ctx, key)
+	cacheCtx, cacheCancel := context.WithTimeout(ctx, TimeForCacheRead)
+	res, err := f.cache.SMembers(cacheCtx, key)
+	cacheCancel()
 	if err == nil && len(res) > 0 {
 		return res, nil
 	}
@@ -461,7 +461,9 @@ func (f *FreeClassroomBiz) GetFreeClassRoomFromCache(ctx context.Context, year, 
 
 	for _, sec := range section {
 		key := fmt.Sprintf("%s:%s:%s:%d:%d:%d:%d", FreeClassRoomCacheKeyPrefix, year, semester, week, campus, day, sec)
-		strData, err := f.cache.Get(ctx, key)
+		cacheCtx, cacheCancel := context.WithTimeout(ctx, TimeForCacheRead)
+		strData, err := f.cache.Get(cacheCtx, key)
+		cacheCancel()
 		if err != nil {
 			// 缓存未命中
 			cacheMissCnt++

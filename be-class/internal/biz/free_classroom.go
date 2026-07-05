@@ -7,6 +7,8 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"io"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -263,12 +265,16 @@ func (f *FreeClassroomBiz) SearchAvailableClassroom(ctx context.Context, year, s
 	cancel()
 
 	if localErr == nil {
+		waitForCrawl := 1500 * time.Millisecond
+		if hasUniformAvailability(localFreeClassrooms) {
+			waitForCrawl = TimeForCrawlFallback
+		}
 		select {
 		case crawResult := <-crawlResultCh:
 			if crawResult.err == nil {
 				return toSerializableClassroomStats(crawResult.stats), nil
 			}
-		case <-time.After(1500 * time.Millisecond):
+		case <-time.After(waitForCrawl):
 		case <-ctx.Done():
 		}
 		return toSerializableClassroomStats(localFreeClassrooms), nil
@@ -314,7 +320,85 @@ func toSerializableClassroomStats(classroomStats map[string][]bool) []service.Av
 			AvailableStat: stats,
 		})
 	}
+	sort.Slice(res, func(i, j int) bool {
+		return naturalLess(res[i].Classroom, res[j].Classroom)
+	})
 	return res
+}
+
+func hasUniformAvailability(classroomStats map[string][]bool) bool {
+	if len(classroomStats) == 0 {
+		return false
+	}
+
+	var (
+		base bool
+		seen bool
+	)
+	for _, stats := range classroomStats {
+		for _, stat := range stats {
+			if !seen {
+				base = stat
+				seen = true
+				continue
+			}
+			if stat != base {
+				return false
+			}
+		}
+	}
+	return seen
+}
+
+func naturalLess(a, b string) bool {
+	ai, bi := 0, 0
+	for ai < len(a) && bi < len(b) {
+		ar, br := a[ai], b[bi]
+		if isDigit(ar) && isDigit(br) {
+			an, nextA := readNumber(a, ai)
+			bn, nextB := readNumber(b, bi)
+			if an != bn {
+				return an < bn
+			}
+			if nextA-ai != nextB-bi {
+				return nextA-ai < nextB-bi
+			}
+			ai, bi = nextA, nextB
+			continue
+		}
+
+		ar = toLowerASCII(ar)
+		br = toLowerASCII(br)
+		if ar != br {
+			return ar < br
+		}
+		ai++
+		bi++
+	}
+	return len(a) < len(b)
+}
+
+func readNumber(s string, start int) (int64, int) {
+	end := start
+	for end < len(s) && isDigit(s[end]) {
+		end++
+	}
+	n, err := strconv.ParseInt(s[start:end], 10, 64)
+	if err != nil {
+		return 0, end
+	}
+	return n, end
+}
+
+func isDigit(ch byte) bool {
+	return ch >= '0' && ch <= '9'
+}
+
+func toLowerASCII(ch byte) byte {
+	if ch >= 'A' && ch <= 'Z' {
+		return ch + 'a' - 'A'
+	}
+	return ch
 }
 
 func (f *FreeClassroomBiz) queryAvailableClassroomFromLocal(ctx context.Context, year, semester string, week, day int, sections []int, wherePrefix string, allWheres []string) (map[string][]bool, error) {
@@ -349,7 +433,7 @@ func (f *FreeClassroomBiz) getFreeClassrooms(ctx context.Context, year, semester
 	var freeClassroomMp = make(map[int][]string, len(sections))
 
 	var campus = 1
-	if wherePrefix[0] == 'n' {
+	if strings.HasPrefix(wherePrefix, "n") {
 		campus = 2
 	}
 
@@ -495,9 +579,9 @@ func (f *FreeClassroomBiz) GetFreeClassRoomFromCache(ctx context.Context, year, 
 	clog.LogPrinter.Infof("free classroom map(year=%v,semester=%v,week=%v,campus=%v,day=%v,sections=%v,wherePrefix=%v): %v", year, semester, week,
 		campus, day, section, wherePrefix, freeClassroomMp)
 
-	// 全部未命中则返回错误
-	if len(section) > 0 && cacheMissCnt == len(section) {
-		return freeClassroomMp, fmt.Errorf("cache miss cnt is %d, all miss", cacheMissCnt)
+	// 任意节次未命中都返回错误，避免上层把缺失节次误判成全不空闲
+	if cacheMissCnt > 0 {
+		return freeClassroomMp, fmt.Errorf("cache miss cnt is %d,total is %d", cacheMissCnt, len(section))
 	}
 	return freeClassroomMp, nil
 }

@@ -12,7 +12,7 @@ import (
 )
 
 // NewHTTPServer 创建 HTTP 服务器
-func NewHTTPServer(c *conf.Server, svc *service.SelectionUploader, logger log.Logger) *http.Server {
+func NewHTTPServer(c *conf.Server, svc *service.SelectionUploader, classroomJSONSvc *service.ClassroomJSONSvc, logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
@@ -35,5 +35,6 @@ func NewHTTPServer(c *conf.Server, svc *service.SelectionUploader, logger log.Lo
 	//srv.Handle("/metrics", promhttp.Handler())
 
 	srv.HandleFunc("/class_selection/upload", svc.UploadSelection)
+	srv.HandleFunc("/classroom/list", classroomJSONSvc.GetClassrooms)
 	return srv
 }

@@ -21,6 +21,7 @@ func NewClassRoomHandler(ClassRoomClient cs.FreeClassroomSvcClient) *ClassRoomHa
 func (c *ClassRoomHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	sg := s.Group("/classroom")
 	sg.GET("/getFreeClassRoom", authMiddleware, ginx.WrapClaimsAndReq(c.GetFreeClassRoom))
+	sg.GET("/list", ginx.Wrap(c.GetClassrooms))
 }
 
 // GetFreeClassRoom 查询空闲教室
@@ -57,5 +58,25 @@ func (c *ClassRoomHandler) GetFreeClassRoom(ctx *gin.Context, req GetFreeClassRo
 		Code: 0,
 		Msg:  "查询成功",
 		Data: convertToGetFreeClassRoomResp(resp),
+	}, nil
+}
+
+// GetClassrooms returns the classroom list from be-class.
+// @Summary 获取教室列表
+// @Description 返回 be-class 中 classrooms.json 的教室列表
+// @Tags classroom
+// @Produce json
+// @Success 200 {object} web.Response{data=GetClassroomsResp} "查询成功"
+// @Router /classroom/list [get]
+func (c *ClassRoomHandler) GetClassrooms(ctx *gin.Context) (web.Response, error) {
+	resp, err := c.ClassRoomClient.GetClassrooms(ctx, &cs.GetClassroomsReq{})
+	if err != nil {
+		return web.Response{}, err
+	}
+
+	return web.Response{
+		Code: 0,
+		Msg:  "查询成功",
+		Data: convertToGetClassroomsResp(resp),
 	}, nil
 }

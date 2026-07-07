@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/asynccnu/ccnubox-be/be-class/internal/errcode"
 	pb "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classService/v1"
@@ -18,12 +19,14 @@ type AvailableClassroomStat struct {
 
 type FreeClassroomSvc struct {
 	pb.UnimplementedFreeClassroomSvcServer
-	searcher FreeClassroomSearcher
+	searcher          FreeClassroomSearcher
+	classroomProvider ClassroomJSONProvider
 }
 
-func NewFreeClassroomSvc(searcher FreeClassroomSearcher) *FreeClassroomSvc {
+func NewFreeClassroomSvc(searcher FreeClassroomSearcher, classroomProvider ClassroomJSONProvider) *FreeClassroomSvc {
 	return &FreeClassroomSvc{
-		searcher: searcher,
+		searcher:          searcher,
+		classroomProvider: classroomProvider,
 	}
 }
 
@@ -46,5 +49,18 @@ func (s *FreeClassroomSvc) QueryFreeClassroom(ctx context.Context, req *pb.Query
 	}
 	return &pb.QueryFreeClassroomResp{
 		Stat: res,
+	}, nil
+}
+
+func (s *FreeClassroomSvc) GetClassrooms(ctx context.Context, req *pb.GetClassroomsReq) (*pb.GetClassroomsResp, error) {
+	var data struct {
+		ClassRooms []string `json:"class_rooms"`
+	}
+	if err := json.Unmarshal(s.classroomProvider.ClassroomJSON(), &data); err != nil {
+		return &pb.GetClassroomsResp{}, errcode.Err_FreeClassroomSearch
+	}
+
+	return &pb.GetClassroomsResp{
+		ClassRooms: data.ClassRooms,
 	}, nil
 }

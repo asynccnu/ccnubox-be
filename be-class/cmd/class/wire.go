@@ -40,6 +40,7 @@ func wireApp(string, *conf.Server, *conf.Data, *conf.Registry, log.Logger, io.Wr
 		wire.Bind(new(service.ClassInfoProxy), new(*biz.ClassServiceUserCase)),
 		wire.Bind(new(service.FreeClassRoomSaver), new(*biz.FreeClassroomBiz)),
 		wire.Bind(new(service.FreeClassroomSearcher), new(*biz.FreeClassroomBiz)),
+		wire.Bind(new(service.ClassroomJSONProvider), new(*data.ClassroomJSONData)),
 		NewApp,
 		newApp))
 }

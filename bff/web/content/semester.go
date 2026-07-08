@@ -12,10 +12,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *ContentHandler) RegisterSemesterRoute(group *gin.RouterGroup) {
+func (h *ContentHandler) RegisterSemesterRoute(group *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	sg := group.Group("/semester")
 	sg.GET("/getSemester", ginx.Wrap(h.GetSemester))
-	sg.POST("/saveSemester", ginx.WrapClaimsAndReq(h.SaveSemester))
+	sg.POST("/saveSemester", authMiddleware, ginx.WrapClaimsAndReq(h.SaveSemester))
 	sg.GET("/getSemesterList", ginx.Wrap(h.GetSemesterList))
 }
 

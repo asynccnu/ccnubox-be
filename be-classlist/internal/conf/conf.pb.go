@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	// Verify that this generated code is sufficiently up-to-date.
+	// Verify that this generated code is sufficiently up-to-estimation.
 	_ = protoimpl.EnforceVersion(20 - protoimpl.MinVersion)
-	// Verify that runtime/protoimpl is sufficiently up-to-date.
+	// Verify that runtime/protoimpl is sufficiently up-to-estimation.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 

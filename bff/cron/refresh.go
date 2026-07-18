@@ -129,7 +129,7 @@ func (p *TieredHandler) classListRefresh(ctx context.Context, studentId string) 
 		return err
 	}
 	//把学期字符串解析成year和semester
-	strs := strings.Split(res.Semester, "-")
+	strs := strings.Split(res.Semester.Semester, "-")
 	if len(strs) < 2 {
 		p.l.Errorf("semester string is not valid")
 		return errorx.Errorf("semester string is not valid")

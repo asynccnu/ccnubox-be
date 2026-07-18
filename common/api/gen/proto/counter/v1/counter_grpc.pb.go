@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v4.25.3
-// source: proto/counter/v1/counter.proto
+// source: counter/v1/counter.proto
 
 package counterv1
 
@@ -269,5 +269,5 @@ var CounterService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/counter/v1/counter.proto",
+	Metadata: "counter/v1/counter.proto",
 }

@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-content/domain"
@@ -78,46 +76,14 @@ func (se *semesterService) Get(ctx context.Context, date string) (*domain.Semest
 		return nil, GET_SEMESTER_ERROR(err)
 	}
 
-	if len(dbSemesters) == 0 {
-		return calcFallbackSemester(t), nil
-	}
-
-	dbMap := make(map[string]model.Semester, len(dbSemesters))
+	//先在DB中精准命中学期，未命中的就估算
 	for _, s := range dbSemesters {
-		dbMap[s.Semester] = s
-	}
-
-	// 找出 DB 中最小的学年，计算补充最小学年和当前学年中缺失的数据再匹配
-	startYear := math.MaxInt
-	for _, s := range dbSemesters {
-		parts := strings.SplitN(s.Semester, "-", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		if y, err := strconv.Atoi(parts[0]); err == nil && y < startYear {
-			startYear = y
-		}
-	}
-	if startYear == math.MaxInt {
-		return calcFallbackSemester(t), nil
-	}
-
-	now := time.Now()
-	academicYear, currentSemester := estimation.GetAcademicInfo(now)
-
-	semesters := buildSemesterList(dbMap, startYear, academicYear, currentSemester)
-
-	for _, s := range semesters {
-		sd, err1 := time.Parse("2006-01-02", s.StartDate)
-		ed, err2 := time.Parse("2006-01-02", s.EndDate)
-		if err1 != nil || err2 != nil {
-			continue
-		}
-		if !t.Before(sd) && !t.After(ed) {
-			return s, nil
-		}
-		if t.Before(sd) {
-			return s, nil
+		if !t.Before(s.StartDate) && !t.After(s.EndDate) {
+			return &domain.Semester{
+				Semester:  s.Semester,
+				StartDate: s.StartDate.Format("2006-01-02"),
+				EndDate:   s.EndDate.Format("2006-01-02"),
+			}, nil
 		}
 	}
 	return calcFallbackSemester(t), nil

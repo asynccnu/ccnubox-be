@@ -15,9 +15,9 @@ import (
 
 func (h *ContentHandler) RegisterSemesterRoute(group *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	sg := group.Group("/semester")
-	sg.GET("/getSemester", ginx.Wrap(h.GetSemester))
-	sg.POST("/saveSemester", ginx.WrapClaimsAndReq(h.SaveSemester))
-	sg.GET("/getSemesterList", ginx.WrapClaims(h.GetSemesterList))
+	sg.GET("/getSemester", authMiddleware, ginx.Wrap(h.GetSemester))
+	sg.POST("/saveSemester", authMiddleware, ginx.WrapClaimsAndReq(h.SaveSemester))
+	sg.GET("/getSemesterList", authMiddleware, ginx.WrapClaims(h.GetSemesterList))
 }
 
 // GetSemester 获取当前所属学期

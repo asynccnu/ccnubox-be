@@ -1,6 +1,7 @@
 package content
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
@@ -14,15 +15,14 @@ import (
 
 func (h *ContentHandler) RegisterSemesterRoute(group *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	sg := group.Group("/semester")
-	sg.GET("/getSemester", authMiddleware, ginx.Wrap(h.GetSemester))
-	sg.POST("/saveSemester", authMiddleware, ginx.WrapReq(h.SaveSemester))
-	sg.GET("/getSemesterList", authMiddleware, ginx.WrapClaims(h.GetSemesterList))
+	sg.GET("/getSemester", ginx.Wrap(h.GetSemester))
+	sg.POST("/saveSemester", ginx.WrapClaimsAndReq(h.SaveSemester))
+	sg.GET("/getSemesterList", ginx.WrapClaims(h.GetSemesterList))
 }
 
 // GetSemester 获取当前所属学期
 // @Summary 获取当前所属学期
 // @Description 获取当前所属学期
-// @Param Authorization header string true "Bearer Token"
 // @Tags semester
 // @Success 200 {object} web.Response{data=GetSemesterResponse} "成功"
 // @Router /semester/getSemester [get]
@@ -48,12 +48,15 @@ func (h *ContentHandler) GetSemester(ctx *gin.Context) (web.Response, error) {
 // SaveSemester 保存学期信息
 // @Summary 保存学期信息
 // @Description 保存学期信息
-// @Param Authorization header string true "Bearer Token"
 // @Param request body SaveSemesterRequest true "保存学期信息请求参数"
 // @Tags semester
 // @Success 200 {object} web.Response{} "成功"
 // @Router /semester/saveSemester [post]
-func (h *ContentHandler) SaveSemester(ctx *gin.Context, req SaveSemesterRequest) (web.Response, error) {
+func (h *ContentHandler) SaveSemester(ctx *gin.Context, req SaveSemesterRequest, uc ijwt.UserClaims) (web.Response, error) {
+	if !h.isAdmin(uc.StudentId) {
+		return web.Response{}, errs.ROLE_ERROR(fmt.Errorf("没有访问权限: %s", uc.StudentId))
+	}
+
 	r := &contentv1.SaveSemesterRequest{
 		Semester: &contentv1.Semester{Semester: req.Semester, StartDate: req.StartDate, EndDate: req.EndDate},
 	}
@@ -70,7 +73,6 @@ func (h *ContentHandler) SaveSemester(ctx *gin.Context, req SaveSemesterRequest)
 // GetSemesterList 获取所有学期信息
 // @Summary 获取所有学期信息
 // @Description 获取所有学期信息
-// @Param Authorization header string true "Bearer Token"
 // @Tags semester
 // @Success 200 {object} web.Response{data=GetSemesterListResponse} "成功"
 // @Router /semester/getSemesterList [get]

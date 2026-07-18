@@ -38,3 +38,17 @@ func convertToGetFreeClassRoomResp(protoResp *cs.QueryFreeClassroomResp) *GetFre
 	}
 	return &result
 }
+
+type GetClassroomsResp struct {
+	ClassRooms []string `json:"class_rooms"`
+}
+
+func convertToGetClassroomsResp(protoResp *cs.GetClassroomsResp) *GetClassroomsResp {
+	if protoResp == nil {
+		return &GetClassroomsResp{}
+	}
+
+	return &GetClassroomsResp{
+		ClassRooms: protoResp.ClassRooms,
+	}
+}

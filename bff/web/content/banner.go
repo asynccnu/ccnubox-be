@@ -1,7 +1,9 @@
 package content
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
@@ -29,7 +31,9 @@ func (h *ContentHandler) RegisterBannerRoute(group *gin.RouterGroup, authMiddlew
 // @Router /banner/getBanners [get]
 func (h *ContentHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 	go func() {
-		reqCtx := ctx.Request.Context()
+		//这里ctx不能使用ctx.Request.Context(),这个ctx会在http请求结束时直接取消，导致协程中的这两步并没有生效
+		reqCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 		// 此处做一个cookie预热和一个成绩预加载
 		// 为什么在这里做呢? 好问题
 		// 因为用户打开匣子必然会发送这个请求,如果短时间(5分钟)内要获取课表或者是成绩会体验感好很多

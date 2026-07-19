@@ -3,10 +3,13 @@ package service
 import (
 	"context"
 	"errors"
-	"math"
+	"fmt"
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-content/domain"
+	"github.com/asynccnu/ccnubox-be/be-content/pkg/estimation"
 	"github.com/asynccnu/ccnubox-be/be-content/repository"
 	"github.com/asynccnu/ccnubox-be/be-content/repository/model"
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
@@ -21,8 +24,8 @@ var (
 )
 
 type SemesterService interface {
-	Get(ctx context.Context, t string) (string, error)
-	GetAll(ctx context.Context) ([]*domain.Semester, error)
+	Get(ctx context.Context, t string) (*domain.Semester, error)
+	GetAll(ctx context.Context, studentId string) ([]*domain.Semester, error)
 	Save(ctx context.Context, s *domain.Semester) error
 }
 
@@ -31,69 +34,62 @@ type semesterService struct {
 	l    logger.Logger
 }
 
-func (se *semesterService) GetAll(ctx context.Context) ([]*domain.Semester, error) {
-	list, err := se.repo.GetList(ctx)
-	if err != nil {
-		return nil, GET_SEMESTER_LIST_ERROR(err)
-	}
-
-	res := make([]*domain.Semester, 0, len(list))
-	for _, s := range list {
-		res = append(res, &domain.Semester{
-			Semester:  s.Semester,
-			StartDate: s.StartDate.Format("2006-01-02"),
-			EndDate:   s.EndDate.Format("2006-01-02"),
-		})
-	}
-
-	return res, nil
-}
-
 func NewSemesterService(repo repository.ContentRepo[model.Semester], l logger.Logger) SemesterService {
 	return &semesterService{repo: repo, l: l}
 }
 
-func (se *semesterService) Get(ctx context.Context, date string) (string, error) {
+func (se *semesterService) GetAll(ctx context.Context, studentId string) ([]*domain.Semester, error) {
+	admissionYear, err := extractAdmissionYear(studentId)
+	if err != nil {
+		return nil, GET_SEMESTER_LIST_ERROR(err)
+	}
+
+	dbSemesters, err := se.repo.GetList(ctx)
+	if err != nil {
+		return nil, GET_SEMESTER_LIST_ERROR(err)
+	}
+	dbMap := make(map[string]model.Semester, len(dbSemesters))
+	for _, s := range dbSemesters {
+		dbMap[s.Semester] = s
+	}
+
+	now := time.Now()
+	academicYear, currentSemester := estimation.GetAcademicInfo(now)
+
+	semesters := buildSemesterList(dbMap, admissionYear, academicYear, currentSemester)
+
+	// 倒序（最新在前）
+	for i, j := 0, len(semesters)-1; i < j; i, j = i+1, j-1 {
+		semesters[i], semesters[j] = semesters[j], semesters[i]
+	}
+	return semesters, nil
+}
+
+func (se *semesterService) Get(ctx context.Context, date string) (*domain.Semester, error) {
 	t, err := time.Parse("2006-01-02", date)
 	if err != nil {
-		return "", GET_SEMESTER_ERROR(err)
+		return nil, GET_SEMESTER_ERROR(err)
 	}
-	//获取所有学期列表
-	semesters, err := se.repo.GetList(ctx)
+
+	dbSemesters, err := se.repo.GetList(ctx)
 	if err != nil {
-		return "", GET_SEMESTER_ERROR(err)
+		return nil, GET_SEMESTER_ERROR(err)
 	}
 
-	//命中学期的情况
-	for _, semester := range semesters {
-		if !t.Before(semester.StartDate) && !t.After(semester.EndDate) {
-			return semester.Semester, nil
+	//先在DB中精准命中学期，未命中的就估算
+	for _, s := range dbSemesters {
+		if !t.Before(s.StartDate) && !t.After(s.EndDate) {
+			return &domain.Semester{
+				Semester:  s.Semester,
+				StartDate: s.StartDate.Format("2006-01-02"),
+				EndDate:   s.EndDate.Format("2006-01-02"),
+			}, nil
 		}
 	}
-
-	//未命中某学期，取距离区间最近的学期
-	var closestSemester string
-	minDistance := time.Duration(math.MaxInt64)
-	var distance time.Duration
-	for _, semester := range semesters {
-		switch {
-		case t.Before(semester.StartDate):
-			distance = semester.StartDate.Sub(t)
-		case t.After(semester.EndDate):
-			distance = t.Sub(semester.EndDate)
-		default:
-			distance = 0
-		}
-		if distance < minDistance {
-			minDistance = distance
-			closestSemester = semester.Semester
-		}
-	}
-	return closestSemester, nil
+	return calcFallbackSemester(t), nil
 }
 
 func (se *semesterService) Save(ctx context.Context, s *domain.Semester) error {
-	//把日期字符串转换成时间类型
 	startDate, err := time.Parse("2006-01-02", s.StartDate)
 	if err != nil {
 		return SAVE_SEMESTER_ERROR(err)
@@ -101,6 +97,17 @@ func (se *semesterService) Save(ctx context.Context, s *domain.Semester) error {
 	endDate, err := time.Parse("2006-01-02", s.EndDate)
 	if err != nil {
 		return SAVE_SEMESTER_ERROR(err)
+	}
+
+	//学期格式校验: 必须是 "YYYY-S" 格式，前四位2000~2999，后一位1~3
+	matched, _ := regexp.MatchString(`^2\d{3}-[1-3]$`, s.Semester)
+	if !matched {
+		return SAVE_SEMESTER_ERROR(errorx.Errorf("invalid semester format: %s, must be like '2026-2', year 2000-2999, semester 1-3", s.Semester))
+	}
+
+	//添加时间合法性校验
+	if startDate.After(endDate) {
+		return SAVE_SEMESTER_ERROR(errorx.Errorf("save semester time invalid: start estimation:%s,end estimation:%s", s.StartDate, s.EndDate))
 	}
 
 	record, err := se.repo.Get(ctx, "semester", s.Semester)
@@ -132,4 +139,50 @@ func (se *semesterService) Save(ctx context.Context, s *domain.Semester) error {
 		return SAVE_SEMESTER_ERROR(err)
 	}
 	return nil
+}
+
+// calcFallbackSemester 根据日期推算所属学期
+func calcFallbackSemester(t time.Time) *domain.Semester {
+	academicYear, semester := estimation.GetAcademicInfo(t)
+	startDate, endDate := estimation.EstimateDateRange(academicYear, semester)
+	return &domain.Semester{
+		Semester:  fmt.Sprintf("%d-%d", academicYear, semester),
+		StartDate: startDate,
+		EndDate:   endDate,
+	}
+}
+
+// buildSemesterList 生成从 startYear 到 academicYear 的完整学期列表，
+// 优先使用 DB 数据填充日期，缺失的用 estimateDateRange 推算。
+func buildSemesterList(dbMap map[string]model.Semester, startYear, academicYear, currentSemester int) []*domain.Semester {
+	var semesters []*domain.Semester
+	for year := startYear; year <= academicYear; year++ {
+		for s := 1; s <= 3; s++ {
+			if year == academicYear && s > currentSemester {
+				break
+			}
+			key := fmt.Sprintf("%d-%d", year, s)
+			sem := &domain.Semester{Semester: key}
+			if dbS, ok := dbMap[key]; ok {
+				sem.StartDate = dbS.StartDate.Format("2006-01-02")
+				sem.EndDate = dbS.EndDate.Format("2006-01-02")
+			} else {
+				sem.StartDate, sem.EndDate = estimation.EstimateDateRange(year, s)
+			}
+			semesters = append(semesters, sem)
+		}
+	}
+	return semesters
+}
+
+// extractAdmissionYear 从学号中提取入学年份
+func extractAdmissionYear(studentId string) (int, error) {
+	if len(studentId) < 4 {
+		return 0, fmt.Errorf("invalid student ID: %s", studentId)
+	}
+	year, err := strconv.Atoi(studentId[:4])
+	if err != nil || year <= 0 {
+		return 0, fmt.Errorf("invalid student ID: %s", studentId)
+	}
+	return year, nil
 }

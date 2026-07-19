@@ -130,10 +130,6 @@ type Semester struct {
 	EndDate   string `json:"end_date"`
 }
 
-type GetSemesterResponse struct {
-	Semester string `json:"semester"`
-}
-
 type SaveSemesterRequest struct {
 	Semester  string `json:"semester" binding:"required"`
 	StartDate string `json:"start_date" binding:"required"`

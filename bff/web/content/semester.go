@@ -9,14 +9,15 @@ import (
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/gin-gonic/gin"
 )
 
 func (h *ContentHandler) RegisterSemesterRoute(group *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	sg := group.Group("/semester")
-	sg.GET("/getSemester", ginx.Wrap(h.GetSemester))
+	sg.GET("/getSemester", authMiddleware, ginx.Wrap(h.GetSemester))
 	sg.POST("/saveSemester", authMiddleware, ginx.WrapClaimsAndReq(h.SaveSemester))
-	sg.GET("/getSemesterList", ginx.Wrap(h.GetSemesterList))
+	sg.GET("/getSemesterList", authMiddleware, ginx.WrapClaims(h.GetSemesterList))
 }
 
 // GetSemester 获取当前所属学期
@@ -31,10 +32,16 @@ func (h *ContentHandler) GetSemester(ctx *gin.Context) (web.Response, error) {
 	if err != nil {
 		return web.Response{}, errs.GET_SEMESTER_ERROR(err)
 	}
-	data := GetSemesterResponse{Semester: resp.Semester}
+	if resp.Semester == nil {
+		return web.Response{}, errs.GET_SEMESTER_ERROR(errorx.Errorf("获取学期数据为空"))
+	}
 	return web.Response{
-		Msg:  "Success",
-		Data: data,
+		Msg: "Success",
+		Data: Semester{
+			Semester:  resp.Semester.Semester,
+			StartDate: resp.Semester.StartDate,
+			EndDate:   resp.Semester.EndDate,
+		},
 	}, nil
 }
 
@@ -69,8 +76,8 @@ func (h *ContentHandler) SaveSemester(ctx *gin.Context, req SaveSemesterRequest,
 // @Tags semester
 // @Success 200 {object} web.Response{data=GetSemesterListResponse} "成功"
 // @Router /semester/getSemesterList [get]
-func (h *ContentHandler) GetSemesterList(ctx *gin.Context) (web.Response, error) {
-	resp, err := h.contentClient.GetSemesterList(ctx, &contentv1.GetSemesterListRequest{})
+func (h *ContentHandler) GetSemesterList(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
+	resp, err := h.contentClient.GetSemesterList(ctx, &contentv1.GetSemesterListRequest{StudentId: uc.StudentId})
 	if err != nil {
 		return web.Response{}, err
 	}

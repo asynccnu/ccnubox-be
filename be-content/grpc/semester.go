@@ -19,7 +19,11 @@ func (c *ContentServiceServer) GetSemester(ctx context.Context, in *contentv1.Ge
 		return nil, err
 	}
 	return &contentv1.GetSemesterResponse{
-		Semester: semester,
+		Semester: &contentv1.Semester{
+			Semester:  semester.Semester,
+			StartDate: semester.StartDate,
+			EndDate:   semester.EndDate,
+		},
 	}, nil
 }
 
@@ -38,7 +42,7 @@ func (c *ContentServiceServer) SaveSemester(ctx context.Context, in *contentv1.S
 }
 
 func (c *ContentServiceServer) GetSemesterList(ctx context.Context, in *contentv1.GetSemesterListRequest) (*contentv1.GetSemesterListResponse, error) {
-	semesters, err := c.svcSemester.GetAll(ctx)
+	semesters, err := c.svcSemester.GetAll(ctx, in.GetStudentId())
 	if err != nil {
 		return nil, err
 	}

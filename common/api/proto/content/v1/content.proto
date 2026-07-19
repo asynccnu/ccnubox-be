@@ -200,7 +200,7 @@ message GetSemesterRequest{
 }
 
 message GetSemesterResponse{
-  string semester=1;
+  semester semester=1;
 }
 
 message SaveSemesterRequest{
@@ -209,7 +209,9 @@ message SaveSemesterRequest{
 
 message SaveSemesterResponse{}
 
-message GetSemesterListRequest{}
+message GetSemesterListRequest{
+  string student_id=1;
+}
 
 message GetSemesterListResponse{
   repeated semester semesters=1;

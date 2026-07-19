@@ -332,7 +332,7 @@ const docTemplate = `{
         },
         "/class/add": {
             "post": {
-                "description": "给当前登录学生添加一门自定义课程。weeks 必须是周次数组，例如 [1,2,3]；dur_class 是节次范围，例如 \"1-2\"。成功时 code=0；添加失败返回 code=50602。",
+                "description": "给当前登录学生添加一门自定义课程。weeks 必须是周次数组，例如 [1,2,3]；dur_class 是节次范围，例如 \"1-2\"。成功时 code=0；课程时间冲突返回 code=40601，课程已存在返回 code=40602，其他添加失败返回 code=50602。",
                 "consumes": [
                     "application/json"
                 ],
@@ -374,8 +374,20 @@ const docTemplate = `{
                             "$ref": "#/definitions/web.Response"
                         }
                     },
+                    "409": {
+                        "description": "课程时间冲突，code=40601；课程已存在，code=40602",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
                     "422": {
                         "description": "请求参数错误，code=40002",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "添加课程失败，code=50602",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -651,7 +663,7 @@ const docTemplate = `{
         },
         "/class/update": {
             "put": {
-                "description": "根据课程 ID 更新当前登录学生的自定义课程。可更新课程名称、节次、地点、教师、周次、星期几、学分；更新后课程 ID 可能改变。成功时 code=0；更新失败返回 code=50604。",
+                "description": "根据课程 ID 更新当前登录学生的自定义课程。可更新课程名称、节次、地点、教师、周次、星期几、学分；更新后课程 ID 可能改变。成功时 code=0；课程时间冲突返回 code=40601，其他更新失败返回 code=50604。",
                 "consumes": [
                     "application/json"
                 ],
@@ -693,8 +705,20 @@ const docTemplate = `{
                             "$ref": "#/definitions/web.Response"
                         }
                     },
+                    "409": {
+                        "description": "课程时间冲突，code=40601",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
                     "422": {
                         "description": "请求参数错误，code=40002",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "更新课程失败，code=50604",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }

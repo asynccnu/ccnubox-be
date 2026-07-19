@@ -1,9 +1,44 @@
 package class
 
 import (
+	"errors"
 	"reflect"
 	"testing"
+
+	"github.com/asynccnu/ccnubox-be/bff/errs"
+	b_errorx "github.com/asynccnu/ccnubox-be/bff/pkg/errorx"
+	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 )
+
+func TestWrapClassMutationError(t *testing.T) {
+	tests := []struct {
+		name       string
+		origin     error
+		wantCode   int
+		wantStatus int
+	}{
+		{name: "schedule conflict", origin: classlistv1.ErrorErrClassScheduleConflict("conflict"), wantCode: errs.CLASS_SCHEDULE_CONFLICT_ERROR_CODE, wantStatus: 409},
+		{name: "already exists", origin: classlistv1.ErrorClassisexist("exists"), wantCode: errs.CLASS_ALREADY_EXISTS_ERROR_CODE, wantStatus: 409},
+		{name: "invalid parameter", origin: classlistv1.ErrorParamErr("invalid"), wantCode: errs.BAD_ENTITY_ERROR_CODE, wantStatus: 422},
+		{name: "unexpected service error", origin: errors.New("database unavailable"), wantCode: errs.ADD_CLASS_ERROR_CODE, wantStatus: 500},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wrapped := wrapClassMutationError(tt.origin, errs.ADD_CLASS_ERROR)
+			var got *b_errorx.CustomError
+			if !errors.As(wrapped, &got) {
+				t.Fatal("wrapped error does not contain a CustomError")
+			}
+			if got.Code != tt.wantCode {
+				t.Errorf("code = %d, want %d", got.Code, tt.wantCode)
+			}
+			if got.HttpCode != tt.wantStatus {
+				t.Errorf("HTTP status = %d, want %d", got.HttpCode, tt.wantStatus)
+			}
+		})
+	}
+}
 
 func TestClassHandler_ConvertWeek(t *testing.T) {
 	type args struct {

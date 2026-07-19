@@ -11,6 +11,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-library/crawler"
 	"github.com/asynccnu/ccnubox-be/be-library/grpc"
 	"github.com/asynccnu/ccnubox-be/be-library/ioc"
+	"github.com/asynccnu/ccnubox-be/be-library/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-library/service"
 )
 
@@ -23,13 +24,16 @@ func InitApp() App {
 	proxyClient := ioc.InitProxyClient(client, infraConf)
 	serverConf := conf.InitServerConf()
 	logger := ioc.InitLogger(serverConf)
-	client2 := ioc.InitHttpProxyClient(proxyClient, logger)
+	client2 := ioc.InitHttpProxyClient(proxyClient, infraConf, logger)
 	httpClient := crawler.InitCrawlerHttpClient(client2)
 	string2 := ioc.InitSecret(serverConf)
 	crawlerCrawler := crawler.NewLibraryCrawlerMust(httpClient, logger, string2)
 	seatService := service.NewSeatService(userServiceClient, crawlerCrawler, logger)
 	discussionService := service.NewDiscussionService(userServiceClient, crawlerCrawler, logger)
-	libraryServiceServer := grpc.NewLibraryGrpcService(seatService, discussionService)
+	db := ioc.InitDB(infraConf)
+	commentDAO := dao.NewCommentDAO(db)
+	commentService := service.NewCommentService(commentDAO)
+	libraryServiceServer := grpc.NewLibraryGrpcService(seatService, discussionService, commentService)
 	server := ioc.InitGRPCxKratosServer(libraryServiceServer, client, logger, infraConf)
 	v := ioc.InitNoopShutdown()
 	app := NewApp(server, v)

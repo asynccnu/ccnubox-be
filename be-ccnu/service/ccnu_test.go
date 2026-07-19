@@ -2,50 +2,20 @@ package service
 
 import (
 	"context"
-	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"testing"
 
-	proxyv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/proxy/v1"
-	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
-	"google.golang.org/grpc"
+	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
+	"go.uber.org/zap"
 )
 
-type TestLogger struct {
-}
-
-func (t *TestLogger) Debug(msg string, args ...logger.Field) {
-
-}
-
-func (t *TestLogger) Info(msg string, args ...logger.Field) {
-
-}
-
-func (t *TestLogger) Warn(msg string, args ...logger.Field) {
-
-}
-
-func (t *TestLogger) Error(msg string, args ...logger.Field) {
-
-}
-
-func (t *TestLogger) WithContext(ctx context.Context) logger.Logger {
-	return &TestLogger{}
-}
-
-type MockProxy struct{}
-
-func (m *MockProxy) GetProxyAddr(ctx context.Context, in *proxyv1.GetProxyAddrRequest, opts ...grpc.CallOption) (*proxyv1.GetProxyAddrResponse, error) {
-	return nil, errorx.New("mock")
-}
-
 func Test_ccnuService_getGradCookie(t *testing.T) {
-	testLogger := new(TestLogger)
-	ccs := NewCCNUService(testLogger, &MockProxy{})
+	testLogger := zapx.NewZapLogger(zap.NewNop())
+	ccs := NewCCNUService(testLogger, proxy.NewDirectHttpProxy(nil), "test-secret")
 	stuId, password := "", ""
-	cookie, err := ccs.GetLibraryToken(context.Background(), stuId, password)
-	if err != nil {
-		t.Errorf("GetXKCookie err : %v", err)
+	_, err := ccs.GetLibraryToken(context.Background(), stuId, password, ccnuv1.LIBRARY_TYPE_LIBRARY_SEAT)
+	if err == nil {
+		t.Fatal("expected invalid student id error")
 	}
-	t.Log(cookie)
 }

@@ -1,9 +1,15 @@
 package crawler
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Response struct {
-	Message string `json:"message"`
+	Status  bool            `json:"status"`
+	Code    int             `json:"code"`
+	Message string          `json:"message"`
+	Data    json.RawMessage `json:"data"`
 }
 
 type Seat struct {

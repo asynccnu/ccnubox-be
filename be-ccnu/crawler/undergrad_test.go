@@ -2,7 +2,7 @@ package crawler
 
 import (
 	"context"
-	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -11,9 +11,10 @@ import (
 
 // 随便写的,比较随意
 func Test_GetCookie(t *testing.T) {
-	p := NewPassport(NewCrawlerClient(proxy.NewDirectHttpProxy(nil), 10 * time.Second))
+	studentID, password := integrationCredentials(t)
+	p := NewPassport(NewCrawlerClient(proxy.NewDirectHttpProxy(nil), 10*time.Second))
 	ctx := context.Background()
-	_, err := p.LoginPassport(ctx, "xxx", "xxx")
+	_, err := p.LoginPassport(ctx, studentID, password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,14 +28,16 @@ func Test_GetCookie(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("cookie:%s\n", cookie)
-	t.Log(cookie)
+	if cookie == "" {
+		t.Fatal("empty undergraduate system cookie")
+	}
 }
 
 func Test_GetLibraryCookie(t *testing.T) {
-	p := NewPassport(NewCrawlerClient(proxy.NewDirectHttpProxy(nil), 10 * time.Second))
+	studentID, password := integrationCredentials(t)
+	p := NewPassport(NewCrawlerClient(proxy.NewDirectHttpProxy(nil), 10*time.Second))
 	ctx := context.Background()
-	_, err := p.LoginPassport(ctx, "xxx", "xxx")
+	_, err := p.LoginPassport(ctx, studentID, password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,11 +52,25 @@ func Test_GetLibraryCookie(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(discussionToken)
+	if discussionToken == "" {
+		t.Fatal("empty discussion token")
+	}
 
 	valid, err := l.CheckLibraryDiscussionToken(ctx, discussionToken)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(valid)
+	if !valid {
+		t.Fatal("discussion token is invalid")
+	}
+}
+
+func integrationCredentials(t *testing.T) (string, string) {
+	t.Helper()
+	studentID := os.Getenv("CCNU_TEST_STUDENT_ID")
+	password := os.Getenv("CCNU_TEST_PASSWORD")
+	if studentID == "" || password == "" {
+		t.Skip("set CCNU_TEST_STUDENT_ID and CCNU_TEST_PASSWORD to run integration tests")
+	}
+	return studentID, password
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-library/crawler"
 	"github.com/asynccnu/ccnubox-be/be-library/grpc"
 	"github.com/asynccnu/ccnubox-be/be-library/ioc"
+	"github.com/asynccnu/ccnubox-be/be-library/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-library/service"
 	"github.com/google/wire"
 )
@@ -21,9 +22,12 @@ func InitApp() App {
 		grpc.NewLibraryGrpcService,
 		service.NewSeatService,
 		service.NewDiscussionService,
+		service.NewCommentService,
+		dao.NewCommentDAO,
 		crawler.NewLibraryCrawlerMust,
 		// 第三方
 		ioc.InitEtcdClient,
+		ioc.InitDB,
 		ioc.InitLogger,
 		ioc.InitGRPCxKratosServer,
 		ioc.InitUserClient,

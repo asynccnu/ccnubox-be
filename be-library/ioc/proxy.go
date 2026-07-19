@@ -11,9 +11,15 @@ import (
 )
 
 func InitProxyClient(etcdClient *etcdv3.Client, cfg *conf.InfraConf) proxyv1.ProxyClient {
+	if cfg.Proxy.IsDirect() {
+		return nil
+	}
 	return client.InitProxy(etcdClient, cfg.Grpc, cfg.Env)
 }
 
-func InitHttpProxyClient(proxyClient proxyv1.ProxyClient, l logger.Logger) proxy.Client {
+func InitHttpProxyClient(proxyClient proxyv1.ProxyClient, cfg *conf.InfraConf, l logger.Logger) proxy.Client {
+	if cfg.Proxy.IsDirect() {
+		return proxy.NewDirectHttpProxy(l)
+	}
 	return proxy.NewHttpProxy(proxyClient, l)
 }

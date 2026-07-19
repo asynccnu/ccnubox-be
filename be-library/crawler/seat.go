@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -44,23 +45,25 @@ var (
 
 // Crawler 主爬虫结构体
 type Crawler struct {
-	client *http.Client
-	l      logger.Logger
-	secret string
+	client  *http.Client
+	l       logger.Logger
+	secret  string
+	baseURL string
 }
 
 // NewLibraryCrawler 创建新的图书馆爬虫
 func NewLibraryCrawler(client *http.Client, l logger.Logger, secret string) (*Crawler, error) {
 	return &Crawler{
-		client: client,
-		l:      l,
-		secret: secret,
+		client:  client,
+		l:       l,
+		secret:  secret,
+		baseURL: BaseDomain,
 	}, nil
 }
 
 // buildURL 构建带参数的URL
-func buildURL(path string, params url.Values) (string, error) {
-	baseURL := BaseDomain + path
+func buildURL(baseURL, path string, params url.Values) (string, error) {
+	baseURL += path
 
 	// 创建URL对象
 	u, err := url.Parse(baseURL)
@@ -75,10 +78,14 @@ func buildURL(path string, params url.Values) (string, error) {
 }
 
 // doSeatRequestWithToken 通用HTTP请求函数
-func (c *Crawler) doSeatRequestWithToken(ctx context.Context, method, url, token string, body io.Reader) (*http.Response, error) {
+func (c *Crawler) doSeatRequestWithToken(ctx context.Context, method, url, token string, body []byte) (*http.Response, error) {
 	return tool.Retry(func() (*http.Response, error) {
-		id, sign, ts := crypto.BuildSignWithSecret("POST", c.secret)
-		req, err := http.NewRequestWithContext(ctx, method, url, body)
+		id, sign, ts := crypto.BuildSignWithSecret(method, c.secret)
+		var requestBody io.Reader
+		if body != nil {
+			requestBody = bytes.NewReader(body)
+		}
+		req, err := http.NewRequestWithContext(ctx, method, url, requestBody)
 		if err != nil {
 			return nil, errorx.Errorf("crawler: create library request failed, err: %w", err)
 		}
@@ -104,82 +111,121 @@ func (c *Crawler) doSeatRequestWithToken(ctx context.Context, method, url, token
 // GetSeatInfos 获取不定个给定的房间的座位信息
 func (c *Crawler) GetSeatInfos(ctx context.Context, token string, roomIDs []string) (map[string][]*Seat, error) {
 	var wg sync.WaitGroup
-	results := make(map[string][]*Seat)
-	mutex := &sync.Mutex{}
+	results := make(map[string][]*Seat, len(roomIDs))
+	var mutex sync.Mutex
+	var firstErr error
+	date, reqData := defaultSeatQuery(time.Now())
 
-	// 感觉写的有问题
 	for _, roomID := range roomIDs {
+		roomID := roomID
 		wg.Add(1)
 		go func() {
-			err := func(roomID string) error {
-				defer wg.Done()
-				seats, err := c.getSeatInfos(ctx, token, roomID)
-				if err != nil {
-					mutex.Lock()
-					results[roomID] = nil
-					mutex.Unlock()
-					c.l.Errorf("crawler: get seat infos failed, err: %w", err)
-					return ErrGetSeat(errorx.Errorf("crawler: get roomid:%s failed", roomID))
-				}
-				mutex.Lock()
-				results[roomID] = seats
-				mutex.Unlock()
-				return nil
-			}(roomID)
+			defer wg.Done()
+			seats, err := c.getSeatInfos(ctx, token, roomID, date, reqData)
+			mutex.Lock()
+			defer mutex.Unlock()
 			if err != nil {
-				mutex.Lock()
 				results[roomID] = nil
-				mutex.Unlock()
+				if firstErr == nil {
+					firstErr = errorx.Errorf("crawler: get room %s failed: %w", roomID, err)
+				}
+				return
 			}
+			results[roomID] = seats
 		}()
 	}
 
 	wg.Wait()
+	if firstErr != nil {
+		c.l.Errorf("crawler: get seat infos failed: %v", firstErr)
+		return nil, ErrGetSeat(firstErr)
+	}
 	return results, nil
 }
 
-// getSeatInfos 获取指定房间的座位信息
-func (c *Crawler) getSeatInfos(ctx context.Context, token string, roomid string) ([]*Seat, error) {
-	var date string
-	var reqData getSeatInfoReq
+func defaultSeatQuery(now time.Time) (string, getSeatInfoReq) {
 	loc, _ := tool.GetLocation()
-	//如果是22:00之后就只能查询第二天的座位信息(此时学校系统这一天的座位已经查不到了）
-	if time.Now().In(loc).Hour() >= 22 {
-		date = time.Now().In(loc).AddDate(0, 0, 1).Format("2006-01-02")
-		reqData = getSeatInfoReq{
+	now = now.In(loc)
+	if now.Hour() >= 22 {
+		return now.AddDate(0, 0, 1).Format("2006-01-02"), getSeatInfoReq{
 			BeginMinute: -1,
 			EndMinute:   0,
 			MinMinute:   0,
 		}
-	} else {
-		date = time.Now().In(loc).Format("2006-01-02")
-		beginMinute := tool.ParseTimeToMinute(time.Now().In(loc))
-		reqData = getSeatInfoReq{
-			BeginMinute: beginMinute,
-			EndMinute:   0,
-			MinMinute:   0,
+	}
+	return now.Format("2006-01-02"), getSeatInfoReq{
+		BeginMinute: tool.ParseTimeToMinute(now),
+		EndMinute:   0,
+		MinMinute:   0,
+	}
+}
+
+func parseMinute(value string) (int, error) {
+	if minute, err := strconv.Atoi(value); err == nil {
+		if minute < 0 || minute > 24*60 {
+			return 0, errorx.Errorf("minute out of range: %d", minute)
 		}
+		return minute, nil
+	}
+	parsed, err := time.Parse("15:04", value)
+	if err != nil {
+		return 0, errorx.Errorf("invalid time %q", value)
+	}
+	return parsed.Hour()*60 + parsed.Minute(), nil
+}
+
+func (c *Crawler) GetSeatInfosForPeriod(ctx context.Context, token string, roomIDs []string, start, end string) (map[string][]*Seat, error) {
+	beginMinute, err := parseMinute(start)
+	if err != nil {
+		return nil, err
+	}
+	endMinute, err := parseMinute(end)
+	if err != nil {
+		return nil, err
+	}
+	if endMinute <= beginMinute {
+		return nil, errorx.Errorf("end time must be after start time")
 	}
 
-	fullURL := fmt.Sprintf("%s/%s/%s", BaseDomain+DeviceAPIPath, roomid, date)
+	loc, _ := tool.GetLocation()
+	now := time.Now().In(loc)
+	date := now.Format("2006-01-02")
+	if now.Hour() >= 22 {
+		date = now.AddDate(0, 0, 1).Format("2006-01-02")
+	}
+	reqData := getSeatInfoReq{BeginMinute: beginMinute, EndMinute: endMinute, MinMinute: 0}
+	results := make(map[string][]*Seat, len(roomIDs))
+	for _, roomID := range roomIDs {
+		seats, err := c.getSeatInfos(ctx, token, roomID, date, reqData)
+		if err != nil {
+			return nil, errorx.Errorf("get room %s seats for period: %w", roomID, err)
+		}
+		results[roomID] = seats
+	}
+	return results, nil
+}
+
+// getSeatInfos 获取指定房间的座位信息
+func (c *Crawler) getSeatInfos(ctx context.Context, token, roomID, date string, reqData getSeatInfoReq) ([]*Seat, error) {
+
+	fullURL := fmt.Sprintf("%s/%s/%s", c.baseURL+DeviceAPIPath, roomID, date)
 
 	reqBytes, err := json.Marshal(reqData)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.doSeatRequestWithToken(ctx, "POST", fullURL, token, bytes.NewBuffer(reqBytes))
+	resp, err := c.doSeatRequestWithToken(ctx, http.MethodPost, fullURL, token, reqBytes)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readSuccessfulResponse(resp)
 	if err != nil {
 		return nil, err
 	}
 
-	// 用 gjson 解析
 	data := gjson.GetBytes(body, "data")
 	if !data.Exists() {
 		return nil, nil
@@ -205,18 +251,17 @@ func (c *Crawler) getSeatInfos(ctx context.Context, token string, roomid string)
 }
 
 func (c *Crawler) GetFreeList(ctx context.Context, token string, seatID string) ([]*FreeTime, error) {
-	loc, _ := tool.GetLocation()
-	date := time.Now().In(loc).Format("2006-01-02")
-	fullURL := fmt.Sprintf("https://kjyy.ccnu.edu.cn/jsq/static/frontApi/res/getTimeLine/%s/%s", seatID, date)
+	date, _ := defaultSeatQuery(time.Now())
+	fullURL := fmt.Sprintf("%s/jsq/static/frontApi/res/getTimeLine/%s/%s", c.baseURL, seatID, date)
 
-	resp, err := c.doSeatRequestWithToken(ctx, "POST", fullURL, token, nil)
+	resp, err := c.doSeatRequestWithToken(ctx, http.MethodPost, fullURL, token, nil)
 	if err != nil {
 		c.l.Errorf("crawler: get freeSeat infos failed, err: %w", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readSuccessfulResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -256,45 +301,43 @@ func (c *Crawler) GetFreeList(ctx context.Context, token string, seatID string) 
 func (c *Crawler) ReserveSeat(ctx context.Context, token string, devid, start, end string) (string, error) {
 	params := url.Values{}
 	params.Add("capToken", "capToken")
-	loc, _ := tool.GetLocation()
-	date := time.Now().In(loc).Format("2006-01-02")
+	date, _ := defaultSeatQuery(time.Now())
 	path := fmt.Sprintf("%s/%s/%s/%s/%s", ReserveAPIPath, devid, date, start, end)
-	fullURL, err := buildURL(path, params)
+	fullURL, err := buildURL(c.baseURL, path, params)
 	if err != nil {
 		return "", err
 	}
-	resp, err := c.doSeatRequestWithToken(ctx, "POST", fullURL, token, nil)
+	resp, err := c.doSeatRequestWithToken(ctx, http.MethodPost, fullURL, token, nil)
 	if err != nil {
 		c.l.Errorf("crawler: reserve seat failed, err: %w", err)
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readSuccessfulResponse(resp)
 	if err != nil {
 		return "", err
 	}
 
-	data := gjson.GetBytes(body, "data")
-	if !data.Exists() {
-		return "", nil
+	message := gjson.GetBytes(body, "message").String()
+	if dataMessage := gjson.GetBytes(body, "data.message").String(); dataMessage != "" {
+		message = dataMessage
 	}
-
-	return data.Get("message").String(), nil
+	return message, nil
 }
 
 // CancelReserve 取消预约
 func (c *Crawler) CancelReserve(ctx context.Context, token string, id string) (string, error) {
-	fullURL := fmt.Sprintf("%s/%s", BaseDomain+CancelAPIPath, id)
+	fullURL := fmt.Sprintf("%s/%s", c.baseURL+CancelAPIPath, id)
 
-	resp, err := c.doSeatRequestWithToken(ctx, "POST", fullURL, token, nil)
+	resp, err := c.doSeatRequestWithToken(ctx, http.MethodPost, fullURL, token, nil)
 	if err != nil {
 		c.l.Errorf("crawler: cancel reserve failed, err: %w", err)
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readSuccessfulResponse(resp)
 	if err != nil {
 		return "", err
 	}
@@ -308,7 +351,7 @@ func (c *Crawler) CancelReserve(ctx context.Context, token string, id string) (s
 
 // GetTodayRecord 获取今日预约记录
 func (c *Crawler) GetTodayRecord(ctx context.Context, token string) ([]*Record, error) {
-	fullURL := "https://kjyy.ccnu.edu.cn/jsq/static/frontApi/user/lastMake"
+	fullURL := c.baseURL + "/jsq/static/frontApi/user/lastMake"
 
 	records, err := c.getRecord(ctx, token, fullURL, TODAY_RECORD_TYPE)
 	if err != nil {
@@ -321,25 +364,46 @@ func (c *Crawler) GetTodayRecord(ctx context.Context, token string) ([]*Record, 
 
 // GetHistory 获取历史记录
 func (c *Crawler) GetHistory(ctx context.Context, token string) ([]*Record, error) {
-	loc, _ := tool.GetLocation()
-	today := time.Now().In(loc).Day()
-	fullURL := fmt.Sprintf("https://kjyy.ccnu.edu.cn/jsq/static/frontApi/user/history/%d/%d", 0, today)
-	records, err := c.getRecord(ctx, token, fullURL, HISTORY_RECORD_TYPE)
-	if err != nil {
-		c.l.Errorf("crawler: get history record failed, err: %w", err)
-		return nil, err
+	const pageSize = 50
+	var records []*Record
+	for page := 0; page < 100; page++ {
+		fullURL := fmt.Sprintf("%s/jsq/static/frontApi/user/history/%d/%d", c.baseURL, page, pageSize)
+		pageRecords, total, err := c.getHistoryPage(ctx, token, fullURL)
+		if err != nil {
+			c.l.Errorf("crawler: get history record page %d failed, err: %v", page, err)
+			return nil, err
+		}
+		records = append(records, pageRecords...)
+		if len(pageRecords) == 0 || (total > 0 && len(records) >= total) || (total == 0 && len(pageRecords) < pageSize) {
+			break
+		}
 	}
 	return records, nil
 }
 
+func (c *Crawler) getHistoryPage(ctx context.Context, token, fullURL string) ([]*Record, int, error) {
+	resp, err := c.doSeatRequestWithToken(ctx, http.MethodPost, fullURL, token, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	body, err := readSuccessfulResponse(resp)
+	if err != nil {
+		return nil, 0, err
+	}
+	data := gjson.GetBytes(body, "data")
+	list := data.Get("list")
+	return c.parseRecords(list), int(data.Get("count").Int()), nil
+}
+
 func (c *Crawler) getRecord(ctx context.Context, token string, fullURL string, recordType string) ([]*Record, error) {
-	resp, err := c.doSeatRequestWithToken(ctx, "POST", fullURL, token, nil)
+	resp, err := c.doSeatRequestWithToken(ctx, http.MethodPost, fullURL, token, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readSuccessfulResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -362,8 +426,11 @@ func (c *Crawler) getRecord(ctx context.Context, token string, fullURL string, r
 		return nil, nil
 	}
 
-	var records []*Record
+	return c.parseRecords(list), nil
+}
 
+func (c *Crawler) parseRecords(list gjson.Result) []*Record {
+	var records []*Record
 	for _, item := range list.Array() {
 		beginStr := item.Get("makeBeginStr").String()
 		endStr := item.Get("makeEndStr").String()
@@ -399,8 +466,7 @@ func (c *Crawler) getRecord(ctx context.Context, token string, fullURL string, r
 		}
 		records = append(records, record)
 	}
-
-	return records, nil
+	return records
 }
 
 // TODO：改成了违约记录

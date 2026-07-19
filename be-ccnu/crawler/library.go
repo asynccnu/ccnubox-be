@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/common/pkg/crypto"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
-	"github.com/tidwall/gjson"
 )
 
 const (
@@ -38,10 +36,10 @@ type payload struct {
 }
 
 type response struct {
-	Data    interface{} `json:"data"`
-	Status  bool        `json:"status"`
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
+	Data    json.RawMessage `json:"data"`
+	Status  bool            `json:"status"`
+	Code    int             `json:"code"`
+	Message string          `json:"message"`
 }
 
 func NewLibrary(client *http.Client, secret string) *Library {
@@ -65,6 +63,9 @@ func (c *Library) LoginLibrary(ctx context.Context) error {
 		return errorx.Errorf("library: send login request failed: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return errorx.Errorf("library: login returned HTTP %d", resp.StatusCode)
+	}
 
 	return nil
 }
@@ -87,7 +88,8 @@ func (c *Library) GetSeatAuthTokenFromLibrary(ctx context.Context) (string, erro
 		return "", errorx.Errorf("library: get auth token request failed:%v", err)
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36")
-	req.Header.Set("logintype", "PC")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("LoginType", "PC")
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
@@ -99,22 +101,18 @@ func (c *Library) GetSeatAuthTokenFromLibrary(ctx context.Context) (string, erro
 	if err != nil {
 		return "", errorx.Errorf("library: read response reqBody failed:%v", err)
 	}
-	var respBody response
-	err = json.Unmarshal(respBodyBytes, &respBody)
+	respBody, err := decodeLibraryResponse(resp, respBodyBytes)
 	if err != nil {
-		return "", errorx.Errorf("library: unmarshal resp body failed:%v", err)
+		return "", err
 	}
-	if !respBody.Status || respBody.Code != 200 {
-		return "", errorx.Errorf("library: interface returns error,code:%d,message:%s", respBody.Code, respBody.Message)
+	var data struct {
+		Token string `json:"token"`
 	}
-
-	dataMap := respBody.Data.(map[string]interface{})
-	token, ok := dataMap["token"].(string)
-	if !ok || token == "" {
+	if err := json.Unmarshal(respBody.Data, &data); err != nil || data.Token == "" {
 		return "", errorx.Errorf("library: data has format error")
 	}
 
-	return token, nil
+	return data.Token, nil
 
 }
 
@@ -139,8 +137,12 @@ func (c *Library) CheckLibrarySeatToken(ctx context.Context, token string) (bool
 	}
 
 	defer resp.Body.Close()
-
-	return resp.StatusCode == http.StatusOK, nil
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, err
+	}
+	_, err = decodeLibraryResponse(resp, body)
+	return err == nil, nil
 }
 
 // GetDiscussionAuthTokenFromLibrary 从图书馆系统中提取研讨室预约服务的 Token
@@ -175,15 +177,17 @@ func (c *Library) GetDiscussionAuthTokenFromLibrary(ctx context.Context) (string
 		return "", err
 	}
 
-	data := gjson.GetBytes(body, "data")
-	if !data.Exists() {
-		return "", nil
+	respBody, err := decodeLibraryResponse(resp, body)
+	if err != nil {
+		return "", err
 	}
-	authToken := data.Get("token")
-	if !authToken.Exists() {
-		return "", nil
+	var data struct {
+		Token string `json:"token"`
 	}
-	return authToken.String(), nil
+	if err := json.Unmarshal(respBody.Data, &data); err != nil || data.Token == "" {
+		return "", errorx.Errorf("library: discussion token response has invalid data")
+	}
+	return data.Token, nil
 }
 
 // CheckLibraryDiscussionToken 验证研讨室预约服务Token的有效性
@@ -201,25 +205,34 @@ func (c *Library) CheckLibraryDiscussionToken(ctx context.Context, token string)
 		return false, err
 	}
 	defer resp.Body.Close()
-
-	return resp.StatusCode == http.StatusOK, nil
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, err
+	}
+	_, err = decodeLibraryResponse(resp, body)
+	return err == nil, nil
 }
 
 func (c *Library) parseRawTokenFromUrl(urlStr string) (string, error) {
-	if strings.Contains(urlStr, "#") {
-		parts := strings.Split(urlStr, "#")
-		if len(parts) >= 2 {
-			urlStr = parts[0] + parts[1]
-		}
-	}
-
-	parsedUrl, err := url.Parse(urlStr)
+	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
 		return "", err
 	}
-	queryParams := parsedUrl.Query()
-	token := queryParams.Get("token")
-
+	if token := parsedURL.Query().Get("token"); token != "" {
+		return token, nil
+	}
+	fragment := parsedURL.Fragment
+	if index := strings.Index(fragment, "?"); index >= 0 {
+		fragment = fragment[index+1:]
+	}
+	params, err := url.ParseQuery(fragment)
+	if err != nil {
+		return "", errorx.Errorf("library: parse token fragment failed: %w", err)
+	}
+	token := params.Get("token")
+	if token == "" {
+		return "", errorx.New("library: project entry did not contain a token")
+	}
 	return token, nil
 }
 
@@ -236,6 +249,9 @@ func (c *Library) getRawTokenFromLibrary(ctx context.Context, prefix string) (st
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return "", errorx.Errorf("library: project entry returned HTTP %d", resp.StatusCode)
+	}
 
 	urlStr := resp.Request.URL.String()
 
@@ -249,7 +265,19 @@ func (c *Library) getRawTokenFromLibrary(ctx context.Context, prefix string) (st
 }
 
 func (c *Library) buildLibraryTokenUrl(prefix string) string {
-	rand.Seed(time.Now().Unix())
-	random := rand.Intn(9000) + 1000
-	return fmt.Sprintf("%s?rand=%d", prefix, random)
+	return fmt.Sprintf("%s?rand=%d", prefix, time.Now().UnixNano())
+}
+
+func decodeLibraryResponse(resp *http.Response, body []byte) (*response, error) {
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, errorx.Errorf("library: upstream returned HTTP %d", resp.StatusCode)
+	}
+	var result response
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, errorx.Errorf("library: decode upstream response failed: %w", err)
+	}
+	if !result.Status || (result.Code != 0 && result.Code != http.StatusOK) {
+		return nil, errorx.Errorf("library: upstream rejected request, code:%d message:%s", result.Code, result.Message)
+	}
+	return &result, nil
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-library/crawler"
 	libraryv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
@@ -34,13 +35,17 @@ func NewDiscussionService(userClient userv1.UserServiceClient, libCrawler *crawl
 }
 
 func (s *discussionService) GetDiscussion(ctx context.Context, req *libraryv1.GetDiscussionRequest) (*libraryv1.GetDiscussionResponse, error) {
-	tokenResp, err := s.userClient.GetLibraryDiscussionToken(ctx, &userv1.GetLibraryTokenRequest{
-		StudentId: req.StuId,
-	})
-	if err != nil {
-		return nil, ErrGetToken(errorx.Errorf("get token failed, stuId: %s, err: %w", req.StuId, err))
+	if req == nil || req.RoomType == "" || req.VenueId == "" || req.Date == "" {
+		return nil, ErrGetDiscussion(errorx.New("room_type, venue_id and date are required"))
 	}
-	ds, err := s.crawler.GetDiscussion(ctx, tokenResp.Token, req.RoomType, req.VenueId, req.Date)
+	if _, err := time.Parse("2006-01-02", req.Date); err != nil {
+		return nil, ErrGetDiscussion(errorx.Errorf("invalid date %q", req.Date))
+	}
+	token, err := s.getDiscussionToken(ctx, req.StuId)
+	if err != nil {
+		return nil, err
+	}
+	ds, err := s.crawler.GetDiscussion(ctx, token, req.RoomType, req.VenueId, req.Date)
 	if err != nil {
 		return nil, ErrGetDiscussion(errorx.Errorf("get discussion failed, stuId: %s, err: %w", req.StuId, err))
 	}
@@ -74,15 +79,30 @@ func (s *discussionService) GetDiscussion(ctx context.Context, req *libraryv1.Ge
 }
 
 func (s *discussionService) ReserveDiscussion(ctx context.Context, req *libraryv1.ReserveDiscussionRequest) (*libraryv1.ReserveDiscussionResponse, error) {
-	tokenResp, err := s.userClient.GetLibraryDiscussionToken(ctx, &userv1.GetLibraryTokenRequest{
-		StudentId: req.StuId,
-	})
-	if err != nil {
-		return nil, ErrGetToken(errorx.Errorf("get token failed, stuId: %s, err: %w", req.StuId, err))
+	if req == nil {
+		return nil, ErrGetDiscussion(errorx.New("request is required"))
 	}
-	msg, err := s.crawler.ReserveDiscussion(ctx, tokenResp.Token, req.DevId, req.LabId, req.KindId, req.Title, req.Start, req.End, req.List)
+	token, err := s.getDiscussionToken(ctx, req.StuId)
+	if err != nil {
+		return nil, err
+	}
+	msg, err := s.crawler.ReserveDiscussion(ctx, token, req.DevId, req.LabId, req.KindId, req.Title, req.Start, req.End, req.List)
 	if err != nil {
 		return nil, ErrGetDiscussion(errorx.Errorf("reserve discussion failed, stuId: %s, err: %w", req.StuId, err))
 	}
 	return &libraryv1.ReserveDiscussionResponse{Message: msg}, nil
+}
+
+func (s *discussionService) getDiscussionToken(ctx context.Context, studentID string) (string, error) {
+	if studentID == "" {
+		return "", ErrGetToken(errorx.New("student id is required"))
+	}
+	tokenResp, err := s.userClient.GetLibraryDiscussionToken(ctx, &userv1.GetLibraryTokenRequest{StudentId: studentID})
+	if err != nil {
+		return "", ErrGetToken(errorx.Errorf("get token failed, stuId: %s, err: %w", studentID, err))
+	}
+	if tokenResp == nil || tokenResp.Token == "" {
+		return "", ErrGetToken(errorx.Errorf("empty token returned, stuId: %s", studentID))
+	}
+	return tokenResp.Token, nil
 }

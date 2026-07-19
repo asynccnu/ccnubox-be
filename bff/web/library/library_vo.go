@@ -142,7 +142,7 @@ type ReserveSeatRandomlyResponse struct {
 }
 
 type GetSeatRecordRequest struct {
-	Date []string `json:"date"`
+	Date []string `json:"date" binding:"required"` // YYYY-M-D 或 YYYY-MM-DD
 }
 
 type Comment struct {

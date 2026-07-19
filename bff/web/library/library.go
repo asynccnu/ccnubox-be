@@ -26,10 +26,7 @@ func (h *LibraryHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 	sg.POST("/get_seat", authMiddleware, ginx.WrapClaimsAndReq(h.GetSeatInfos))
 	sg.POST("/reserve_seat", authMiddleware, ginx.WrapClaimsAndReq(h.ReserveSeat))
 	sg.POST("/get_seat_records", authMiddleware, ginx.WrapClaimsAndReq(h.GetSeatRecord))
-	sg.GET("/get_credit_points", authMiddleware, ginx.WrapClaims(h.GetCreditPoint))
 	sg.POST("/get_discussion", authMiddleware, ginx.WrapClaimsAndReq(h.GetDiscussion))
-	sg.GET("/search_user", authMiddleware, ginx.WrapClaimsAndReq(h.SearchUser))
-	sg.POST("/reserve_discussion", authMiddleware, ginx.WrapClaimsAndReq(h.ReserveDiscussion))
 	sg.POST("/cancel_reserve", authMiddleware, ginx.WrapClaimsAndReq(h.CancelReserve))
 	sg.POST("/create_comment", authMiddleware, ginx.WrapClaimsAndReq(h.CreateComment))
 	sg.GET("/get_comments", authMiddleware, ginx.WrapClaimsAndReq(h.GetComments))
@@ -183,7 +180,6 @@ func (h *LibraryHandler) GetSeatRecord(ctx *gin.Context, req GetSeatRecordReques
 // @Param Authorization header string true "Bearer Token"
 // @Success 200 {object} web.Response{data=GetCreditPointResponse} "成功返回信誉分"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
-// @Router /library/get_credit_points [get]
 // TODO：不可用
 func (h *LibraryHandler) GetCreditPoint(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 	res, err := h.LibraryClient.GetCreditPoint(ctx, &libraryv1.GetCreditPointRequest{
@@ -282,7 +278,6 @@ func (h *LibraryHandler) GetDiscussion(ctx *gin.Context, req GetDiscussionReques
 // @Param request query SearchUserRequest true "搜索学生ID的请求参数"
 // @Success 200 {object} web.Response{data=SearchUserResponse} "成功返回学生的ID"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
-// @Router /library/search_user [get]
 // TODO：不可用，要删
 func (h *LibraryHandler) SearchUser(ctx *gin.Context, req SearchUserRequest, uc ijwt.UserClaims) (web.Response, error) {
 	res, err := h.LibraryClient.SearchUser(ctx, &libraryv1.SearchUserRequest{
@@ -318,7 +313,6 @@ func (h *LibraryHandler) SearchUser(ctx *gin.Context, req SearchUserRequest, uc 
 // @Param request body ReserveDiscussionRequest true "预约研讨间所需要的参数"
 // @Success 200 {object} web.Response "成功返回预约研讨间成功"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
-// @Router /library/reserve_discussion [post]
 // TODO：不可用
 func (h *LibraryHandler) ReserveDiscussion(ctx *gin.Context, req ReserveDiscussionRequest, uc ijwt.UserClaims) (web.Response, error) {
 	_, err := h.LibraryClient.ReserveDiscussion(ctx, &libraryv1.ReserveDiscussionRequest{
@@ -357,7 +351,7 @@ func (h *LibraryHandler) CancelReserve(ctx *gin.Context, req CancelReserveReques
 		StuId: uc.StudentId,
 	})
 	if err != nil {
-		return web.Response{}, errs.CANCEL_DISCUSSION_ERROR(err)
+		return web.Response{}, errs.CANCEL_SEAT_ERROR(err)
 	}
 
 	return web.Response{
@@ -376,7 +370,6 @@ func (h *LibraryHandler) CancelReserve(ctx *gin.Context, req CancelReserveReques
 // @Success 200 {object} web.Response "成功返回创建信息"
 // @Failure 500 {object} web.Response "系统异常，创建失败"
 // @Router /library/create_comment [post]
-// TODO：
 func (h *LibraryHandler) CreateComment(ctx *gin.Context, req CreateCommentReq, uc ijwt.UserClaims) (web.Response, error) {
 	// 不知道用户名到底要不要实现，这里直接用学号代替了先
 	msg, err := h.LibraryClient.CreateComment(ctx, &libraryv1.CreateCommentReq{
@@ -405,7 +398,6 @@ func (h *LibraryHandler) CreateComment(ctx *gin.Context, req CreateCommentReq, u
 // @Success 200 {object} web.Response{data=[]Comment} "成功返回评论列表"
 // @Failure 500 {object} web.Response "系统异常，获取失败"
 // @Router /library/get_comments [get]
-// TODO：
 func (h *LibraryHandler) GetComments(ctx *gin.Context, req IDreq, uc ijwt.UserClaims) (web.Response, error) {
 	comments, err := h.LibraryClient.GetComments(ctx, &libraryv1.ID{Id: int64(req.ID)})
 	if err != nil {
@@ -429,7 +421,6 @@ func (h *LibraryHandler) GetComments(ctx *gin.Context, req IDreq, uc ijwt.UserCl
 // @Success 200 {object} web.Response "成功返回删除信息"
 // @Failure 500 {object} web.Response "系统异常，删除失败"
 // @Router /library/delete_comment [get]
-// TODO：
 func (h *LibraryHandler) DeleteComment(ctx *gin.Context, req IDreq, uc ijwt.UserClaims) (web.Response, error) {
 	msg, err := h.LibraryClient.DeleteComment(ctx, &libraryv1.ID{Id: int64(req.ID)})
 	if err != nil {

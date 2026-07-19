@@ -1,32 +1,3 @@
-env: "prod"
-
-server:
-  name: "library"
-  grpc:
-    addr: "0.0.0.0:19093"
-    timeout: 10s
-
-data:
-  mysql:
-    dsn: "root:password@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
-  redis:
-    addr: "localhost:6379"
-    password: ""
-  kafka:
-    brokers:
-      - "localhost:9092"
-  etcd:
-    endpoints:
-      - "localhost:2379"
-    username: "root"
-    password: ""
-
-registry:
-  etcd:
-    addr: "localhost:2379"
-    username: "root"
-    password: ""
-
 log:
   path: "/logs/app.log"
   maxSize: 100

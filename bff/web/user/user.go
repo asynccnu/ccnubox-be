@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
@@ -184,7 +183,6 @@ func (h *UserHandler) DeleteAccount(ctx *gin.Context, req DeleteAccountReq, cla 
 	// todo:这里目前只是伪逻辑，具体的身份验证、软删除、恢复码、恢复码等需要后续实现
 	// todo: 通过数据库比较输入和用户真正密码,目前仅是判断是否为空
 	if cla.Password == "" {
-		fmt.Println(req.Password, "---", cla.Password)
 		return web.Response{}, errs.USER_SID_OR_PASSWORD_ERROR(errors.New("password do not match"))
 	}
 

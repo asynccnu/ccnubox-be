@@ -136,6 +136,10 @@ type SaveSemesterRequest struct {
 	EndDate   string `json:"end_date" binding:"required"`
 }
 
+type GetSemesterResponse struct {
+	Semester *Semester `json:"semester"`
+}
+
 type GetSemesterListResponse struct {
 	Semesters []*Semester `json:"semesters"`
 }

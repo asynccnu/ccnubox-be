@@ -398,7 +398,7 @@ definitions:
   content.GetSemesterResponse:
     properties:
       semester:
-        type: string
+        $ref: '#/definitions/content.Semester'
     type: object
   content.GetUpdateVersionResponse:
     properties:

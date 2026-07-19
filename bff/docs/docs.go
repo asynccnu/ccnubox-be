@@ -4055,7 +4055,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "semester": {
-                    "type": "string"
+                    "$ref": "#/definitions/content.Semester"
                 }
             }
         },

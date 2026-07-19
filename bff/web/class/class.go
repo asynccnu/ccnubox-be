@@ -43,7 +43,7 @@ func (c *ClassHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 
 // GetClassList 获取课表
 // @Summary 获取课表
-// @Description 根据学年、学期获取当前登录学生的课表。refresh=false 优先读缓存/本地数据，refresh=true 会触发刷新。成功时 code=0；业务失败通常仍由统一响应体返回 code=50001 和 msg。
+// @Description 根据学年、学期获取当前登录学生的课表。refresh=false 优先读缓存/本地数据，refresh=true 会触发刷新。成功时 code=0；获取失败返回 code=50601。
 // @Tags class
 // @Produce json
 // @Param Authorization header string true "Bearer Token，例如 Bearer xxx"
@@ -101,7 +101,7 @@ func (c *ClassHandler) GetClassList(ctx *gin.Context, req GetClassListRequest, u
 
 // AddClass 添加课表
 // @Summary 添加自定义课程
-// @Description 给当前登录学生添加一门自定义课程。weeks 必须是周次数组，例如 [1,2,3]；dur_class 是节次范围，例如 "1-2"。成功时 code=0；添加失败、课程已存在、时间冲突等会返回 code=50001 和对应 msg。
+// @Description 给当前登录学生添加一门自定义课程。weeks 必须是周次数组，例如 [1,2,3]；dur_class 是节次范围，例如 "1-2"。成功时 code=0；添加失败返回 code=50602。
 // @Tags class
 // @Accept json
 // @Produce json
@@ -138,7 +138,7 @@ func (c *ClassHandler) AddClass(ctx *gin.Context, req AddClassRequest, uc ijwt.U
 
 // DeleteClass 删除课表
 // @Summary 删除自定义课程
-// @Description 根据课程 ID 删除当前登录学生的自定义课程。教务系统导入课程不支持删除。成功时 code=0；删除失败或删除官方课程会返回 code=50001 和 msg。
+// @Description 根据课程 ID 删除当前登录学生的自定义课程。教务系统导入课程不支持删除。成功时 code=0；删除失败返回 code=50603。
 // @Tags class
 // @Accept json
 // @Produce json
@@ -165,7 +165,7 @@ func (c *ClassHandler) DeleteClass(ctx *gin.Context, req DeleteClassRequest, uc 
 
 // UpdateClass 更新课表信息
 // @Summary 更新自定义课程
-// @Description 根据课程 ID 更新当前登录学生的自定义课程。可更新课程名称、节次、地点、教师、周次、星期几、学分；更新后课程 ID 可能改变。成功时 code=0；更新失败或时间冲突会返回 code=50001 和 msg。
+// @Description 根据课程 ID 更新当前登录学生的自定义课程。可更新课程名称、节次、地点、教师、周次、星期几、学分；更新后课程 ID 可能改变。成功时 code=0；更新失败返回 code=50604。
 // @Tags class
 // @Accept json
 // @Produce json
@@ -207,7 +207,7 @@ func (c *ClassHandler) UpdateClass(ctx *gin.Context, req UpdateClassRequest, uc 
 
 // GetSchoolDay 获取当前周
 // @Summary 获取学期日期配置
-// @Description 获取当前学期的开学日期和放假日期，返回秒级时间戳。前端用 school_time 计算当前周，用 holiday_time 判断学期边界。成功时 code=0；配置缺失或格式错误会返回 code=50001。
+// @Description 获取当前学期的开学日期和放假日期，返回秒级时间戳。前端用 school_time 计算当前周，用 holiday_time 判断学期边界。成功时 code=0；类型转换失败返回 code=50003。
 // @Tags class
 // @Produce json
 // @Success 200 {object} web.Response{data=GetSchoolDayResp} "成功返回学期日期配置"
@@ -243,7 +243,7 @@ func (c *ClassHandler) GetSchoolDay(ctx *gin.Context) (web.Response, error) {
 
 // InsertClassNote 插入课程备注
 // @Summary 添加或更新课程备注
-// @Description 根据课程 ID 给当前登录学生的课程添加或更新备注。成功时 code=0；课程不存在或保存失败会返回 code=50001 和 msg。
+// @Description 根据课程 ID 给当前登录学生的课程添加或更新备注。成功时 code=0；保存失败返回 code=50604。
 // @Tags class
 // @Accept json
 // @Produce json
@@ -271,7 +271,7 @@ func (c *ClassHandler) InsertClassNote(ctx *gin.Context, req UpdateClassNoteReq,
 
 // DeleteClassNote 删除课程备注
 // @Summary 删除课程备注
-// @Description 根据课程 ID 删除当前登录学生的课程备注。成功时 code=0；课程不存在或删除失败会返回 code=50001 和 msg。
+// @Description 根据课程 ID 删除当前登录学生的课程备注。成功时 code=0；删除失败返回 code=50604。
 // @Tags class
 // @Accept json
 // @Produce json

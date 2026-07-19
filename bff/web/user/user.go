@@ -57,7 +57,7 @@ func (h *UserHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Hand
 // @Header 200 {string} x-jwt-token "短 token"
 // @Header 200 {string} x-refresh-token "刷新 token"
 // @Failure 401 {object} web.Response "账号或密码错误，code=40005"
-// @Failure 500 {object} web.Response "登录失败或 token 生成失败，code=50001"
+// @Failure 500 {object} web.Response "登录失败，code=51201；token 生成失败，code=51401"
 // @Router /users/login_ccnu [post]
 func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Response, error) {
 	// 记录学号存入 span
@@ -73,14 +73,14 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 	case err == nil:
 	// 直接向下执行
 	case userv1.IsIncorrectPasswordError(err):
-		return web.Response{}, errs.USER_SID_Or_PASSPORD_ERROR(err)
+		return web.Response{}, errs.USER_SID_OR_PASSWORD_ERROR(err)
 	default:
 		return web.Response{}, errs.LOGIN_BY_CCNU_ERROR(err)
 	}
 
 	// 兜底的判断
 	if !resp.Success {
-		return web.Response{}, errs.USER_SID_Or_PASSPORD_ERROR(err)
+		return web.Response{}, errs.USER_SID_OR_PASSWORD_ERROR(err)
 	}
 
 	// 更新用户账号密码
@@ -110,7 +110,7 @@ func (h *UserHandler) LoginByCCNU(ctx *gin.Context, req LoginByCCNUReq) (web.Res
 // @Param Authorization header string true "Bearer 短 token，格式：Bearer {x-jwt-token}" default(Bearer <x-jwt-token>)
 // @Success 200 {object} web.Response "登出成功"
 // @Failure 401 {object} web.Response "Authorization 错误或过期，code=40001"
-// @Failure 500 {object} web.Response "登出失败，code=50001"
+// @Failure 500 {object} web.Response "登出失败，code=51401"
 // @Router /users/logout [get]
 func (h *UserHandler) Logout(ctx *gin.Context) (web.Response, error) {
 	err := h.ClearToken(ctx)
@@ -132,8 +132,8 @@ func (h *UserHandler) Logout(ctx *gin.Context) (web.Response, error) {
 // @Param Authorization header string true "Bearer 刷新 token，格式：Bearer {x-refresh-token}" default(Bearer <x-refresh-token>)
 // @Success 200 {object} web.Response "刷新成功，新的短 token 通过响应头返回"
 // @Header 200 {string} x-jwt-token "新的短 token"
-// @Failure 401 {object} web.Response "刷新 token 无效或过期，code=40001"
-// @Failure 500 {object} web.Response "刷新 token 失败，code=50001"
+// @Failure 401 {object} web.Response "刷新 token 无效，code=40001；已过期，code=41401"
+// @Failure 500 {object} web.Response "刷新 token 失败，code=51401"
 // @Router /users/refresh_token [get]
 func (h *UserHandler) RefreshToken(ctx *gin.Context) (web.Response, error) {
 	tokenStr := h.ExtractToken(ctx)
@@ -143,10 +143,10 @@ func (h *UserHandler) RefreshToken(ctx *gin.Context) (web.Response, error) {
 		return h.RCJWTKey(), nil
 	})
 	if err != nil {
-		return web.Response{}, errs.AUTH_PASSED_ERROR(err)
+		return web.Response{}, errs.AUTH_EXPIRED_ERROR(err)
 	}
 	if token == nil || !token.Valid {
-		return web.Response{}, errs.UNAUTHORIED_ERROR(err)
+		return web.Response{}, errs.UNAUTHORIZED_ERROR(err)
 	}
 	ok, err := h.CheckSession(ctx, rc.Ssid)
 	if err != nil || ok {
@@ -178,14 +178,14 @@ func (h *UserHandler) RefreshToken(ctx *gin.Context) (web.Response, error) {
 // @Param request body DeleteAccountReq true "注销账户请求体"
 // @Success 200 {object} web.Response "注销成功"
 // @Failure 401 {object} web.Response "账号或密码错误，code=40005"
-// @Failure 500 {object} web.Response "注销失败或 token 清理失败，code=50001"
+// @Failure 500 {object} web.Response "注销失败或 token 清理失败，code=51401"
 // @Router /users/deactivate [post]
 func (h *UserHandler) DeleteAccount(ctx *gin.Context, req DeleteAccountReq, cla ijwt.UserClaims) (web.Response, error) {
 	// todo:这里目前只是伪逻辑，具体的身份验证、软删除、恢复码、恢复码等需要后续实现
 	// todo: 通过数据库比较输入和用户真正密码,目前仅是判断是否为空
 	if cla.Password == "" {
 		fmt.Println(req.Password, "---", cla.Password)
-		return web.Response{}, errs.USER_SID_Or_PASSPORD_ERROR(errors.New("password do not match"))
+		return web.Response{}, errs.USER_SID_OR_PASSWORD_ERROR(errors.New("password do not match"))
 	}
 
 	err := h.ClearToken(ctx)

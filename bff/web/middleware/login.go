@@ -31,7 +31,7 @@ func (m *LoginMiddleware) MiddlewareFunc() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		uc, err := m.extractUserClaimsFromAuthorizationHeader(ctx)
 		if err != nil {
-			ctx.Error(errs.UNAUTHORIED_ERROR(errorx.Errorf("身份验证失败: %w", err)))
+			ctx.Error(errs.UNAUTHORIZED_ERROR(errorx.Errorf("身份验证失败: %w", err)))
 			return
 		}
 		// 设置claims并执行下一个

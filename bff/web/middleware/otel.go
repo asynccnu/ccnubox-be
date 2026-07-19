@@ -46,7 +46,7 @@ func (m *OtelMiddleware) AttributeMiddleware() gin.HandlerFunc {
 		// 如果有用户信息则进行更安全的学号信息读取
 		uc, err := ginx.GetClaims[ijwt.UserClaims](ctx)
 		if err != nil {
-			ctx.Error(errs.UNAUTHORIED_ERROR(errors.New("链路获取学号失败")))
+			ctx.Error(errs.UNAUTHORIZED_ERROR(errors.New("链路获取学号失败")))
 			return
 		}
 

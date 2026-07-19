@@ -281,6 +281,13 @@ definitions:
         description: 教室名
         type: string
     type: object
+  classroom.GetClassroomsResp:
+    properties:
+      class_rooms:
+        items:
+          type: string
+        type: array
+    type: object
   classroom.GetFreeClassRoomResp:
     properties:
       stat:
@@ -1237,6 +1244,8 @@ definitions:
   user.DeleteAccountReq:
     properties:
       password:
+        description: 密码
+        example: your_password
         type: string
     required:
     - password
@@ -1245,8 +1254,11 @@ definitions:
     properties:
       password:
         description: 密码
+        example: your_password
         type: string
       student_id:
+        description: 学号
+        example: "2024210000"
         type: string
     required:
     - password
@@ -1458,7 +1470,7 @@ paths:
       consumes:
       - application/json
       description: 给当前登录学生添加一门自定义课程。weeks 必须是周次数组，例如 [1,2,3]；dur_class 是节次范围，例如 "1-2"。成功时
-        code=0；添加失败、课程已存在、时间冲突等会返回 code=50001 和对应 msg。
+        code=0；添加失败返回 code=50602。
       parameters:
       - description: Bearer Token，例如 Bearer xxx
         in: header
@@ -1492,7 +1504,7 @@ paths:
   /class/day/get:
     get:
       description: 获取当前学期的开学日期和放假日期，返回秒级时间戳。前端用 school_time 计算当前周，用 holiday_time 判断学期边界。成功时
-        code=0；配置缺失或格式错误会返回 code=50001。
+        code=0；类型转换失败返回 code=50003。
       produces:
       - application/json
       responses:
@@ -1512,8 +1524,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 根据课程 ID 删除当前登录学生的自定义课程。教务系统导入课程不支持删除。成功时 code=0；删除失败或删除官方课程会返回
-        code=50001 和 msg。
+      description: 根据课程 ID 删除当前登录学生的自定义课程。教务系统导入课程不支持删除。成功时 code=0；删除失败返回 code=50603。
       parameters:
       - description: Bearer Token，例如 Bearer xxx
         in: header
@@ -1547,7 +1558,7 @@ paths:
   /class/get:
     get:
       description: 根据学年、学期获取当前登录学生的课表。refresh=false 优先读缓存/本地数据，refresh=true 会触发刷新。成功时
-        code=0；业务失败通常仍由统一响应体返回 code=50001 和 msg。
+        code=0；获取失败返回 code=50601。
       parameters:
       - description: Bearer Token，例如 Bearer xxx
         in: header
@@ -1597,7 +1608,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 根据课程 ID 删除当前登录学生的课程备注。成功时 code=0；课程不存在或删除失败会返回 code=50001 和 msg。
+      description: 根据课程 ID 删除当前登录学生的课程备注。成功时 code=0；删除失败返回 code=50604。
       parameters:
       - description: Bearer Token，例如 Bearer xxx
         in: header
@@ -1632,8 +1643,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 根据课程 ID 给当前登录学生的课程添加或更新备注。成功时 code=0；课程不存在或保存失败会返回 code=50001 和
-        msg。
+      description: 根据课程 ID 给当前登录学生的课程添加或更新备注。成功时 code=0；保存失败返回 code=50604。
       parameters:
       - description: Bearer Token，例如 Bearer xxx
         in: header
@@ -1669,7 +1679,7 @@ paths:
       consumes:
       - application/json
       description: 根据课程 ID 更新当前登录学生的自定义课程。可更新课程名称、节次、地点、教师、周次、星期几、学分；更新后课程 ID 可能改变。成功时
-        code=0；更新失败或时间冲突会返回 code=50001 和 msg。
+        code=0；更新失败返回 code=50604。
       parameters:
       - description: Bearer Token，例如 Bearer xxx
         in: header
@@ -1757,6 +1767,24 @@ paths:
                   $ref: '#/definitions/classroom.GetFreeClassRoomResp'
               type: object
       summary: 查询空闲教室
+      tags:
+      - classroom
+  /classroom/list:
+    get:
+      description: 返回 be-class 中 classrooms.json 的教室列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/classroom.GetClassroomsResp'
+              type: object
+      summary: 获取教室列表
       tags:
       - classroom
   /department/delDepartment:
@@ -3034,12 +3062,6 @@ paths:
   /semester/getSemester:
     get:
       description: 获取当前所属学期
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       responses:
         "200":
           description: 成功
@@ -3056,12 +3078,6 @@ paths:
   /semester/getSemesterList:
     get:
       description: 获取所有学期信息
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       responses:
         "200":
           description: 成功
@@ -3079,11 +3095,6 @@ paths:
     post:
       description: 保存学期信息
       parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: 保存学期信息请求参数
         in: body
         name: request
@@ -3158,6 +3169,12 @@ paths:
       - application/json
       description: 用户输入密码验明身份后注销
       parameters:
+      - default: Bearer <x-jwt-token>
+        description: Bearer 短 token，格式：Bearer {x-jwt-token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 注销账户请求体
         in: body
         name: request
@@ -3168,7 +3185,15 @@ paths:
       - application/json
       responses:
         "200":
-          description: Success
+          description: 注销成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "401":
+          description: 账号或密码错误，code=40005
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 注销失败或 token 清理失败，code=51401
           schema:
             $ref: '#/definitions/web.Response'
       security:
@@ -3192,7 +3217,22 @@ paths:
       - application/json
       responses:
         "200":
-          description: Success
+          description: 登录成功，token 通过响应头返回
+          headers:
+            x-jwt-token:
+              description: 短 token
+              type: string
+            x-refresh-token:
+              description: 刷新 token
+              type: string
+          schema:
+            $ref: '#/definitions/web.Response'
+        "401":
+          description: 账号或密码错误，code=40005
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 登录失败，code=51201；token 生成失败，code=51401
           schema:
             $ref: '#/definitions/web.Response'
       summary: ccnu登录
@@ -3203,11 +3243,26 @@ paths:
       consumes:
       - application/json
       description: 通过短token登出
+      parameters:
+      - default: Bearer <x-jwt-token>
+        description: Bearer 短 token，格式：Bearer {x-jwt-token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Success
+          description: 登出成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "401":
+          description: Authorization 错误或过期，code=40001
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 登出失败，code=51401
           schema:
             $ref: '#/definitions/web.Response'
       summary: 登出(销毁token)
@@ -3218,11 +3273,30 @@ paths:
       consumes:
       - application/json
       description: 通过长token刷新短token
+      parameters:
+      - default: Bearer <x-refresh-token>
+        description: Bearer 刷新 token，格式：Bearer {x-refresh-token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Success
+          description: 刷新成功，新的短 token 通过响应头返回
+          headers:
+            x-jwt-token:
+              description: 新的短 token
+              type: string
+          schema:
+            $ref: '#/definitions/web.Response'
+        "401":
+          description: 刷新 token 无效，code=40001；已过期，code=41401
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 刷新 token 失败，code=51401
           schema:
             $ref: '#/definitions/web.Response'
       security:

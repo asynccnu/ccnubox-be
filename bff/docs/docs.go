@@ -792,6 +792,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/classroom/list": {
+            "get": {
+                "description": "返回 be-class 中 classrooms.json 的教室列表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classroom"
+                ],
+                "summary": "获取教室列表",
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/classroom.GetClassroomsResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/department/delDepartment": {
             "post": {
                 "description": "删除部门信息",
@@ -2877,15 +2909,6 @@ const docTemplate = `{
                     "semester"
                 ],
                 "summary": "获取当前所属学期",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -2915,15 +2938,6 @@ const docTemplate = `{
                     "semester"
                 ],
                 "summary": "获取所有学期信息",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -2954,13 +2968,6 @@ const docTemplate = `{
                 ],
                 "summary": "保存学期信息",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer Token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "description": "保存学期信息请求参数",
                         "name": "request",
@@ -3095,6 +3102,14 @@ const docTemplate = `{
                 "summary": "注销账户",
                 "parameters": [
                     {
+                        "type": "string",
+                        "default": "Bearer \u003cx-jwt-token\u003e",
+                        "description": "Bearer 短 token，格式：Bearer {x-jwt-token}",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "注销账户请求体",
                         "name": "request",
                         "in": "body",
@@ -3106,7 +3121,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "注销成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "账号或密码错误，code=40005",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "注销失败或 token 清理失败，code=50001",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -3140,7 +3167,29 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "登录成功，token 通过响应头返回",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        },
+                        "headers": {
+                            "x-jwt-token": {
+                                "type": "string",
+                                "description": "短 token"
+                            },
+                            "x-refresh-token": {
+                                "type": "string",
+                                "description": "刷新 token"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "账号或密码错误，code=40005",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "登录失败或 token 生成失败，code=50001",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -3161,9 +3210,31 @@ const docTemplate = `{
                     "user"
                 ],
                 "summary": "登出(销毁token)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cx-jwt-token\u003e",
+                        "description": "Bearer 短 token，格式：Bearer {x-jwt-token}",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "登出成功",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Authorization 错误或过期，code=40001",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "登出失败，code=50001",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -3189,9 +3260,37 @@ const docTemplate = `{
                     "user"
                 ],
                 "summary": "刷新短token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003cx-refresh-token\u003e",
+                        "description": "Bearer 刷新 token，格式：Bearer {x-refresh-token}",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "刷新成功，新的短 token 通过响应头返回",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        },
+                        "headers": {
+                            "x-jwt-token": {
+                                "type": "string",
+                                "description": "新的短 token"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "刷新 token 无效或过期，code=40001",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "刷新 token 失败，code=50001",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -3750,6 +3849,17 @@ const docTemplate = `{
                 }
             }
         },
+        "classroom.GetClassroomsResp": {
+            "type": "object",
+            "properties": {
+                "class_rooms": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "classroom.GetFreeClassRoomResp": {
             "type": "object",
             "properties": {
@@ -3921,7 +4031,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "semester": {
-                    "type": "string"
+                    "$ref": "#/definitions/content.Semester"
                 }
             }
         },
@@ -5189,7 +5299,9 @@ const docTemplate = `{
             ],
             "properties": {
                 "password": {
-                    "type": "string"
+                    "description": "密码",
+                    "type": "string",
+                    "example": "your_password"
                 }
             }
         },
@@ -5202,10 +5314,13 @@ const docTemplate = `{
             "properties": {
                 "password": {
                     "description": "密码",
-                    "type": "string"
+                    "type": "string",
+                    "example": "your_password"
                 },
                 "student_id": {
-                    "type": "string"
+                    "description": "学号",
+                    "type": "string",
+                    "example": "2024210000"
                 }
             }
         },

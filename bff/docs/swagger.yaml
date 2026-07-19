@@ -281,6 +281,13 @@ definitions:
         description: 教室名
         type: string
     type: object
+  classroom.GetClassroomsResp:
+    properties:
+      class_rooms:
+        items:
+          type: string
+        type: array
+    type: object
   classroom.GetFreeClassRoomResp:
     properties:
       stat:
@@ -391,7 +398,7 @@ definitions:
   content.GetSemesterResponse:
     properties:
       semester:
-        type: string
+        $ref: '#/definitions/content.Semester'
     type: object
   content.GetUpdateVersionResponse:
     properties:
@@ -1237,6 +1244,8 @@ definitions:
   user.DeleteAccountReq:
     properties:
       password:
+        description: 密码
+        example: your_password
         type: string
     required:
     - password
@@ -1245,8 +1254,11 @@ definitions:
     properties:
       password:
         description: 密码
+        example: your_password
         type: string
       student_id:
+        description: 学号
+        example: "2024210000"
         type: string
     required:
     - password
@@ -1757,6 +1769,24 @@ paths:
                   $ref: '#/definitions/classroom.GetFreeClassRoomResp'
               type: object
       summary: 查询空闲教室
+      tags:
+      - classroom
+  /classroom/list:
+    get:
+      description: 返回 be-class 中 classrooms.json 的教室列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/classroom.GetClassroomsResp'
+              type: object
+      summary: 获取教室列表
       tags:
       - classroom
   /department/delDepartment:
@@ -3034,12 +3064,6 @@ paths:
   /semester/getSemester:
     get:
       description: 获取当前所属学期
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       responses:
         "200":
           description: 成功
@@ -3056,12 +3080,6 @@ paths:
   /semester/getSemesterList:
     get:
       description: 获取所有学期信息
-      parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       responses:
         "200":
           description: 成功
@@ -3079,11 +3097,6 @@ paths:
     post:
       description: 保存学期信息
       parameters:
-      - description: Bearer Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: 保存学期信息请求参数
         in: body
         name: request
@@ -3158,6 +3171,12 @@ paths:
       - application/json
       description: 用户输入密码验明身份后注销
       parameters:
+      - default: Bearer <x-jwt-token>
+        description: Bearer 短 token，格式：Bearer {x-jwt-token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: 注销账户请求体
         in: body
         name: request
@@ -3168,7 +3187,15 @@ paths:
       - application/json
       responses:
         "200":
-          description: Success
+          description: 注销成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "401":
+          description: 账号或密码错误，code=40005
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 注销失败或 token 清理失败，code=50001
           schema:
             $ref: '#/definitions/web.Response'
       security:
@@ -3192,7 +3219,22 @@ paths:
       - application/json
       responses:
         "200":
-          description: Success
+          description: 登录成功，token 通过响应头返回
+          headers:
+            x-jwt-token:
+              description: 短 token
+              type: string
+            x-refresh-token:
+              description: 刷新 token
+              type: string
+          schema:
+            $ref: '#/definitions/web.Response'
+        "401":
+          description: 账号或密码错误，code=40005
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 登录失败或 token 生成失败，code=50001
           schema:
             $ref: '#/definitions/web.Response'
       summary: ccnu登录
@@ -3203,11 +3245,26 @@ paths:
       consumes:
       - application/json
       description: 通过短token登出
+      parameters:
+      - default: Bearer <x-jwt-token>
+        description: Bearer 短 token，格式：Bearer {x-jwt-token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Success
+          description: 登出成功
+          schema:
+            $ref: '#/definitions/web.Response'
+        "401":
+          description: Authorization 错误或过期，code=40001
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 登出失败，code=50001
           schema:
             $ref: '#/definitions/web.Response'
       summary: 登出(销毁token)
@@ -3218,11 +3275,30 @@ paths:
       consumes:
       - application/json
       description: 通过长token刷新短token
+      parameters:
+      - default: Bearer <x-refresh-token>
+        description: Bearer 刷新 token，格式：Bearer {x-refresh-token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Success
+          description: 刷新成功，新的短 token 通过响应头返回
+          headers:
+            x-jwt-token:
+              description: 新的短 token
+              type: string
+          schema:
+            $ref: '#/definitions/web.Response'
+        "401":
+          description: 刷新 token 无效或过期，code=40001
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: 刷新 token 失败，code=50001
           schema:
             $ref: '#/definitions/web.Response'
       security:

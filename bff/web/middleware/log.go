@@ -46,19 +46,7 @@ func (lm *LoggerMiddleware) handleResponse(ctx *gin.Context) (web.Response, int)
 	if len(ctx.Errors) > 0 {
 		// http层error,携带httpCode,bizCode,msg
 		err := ctx.Errors.Last().Err
-		unwarpERR := errors.Unwrap(err)
-		if unwarpERR == nil {
-			lm.log.WithContext(ctx).Error("意外错误类型",
-				logger.Error(err),
-				logger.String("ip", ctx.ClientIP()),
-				logger.String("path", ctx.Request.URL.Path),
-				logger.String("method", ctx.Request.Method),
-				logger.String("headers", fmt.Sprintf("%v", ctx.Request.Header)),
-			)
-			return web.Response{Code: errs.ERROR_TYPE_ERROR_CODE, Msg: err.Error(), Data: nil}, http.StatusInternalServerError
-		}
-
-		bizErr, ok := unwarpERR.(*b_errorx.CustomError)
+		bizErr, ok := findCustomError(err)
 		if !ok {
 			lm.log.WithContext(ctx).Error("意外错误类型",
 				logger.Error(err),
@@ -99,4 +87,13 @@ func (lm *LoggerMiddleware) handleResponse(ctx *gin.Context) (web.Response, int)
 	}
 
 	return res, httpCode
+}
+
+// findCustomError traverses the complete error chain. Business errors may be
+// wrapped by handlers or middleware more than once, so inspecting only one
+// Unwrap level would incorrectly collapse them into ERROR_TYPE_ERROR_CODE.
+func findCustomError(err error) (*b_errorx.CustomError, bool) {
+	var bizErr *b_errorx.CustomError
+	ok := errors.As(err, &bizErr)
+	return bizErr, ok
 }

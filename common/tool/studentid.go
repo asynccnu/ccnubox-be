@@ -2,7 +2,9 @@ package tool
 
 import (
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type StudentType int
@@ -12,6 +14,12 @@ const (
 	PostGraduate              // 研究生 (1 或 0)
 	UnderGraduate             // 本科生 (2)
 )
+
+// IsValidStudentID 校验内部学号标识的存储边界，不限制具体学制和学号格式。
+// 提醒订阅表最多存储 64 字节，生产与消费偏好时必须使用相同约束。
+func IsValidStudentID(studentID string) bool {
+	return studentID != "" && len(studentID) <= 64 && strings.TrimSpace(studentID) == studentID && utf8.ValidString(studentID)
+}
 
 // ParseStudentType 根据学号规则解析学生类型 区分是学号第五位，本科是2，硕士是1，博士是0，工号是6或9
 func ParseStudentType(studentId string) StudentType {

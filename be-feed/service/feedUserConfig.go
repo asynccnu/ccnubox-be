@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"strings"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/cache"
@@ -10,6 +9,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"golang.org/x/exp/slices"
 )
 
@@ -61,8 +61,8 @@ var (
 
 // ChangeAllowList 修改允许列表
 func (s *feedUserConfigService) ChangeAllowList(ctx context.Context, req domain.AllowList) error {
-	if strings.TrimSpace(req.StudentId) == "" {
-		return CHANGE_CONFIG_OR_TOKEN_ERROR(errorx.Errorf("service: student id is required"))
+	if !tool.IsValidStudentID(req.StudentId) {
+		return CHANGE_CONFIG_OR_TOKEN_ERROR(errorx.New("service: invalid student id"))
 	}
 	bits := map[int]bool{
 		model.GradePos:    req.Grade,
@@ -79,6 +79,9 @@ func (s *feedUserConfigService) ChangeAllowList(ctx context.Context, req domain.
 }
 
 func (s *feedUserConfigService) FindOrCreateAllowList(ctx context.Context, studentId string) (domain.AllowList, error) {
+	if !tool.IsValidStudentID(studentId) {
+		return domain.AllowList{}, FIND_CONFIG_OR_TOKEN_ERROR(errorx.New("service: invalid student id"))
+	}
 	list, err := s.userFeedConfigDAO.FindOrCreateUserFeedConfig(ctx, studentId)
 	if err != nil {
 		return domain.AllowList{}, FIND_CONFIG_OR_TOKEN_ERROR(errorx.Errorf("service: find or create allow list failed, sid: %s, err: %w", studentId, err))

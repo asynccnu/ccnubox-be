@@ -6,6 +6,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -36,6 +37,9 @@ func NewFeedUserConfigDAO(db *gorm.DB) FeedUserConfigDAO {
 
 // FindOrCreateUserFeedConfig 查找或创建 FeedUserConfig
 func (dao *feedUserConfigDAO) FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.FeedUserConfig, error) {
+	if !tool.IsValidStudentID(studentId) {
+		return nil, errorx.New("dao: invalid student id for feed config")
+	}
 	var allowList model.FeedUserConfig
 	err := dao.gorm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
@@ -62,6 +66,9 @@ func (dao *feedUserConfigDAO) FindOrCreateUserFeedConfig(ctx context.Context, st
 
 // SaveUserFeedConfig 保存 FeedUserConfig
 func (dao *feedUserConfigDAO) SaveUserFeedConfig(ctx context.Context, req *model.FeedUserConfig) error {
+	if req == nil || !tool.IsValidStudentID(req.StudentId) {
+		return errorx.New("dao: invalid student id for feed config")
+	}
 	err := dao.gorm.WithContext(ctx).Save(req).Error
 	if err != nil {
 		return errorx.Errorf("dao: save user feed config failed, sid: %s, err: %w", req.StudentId, err)
@@ -120,6 +127,9 @@ func (dao *feedUserConfigDAO) ChangeConfigBits(
 	bits map[int]bool,
 	library *bool,
 ) (*model.FeedUserConfig, error) {
+	if !tool.IsValidStudentID(studentID) {
+		return nil, errorx.New("dao: invalid student id for feed config")
+	}
 	var config model.FeedUserConfig
 	err := dao.gorm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).

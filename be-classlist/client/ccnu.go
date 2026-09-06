@@ -32,7 +32,7 @@ func (c *CCNUService) GetCookie(ctx context.Context, stuID string) (string, erro
 
 func mapGetCookieError(err error) error {
 	if tool.IsCCNUAccountInitializationRequired(err) {
-		return fmt.Errorf("%w: %v", biz.ErrCrawlerAuthentication, err)
+		return fmt.Errorf("%w: %w", biz.ErrCrawlerAuthentication, tool.ErrCCNUAccountInitializationRequired)
 	}
 	return fmt.Errorf("get cookie from user service: %w", err)
 }

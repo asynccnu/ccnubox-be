@@ -3,6 +3,7 @@ package service
 import (
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 )
 
 var (
@@ -17,5 +18,5 @@ var (
 	ConfigError                = errorx.FormatErrorFunc(classlistv1.ErrorConfigError("配置错误"))
 	ClassScheduleConflictError = errorx.FormatErrorFunc(classlistv1.ErrorErrClassScheduleConflict("添加课程时间冲突"))
 	CrawlerError               = errorx.FormatErrorFunc(classlistv1.ErrorCrawlerError("课程爬取失败"))
-	CCNULoginError             = errorx.FormatErrorFunc(classlistv1.ErrorCCNULoginError("教务系统登录态失效"))
+	CCNULoginError             = tool.FormatCCNUErrorFunc(classlistv1.ErrorCCNULoginError("教务系统登录态失效"), classlistv1.ErrorCCNULoginError(tool.CCNUAccountInitializationRequiredMarker))
 )

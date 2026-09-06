@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -147,6 +148,12 @@ func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.Fe
 			return nil
 		}
 	}
+	if err == nil && libraryPushExpired(event, time.Now()) {
+		err = s.markExpired(ctx, delivery.ID)
+		if err == nil {
+			return nil
+		}
+	}
 	if err == nil && strings.EqualFold(event.Type, "library") && s.gate != nil {
 		enabled, gateErr := s.gate.IsLibraryEnabled(ctx, event.StudentId)
 		if gateErr != nil {
@@ -180,6 +187,13 @@ func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.Fe
 				cid, err = s.push.GetPushCID(ctx)
 				if err == nil {
 					err = s.saveCID(ctx, delivery.ID, cid)
+				}
+			}
+			if err == nil && libraryPushExpired(event, time.Now()) {
+				// 取目标、获取及保存 CID 也可能跨过有效期，实际推送前必须复核。
+				err = s.markExpired(ctx, delivery.ID)
+				if err == nil {
+					return nil
 				}
 			}
 			if err == nil {
@@ -224,6 +238,33 @@ func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.Fe
 		logger.String("status", map[bool]string{true: "failed", false: "pending"}[failed]),
 		logger.Error(err))
 	return nil
+}
+
+// 时效性提醒以业务时间为截止点；缺失或非法时间不能当作永久有效。
+// 普通通知和事实类图书馆消息不受此限制。
+func libraryPushExpired(event *model.FeedEvent, now time.Time) bool {
+	if !strings.EqualFold(event.Type, "library") {
+		return false
+	}
+	var field string
+	switch strings.ToUpper(strings.TrimSpace(event.ExtendFields["notification_type"])) {
+	case "START_30":
+		field = "start_at"
+	case "END_10", "AWAY_60", "AWAY_80":
+		field = "end_at"
+	default:
+		return false
+	}
+	expiresAt, err := strconv.ParseInt(event.ExtendFields[field], 10, 64)
+	return err != nil || expiresAt <= 0 || expiresAt <= now.Unix()
+}
+
+func (s *pushDeliveryService) markExpired(ctx context.Context, id int64) error {
+	err := s.markSuppressed(ctx, id)
+	if err == nil && s.metrics != nil {
+		s.metrics.PushDeliveryTotal.WithLabelValues("suppressed_expired").Inc()
+	}
+	return err
 }
 
 func (s *pushDeliveryService) saveCID(ctx context.Context, id int64, cid string) error {

@@ -23,6 +23,7 @@ import (
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
+	commontool "github.com/asynccnu/ccnubox-be/common/tool"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -211,11 +212,16 @@ func (s *ReminderService) syncPreferences(ctx context.Context) error {
 		daoChanges := make([]dao.PreferenceChange, 0, len(changes))
 		lastRevision := cursor
 		for _, change := range changes {
-			if change.StudentID == "" || len(change.StudentID) > 64 || change.Revision <= lastRevision {
+			if change.Revision <= lastRevision {
 				return errors.New("feed returned an invalid library preference change")
 			}
-			daoChanges = append(daoChanges, dao.PreferenceChange{Revision: change.Revision, StudentID: change.StudentID, Enabled: change.Enabled})
 			lastRevision = change.Revision
+			if !commontool.IsValidStudentID(change.StudentID) {
+				// 历史脏标识不应阻塞全局游标；仍严格校验版本顺序，并留下可定位日志。
+				s.logger.WithContext(ctx).Warn("skip invalid library preference student id", logger.Int64("revision", change.Revision))
+				continue
+			}
+			daoChanges = append(daoChanges, dao.PreferenceChange{Revision: change.Revision, StudentID: change.StudentID, Enabled: change.Enabled})
 			if s.metrics != nil && change.ChangedAt > 0 {
 				lag := s.now().Unix() - change.ChangedAt
 				if lag < 0 {
@@ -321,8 +327,12 @@ func (s *ReminderService) loadReminderUsers(ctx context.Context) ([]dao.Preferen
 		snapshotRevision = pageSnapshotRevision
 		firstPage = false
 		for _, user := range users {
-			if user.StudentID == "" || len(user.StudentID) > 64 || user.Revision <= 0 || user.Revision > snapshotRevision {
+			if user.Revision <= 0 || user.Revision > snapshotRevision {
 				return nil, 0, errors.New("feed returned an invalid library reminder user")
+			}
+			if !commontool.IsValidStudentID(user.StudentID) {
+				s.logger.WithContext(ctx).Warn("skip invalid library reminder student id", logger.Int64("id", user.ID), logger.Int64("revision", user.Revision))
+				continue
 			}
 			all = append(all, dao.PreferenceChange{Revision: user.Revision, StudentID: user.StudentID, Enabled: true})
 		}
@@ -592,6 +602,17 @@ func (s *ReminderService) scanActiveUserAttempt(ctx context.Context, sub dao.Lib
 }
 
 func (s *ReminderService) applyActiveObservation(ctx context.Context, sub dao.LibraryReminderSubscription, current *crawler.ReminderReservation, now time.Time) error {
+	var end time.Time
+	if current != nil {
+		var err error
+		_, end, err = current.Times()
+		if err != nil {
+			return err
+		}
+		if terminalReservationStatus(current.Status) || !end.After(now) {
+			current = nil
+		}
+	}
 	if current == nil {
 		if episode, findErr := s.dao.LatestActiveAwayEpisode(ctx, sub.StudentID); findErr == nil {
 			episode.State = dao.AwayStateEnded
@@ -651,17 +672,63 @@ func (s *ReminderService) applyActiveObservation(ctx context.Context, sub dao.Li
 	}
 	if s.config.NotificationTypes.Away60 {
 		targetAt := episode.AwayStartedAt.Add(60 * time.Minute)
-		if err := s.scheduleJob(ctx, sub, NotificationAway60, current.ID, version, targetAt, targetAt, nil, int64(version)); err != nil {
+		if err := s.scheduleJob(ctx, sub, NotificationAway60, current.ID, version, targetAt, targetAt, &end, int64(version)); err != nil {
 			return err
 		}
 	}
 	if s.config.NotificationTypes.Away80 {
 		targetAt := episode.AwayStartedAt.Add(80 * time.Minute)
-		if err := s.scheduleJob(ctx, sub, NotificationAway80, current.ID, version, targetAt, targetAt, nil, int64(version)); err != nil {
+		if err := s.scheduleJob(ctx, sub, NotificationAway80, current.ID, version, targetAt, targetAt, &end, int64(version)); err != nil {
 			return err
 		}
 	}
 	return s.dao.MarkActiveScan(ctx, sub.StudentID, now)
+}
+
+// 只结束本次观察对应的 episode，避免旧任务覆盖同一预约的新一轮暂离。
+// 与扫描共用订阅行锁，episode 状态和关联任务、outbox 必须一起提交。
+func (s *ReminderService) endAwayEpisode(ctx context.Context, studentID, reservationID string, preferenceVersion int64, episodeVersion int, state string) (bool, error) {
+	ended := false
+	err := s.dao.Transaction(ctx, func(txDAO *dao.ReminderDAO) error {
+		sub, err := txDAO.SubscriptionForUpdate(ctx, studentID)
+		if err != nil {
+			return err
+		}
+		if !sub.Enabled || sub.PreferenceVersion != preferenceVersion {
+			return nil
+		}
+		episode, err := txDAO.LatestAwayEpisode(ctx, studentID, reservationID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if episode.State != dao.AwayStateAway || episode.EpisodeVersion != episodeVersion {
+			return nil
+		}
+		episode.State = state
+		if err := txDAO.SaveAwayEpisode(ctx, episode); err != nil {
+			return err
+		}
+		if err := txDAO.CancelReservationJobTypes(ctx, studentID, reservationID, []string{NotificationAway60, NotificationAway80}); err != nil {
+			return err
+		}
+		ended = true
+		return nil
+	})
+	return ended, err
+}
+
+func (s *ReminderService) awayEpisodeCurrent(ctx context.Context, studentID, reservationID string, version int) (bool, error) {
+	episode, err := s.dao.LatestAwayEpisode(ctx, studentID, reservationID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return episode.State == dao.AwayStateAway && episode.EpisodeVersion == version, nil
 }
 
 func nextAwayEpisode(existing *dao.AwayEpisode, studentID, reservationID string, awayMinutes int, observedAt time.Time) *dao.AwayEpisode {
@@ -684,6 +751,9 @@ func nextAwayEpisode(existing *dao.AwayEpisode, studentID, reservationID string,
 }
 
 func currentAwayObservation(row crawler.ReminderReservation, observedAt time.Time) awayObservation {
+	if terminalReservationStatus(row.Status) {
+		return awayObservation{}
+	}
 	if row.AwayTimeM > 0 {
 		return awayObservation{isAway: true, elapsedMinutes: row.AwayTimeM, elapsedKnown: true}
 	}
@@ -818,7 +888,13 @@ func (s *ReminderService) dispatchJob(ctx context.Context, job dao.NotificationJ
 	if !sub.Enabled || sub.PreferenceVersion != job.PreferenceVersion {
 		return s.dao.FinishJob(ctx, job, dao.JobSuppressed, "subscription changed", nil)
 	}
+	var verifiedReservation *crawler.ReminderReservation
 	if job.Type == NotificationAway60 || job.Type == NotificationAway80 {
+		if current, err := s.awayEpisodeCurrent(ctx, job.StudentID, job.ExternalReservationID, job.EpisodeVersion); err != nil {
+			return s.retryJob(ctx, job, err)
+		} else if !current {
+			return s.dao.FinishJob(ctx, job, dao.JobSuppressed, "away episode changed", nil)
+		}
 		threshold := 60
 		if job.Type == NotificationAway80 {
 			threshold = 80
@@ -827,8 +903,10 @@ func (s *ReminderService) dispatchJob(ctx context.Context, job dao.NotificationJ
 		if err != nil {
 			return s.retryJob(ctx, job, err)
 		}
-		// 检查当前时间窗口内，订阅情况是否改变
-		if current, err := s.subscriptionStillCurrent(ctx, *sub); err != nil || !current {
+		// 查询失败仅表示订阅状态未知，不能当作用户关闭提醒。
+		if current, err := s.subscriptionStillCurrent(ctx, *sub); err != nil {
+			return s.retryJob(ctx, job, err)
+		} else if !current {
 			return s.dao.FinishJob(ctx, job, dao.JobSuppressed, "subscription changed", nil)
 		}
 		current, err := s.crawler.GetCurrentReservation(ctx, token)
@@ -837,24 +915,50 @@ func (s *ReminderService) dispatchJob(ctx context.Context, job dao.NotificationJ
 		}
 		now := s.now()
 		away := awayObservation{}
-		if current != nil {
-			away = currentAwayObservation(*current, now)
+		state := dao.AwayStateEnded
+		var end time.Time
+		if current != nil && current.ID == job.ExternalReservationID && !terminalReservationStatus(current.Status) {
+			_, end, err = current.Times()
+			if err != nil {
+				return s.retryJob(ctx, job, err)
+			}
+			if end.After(now) {
+				away = currentAwayObservation(*current, now)
+				state = dao.AwayStateReturned
+			}
 		}
-		if current == nil || current.ID != job.ExternalReservationID || !away.isAway {
+		if !away.isAway {
+			ended, err := s.endAwayEpisode(ctx, job.StudentID, job.ExternalReservationID, job.PreferenceVersion, job.EpisodeVersion, state)
+			if err != nil {
+				return s.retryJob(ctx, job, err)
+			}
+			if ended {
+				// 结束 episode 已原子取消当前 claim，无需再次 FinishJob。
+				return nil
+			}
 			return s.dao.FinishJob(ctx, job, dao.JobSuppressed, "away condition no longer holds", nil)
+		}
+		// 为旧的无有效期任务补齐边界，且不能随预约延长而延长旧提醒的有效期。
+		if job.ExpiresAt == nil || end.Before(*job.ExpiresAt) {
+			job.ExpiresAt = &end
 		}
 		if away.elapsedKnown && away.elapsedMinutes < threshold {
 			next := now.Add(time.Duration(threshold-away.elapsedMinutes) * time.Minute)
+			if !next.Before(*job.ExpiresAt) {
+				return s.dao.FinishJob(ctx, job, dao.JobSuppressed, "notification expired before retry", nil)
+			}
 			return s.dao.FinishJob(ctx, job, dao.JobPending, "", &next)
 		}
+		verifiedReservation = current
 	}
-	var verifiedReservation *crawler.ReminderReservation
 	if job.Type == NotificationStart30 || job.Type == NotificationEnd10 {
 		token, err := s.libraryToken(ctx, job.StudentID)
 		if err != nil {
 			return s.retryJob(ctx, job, err)
 		}
-		if current, err := s.subscriptionStillCurrent(ctx, *sub); err != nil || !current {
+		if current, err := s.subscriptionStillCurrent(ctx, *sub); err != nil {
+			return s.retryJob(ctx, job, err)
+		} else if !current {
 			return s.dao.FinishJob(ctx, job, dao.JobSuppressed, "subscription changed", nil)
 		}
 		reservations, err := s.crawler.GetTodayReservations(ctx, token)
@@ -1000,6 +1104,84 @@ func (s *ReminderService) sendOutboxRow(ctx context.Context, row dao.Notificatio
 			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "reservation time changed", nil)
 		}
 		if !expectedExpiry.After(s.now()) {
+			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "notification expired", nil)
+		}
+	}
+	if row.Type == NotificationAway60 || row.Type == NotificationAway80 {
+		// 旧 outbox 可能没有 expires_at，仍须依据载荷及预约快照拒绝过期提醒。
+		if payload.ReservationID != row.ExternalReservationID || payload.EpisodeVersion <= 0 || payload.EndAt <= s.now().Unix() {
+			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "away notification expired or invalid", nil)
+		}
+		reservation, err := s.dao.Reservation(ctx, row.StudentID, row.ExternalReservationID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "reservation no longer active", nil)
+		}
+		if err != nil {
+			return err
+		}
+		if terminalReservationStatus(reservation.Status) || !reservation.EndAt.After(s.now()) || reservation.EndAt.Unix() != payload.EndAt {
+			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "reservation no longer active", nil)
+		}
+		if current, err := s.awayEpisodeCurrent(ctx, row.StudentID, row.ExternalReservationID, payload.EpisodeVersion); err != nil {
+			return err
+		} else if !current {
+			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "away episode changed", nil)
+		}
+		token, err := s.libraryToken(ctx, row.StudentID)
+		if err != nil {
+			return err
+		}
+		current, err := s.crawler.GetCurrentReservation(ctx, token)
+		if err != nil {
+			return err
+		}
+		now := s.now()
+		away := awayObservation{}
+		state := dao.AwayStateEnded
+		if current != nil && current.ID == row.ExternalReservationID && !terminalReservationStatus(current.Status) {
+			_, end, err := current.Times()
+			if err != nil {
+				return err
+			}
+			if end.After(now) {
+				away = currentAwayObservation(*current, now)
+				state = dao.AwayStateReturned
+			}
+			if end.Unix() != payload.EndAt {
+				return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "reservation time changed", nil)
+			}
+		}
+		if !away.isAway {
+			ended, err := s.endAwayEpisode(ctx, row.StudentID, row.ExternalReservationID, row.PreferenceVersion, payload.EpisodeVersion, state)
+			if err != nil {
+				return err
+			}
+			if ended {
+				return nil
+			}
+			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "away condition no longer holds", nil)
+		}
+		threshold := 60
+		if row.Type == NotificationAway80 {
+			threshold = 80
+		}
+		if away.elapsedKnown && away.elapsedMinutes < threshold {
+			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "away condition no longer holds", nil)
+		}
+		// 上游复核期间可能已发生返回或偏好变更，投递前再次检查本地状态。
+		canSend, err := s.dao.CanSendOutbox(ctx, row)
+		if err != nil {
+			return err
+		}
+		if !canSend {
+			err := s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "subscription or away episode changed", nil)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// 返回观察可能已抑制当前 sending，无需重复完成。
+				return nil
+			}
+			return err
+		}
+		if payload.EndAt <= s.now().Unix() || (row.ExpiresAt != nil && !row.ExpiresAt.After(s.now())) {
 			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "notification expired", nil)
 		}
 	}
@@ -1448,7 +1630,7 @@ func (s *ReminderService) runUserOperation(ctx context.Context, row dao.LibraryR
 
 func terminalReservationStatus(status string) bool {
 	switch strings.ToUpper(strings.TrimSpace(status)) {
-	case "CANCEL", "STOP", "FINISH":
+	case "CANCEL", "STOP", "FINISH", "LEAVE_EARLY", "MISS":
 		return true
 	default:
 		return false

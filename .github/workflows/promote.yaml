@@ -88,8 +88,8 @@ jobs:
             done
 
             if ((changed == 0)); then
-              echo 'Nothing to promote: production already runs the preview versions.'
-              exit 0
+              # .env 只记录目标版本，不能证明容器已更新；版本相同也要重试部署。
+              echo 'Production target versions match preview; reconciling containers.'
             fi
 
             echo "$REGISTRY_PASSWORD" | docker login \

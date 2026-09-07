@@ -106,7 +106,7 @@ const DefaultPushConfig uint16 = (1 << (LibraryPos + 1)) - 1
 // FeedUserConfig 表示用户的 Feed 配置
 type FeedUserConfig struct {
 	StudentId       string `gorm:"column:student_id;type:varchar(255);not null;uniqueIndex"`
-	PushConfig      uint16 `gorm:"column:push_config;type:SMALLINT UNSIGNED;not null;default:63"` // 16位二进制，默认值 0000 0000 0011 1111 (十进制 63)
+	PushConfig      uint16 `gorm:"column:push_config;type:SMALLINT UNSIGNED;not null"` // 默认开启由创建逻辑显式赋值，避免 GORM 将全关闭的 0 替换为默认值
 	LibraryRevision int64  `gorm:"column:library_revision;not null;default:0"`
 	BaseModel
 }

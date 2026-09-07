@@ -10,6 +10,7 @@ import (
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -78,6 +79,9 @@ func (g *FeedServiceServer) ChangeFeedAllowList(ctx context.Context, req *feedv1
 	if req == nil || req.AllowList == nil {
 		return nil, status.Error(codes.InvalidArgument, "allow_list is required")
 	}
+	if !tool.IsValidStudentID(req.AllowList.GetStudentId()) {
+		return nil, status.Error(codes.InvalidArgument, "valid student_id is required")
+	}
 	err := g.feedUserConfigService.ChangeAllowList(ctx, convAllowListFromGRPCToDomain(req.AllowList))
 	if err != nil {
 		return nil, err
@@ -86,6 +90,9 @@ func (g *FeedServiceServer) ChangeFeedAllowList(ctx context.Context, req *feedv1
 }
 
 func (g *FeedServiceServer) FindOrCreateAllowList(ctx context.Context, req *feedv1.FindOrCreateAllowListReq) (*feedv1.FindOrCreateAllowListResp, error) {
+	if req == nil || !tool.IsValidStudentID(req.GetStudentId()) {
+		return nil, status.Error(codes.InvalidArgument, "valid student_id is required")
+	}
 	list, err := g.feedUserConfigService.FindOrCreateAllowList(ctx, req.GetStudentId())
 	if err != nil {
 		return nil, err

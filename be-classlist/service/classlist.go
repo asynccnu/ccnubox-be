@@ -71,6 +71,8 @@ func (s *ClassListService) GetClass(ctx context.Context, stuID, year, semester s
 
 func mapGetClassError(err error) error {
 	switch {
+	case ctool.IsCCNUAccountInitializationRequired(err):
+		return CCNULoginError(err)
 	case errors.Is(err, biz.ErrInvalidParam),
 		errors.Is(err, biz.ErrUnsupportedStudentType):
 		return ParamError(err)

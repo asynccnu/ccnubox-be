@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	CCNUSERVER_ERROR                           = errorx.FormatErrorFunc(ccnuv1.ErrorCcnuserverError("ccnu服务器错误"))
+	CCNUSERVER_ERROR                           = tool.FormatCCNUErrorFunc(ccnuv1.ErrorCcnuserverError("ccnu服务器错误"), ccnuv1.ErrorCcnuserverError(tool.CCNUAccountInitializationRequiredMarker))
 	CCNU_ACCOUNT_INITIALIZATION_REQUIRED_ERROR = errorx.FormatErrorFunc(ccnuv1.ErrorCcnuserverError(tool.CCNUAccountInitializationRequiredMarker))
 	Invalid_SidOrPwd_ERROR                     = errorx.FormatErrorFunc(ccnuv1.ErrorInvalidSidOrPwd("账号密码错误"))
 	SYSTEM_ERROR                               = errorx.FormatErrorFunc(ccnuv1.ErrorSystemError("系统内部错误"))
@@ -118,6 +118,9 @@ func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password st
 	ug := crawler.NewUnderGrad(crawler.NewCrawlerClient(c.p, c.timeout))
 	client, ok, err := c.loginUnderGrad(ctx, stuId, password)
 	if err != nil {
+		if tool.IsCCNUAccountInitializationRequired(err) {
+			return "", err
+		}
 		return "", errorx.Errorf("getUnderGradCookie loginUnderGrad error: %w", err)
 	}
 	if !ok {
@@ -165,6 +168,9 @@ func (c *ccnuService) GetLibraryToken(ctx context.Context, studentId, password s
 	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.p, c.timeout, proxy.WithoutProxy()), c.secret) // 这里简化了，实际可按需加 Proxy
 	client, ok, err := c.loginUnderGrad(ctx, studentId, password)
 	if err != nil {
+		if tool.IsCCNUAccountInitializationRequired(err) {
+			return "", err
+		}
 		return "", errorx.Errorf("GetLibraryDiscussionToken loginUnderGrad error: %w", err)
 	}
 	if !ok {

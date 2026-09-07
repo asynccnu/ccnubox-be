@@ -48,7 +48,9 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 					logger.String("duration", duration.String()),
 				)
 				//这里会解包获取到存储的grpc的error,这样可以保证服务内的链路不会向外暴露
-				err = errorx.Unwrap(err)
+				if cause := errorx.Unwrap(err); cause != nil {
+					err = cause
+				}
 
 			} else {
 				// 记录常规日志

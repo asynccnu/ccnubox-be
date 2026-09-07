@@ -194,6 +194,10 @@ func (c *Library) checkLibrarySeatTokenWithSecret(ctx context.Context, token, se
 	}
 
 	defer resp.Body.Close()
+	// HTTP 鉴权拒绝也可能由系统签名密钥轮换引起，交由上层刷新一次后再判定 token。
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return false, nil
+	}
 	body, err := httpx.ReadResponse(resp)
 	if err != nil {
 		return false, err

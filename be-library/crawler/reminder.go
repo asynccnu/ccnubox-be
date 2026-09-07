@@ -23,6 +23,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-library/tool"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/google/uuid"
+	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -231,7 +232,7 @@ type ReminderHTTPClient struct {
 	historyMaxPages int
 	historyLookback int
 	requestSpacing  time.Duration
-	rateMu          sync.Mutex
+	rateGate        *semaphore.Weighted
 	nextRequest     time.Time
 
 	keyMu          sync.Mutex
@@ -260,7 +261,7 @@ func NewReminderCrawler(client *http.Client, requestTimeout time.Duration, histo
 	if upstreamQPS <= 0 {
 		upstreamQPS = 20
 	}
-	result := &ReminderHTTPClient{client: client, baseURL: BaseDomain, requestTimeout: requestTimeout, historyPageSize: historyPageSize, historyMaxPages: 100, historyLookback: lookbackDays, requestSpacing: time.Second / time.Duration(upstreamQPS)}
+	result := &ReminderHTTPClient{client: client, baseURL: BaseDomain, requestTimeout: requestTimeout, historyPageSize: historyPageSize, historyMaxPages: 100, historyLookback: lookbackDays, requestSpacing: time.Second / time.Duration(upstreamQPS), rateGate: semaphore.NewWeighted(1)}
 	if len(metricSet) > 0 {
 		result.metrics = metricSet[0]
 	}
@@ -622,15 +623,13 @@ func ClassifyUpstreamError(err error) string {
 }
 
 func (c *ReminderHTTPClient) waitRate(ctx context.Context) error {
-	c.rateMu.Lock()
-	now := time.Now()
-	ready := c.nextRequest
-	if ready.Before(now) {
-		ready = now
+	// 仅限制请求发起速率，不限制在途并发；放行后即释放闸门，不等待 HTTP 请求完成。
+	// 只由队首等待下一次放行，不为排队请求预占未来时隙；取消可直接退出队列。
+	if err := c.rateGate.Acquire(ctx, 1); err != nil {
+		return err
 	}
-	c.nextRequest = ready.Add(c.requestSpacing)
-	c.rateMu.Unlock()
-	if delay := time.Until(ready); delay > 0 {
+	defer c.rateGate.Release(1)
+	if delay := time.Until(c.nextRequest); delay > 0 {
 		timer := time.NewTimer(delay)
 		defer timer.Stop()
 		select {
@@ -639,6 +638,10 @@ func (c *ReminderHTTPClient) waitRate(ctx context.Context) error {
 		case <-timer.C:
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	c.nextRequest = time.Now().Add(c.requestSpacing)
 	return nil
 }
 

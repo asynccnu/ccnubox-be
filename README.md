@@ -89,8 +89,9 @@ push 到 `main` 且变更命中服务代码、`common/**` 或 [deploy.yaml](.git
 生产环境的更新由 [promote.yaml](.github/workflows/promote.yaml) 工作流负责，推送 `promote-*` tag（如 `promote-20260907`）触发，tag 需推送到官方仓库：
 
 ```bash
-git tag promote-$(date +%Y%m%d)
-git push origin promote-$(date +%Y%m%d)
+TAG="promote-$(date +%Y%m%d)"
+git tag "$TAG"
+git push origin "$TAG"
 ```
 
 工作流 SSH 到部署服务器，与部署流程共用远端锁保证互斥，然后：
@@ -200,7 +201,11 @@ log:
 1. 在根目录创建服务目录
 2. 编写 Dockerfile（参考现有服务）
 3. 添加服务自己的 config-example.yaml；基础设施配置沿用根目录 config-infra-example.yaml
-4. 将服务加入 GitHub Actions 的构建与部署矩阵（`.github/workflows/deploy.yaml` 的变更检测路径），并加入 [promote.yaml](.github/workflows/promote.yaml) 的版本同步白名单
+4. 将服务接入 CI/CD 链路，四处列表缺一不可，否则会出现不触发、构建被跳过或部署失败：
+   - `.github/workflows/deploy.yaml` 顶层的变更检测 `paths`
+   - `.github/workflows/deploy.yaml` 中 `changes` job 的 `all_services` 数组
+   - `.github/workflows/deploy.yaml` 中 deploy job 远端的服务白名单（`case` 校验，未登记会报 `Invalid service`）
+   - [promote.yaml](.github/workflows/promote.yaml) 中的版本同步 `services` 数组
 5. 在 Nacos 中添加对应的运行时配置
 6. 更新本 README 的服务说明
 

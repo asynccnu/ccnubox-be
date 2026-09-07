@@ -623,6 +623,7 @@ func ClassifyUpstreamError(err error) string {
 }
 
 func (c *ReminderHTTPClient) waitRate(ctx context.Context) error {
+	// 仅限制请求发起速率，不限制在途并发；放行后即释放闸门，不等待 HTTP 请求完成。
 	// 只由队首等待下一次放行，不为排队请求预占未来时隙；取消可直接退出队列。
 	if err := c.rateGate.Acquire(ctx, 1); err != nil {
 		return err

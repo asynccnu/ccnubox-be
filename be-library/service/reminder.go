@@ -465,7 +465,7 @@ func (s *ReminderService) reconcileReservation(ctx context.Context, sub dao.Libr
 	if err != nil {
 		return err
 	}
-	if terminalReservationStatus(status) {
+	if terminalReservationStatus(status) || !end.After(now) {
 		return s.dao.CancelReservationJobs(ctx, sub.StudentID, row.ID)
 	}
 	if shouldEnqueueReservationDiscovered(created, sub.BaselineCompleted, end, now, s.config.NotificationTypes.ReservationDiscovered) {
@@ -610,6 +610,10 @@ func (s *ReminderService) applyActiveObservation(ctx context.Context, sub dao.Li
 			return err
 		}
 		if terminalReservationStatus(current.Status) || !end.After(now) {
+			// 先保存终止/过期快照并取消关联工作，避免继续扫描或按旧快照发送提醒。
+			if err := s.reconcileReservation(ctx, sub, *current, now); err != nil {
+				return err
+			}
 			current = nil
 		}
 	}
@@ -721,6 +725,10 @@ func (s *ReminderService) endAwayEpisode(ctx context.Context, studentID, reserva
 }
 
 func (s *ReminderService) awayEpisodeCurrent(ctx context.Context, studentID, reservationID string, version int) (bool, error) {
+	// 迁移策略：无有效版本或缺少 episode 的历史暂离任务不补发，等待扫描建立可信状态。
+	if version <= 0 {
+		return false, nil
+	}
 	episode, err := s.dao.LatestAwayEpisode(ctx, studentID, reservationID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return false, nil
@@ -1096,6 +1104,9 @@ func (s *ReminderService) sendOutboxRow(ctx context.Context, row dao.Notificatio
 		if err != nil {
 			return err
 		}
+		if terminalReservationStatus(reservation.Status) {
+			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "reservation no longer active", nil)
+		}
 		expectedTarget, expectedExpiry := reservation.StartAt.Add(-30*time.Minute), reservation.StartAt
 		if row.Type == NotificationEnd10 {
 			expectedTarget, expectedExpiry = reservation.EndAt.Add(-10*time.Minute), reservation.EndAt
@@ -1168,10 +1179,17 @@ func (s *ReminderService) sendOutboxRow(ctx context.Context, row dao.Notificatio
 		if away.elapsedKnown && away.elapsedMinutes < threshold {
 			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "away condition no longer holds", nil)
 		}
-		// 上游复核期间可能已发生返回或偏好变更，投递前再次检查本地状态。
+		// 上游复核期间可能已发生返回或偏好变更，投递前再次检查 claim、订阅及 episode。
+		// 本地检查与远程 Publish 仍非原子操作，仅缩小并发状态变化的窗口。
 		canSend, err := s.dao.CanSendOutbox(ctx, row)
 		if err != nil {
 			return err
+		}
+		if canSend {
+			canSend, err = s.awayEpisodeCurrent(ctx, row.StudentID, row.ExternalReservationID, payload.EpisodeVersion)
+			if err != nil {
+				return err
+			}
 		}
 		if !canSend {
 			err := s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "subscription or away episode changed", nil)

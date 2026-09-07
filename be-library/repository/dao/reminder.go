@@ -284,7 +284,7 @@ func (d *ReminderDAO) ActiveSubscriptions(ctx context.Context, now time.Time, li
 	err := d.db.WithContext(ctx).Model(&LibraryReminderSubscription{}).
 		Distinct("library_reminder_subscriptions.*").
 		Joins("JOIN reservation_snapshots r ON r.student_id = library_reminder_subscriptions.student_id").
-		Where("library_reminder_subscriptions.enabled = ? AND r.start_at <= ? AND r.end_at >= ? AND UPPER(r.status) NOT IN ?", true, now, now, []string{"CANCEL", "STOP", "FINISH", "LEAVE_EARLY", "MISS"}).
+		Where("library_reminder_subscriptions.enabled = ? AND r.start_at <= ? AND r.end_at > ? AND UPPER(r.status) NOT IN ?", true, now, now, []string{"CANCEL", "STOP", "FINISH", "LEAVE_EARLY", "MISS"}).
 		Order("library_reminder_subscriptions.last_active_scan_at IS NULL DESC, library_reminder_subscriptions.last_active_scan_at ASC, library_reminder_subscriptions.id ASC").
 		Limit(limit).Find(&rows).Error
 	return rows, err
@@ -320,7 +320,7 @@ func (d *ReminderDAO) MetricsSnapshot(ctx context.Context, now time.Time, maxAtt
 		snapshot.OldestOutboxAt = &createdAt
 	}
 	if err := d.db.WithContext(ctx).Model(&ReservationSnapshot{}).
-		Distinct("student_id").Where("start_at <= ? AND end_at >= ? AND UPPER(status) NOT IN ?", now, now, []string{"CANCEL", "STOP", "FINISH", "LEAVE_EARLY", "MISS"}).Count(&snapshot.ActiveUsers).Error; err != nil {
+		Distinct("student_id").Where("start_at <= ? AND end_at > ? AND UPPER(status) NOT IN ?", now, now, []string{"CANCEL", "STOP", "FINISH", "LEAVE_EARLY", "MISS"}).Count(&snapshot.ActiveUsers).Error; err != nil {
 		return snapshot, err
 	}
 	return snapshot, nil
@@ -631,6 +631,8 @@ func (d *ReminderDAO) FinishJob(ctx context.Context, job NotificationJob, status
 	updates := map[string]any{"status": status, "last_error": lastError}
 	if next != nil {
 		updates["run_at"] = *next
+		// 将本次上游复核收紧的有效期与重排时间一起持久化，沿用同一 claim 校验。
+		updates["expires_at"] = job.ExpiresAt
 	}
 	result := d.db.WithContext(ctx).Model(&NotificationJob{}).
 		Where("id = ? AND status = ? AND version = ?", job.ID, JobRunning, job.Version).

@@ -46,17 +46,19 @@ ccnubox-be/
 | 服务 | 端口 | 说明 |
 |------|------|------|
 | bff | 8080 | BFF 层，聚合服务给前端 |
-| be-content | 19081 | 校历、部门、信息汇总、banner |
-| be-ccnu | 19082 | 一站式登录服务 |
-| be-class | 18000/20001 | 蹭课、空闲教室查询 |
-| be-classlist | 19084 | 课表管理 |
-| be-counter | 19085 | 核心用户判断 |
-| be-elecprice | 19087 | 电费查询 |
-| be-feed | 19088 | 消息推送 |
-| be-grade | 19089 | 成绩查询 |
-| be-user | 19091 | 用户服务，提供 cookie |
-| be-library | 19093 | 图书馆服务 |
-| be-proxy | 19094 | IP 代理池 |
+| be-content | 20003 | 校历、部门、信息汇总、banner |
+| be-ccnu | 20000 | 一站式登录服务 |
+| be-class | 18000/20001 | 蹭课、空闲教室查询（18000 为 HTTP） |
+| be-classlist | 20002 | 课表管理 |
+| be-counter | 20004 | 核心用户判断 |
+| be-elecprice | 20005 | 电费查询 |
+| be-feed | 20006 | 消息推送 |
+| be-grade | 20007 | 成绩查询 |
+| be-user | 20010 | 用户服务，提供 cookie |
+| be-library | 20008 | 图书馆服务 |
+| be-proxy | 20009 | IP 代理池 |
+
+端口取自 Nacos 生产配置（`grpc` 段），监控指标端口为 gRPC 端口 + 1000。
 
 ## 快速开始
 
@@ -67,7 +69,37 @@ ccnubox-be/
 
 ### 部署与配置
 
-生产环境由 GitHub Actions 构建和发布服务镜像，并在远程服务器上通过 Docker Compose 更新服务。运行时配置统一由 Nacos 管理；本地调试请参考各服务目录中的 README 和配置示例。
+运行时配置统一由 Nacos 管理：生产环境读取 PROD 组配置，测试环境读取 PREV 组配置；本地调试请参考各服务目录中的 README 和配置示例。镜像构建、环境部署与生产发布的完整流程见 [CI/CD 发布流程](#cicd-发布流程)。
+
+## CI/CD 发布流程
+
+代码从合并到上线分为两步：合并到 `main` 自动部署到测试环境，再通过推送 `promote-*` tag 将版本发布到生产环境。工作流定义在 `.github/workflows/` 下。
+
+### 合并即部署（测试环境）
+
+push 到 `main` 且变更命中服务代码、`common/**` 或 [deploy.yaml](.github/workflows/deploy.yaml) 时，[Build and Deploy](.github/workflows/deploy.yaml) 工作流会：
+
+1. 构建受影响服务的镜像并推送到阿里云 ACR（tag 为 commit SHA 前 7 位）；
+2. SSH 到部署服务器，在 `~/ccnubox-preview`（测试环境 Compose 项目）拉取新镜像并更新服务。
+
+测试环境与生产环境同机部署但相互隔离：容器名带 `-preview` 后缀、运行在独立的 bridge 子网中、etcd 注册隔离到 `test/*` 命名空间、读取 Nacos PREV 组配置，BFF 对外暴露 `:8081`。该流程不会触碰生产环境。
+
+### Promote 发布（生产环境）
+
+生产环境的更新由 [promote.yaml](.github/workflows/promote.yaml) 工作流负责，推送 `promote-*` tag（如 `promote-20260907`）触发，tag 需推送到官方仓库：
+
+```bash
+git tag promote-$(date +%Y%m%d)
+git push origin promote-$(date +%Y%m%d)
+```
+
+工作流 SSH 到部署服务器，与部署流程共用远端锁保证互斥，然后：
+
+1. 读取 `~/ccnubox-preview/.env` 中全部 12 个服务的镜像版本号；
+2. 逐键同步到生产环境 `~/ccnubox_v3/.env`（只更新版本号键，其余内容保持不变；版本无变化时直接结束）；
+3. 在生产环境执行 `docker compose pull && docker compose up -d` 完成版本切换，并清理 24 小时前的旧镜像。
+
+生产镜像不会在 promote 流程中重新构建——镜像在合并流程已构建推送完毕，promote 只做版本切换。
 
 ## 架构图
 
@@ -78,20 +110,20 @@ graph TD
     end
 
     subgraph MidService ["中游服务"]
-        be_content["be-content:19081"]
+        be_content["be-content:20003"]
         be_course["be-class:20001"]
-        be_course_list["be-classlist:19084"]
-        be_grade["be-grade:19089"]
-        be_elecprice["be-elecprice:19087"]
-        be_feed["be-feed:19088"]
-        be_user["be-user:19091"]
-        be_library["be-library:19093"]
+        be_course_list["be-classlist:20002"]
+        be_grade["be-grade:20007"]
+        be_elecprice["be-elecprice:20005"]
+        be_feed["be-feed:20006"]
+        be_user["be-user:20010"]
+        be_library["be-library:20008"]
     end
 
     subgraph BotService ["底层服务"]
-        be_ccnu["be-ccnu:19082"]
-        be_counter["be-counter:19085"]
-        be_proxy["be-proxy:19094"]
+        be_ccnu["be-ccnu:20000"]
+        be_counter["be-counter:20004"]
+        be_proxy["be-proxy:20009"]
     end
 
     bff_node --> be_content
@@ -168,7 +200,7 @@ log:
 1. 在根目录创建服务目录
 2. 编写 Dockerfile（参考现有服务）
 3. 添加服务自己的 config-example.yaml；基础设施配置沿用根目录 config-infra-example.yaml
-4. 将服务加入 GitHub Actions 的构建与部署矩阵
+4. 将服务加入 GitHub Actions 的构建与部署矩阵（`.github/workflows/deploy.yaml` 的变更检测路径），并加入 [promote.yaml](.github/workflows/promote.yaml) 的版本同步白名单
 5. 在 Nacos 中添加对应的运行时配置
 6. 更新本 README 的服务说明
 
@@ -188,14 +220,6 @@ go run .
 ## API 文档
 
 API 文档位于 [bff/docs/](bff/docs/)
-
-## 脚本说明
-
-| 脚本 | 说明 |
-|------|------|
-| `build-{service}.sh` | 构建单个服务镜像 |
-| `build-all.sh` | 构建所有服务镜像 |
-| `sync-config.sh` | 同步配置到部署环境 |
 
 ## 常见问题
 

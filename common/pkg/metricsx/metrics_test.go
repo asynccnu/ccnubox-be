@@ -26,6 +26,12 @@ func TestNewWithRegistererReusesAlreadyRegisteredCollectors(t *testing.T) {
 	if first.Client.AppErrorsTotal != second.Client.AppErrorsTotal {
 		t.Fatal("expected client app error counter to reuse the registered collector")
 	}
+	if first.Library.PreferenceSyncTotal != second.Library.PreferenceSyncTotal {
+		t.Fatal("expected library preference counter to reuse the registered collector")
+	}
+	if first.Feed.LibraryPublishTotal != second.Feed.LibraryPublishTotal {
+		t.Fatal("expected Feed library publish counter to reuse the registered collector")
+	}
 }
 
 func TestNewUsesDefaultRegisterer(t *testing.T) {
@@ -39,6 +45,20 @@ func TestNewUsesDefaultRegisterer(t *testing.T) {
 	defer prometheus.DefaultRegisterer.Unregister(m.Client.StartupDuration)
 	defer prometheus.DefaultRegisterer.Unregister(m.Client.IngestedEventsTotal)
 	defer prometheus.DefaultRegisterer.Unregister(m.Client.RejectedBatches)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.PreferenceSyncTotal)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.PreferenceSyncLagSeconds)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.RefreshUsersTotal)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.UpstreamRequestsTotal)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.UpstreamDurationSeconds)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.ActiveReservations)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.NotificationJobs)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.NotificationJobLagSeconds)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.Outbox)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.OutboxOldestAgeSeconds)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.NotificationDeduplicatedTotal)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.UnknownReservationStatusTotal)
+	defer prometheus.DefaultRegisterer.Unregister(m.Feed.LibraryPublishTotal)
+	defer prometheus.DefaultRegisterer.Unregister(m.Feed.PushDeliveryTotal)
 
 	if m.HTTP.RequestsTotal == nil {
 		t.Fatal("expected HTTP requests total to be initialized")
@@ -48,6 +68,12 @@ func TestNewUsesDefaultRegisterer(t *testing.T) {
 	}
 	if m.MQMetrics.FailedTotal == nil {
 		t.Fatal("expected MQ failed total to be initialized")
+	}
+	if m.Library == nil || m.Library.UpstreamRequestsTotal == nil {
+		t.Fatal("expected Library reminder metrics to be initialized")
+	}
+	if m.Feed == nil || m.Feed.LibraryPublishTotal == nil {
+		t.Fatal("expected Feed delivery metrics to be initialized")
 	}
 }
 

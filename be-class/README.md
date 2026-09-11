@@ -11,7 +11,7 @@
 - `grpc/`、`http/`：协议适配层
 - `cron/`：定时任务
 
-本地运行前，将 `config/config-example.yaml` 和 `config/config-infra-example.yaml`
+本地运行前，将 `config/config-example.yaml` 和根目录的 `config-infra-example.yaml`
 分别复制为 `config/config.yaml` 和 `config/config-infra.yaml`。
 
 ```bash

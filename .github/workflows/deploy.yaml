@@ -25,7 +25,8 @@ permissions:
 
 # Only one main-branch deployment may touch the server at a time. Builds for
 # the selected services still run in parallel, then one SSH session deploys
-# all of them together.
+# all of them together to the preview (test) environment. Production is
+# updated separately by the promote workflow, triggered by a promote-* tag.
 concurrency:
   group: ccnubox-dev-deploy
   cancel-in-progress: false
@@ -174,17 +175,21 @@ jobs:
       - build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Set up SSH key
         env:
-          SERVER_ADDR: ${{ secrets.SERVER_ADDR }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$SERVER_ADDR" >> ~/.ssh/known_hosts
+          cp .github/known_hosts ~/.ssh/known_hosts
 
-      - name: Deploy selected services
+      - name: Deploy selected services to preview
         env:
           SERVER_ADDR: ${{ secrets.SERVER_ADDR }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
@@ -209,7 +214,9 @@ jobs:
             printf "REGISTRY_PASSWORD_B64='%s'\n" "$registry_password_b64"
             cat << 'REMOTE_SCRIPT'
           set -euo pipefail
-          cd ~/ccnubox_v3
+          # Test environment: the preview compose project shares this host but
+          # runs isolated on its own bridge network with PREV/test config.
+          cd ~/ccnubox-preview
 
           REGISTRY="$(printf '%s' "$REGISTRY_B64" | base64 -d)"
           REGISTRY_USER="$(printf '%s' "$REGISTRY_USER_B64" | base64 -d)"
@@ -256,4 +263,4 @@ jobs:
             docker image prune -a -f --filter "until=24h"
           ) 200>/tmp/ccnubox_deploy.lock
           REMOTE_SCRIPT
-          } | ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_ADDR" bash -s
+          } | ssh -o StrictHostKeyChecking=yes "$SERVER_USER@$SERVER_ADDR" bash -s

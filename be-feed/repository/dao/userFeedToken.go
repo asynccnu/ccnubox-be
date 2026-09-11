@@ -82,7 +82,7 @@ func (dao *feedTokenDAO) AddToken(ctx context.Context, studentId string, token s
 	newToken := model.FeedUserToken{StudentId: studentId, Token: token}
 	err := dao.gorm.WithContext(ctx).Model(model.FeedUserToken{}).Create(&newToken).Error
 	if err != nil {
-		return errorx.Errorf("dao: add feed token failed, sid: %s, token: %s, err: %w", studentId, token, err)
+		return errorx.Errorf("dao: add feed token failed, sid: %s, err: %w", studentId, err)
 	}
 	return nil
 }
@@ -94,7 +94,7 @@ func (dao *feedTokenDAO) RemoveToken(ctx context.Context, studentId string, toke
 		Where("student_id = ? and token = ?", studentId, token).
 		Delete(&model.FeedUserToken{}).Error
 	if err != nil {
-		return errorx.Errorf("dao: remove feed token failed, sid: %s, token: %s, err: %w", studentId, token, err)
+		return errorx.Errorf("dao: remove feed token failed, sid: %s, err: %w", studentId, err)
 	}
 	return nil
 }

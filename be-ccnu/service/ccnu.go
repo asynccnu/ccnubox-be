@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	CCNUSERVER_ERROR                           = errorx.FormatErrorFunc(ccnuv1.ErrorCcnuserverError("ccnu服务器错误"))
+	CCNUSERVER_ERROR                           = tool.FormatCCNUErrorFunc(ccnuv1.ErrorCcnuserverError("ccnu服务器错误"), ccnuv1.ErrorCcnuserverError(tool.CCNUAccountInitializationRequiredMarker))
 	CCNU_ACCOUNT_INITIALIZATION_REQUIRED_ERROR = errorx.FormatErrorFunc(ccnuv1.ErrorCcnuserverError(tool.CCNUAccountInitializationRequiredMarker))
 	Invalid_SidOrPwd_ERROR                     = errorx.FormatErrorFunc(ccnuv1.ErrorInvalidSidOrPwd("账号密码错误"))
 	SYSTEM_ERROR                               = errorx.FormatErrorFunc(ccnuv1.ErrorSystemError("系统内部错误"))

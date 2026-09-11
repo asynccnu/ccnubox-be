@@ -35,7 +35,16 @@ func InitApp() App {
 	commentService := service.NewCommentService(commentDAO)
 	libraryServiceServer := grpc.NewLibraryGrpcService(seatService, discussionService, commentService)
 	server := ioc.InitGRPCxKratosServer(libraryServiceServer, client, logger, infraConf)
-	v := ioc.InitNoopShutdown()
-	app := NewApp(server, v)
+	metricsxServer := ioc.InitMetricsServer(infraConf)
+	reminderDAO := dao.NewReminderDAO(db)
+	metrics := ioc.InitMetrics()
+	reminderCrawler := ioc.InitReminderCrawler(httpClient, serverConf, metrics)
+	feedServiceClient := ioc.InitReminderFeedClient(client, infraConf, serverConf)
+	feedGateway := ioc.InitReminderFeedGateway(feedServiceClient, logger)
+	reminderService := service.NewReminderService(reminderDAO, reminderCrawler, userServiceClient, feedGateway, serverConf, metrics, logger)
+	reminderScheduler := service.NewReminderScheduler(reminderService, logger)
+	oTelShutdownFunc := ioc.InitOTel(infraConf)
+	v := ioc.InitShutdown(oTelShutdownFunc, db, client)
+	app := NewApp(server, metricsxServer, reminderScheduler, v)
 	return app
 }

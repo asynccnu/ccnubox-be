@@ -26,7 +26,7 @@ var (
 	SAVE_USER_ERROR      = errorx.FormatErrorFunc(userv1.ErrorSaveUserError("保存用户失败"))
 	DEFAULT_DAO_ERROR    = errorx.FormatErrorFunc(userv1.ErrorDefaultDaoError("数据库异常"))
 	USER_NOT_FOUND_ERROR = errorx.FormatErrorFunc(userv1.ErrorUserNotFoundError("无法找到该用户"))
-	CCNU_GETCOOKIE_ERROR = errorx.FormatErrorFunc(userv1.ErrorCcnuGetcookieError("获取Cookie失败"))
+	CCNU_GETCOOKIE_ERROR = tool.FormatCCNUErrorFunc(userv1.ErrorCcnuGetcookieError("获取Cookie失败"), userv1.ErrorCcnuGetcookieError(tool.CCNUAccountInitializationRequiredMarker))
 	ENCRYPT_ERROR        = errorx.FormatErrorFunc(userv1.ErrorEncryptError("Password加密失败"))
 	DECRYPT_ERROR        = errorx.FormatErrorFunc(userv1.ErrorDecryptError("Password解密失败"))
 	InCorrectPassword    = errorx.FormatErrorFunc(userv1.ErrorIncorrectPasswordError("账号密码错误"))

@@ -4,6 +4,7 @@ import (
 	"context"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/conf"
@@ -19,6 +20,11 @@ type MuxiController struct {
 	durationTime time.Duration
 	stopChan     chan struct{}
 	l            logger.Logger
+	stopOnce     sync.Once
+}
+
+func (c *MuxiController) StopCronTask() {
+	c.stopOnce.Do(func() { close(c.stopChan) })
 }
 
 func NewMuxiController(
@@ -38,7 +44,7 @@ func NewMuxiController(
 	}
 }
 
-func (c *MuxiController) StartCronTask() {
+func (c *MuxiController) StartCronTask() error {
 	go func() {
 		ticker := time.NewTicker(c.durationTime)
 
@@ -53,7 +59,7 @@ func (c *MuxiController) StartCronTask() {
 			}
 		}
 	}() //定时控制器
-
+	return nil
 }
 
 func (c *MuxiController) publicMuxiFeed() {
@@ -70,7 +76,7 @@ func (c *MuxiController) publicMuxiFeed() {
 
 	for _, msg := range msgs {
 		//发布消息给全体成员
-		err = c.feed.PublicFeedEvent(ctx, true, domain.FeedEvent{
+		_, err = c.feed.PublicFeedEvent(ctx, true, domain.FeedEvent{
 			Type:         strings.ToLower(feedv1.FeedEventType_MUXI.String()),
 			Title:        msg.Title,
 			Content:      msg.Content,

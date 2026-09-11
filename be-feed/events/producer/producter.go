@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -13,7 +14,7 @@ import (
 
 // Producer 接口定义了 Kafka Producer 的行为
 type Producer interface {
-	SendMessage(topic string, msgData domain.FeedEvent) error
+	SendMessage(ctx context.Context, topic string, msgData domain.FeedEvent) error
 	Close() error
 }
 
@@ -35,15 +36,18 @@ func NewSaramaProducer(kafkaClient sarama.Client) Producer {
 }
 
 // SendMessage 发送一条消息到指定的 Kafka 主题
-func (p *saramaProducer) SendMessage(topic string, msgData domain.FeedEvent) error {
+func (p *saramaProducer) SendMessage(ctx context.Context, topic string, msgData domain.FeedEvent) error {
 	//序列化
 	data, err := json.Marshal(msgData)
 	if err != nil {
 		return err
 	}
-	//存储数据
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
+		Key:   sarama.StringEncoder(msgData.StudentId),
 		Value: sarama.ByteEncoder(data),
 	}
 
@@ -80,8 +84,8 @@ func NewInstrumentedSaramaProducer(kafkaClient sarama.Client, m *metricsx.Metric
 	return NewInstrumentedProducer(NewSaramaProducer(kafkaClient), m.MQMetrics.ProducedTotal, m.MQMetrics.FailedTotal)
 }
 
-func (p *instrumentedProducer) SendMessage(topic string, msgData domain.FeedEvent) error {
-	err := p.Producer.SendMessage(topic, msgData)
+func (p *instrumentedProducer) SendMessage(ctx context.Context, topic string, msgData domain.FeedEvent) error {
+	err := p.Producer.SendMessage(ctx, topic, msgData)
 	if err != nil {
 		if p.mqFailedTotal != nil {
 			p.mqFailedTotal.WithLabelValues(topic, classifyError(err)).Inc()

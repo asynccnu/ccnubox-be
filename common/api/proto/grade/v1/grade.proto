@@ -51,6 +51,7 @@ message Grade{
   int64 xnm =13;
   string KcId=14;
   string JxbId=15;
+  int64 changeVersion=16; //成绩变更版本
 }
 
 message GetGradeScoreReq{

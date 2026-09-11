@@ -13,6 +13,8 @@ type Metrics struct {
 	MQMetrics *MQMetrics
 	User      *UserMetrics
 	Client    *ClientMetrics
+	Library   *LibraryReminderMetrics
+	Feed      *FeedDeliveryMetrics
 }
 
 // New 创建并初始化所有监控指标，自动注册到 Prometheus 默认 registerer。
@@ -30,6 +32,8 @@ func NewWithRegisterer(reg prometheus.Registerer, namespace string) *Metrics {
 		MQMetrics: newMQMetrics(namespace),
 		User:      newUserMetrics(namespace),
 		Client:    newClientMetrics(namespace),
+		Library:   newLibraryReminderMetrics(namespace),
+		Feed:      newFeedDeliveryMetrics(namespace),
 	}
 
 	m.HTTP.RequestsTotal = registerVec(reg, m.HTTP.RequestsTotal)
@@ -47,6 +51,20 @@ func NewWithRegisterer(reg prometheus.Registerer, namespace string) *Metrics {
 	m.Client.StartupDuration = registerVec(reg, m.Client.StartupDuration)
 	m.Client.IngestedEventsTotal = registerVec(reg, m.Client.IngestedEventsTotal)
 	m.Client.RejectedBatches = registerVec(reg, m.Client.RejectedBatches)
+	m.Library.PreferenceSyncTotal = registerVec(reg, m.Library.PreferenceSyncTotal)
+	m.Library.PreferenceSyncLagSeconds = registerVec(reg, m.Library.PreferenceSyncLagSeconds)
+	m.Library.RefreshUsersTotal = registerVec(reg, m.Library.RefreshUsersTotal)
+	m.Library.UpstreamRequestsTotal = registerVec(reg, m.Library.UpstreamRequestsTotal)
+	m.Library.UpstreamDurationSeconds = registerVec(reg, m.Library.UpstreamDurationSeconds)
+	m.Library.ActiveReservations = registerVec(reg, m.Library.ActiveReservations)
+	m.Library.NotificationJobs = registerVec(reg, m.Library.NotificationJobs)
+	m.Library.NotificationJobLagSeconds = registerVec(reg, m.Library.NotificationJobLagSeconds)
+	m.Library.Outbox = registerVec(reg, m.Library.Outbox)
+	m.Library.OutboxOldestAgeSeconds = registerVec(reg, m.Library.OutboxOldestAgeSeconds)
+	m.Library.NotificationDeduplicatedTotal = registerVec(reg, m.Library.NotificationDeduplicatedTotal)
+	m.Library.UnknownReservationStatusTotal = registerVec(reg, m.Library.UnknownReservationStatusTotal)
+	m.Feed.LibraryPublishTotal = registerVec(reg, m.Feed.LibraryPublishTotal)
+	m.Feed.PushDeliveryTotal = registerVec(reg, m.Feed.PushDeliveryTotal)
 
 	return m
 }

@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	ErrGetGrade = errorx.FormatErrorFunc(gradev1.ErrorGetGradeError("获取成绩失败"))
+	ErrGetGrade = tool.FormatCCNUErrorFunc(gradev1.ErrorGetGradeError("获取成绩失败"), gradev1.ErrorGetGradeError(tool.CCNUAccountInitializationRequiredMarker))
 )
 
 const defaultGradeRefreshInterval = 5 * time.Minute

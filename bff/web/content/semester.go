@@ -24,7 +24,9 @@ func (h *ContentHandler) RegisterSemesterRoute(group *gin.RouterGroup, authMiddl
 // @Summary 获取当前所属学期
 // @Description 获取当前所属学期
 // @Tags semester
-// @Success 200 {object} web.Response{data=GetSemesterResponse} "成功"
+// @Accept json
+// @Produce json
+// @Success 200 {object} web.Response{data=Semester} "成功"
 // @Router /semester/getSemester [get]
 func (h *ContentHandler) GetSemester(ctx *gin.Context) (web.Response, error) {
 	r := &contentv1.GetSemesterRequest{Date: time.Now().Format("2006-01-02")}
@@ -74,7 +76,9 @@ func (h *ContentHandler) SaveSemester(ctx *gin.Context, req SaveSemesterRequest,
 // @Summary 获取所有学期信息
 // @Description 获取所有学期信息
 // @Tags semester
-// @Success 200 {object} web.Response{data=GetSemesterListResponse} "成功"
+// @Accept json
+// @Produce json
+// @Success 200 {object} web.Response{data=[]Semester} "成功"
 // @Router /semester/getSemesterList [get]
 func (h *ContentHandler) GetSemesterList(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
 	resp, err := h.contentClient.GetSemesterList(ctx, &contentv1.GetSemesterListRequest{StudentId: uc.StudentId})

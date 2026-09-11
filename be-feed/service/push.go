@@ -20,10 +20,19 @@ type pushService struct {
 }
 
 type PushService interface {
+	GetPushCID(context.Context) (string, error)
+	PreparePush(ctx context.Context, pushData *domain.FeedEvent) (*PreparedPush, error)
+	PushPreparedMSGWithCID(ctx context.Context, pushData *domain.FeedEvent, prepared *PreparedPush, cid string) error
 	PushMSG(ctx context.Context, pushData *domain.FeedEvent) error
+	PushMSGWithCID(ctx context.Context, pushData *domain.FeedEvent, cid string) error
 	PushMSGS(ctx context.Context, pushDatas []domain.FeedEvent) []ErrWithData
 	PushToAll(ctx context.Context, pushData *domain.FeedEvent) error
 	InsertFailFeedEvents(ctx context.Context, failEvents []domain.FeedEvent) error
+}
+
+// PreparedPush 保存已通过 Token 和推送开关检查的接收目标。
+type PreparedPush struct {
+	tokens []string
 }
 
 type ErrWithData struct {
@@ -87,36 +96,61 @@ func (s *pushService) InsertFailFeedEvents(ctx context.Context, failEvents []dom
 	return nil
 }
 
+func (s *pushService) GetPushCID(ctx context.Context) (string, error) {
+	cid, err := s.pushClient.GetCID(ctx)
+	if err != nil {
+		return "", errorx.Errorf("service: get jpush cid failed: %w", err)
+	}
+	return cid, nil
+}
+
 // 推送单条消息
 func (s *pushService) PushMSG(ctx context.Context, pushData *domain.FeedEvent) error {
+	return s.PushMSGWithCID(ctx, pushData, "")
+}
+
+func (s *pushService) PushMSGWithCID(ctx context.Context, pushData *domain.FeedEvent, cid string) error {
+	prepared, err := s.PreparePush(ctx, pushData)
+	if err != nil || prepared == nil {
+		return err
+	}
+	return s.PushPreparedMSGWithCID(ctx, pushData, prepared, cid)
+}
+
+func (s *pushService) PreparePush(ctx context.Context, pushData *domain.FeedEvent) (*PreparedPush, error) {
 	tokens, err := s.feedTokenDAO.GetTokens(ctx, pushData.StudentId)
 	if err != nil {
-		return errorx.Errorf("service: get tokens failed for push, sid: %s, err: %w", pushData.StudentId, err)
+		return nil, errorx.Errorf("service: get tokens failed for push, sid: %s, err: %w", pushData.StudentId, err)
 	}
 	if len(tokens) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	// 权限检测
 	allowed, err := s.checkIfAllow(ctx, pushData.Type, pushData.StudentId)
 	if err != nil {
-		return errorx.Errorf("service: check push permission failed, sid: %s, type: %s, err: %w", pushData.StudentId, pushData.Type, err)
+		return nil, errorx.Errorf("service: check push permission failed, sid: %s, type: %s, err: %w", pushData.StudentId, pushData.Type, err)
 	}
 	if !allowed {
+		return nil, nil
+	}
+	return &PreparedPush{tokens: tokens}, nil
+}
+
+func (s *pushService) PushPreparedMSGWithCID(ctx context.Context, pushData *domain.FeedEvent, prepared *PreparedPush, cid string) error {
+	if prepared == nil || len(prepared.tokens) == 0 {
 		return nil
 	}
-
-	err = s.pushClient.Push(tokens, jpush.PushData{
+	err := s.pushClient.Push(ctx, prepared.tokens, jpush.PushData{
 		ContentType: pushData.Type,
 		Extras:      pushData.ExtendFields,
 		MsgContent:  pushData.Content,
 		Title:       pushData.Title,
+		Cid:         cid,
 	})
-
 	if err != nil {
-		return errorx.Errorf("service: jpush client call failed, sid: %s, tokens_count: %d, err: %w", pushData.StudentId, len(tokens), err)
+		return errorx.Errorf("service: jpush client call failed, sid: %s, tokens_count: %d, err: %w", pushData.StudentId, len(prepared.tokens), err)
 	}
-
 	return nil
 }
 
@@ -151,7 +185,7 @@ func (s *pushService) PushToAll(ctx context.Context, pushData *domain.FeedEvent)
 		}
 
 		if len(filteredTokens) > 0 {
-			err = s.pushClient.Push(filteredTokens, jpush.PushData{
+			err = s.pushClient.Push(ctx, filteredTokens, jpush.PushData{
 				ContentType: pushData.Type,
 				Extras:      pushData.ExtendFields,
 				MsgContent:  pushData.Content,

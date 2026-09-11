@@ -16,6 +16,7 @@ func convAllowListFromGRPCToDomain(list *feedv1.AllowList) domain.AllowList {
 		Holiday:   list.Holiday,
 		Energy:    list.Energy,
 		FeedBack:  list.FeedBack,
+		Library:   list.Library,
 	}
 }
 
@@ -27,6 +28,7 @@ func convAllowListFromDomainToGRPC(list *domain.AllowList) *feedv1.AllowList {
 		Holiday:   list.Holiday,
 		Energy:    list.Energy,
 		FeedBack:  list.FeedBack,
+		Library:   list.Library,
 	}
 }
 

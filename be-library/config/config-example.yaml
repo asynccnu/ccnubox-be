@@ -11,4 +11,40 @@ otel:
   endpoint: "localhost:4318"
 
 crypto:
-  secret: ""  # 加密密钥
+  secret: ""  # 仅供旧 crawler 迁移兼容；提醒模块动态获取 HMAC key
+
+libraryReminder:
+  enabled: true
+  preferenceSyncInterval: 15s
+  preferenceFullSyncCron: "15 3 * * *"
+  fullRefreshCron: "*/30 * * * *"
+  fullRefreshMinInterval: 25m
+  activeScanCron: "*/5 * * * *"
+  activeScanMinInterval: 4m
+  jobDispatchCron: "* * * * *"
+  jobDispatchBatchSize: 100
+  jobDispatchBudget: 1000
+  jobDispatchConcurrency: 20
+  outboxInterval: 2s
+  claimRecoveryInterval: 1m
+  claimTimeout: 30m
+  userConcurrency: 20
+  userJitter: 250ms
+  upstreamRetryAttempts: 3
+  upstreamQPS: 20 # 限制请求发起速率，不限制在途并发
+  requestTimeout: 8s
+  historyPageSize: 20
+  historyLookbackDays: 3
+  historyRetentionDays: 7
+  retryMaxAttempts: 10
+  baselineOnEnable: true
+  dryRun: true
+  notificationTypes:
+    reservationDiscovered: true
+    start30: true
+    end10: true
+    # 迁移时不补发无有效 episode 版本或缺少 episode 的旧暂离任务/outbox，由后续扫描建立可信状态。
+    away60: true
+    away80: true
+    breach: true
+    blacklisted: true

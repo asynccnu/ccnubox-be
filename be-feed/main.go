@@ -49,6 +49,14 @@ func NewApp(
 
 func (app *App) Start() {
 	defer func() {
+		for _, c := range app.crons {
+			c.StopCronTask()
+		}
+		for _, c := range app.consumers {
+			if stoppable, ok := c.(interface{ Stop() }); ok {
+				stoppable.Stop()
+			}
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := app.shutdown(ctx); err != nil {
@@ -60,7 +68,9 @@ func (app *App) Start() {
 	}()
 
 	for _, c := range app.crons {
-		c.StartCronTask()
+		if err := c.StartCronTask(); err != nil {
+			panic(fmt.Sprintln("cron startup error:", err))
+		}
 	}
 
 	for _, c := range app.consumers {

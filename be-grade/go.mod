@@ -11,6 +11,7 @@ require (
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/go-redsync/redsync/v4 v4.15.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/wire v0.7.0
 	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.17.3
@@ -18,6 +19,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.7
 	golang.org/x/sync v0.19.0
 	google.golang.org/grpc v1.77.0
+	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
 )
 
@@ -42,7 +44,6 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/form/v4 v4.2.0 // indirect
-	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
@@ -63,6 +64,7 @@ require (
 	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.1 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nacos-group/nacos-sdk-go v1.1.6 // indirect

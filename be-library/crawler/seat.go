@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,13 +19,18 @@ import (
 	libraryv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/crypto"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/httpx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/tidwall/gjson"
+	"golang.org/x/sync/singleflight"
 )
 
 // 定义全局URL常量
 const (
-	BaseDomain = "https://kjyy.ccnu.edu.cn"
+	BaseDomain            = "https://kjyy.ccnu.edu.cn"
+	seatDynamicKeyTTL     = 10 * time.Minute
+	seatFallbackKeyTTL    = 30 * time.Second
+	seatKeyRequestTimeout = 8 * time.Second
 )
 
 const (
@@ -49,6 +55,12 @@ type Crawler struct {
 	l       logger.Logger
 	secret  string
 	baseURL string
+
+	keyMu          sync.Mutex
+	keyGroup       singleflight.Group
+	hmacKey        string
+	hmacKeyUntil   time.Time
+	hmacKeyVersion uint64
 }
 
 // NewLibraryCrawler 创建新的图书馆爬虫
@@ -77,10 +89,36 @@ func buildURL(baseURL, path string, params url.Values) (string, error) {
 	return u.String(), nil
 }
 
-// doSeatRequestWithToken 通用HTTP请求函数
+// doSeatRequestWithToken 使用动态 HMAC key 签名；明确鉴权失败时强制刷新并仅重放一次。
 func (c *Crawler) doSeatRequestWithToken(ctx context.Context, method, url, token string, body []byte) (*http.Response, error) {
+	key, version, err := c.seatSigningKey(ctx, token, false, 0)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.doSeatRequestWithKey(ctx, method, url, token, key, body)
+	if err != nil {
+		return nil, err
+	}
+	rejected, inspectErr := seatAuthRejected(resp)
+	if inspectErr != nil {
+		resp.Body.Close()
+		return nil, inspectErr
+	}
+	if !rejected {
+		return resp, nil
+	}
+	resp.Body.Close()
+
+	refreshed, _, err := c.seatSigningKey(ctx, token, true, version)
+	if err != nil {
+		return nil, err
+	}
+	return c.doSeatRequestWithKey(ctx, method, url, token, refreshed, body)
+}
+
+func (c *Crawler) doSeatRequestWithKey(ctx context.Context, method, url, token, key string, body []byte) (*http.Response, error) {
 	return tool.Retry(func() (*http.Response, error) {
-		id, sign, ts := crypto.BuildSignWithSecret(method, c.secret)
+		id, sign, ts := crypto.BuildSignWithSecret(method, key)
 		var requestBody io.Reader
 		if body != nil {
 			requestBody = bytes.NewReader(body)
@@ -106,6 +144,110 @@ func (c *Crawler) doSeatRequestWithToken(ctx context.Context, method, url, token
 		}
 		return resp, nil
 	})
+}
+
+func (c *Crawler) seatSigningKey(parent context.Context, token string, force bool, observedVersion uint64) (string, uint64, error) {
+	if cached, ok := c.cachedSeatSigningKey(force, observedVersion); ok {
+		return cached.key, cached.version, nil
+	}
+
+	result := c.keyGroup.DoChan("hmac", func() (any, error) {
+		// 请求进入 singleflight 前缓存可能已由另一个刷新者更新。
+		if cached, ok := c.cachedSeatSigningKey(force, observedVersion); ok {
+			return cached, nil
+		}
+		key, err := c.fetchSeatSigningKey(context.WithoutCancel(parent), token)
+		ttl := seatDynamicKeyTTL
+		if err != nil {
+			// 动态配置异常时短暂缓存静态密钥，避免多房间查询反复等待配置接口。
+			if strings.TrimSpace(c.secret) == "" {
+				return hmacKeySnapshot{}, err
+			}
+			key = c.secret
+			ttl = seatFallbackKeyTTL
+		}
+		c.keyMu.Lock()
+		defer c.keyMu.Unlock()
+		c.hmacKey = key
+		c.hmacKeyUntil = time.Now().Add(ttl)
+		c.hmacKeyVersion++
+		return hmacKeySnapshot{key: key, version: c.hmacKeyVersion}, nil
+	})
+	select {
+	case <-parent.Done():
+		return "", 0, parent.Err()
+	case shared := <-result:
+		if shared.Err != nil {
+			return "", 0, shared.Err
+		}
+		key := shared.Val.(hmacKeySnapshot)
+		return key.key, key.version, nil
+	}
+}
+
+func (c *Crawler) cachedSeatSigningKey(force bool, observedVersion uint64) (hmacKeySnapshot, bool) {
+	c.keyMu.Lock()
+	defer c.keyMu.Unlock()
+	if c.hmacKey == "" || !time.Now().Before(c.hmacKeyUntil) {
+		return hmacKeySnapshot{}, false
+	}
+	if force && c.hmacKeyVersion == observedVersion {
+		return hmacKeySnapshot{}, false
+	}
+	return hmacKeySnapshot{key: c.hmacKey, version: c.hmacKeyVersion}, true
+}
+
+func (c *Crawler) fetchSeatSigningKey(parent context.Context, token string) (string, error) {
+	ctx, cancel := context.WithTimeout(parent, seatKeyRequestTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+reminderSysSetPath, bytes.NewReader([]byte("{}")))
+	if err != nil {
+		return "", errorx.Errorf("crawler: create library system config request failed: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Token", token)
+	req.Header.Set("LoginType", "PC")
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return "", errorx.Errorf("crawler: get library system config failed: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := readSuccessfulResponse(resp)
+	if err != nil {
+		return "", err
+	}
+	var envelope Response
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return "", errorx.Errorf("crawler: decode library system config failed: %w", err)
+	}
+	var data struct {
+		HMACKey string `json:"hmacKey"`
+	}
+	if err := json.Unmarshal(envelope.Data, &data); err != nil || strings.TrimSpace(data.HMACKey) == "" {
+		return "", errorx.Errorf("crawler: library system config did not contain hmacKey")
+	}
+	key, err := decryptHMACKey(data.HMACKey)
+	if err != nil || strings.TrimSpace(key) == "" {
+		return "", errorx.Errorf("crawler: decrypt library hmacKey failed: %w", err)
+	}
+	return key, nil
+}
+
+func seatAuthRejected(resp *http.Response) (bool, error) {
+	body, err := httpx.ReadResponse(resp, httpx.WithAcceptedStatuses(func(int) bool { return true }))
+	if err != nil {
+		return false, errorx.Errorf("crawler: inspect library response failed: %w", err)
+	}
+	resp.Body.Close()
+	resp.Body = io.NopCloser(bytes.NewReader(body))
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return true, nil
+	}
+	var envelope Response
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return false, nil
+	}
+	return envelope.Code == http.StatusUnauthorized || envelope.Code == http.StatusForbidden, nil
 }
 
 // GetSeatInfos 获取不定个给定的房间的座位信息
@@ -158,7 +300,7 @@ func (c *Crawler) GetSeatInfos(ctx context.Context, token string, roomIDs []stri
 }
 
 func defaultSeatQuery(now time.Time) (string, getSeatInfoReq) {
-	loc, _ := tool.GetLocation()
+	loc := tool.GetLocation()
 	now = now.In(loc)
 	if now.Hour() >= 22 {
 		return now.AddDate(0, 0, 1).Format("2006-01-02"), getSeatInfoReq{
@@ -201,7 +343,7 @@ func (c *Crawler) GetSeatInfosForPeriod(ctx context.Context, token string, roomI
 		return nil, errorx.Errorf("end time must be after start time")
 	}
 
-	loc, _ := tool.GetLocation()
+	loc := tool.GetLocation()
 	now := time.Now().In(loc)
 	date := now.Format("2006-01-02")
 	if now.Hour() >= 22 {
@@ -446,24 +588,24 @@ func (c *Crawler) getRecord(ctx context.Context, token string, fullURL string, r
 func (c *Crawler) parseRecords(list gjson.Result) []*Record {
 	var records []*Record
 	for _, item := range list.Array() {
-		beginStr := item.Get("makeBeginStr").String()
-		endStr := item.Get("makeEndStr").String()
 		dateStr := item.Get("makeDateStr").String()
 		dateTime, err := tool.ParseDateStringToTime(dateStr)
 		if err != nil {
 			c.l.Errorf("crawler: parsetime failed, err: %w", err)
 			continue
 		}
-		begin, err := tool.ParseTimeStringToTime(fmt.Sprintf("%s %s", dateStr, beginStr))
+		beginMinute, err := recordMinute(item, "makeBegin", "makeBeginStr")
 		if err != nil {
-			c.l.Errorf("crawler: parsetime failed, err: %w", err)
+			c.l.Errorf("crawler: parse begin time failed, err: %w", err)
 			continue
 		}
-		end, err := tool.ParseTimeStringToTime(fmt.Sprintf("%s %s", dateStr, endStr))
-		if err != nil {
-			c.l.Errorf("crawler: parsetime failed, err: %w", err)
+		endMinute, err := recordMinute(item, "makeEnd", "makeEndStr")
+		if err != nil || beginMinute < 0 || beginMinute > 24*60 || endMinute < 0 || endMinute > 24*60 || endMinute <= beginMinute {
+			c.l.Errorf("crawler: parse end time failed, err: %v", err)
 			continue
 		}
+		begin := dateTime.Add(time.Duration(beginMinute) * time.Minute)
+		end := dateTime.Add(time.Duration(endMinute) * time.Minute)
 		record := &Record{
 			ID:        item.Get("id").String(),
 			RoomID:    item.Get("roomId").String(),
@@ -481,6 +623,29 @@ func (c *Crawler) parseRecords(list gjson.Result) []*Record {
 		records = append(records, record)
 	}
 	return records
+}
+
+func recordMinute(item gjson.Result, fields ...string) (Minute, error) {
+	for _, field := range fields {
+		value := item.Get(field)
+		if !value.Exists() || value.Type == gjson.Null || (value.Type == gjson.String && strings.TrimSpace(value.String()) == "") {
+			continue
+		}
+		raw := []byte(value.Raw)
+		if len(raw) == 0 {
+			var err error
+			raw, err = json.Marshal(value.Value())
+			if err != nil {
+				return 0, err
+			}
+		}
+		var minute Minute
+		if err := minute.UnmarshalJSON(raw); err != nil {
+			return 0, err
+		}
+		return minute, nil
+	}
+	return 0, errors.New("reservation minute is missing")
 }
 
 // TODO：改成了违约记录

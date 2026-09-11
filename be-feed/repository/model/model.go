@@ -38,24 +38,57 @@ func (t ExtendFields) Value() (driver.Value, error) {
 
 // FeedEvent 表示 Feed 事件
 type FeedEvent struct {
-	BaseModel
-	Read         bool         `gorm:"column:read;type:BOOLEAN;not null"`
-	Type         string       `gorm:"column:type;type:VARCHAR(255);not null"`
-	StudentId    string       `gorm:"column:student_id;type:varchar(255);not null"` // 学生 ID，唯一
-	Title        string       `gorm:"column:title;type:TEXT;not null"`              // 标题
-	Content      string       `gorm:"column:content;type:TEXT"`                     // 内容
-	Url          string       `gorm:"column:url;type:varchar(255)"`                 //消息详情跳转路由
-	ExtendFields ExtendFields `gorm:"column:extend_fields;type:TEXT"`               // 拓展字段
+	ID           int64          `gorm:"primaryKey;autoIncrement;column:id;index:idx_feed_events_inbox,priority:4"`
+	CreatedAt    int64          `gorm:"column:created_at;not null;index:idx_feed_events_inbox,priority:3"`
+	UpdatedAt    int64          `gorm:"column:updated_at;not null"`
+	DeletedAt    gorm.DeletedAt `gorm:"column:deleted_at;index;index:idx_feed_events_inbox,priority:2"`
+	Read         bool           `gorm:"column:read;type:BOOLEAN;not null"`
+	Type         string         `gorm:"column:type;type:VARCHAR(255);not null"`
+	StudentId    string         `gorm:"column:student_id;type:varchar(255);not null;index:idx_feed_events_inbox,priority:1;uniqueIndex:uidx_feed_events_recipient_dedupe,priority:1"` // 学生 ID
+	Title        string         `gorm:"column:title;type:TEXT;not null"`                                                                                                              // 标题
+	Content      string         `gorm:"column:content;type:TEXT"`                                                                                                                     // 内容
+	Url          string         `gorm:"column:url;type:varchar(2047)"`                                                                                                                // 消息详情跳转路由
+	ExtendFields ExtendFields   `gorm:"column:extend_fields;type:TEXT"`                                                                                                               // 拓展字段
+	DedupeKey    string         `gorm:"column:dedupe_key;type:varchar(255);not null;uniqueIndex:uidx_feed_events_recipient_dedupe,priority:2"`
+	Source       string         `gorm:"column:source;type:varchar(64)"`
+	OccurredAt   int64          `gorm:"column:occurred_at;not null;default:0"`
 }
 
 type FeedFailEvent struct {
-	BaseModel
-	Type         string       `gorm:"column:type;type:VARCHAR(255);not null"`
-	StudentId    string       `gorm:"column:student_id;type:varchar(255);not null"` // 学生 ID
-	Title        string       `gorm:"column:title;type:TEXT;not null"`              // 标题
-	Content      string       `gorm:"column:content;type:TEXT"`                     // 内容
-	Url          string       `gorm:"column:url;type:varchar(255)"`                 //消息详情跳转路由
-	ExtendFields ExtendFields `gorm:"column:extend_fields;type:TEXT"`               // 拓展字段
+	ID           int64          `gorm:"primaryKey;autoIncrement;column:id"`
+	CreatedAt    int64          `gorm:"column:created_at;not null"`
+	UpdatedAt    int64          `gorm:"column:updated_at;not null"`
+	DeletedAt    gorm.DeletedAt `gorm:"column:deleted_at;index;index:idx_fail_stuid_deleted,priority:2"`
+	Type         string         `gorm:"column:type;type:VARCHAR(255);not null"`
+	StudentId    string         `gorm:"column:student_id;type:varchar(255);not null;index:idx_fail_stuid_deleted,priority:1"` // 学生 ID
+	Title        string         `gorm:"column:title;type:TEXT;not null"`                                                      // 标题
+	Content      string         `gorm:"column:content;type:TEXT"`                                                             // 内容
+	Url          string         `gorm:"column:url;type:varchar(2047)"`                                                        // 消息详情跳转路由
+	ExtendFields ExtendFields   `gorm:"column:extend_fields;type:TEXT"`                                                       // 拓展字段
+}
+
+func (f *FeedEvent) BeforeCreate(_ *gorm.DB) error {
+	now := time.Now().Unix()
+	f.CreatedAt = now
+	f.UpdatedAt = now
+	return nil
+}
+
+func (f *FeedEvent) BeforeUpdate(_ *gorm.DB) error {
+	f.UpdatedAt = time.Now().Unix()
+	return nil
+}
+
+func (f *FeedFailEvent) BeforeCreate(_ *gorm.DB) error {
+	now := time.Now().Unix()
+	f.CreatedAt = now
+	f.UpdatedAt = now
+	return nil
+}
+
+func (f *FeedFailEvent) BeforeUpdate(_ *gorm.DB) error {
+	f.UpdatedAt = time.Now().Unix()
+	return nil
 }
 
 // 定义权限开关的关键位
@@ -65,13 +98,60 @@ const (
 	HolidayPos
 	MuxiPos
 	FeedBackPos
+	LibraryPos
 )
+
+const DefaultPushConfig uint16 = (1 << (LibraryPos + 1)) - 1
 
 // FeedUserConfig 表示用户的 Feed 配置
 type FeedUserConfig struct {
-	StudentId  string `gorm:"column:student_id;type:varchar(255);not null;uniqueIndex"`
-	PushConfig uint16 `gorm:"column:push_config;type:SMALLINT UNSIGNED;not null;default:31"` // 16位二进制，默认值 0000 0000 0001 1111 (十进制 31)
+	StudentId       string `gorm:"column:student_id;type:varchar(255);not null;uniqueIndex"`
+	PushConfig      uint16 `gorm:"column:push_config;type:SMALLINT UNSIGNED;not null"` // 默认开启由创建逻辑显式赋值，避免 GORM 将全关闭的 0 替换为默认值
+	LibraryRevision int64  `gorm:"column:library_revision;not null;default:0"`
 	BaseModel
+}
+
+type FeedUserConfigChange struct {
+	Revision       int64  `gorm:"primaryKey;autoIncrement:false;column:revision;index:idx_feed_config_changes_student_revision,priority:2"`
+	StudentId      string `gorm:"column:student_id;type:varchar(255);not null;index:idx_feed_config_changes_student_revision,priority:1"`
+	LibraryEnabled bool   `gorm:"column:library_enabled;not null"`
+	CreatedAt      int64  `gorm:"column:created_at;not null"`
+}
+
+const FeedUserConfigRevisionAllocatorID int64 = 1
+
+// FeedUserConfigRevisionAllocator 串行分配偏好变更版本号。
+type FeedUserConfigRevisionAllocator struct {
+	ID       int64 `gorm:"primaryKey;autoIncrement:false;column:id"`
+	Revision int64 `gorm:"column:revision;not null;default:0"`
+}
+
+func (c *FeedUserConfigChange) BeforeCreate(_ *gorm.DB) error {
+	if c.CreatedAt == 0 {
+		c.CreatedAt = time.Now().Unix()
+	}
+	return nil
+}
+
+const (
+	PushDeliveryPending    = "pending"
+	PushDeliverySending    = "sending"
+	PushDeliverySent       = "sent"
+	PushDeliveryFailed     = "failed"
+	PushDeliverySuppressed = "suppressed"
+)
+
+// 可重试的消息投递
+type FeedPushDelivery struct {
+	BaseModel
+	FeedEventID   int64  `gorm:"column:feed_event_id;not null;uniqueIndex"`
+	StudentId     string `gorm:"column:student_id;type:varchar(255);not null;index"`
+	CID           string `gorm:"column:cid;type:varchar(255);not null;default:''"`
+	Status        string `gorm:"column:status;type:varchar(16);not null;default:pending;index:idx_feed_push_due,priority:1;index:idx_feed_push_priority_due,priority:1"`
+	Priority      int    `gorm:"column:priority;not null;default:0;index:idx_feed_push_priority_due,priority:2,sort:desc"`
+	Attempts      int    `gorm:"column:attempts;not null;default:0"`
+	NextAttemptAt int64  `gorm:"column:next_attempt_at;not null;default:0;index:idx_feed_push_due,priority:2;index:idx_feed_push_priority_due,priority:3"`
+	LastError     string `gorm:"column:last_error;type:text"`
 }
 
 // FeedUserToken 表，存储每个用户的推送 FeedUserToken

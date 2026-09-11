@@ -9,6 +9,13 @@ enum FeedEventType{
   MUXI=2;
   ENERGY=3;
   FEEDBACK=4;
+  LIBRARY=5;
+}
+
+enum PublishStatus {
+  ACCEPTED = 0;
+  DUPLICATE = 1;
+  SUPPRESSED_BY_ALLOW_LIST = 2;
 }
 
 service FeedService {
@@ -23,6 +30,8 @@ service FeedService {
   rpc StopMuxiOfficialMSG(StopMuxiOfficialMSGReq)returns(StopMuxiOfficialMSGResp);//停止发布木犀官方消息
   rpc GetToBePublicOfficialMSG(GetToBePublicOfficialMSGReq)returns(GetToBePublicOfficialMSGResp);//获取当前还没发布的消息列表
   rpc PublicFeedEvent(PublicFeedEventReq)returns(PublicFeedEventResp);//用于发布feed消息
+  rpc ListLibraryPreferenceChanges(ListLibraryPreferenceChangesReq)returns(ListLibraryPreferenceChangesResp);
+  rpc ListLibraryReminderUsers(ListLibraryReminderUsersReq)returns(ListLibraryReminderUsersResp);
 }
 
 message PublicFeedEventReq {
@@ -32,7 +41,9 @@ message PublicFeedEventReq {
 }
 
 
-message PublicFeedEventResp{}
+message PublicFeedEventResp{
+  PublishStatus status = 1;
+}
 
 message FeedEvent {
   int64 id = 1;
@@ -42,6 +53,9 @@ message FeedEvent {
   map<string, string> ExtendFields=5;
   int64 created_at = 6;//创建时间
   string url=7;
+  string dedupe_key = 8;
+  string source = 9;
+  int64 occurred_at = 10;
 }
 
 message FeedEventVO {
@@ -66,6 +80,7 @@ message GetFeedEventsResp {
 
 message ReadFeedEventReq{
   int64 feedId = 1;
+  string studentId = 2;
 }
 
 message ReadFeedEventResp{}
@@ -99,6 +114,7 @@ message AllowList{
   bool holiday = 4;
   bool energy = 5;
   bool feedBack=6;
+  optional bool library=7;
 }
 
 
@@ -140,4 +156,39 @@ message StopMuxiOfficialMSGResp{}
 message GetToBePublicOfficialMSGReq{}
 message GetToBePublicOfficialMSGResp{
   repeated MuxiOfficialMSG msgList=1;
+}
+
+message ListLibraryPreferenceChangesReq {
+  int64 after_revision = 1;
+  int32 limit = 2;
+}
+
+message LibraryPreferenceChange {
+  int64 revision = 1;
+  string student_id = 2;
+  bool enabled = 3;
+  int64 changed_at = 4;
+}
+
+message ListLibraryPreferenceChangesResp {
+  repeated LibraryPreferenceChange changes = 1;
+  int64 next_revision = 2;
+}
+
+message ListLibraryReminderUsersReq {
+  int64 after_id = 1;
+  int32 limit = 2;
+  int64 snapshot_revision = 3;
+}
+
+message LibraryReminderUser {
+  int64 id = 1;
+  string student_id = 2;
+  int64 revision = 3;
+}
+
+message ListLibraryReminderUsersResp {
+  repeated LibraryReminderUser users = 1;
+  int64 next_id = 2;
+  int64 snapshot_revision = 3;
 }

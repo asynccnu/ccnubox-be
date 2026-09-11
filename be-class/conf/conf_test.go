@@ -32,7 +32,7 @@ func TestExampleConfigMatchesUnifiedSchema(t *testing.T) {
 		t.Fatal("class server configuration contains unexpected values")
 	}
 
-	infraData, err := os.ReadFile("../config/config-infra-example.yaml")
+	infraData, err := os.ReadFile("../../config-infra-example.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

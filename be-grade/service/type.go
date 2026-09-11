@@ -39,6 +39,7 @@ func modelConvDomain(grades []model.Grade) []domain.Grade {
 			RegularGrade:        grade.RegularGrade,        // 平时成绩
 			FinalGradePercent:   grade.FinalGradePercent,   // 期末成绩占比
 			FinalGrade:          grade.FinalGrade,          // 期末成绩
+			ChangeVersion:       grade.ChangeVersion,       // 成绩变更版本
 		}
 
 		// 将转换后的 domainGrade 加入切片

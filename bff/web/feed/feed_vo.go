@@ -46,6 +46,8 @@ type ChangeFeedAllowListReq struct {
 	Holiday  *bool `json:"holiday" binding:"required"`
 	Energy   *bool `json:"energy" binding:"required"`
 	FeedBack *bool `json:"feedback" binding:"required"`
+	// Library 为可选字段，使已部署客户端的请求能够保留用户现有的图书馆提醒偏好。
+	Library *bool `json:"library"`
 }
 
 type GetFeedAllowListResp struct {
@@ -54,6 +56,7 @@ type GetFeedAllowListResp struct {
 	Holiday  bool `json:"holiday"`
 	Energy   bool `json:"energy"`
 	FeedBack bool `json:"feedback"`
+	Library  bool `json:"library"`
 }
 
 type ChangeElectricityStandardReq struct {

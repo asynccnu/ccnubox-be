@@ -18,6 +18,9 @@ func convFeedEventsFromModelToDomain(feedEvents []model.FeedEvent) []domain.Feed
 			Url:          feedEvents[i].Url,
 			ExtendFields: feedEvents[i].ExtendFields,
 			CreatedAt:    feedEvents[i].CreatedAt,
+			DedupeKey:    feedEvents[i].DedupeKey,
+			Source:       feedEvents[i].Source,
+			OccurredAt:   feedEvents[i].OccurredAt,
 		}
 	}
 	return result
@@ -31,20 +34,16 @@ func convFeedEventFromDomainToModel(feedEvent *domain.FeedEvent) *model.FeedEven
 		Content:      feedEvent.Content,
 		Url:          feedEvent.Url,
 		ExtendFields: feedEvent.ExtendFields,
+		DedupeKey:    feedEvent.DedupeKey,
+		Source:       feedEvent.Source,
+		OccurredAt:   feedEvent.OccurredAt,
 	}
 }
 
 func convFeedEventsFromDomainToModel(feedEvents []domain.FeedEvent) []model.FeedEvent {
 	result := make([]model.FeedEvent, len(feedEvents)) // 直接预分配
 	for i := range feedEvents {
-		result[i] = model.FeedEvent{ // 通过索引直接赋值
-			StudentId:    feedEvents[i].StudentId,
-			Type:         feedEvents[i].Type,
-			Title:        feedEvents[i].Title,
-			Content:      feedEvents[i].Content,
-			Url:          feedEvents[i].Url,
-			ExtendFields: feedEvents[i].ExtendFields,
-		}
+		result[i] = *convFeedEventFromDomainToModel(&feedEvents[i])
 	}
 	return result
 }

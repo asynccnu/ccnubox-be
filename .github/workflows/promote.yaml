@@ -1,0 +1,105 @@
+name: Promote to Production
+
+on:
+  push:
+    tags:
+      - 'promote-*'
+
+permissions:
+  contents: read
+
+# A promote run must not interleave with a main-branch deploy: both rewrite
+# state on the host (.env, docker login). They share one remote flock, so a
+# promote waits for any in-flight deploy (and vice versa).
+concurrency:
+  group: ccnubox-prod-promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: github.repository == 'asynccnu/ccnubox-be'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cp .github/known_hosts ~/.ssh/known_hosts
+
+      - name: Sync production to preview versions
+        env:
+          SERVER_ADDR: ${{ secrets.SERVER_ADDR }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          REGISTRY: ${{ secrets.ALIYUN_REGISTRY }}
+          REGISTRY_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
+          REGISTRY_USER: ${{ secrets.ALIYUN_USERNAME }}
+        run: |
+          set -euo pipefail
+
+          registry_b64="$(printf '%s' "$REGISTRY" | base64 -w 0)"
+          registry_user_b64="$(printf '%s' "$REGISTRY_USER" | base64 -w 0)"
+          registry_password_b64="$(printf '%s' "$REGISTRY_PASSWORD" | base64 -w 0)"
+
+          {
+            printf "REGISTRY_B64='%s'\n" "$registry_b64"
+            printf "REGISTRY_USER_B64='%s'\n" "$registry_user_b64"
+            printf "REGISTRY_PASSWORD_B64='%s'\n" "$registry_password_b64"
+            cat << 'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          REGISTRY="$(printf '%s' "$REGISTRY_B64" | base64 -d)"
+          REGISTRY_USER="$(printf '%s' "$REGISTRY_USER_B64" | base64 -d)"
+          REGISTRY_PASSWORD="$(printf '%s' "$REGISTRY_PASSWORD_B64" | base64 -d)"
+
+          (
+            # Same lock as the deploy workflow: .env and docker login state
+            # must never be touched concurrently.
+            flock -x 200
+            cd ~/ccnubox_v3
+
+            # prod .env manages version numbers only, so sync just the image
+            # tag of each known service from the preview .env and preserve
+            # anything else production holds. No builds happen here: the
+            # deploy workflow already pushed these images.
+            services=(be-ccnu be-class be-classlist be-content be-counter be-elecprice be-feed be-grade be-library be-proxy be-user bff)
+            changed=0
+            for service in "${services[@]}"; do
+              KEY="$(printf '%s' "$service" | tr '[:lower:]-' '[:upper:]_')"
+              value="$(sed -n "s/^${KEY}=//p" ~/ccnubox-preview/.env | tail -n 1)"
+              current="$(sed -n "s/^${KEY}=//p" ./.env | tail -n 1)"
+              if [[ -z "$value" || "$value" == "$current" ]]; then
+                continue
+              fi
+              if grep -q "^${KEY}=" ./.env; then
+                sed -i "s/^${KEY}=.*/${KEY}=${value}/" ./.env
+              else
+                echo "${KEY}=${value}" >> ./.env
+              fi
+              changed=1
+              echo "${KEY}: ${current:-<missing>} -> ${value}"
+            done
+
+            if ((changed == 0)); then
+              # .env 只记录目标版本，不能证明容器已更新；版本相同也要重试部署。
+              echo 'Production target versions match preview; reconciling containers.'
+            fi
+
+            echo "$REGISTRY_PASSWORD" | docker login \
+              --username="$REGISTRY_USER" \
+              --password-stdin \
+              "$REGISTRY"
+
+            docker compose pull
+            docker compose up -d
+            docker image prune -a -f --filter "until=24h"
+          ) 200>/tmp/ccnubox_deploy.lock
+          REMOTE_SCRIPT
+          } | ssh -o StrictHostKeyChecking=yes "$SERVER_USER@$SERVER_ADDR" bash -s

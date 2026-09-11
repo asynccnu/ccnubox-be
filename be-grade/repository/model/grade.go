@@ -18,4 +18,5 @@ type Grade struct {
 	FinalGradePercent   string  `gorm:"column:final_grade_percent;type:varchar(10)"`   // 期末成绩占比
 	FinalGrade          float32 `gorm:"column:final_grade"`                            // 期末成绩
 	Cj                  float32 `gorm:"column:cj"`                                     // 总成绩
+	ChangeVersion       int64   `gorm:"column:change_version;not null;default:1"`      // 成绩变更版本
 }

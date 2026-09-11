@@ -13,6 +13,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 )
 
 const (
@@ -55,6 +56,9 @@ func (s *rankService) GetRankByTerm(ctx context.Context, req *domain.GetRankByTe
 	if req.Refresh || !s.rankDAO.RankExist(ctx, req.StudentId, t) {
 		data, err := s.UpdateRank(ctx, req.StudentId, t)
 		if err != nil {
+			if tool.IsCCNUAccountInitializationRequired(err) {
+				return nil, ErrGetGrade(err)
+			}
 			return nil, errorx.Errorf("service: get rank by term failed during update, sid: %s, err: %w", req.StudentId, err)
 		}
 		return data, nil

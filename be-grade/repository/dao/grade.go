@@ -2,10 +2,14 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -58,8 +62,10 @@ func (d *gradeDAO) FindGrades(ctx context.Context, studentId string, Xnm int64, 
 	return grades, nil
 }
 
+const maxGradeTransactionAttempts = 5
+
 // BatchInsertOrUpdate 批量处理成绩同步逻辑
-func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) (affectedGrades []model.Grade, err error) {
+func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) ([]model.Grade, error) {
 	if len(grades) == 0 {
 		return nil, nil
 	}
@@ -71,59 +77,92 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 		values = append(values, []interface{}{grades[i].StudentId, grades[i].JxbId})
 	}
 
-	// 1. 查询已有记录用于比对
-	var existingGrades []model.Grade
-	// 取消 CONCAT 走索引
-	err = d.db.WithContext(ctx).
-		Where("(student_id, jxb_id) IN ?", values).
-		Find(&existingGrades).Error
-	if err != nil {
-		return nil, errorx.Errorf("dao: BatchInsertOrUpdate find existing records failed, count: %d, err: %w", len(values), err)
-	}
-
-	existingMap := make(map[string]model.Grade)
-	for _, grade := range existingGrades {
-		key := grade.StudentId + grade.JxbId
-		existingMap[key] = grade
-	}
-
-	var toInsert []model.Grade
-	var toUpdate []model.Grade
-
-	for _, grade := range grades {
-		key := grade.StudentId + grade.JxbId
-		if existing, exists := existingMap[key]; !exists {
-			toInsert = append(toInsert, grade)
-		} else {
-			// 比对字段是否有变化
-			if !isGradeEqual(existing, grade, ifDetail) {
-				toUpdate = append(toUpdate, grade)
+	var (
+		affectedGrades []model.Grade
+		err            error
+	)
+	for attempt := 1; attempt <= maxGradeTransactionAttempts; attempt++ {
+		affectedGrades = nil
+		err = d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			// 行锁持有到事务提交，确保同一成绩的版本读取和递增不会交错。
+			var existingGrades []model.Grade
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("(student_id, jxb_id) IN ?", values).
+				Find(&existingGrades).Error; err != nil {
+				return errorx.Errorf("find existing records failed: %w", err)
 			}
+
+			existingMap := make(map[string]model.Grade, len(existingGrades))
+			for _, grade := range existingGrades {
+				key := grade.StudentId + grade.JxbId
+				existingMap[key] = grade
+			}
+
+			toInsert := make([]model.Grade, 0, len(grades))
+			toUpdate := make([]model.Grade, 0, len(grades))
+			for _, grade := range grades {
+				key := grade.StudentId + grade.JxbId
+				existing, exists := existingMap[key]
+				if !exists {
+					grade.ChangeVersion = 1
+					toInsert = append(toInsert, grade)
+					continue
+				}
+				if !isGradeEqual(existing, grade, ifDetail) {
+					grade.ChangeVersion = existing.ChangeVersion + 1
+					toUpdate = append(toUpdate, grade)
+				}
+			}
+
+			// 不对新增行执行覆盖式 upsert。并发插入冲突会回滚并重试，重新读取已提交行后再分配版本。
+			if len(toInsert) > 0 {
+				if err := tx.Create(&toInsert).Error; err != nil {
+					return errorx.Errorf("bulk insert failed, count: %d: %w", len(toInsert), err)
+				}
+			}
+			if len(toUpdate) > 0 {
+				if err := tx.Clauses(clause.OnConflict{
+					Columns:   []clause.Column{{Name: "student_id"}, {Name: "jxb_id"}},
+					DoUpdates: clause.AssignmentColumns(gradeUpdateColumns(ifDetail)),
+				}).Create(&toUpdate).Error; err != nil {
+					return errorx.Errorf("bulk upsert failed, count: %d: %w", len(toUpdate), err)
+				}
+			}
+
+			affectedGrades = make([]model.Grade, 0, len(toInsert)+len(toUpdate))
+			affectedGrades = append(affectedGrades, toInsert...)
+			affectedGrades = append(affectedGrades, toUpdate...)
+			return nil
+		})
+		if err == nil {
+			return affectedGrades, nil
+		}
+		if ctx.Err() != nil || !isRetryableGradeTransactionError(err) || attempt == maxGradeTransactionAttempts {
+			break
+		}
+		time.Sleep(time.Duration(attempt) * 10 * time.Millisecond)
+	}
+
+	return nil, errorx.Errorf("dao: BatchInsertOrUpdate transaction failed, count: %d, err: %w", len(grades), err)
+}
+
+func isRetryableGradeTransactionError(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) {
+		switch mysqlErr.Number {
+		case 1062, 1205, 1213:
+			return true
 		}
 	}
 
-	changed := make([]model.Grade, 0, len(toInsert)+len(toUpdate))
-	changed = append(changed, toInsert...)
-	changed = append(changed, toUpdate...)
-	if len(changed) > 0 {
-		err = d.db.WithContext(ctx).
-			Clauses(clause.OnConflict{
-				Columns:   []clause.Column{{Name: "student_id"}, {Name: "jxb_id"}},
-				DoUpdates: clause.AssignmentColumns(gradeUpdateColumns(ifDetail)),
-			}).
-			Create(&changed).Error
-		if err != nil {
-			return nil, errorx.Errorf("dao: BatchInsertOrUpdate bulk upsert failed, count: %d, err: %w", len(changed), err)
-		}
-	}
-
-	affectedGrades = toInsert
-	return affectedGrades, nil
+	// SQLite 仅用于 DAO 测试，其并发写锁同样需要重试整个事务。
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "database is locked") || strings.Contains(message, "database table is locked")
 }
 
 func gradeUpdateColumns(ifDetail bool) []string {
 	columns := []string{
-		"kc_id", "kcmc", "xnm", "xqm", "xf", "kcxzmc", "kclbmc", "kcbj", "jd", "cj",
+		"kc_id", "kcmc", "xnm", "xqm", "xf", "kcxzmc", "kclbmc", "kcbj", "jd", "cj", "change_version",
 	}
 	if ifDetail {
 		columns = append(columns,

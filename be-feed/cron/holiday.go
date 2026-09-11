@@ -3,6 +3,7 @@ package cron
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
@@ -22,6 +23,11 @@ type HolidayController struct {
 	stopChan chan struct{}
 	cfg      *conf.HolidayControllerConfig
 	l        logger.Logger
+	stopOnce sync.Once
+}
+
+func (r *HolidayController) StopCronTask() {
+	r.stopOnce.Do(func() { close(r.stopChan) })
 }
 
 func NewHolidayController(
@@ -38,7 +44,7 @@ func NewHolidayController(
 	}
 }
 
-func (r *HolidayController) StartCronTask() {
+func (r *HolidayController) StartCronTask() error {
 	go func() {
 		ticker := time.NewTicker(time.Duration(r.cfg.DurationTime) * time.Hour)
 		for {
@@ -55,7 +61,7 @@ func (r *HolidayController) StartCronTask() {
 			}
 		}
 	}() //定时控制器
-
+	return nil
 }
 
 func (r *HolidayController) publishMSG() error {
@@ -67,7 +73,7 @@ func (r *HolidayController) publishMSG() error {
 
 	ctx := context.Background()
 	//发送给全体成员
-	err := r.svcFeed.PublicFeedEvent(ctx, true, domain.FeedEvent{
+	_, err := r.svcFeed.PublicFeedEvent(ctx, true, domain.FeedEvent{
 		Type:         strings.ToLower(feedv1.FeedEventType_HOLIDAY.String()),
 		Title:        "假期临近提醒",
 		Content:      holiday + "假期临近,请及时查看放假通知及调休安排",

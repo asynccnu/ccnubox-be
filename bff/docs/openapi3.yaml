@@ -191,7 +191,8 @@ paths:
   /class/add:
     post:
       description: 给当前登录学生添加一门自定义课程。weeks 必须是周次数组，例如 [1,2,3]；dur_class 是节次范围，例如
-        "1-2"。成功时 code=0；课程时间冲突返回 code=40601，课程已存在返回 code=40602，其他添加失败返回 code=50602。
+        "1-2"。成功时 code=0；课程时间冲突返回 code=40601，课程已存在返回 code=40602，其他添加失败返回
+        code=50602。
       parameters:
         - description: Bearer Token，例如 Bearer xxx
           in: header
@@ -261,8 +262,7 @@ paths:
         - class
   /class/delete:
     post:
-      description: 根据课程 ID 删除当前登录学生的自定义课程。教务系统导入课程不支持删除。成功时 code=0；删除失败或删除官方课程会返回
-        code=50603。
+      description: 根据课程 ID 删除当前登录学生的自定义课程。教务系统导入课程不支持删除。成功时 code=0；删除失败返回 code=50603。
       parameters:
         - description: Bearer Token，例如 Bearer xxx
           in: header
@@ -343,6 +343,12 @@ paths:
                     type: object
         "401":
           description: 未登录或 token 无效，code=40001
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "409":
+          description: 统一身份认证账户尚未初始化，code=40603
           content:
             application/json:
               schema:
@@ -549,6 +555,24 @@ paths:
                         $ref: "#/components/schemas/classroom.GetFreeClassRoomResp"
                     type: object
       summary: 查询空闲教室
+      tags:
+        - classroom
+  /classroom/list:
+    get:
+      description: 返回 be-class 中 classrooms.json 的教室列表
+      responses:
+        "200":
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/web.Response"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/classroom.GetClassroomsResp"
+                    type: object
+      summary: 获取教室列表
       tags:
         - classroom
   /department/delDepartment:
@@ -1304,6 +1328,12 @@ paths:
                       data:
                         $ref: "#/components/schemas/grade.GetGradeByTermResp"
                     type: object
+        "409":
+          description: 统一身份认证账户尚未初始化，code=40603
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
         "500":
           description: 系统异常，获取失败
           content:
@@ -1328,6 +1358,12 @@ paths:
                       data:
                         $ref: "#/components/schemas/grade.GetGradeScoreResp"
                     type: object
+        "409":
+          description: 统一身份认证账户尚未初始化，code=40603
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
         "500":
           description: 系统异常，获取失败
           content:
@@ -1352,6 +1388,12 @@ paths:
                       data:
                         $ref: "#/components/schemas/grade.GetGradeTypeResp"
                     type: object
+        "409":
+          description: 统一身份认证账户尚未初始化，code=40603
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
         "500":
           description: 系统异常，获取失败
           content:
@@ -1383,6 +1425,12 @@ paths:
                       data:
                         $ref: "#/components/schemas/grade.GetRankByTermResp"
                     type: object
+        "409":
+          description: 统一身份认证账户尚未初始化，code=40603
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
         "500":
           description: 系统异常，获取失败
           content:
@@ -1577,37 +1625,6 @@ paths:
       summary: 获取评论
       tags:
         - library
-  /library/get_credit_points:
-    get:
-      description: 获取信誉分及扣分记录
-      parameters:
-        - description: Bearer Token
-          in: header
-          name: Authorization
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: 成功返回信誉分
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/web.Response"
-                  - properties:
-                      data:
-                        $ref: "#/components/schemas/library.GetCreditPointResponse"
-                    type: object
-        "500":
-          description: 系统异常，获取失败
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/web.Response"
-      summary: 获取信誉分
-      tags:
-        - library
   /library/get_discussion:
     post:
       description: 传入时间获取图书馆研讨间信息
@@ -1722,39 +1739,6 @@ paths:
       summary: 获取预约记录
       tags:
         - library
-  /library/reserve_discussion:
-    post:
-      description: 传入学生ID,时间,主题等预约研讨间
-      parameters:
-        - description: Bearer Token
-          in: header
-          name: Authorization
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/library.ReserveDiscussionRequest"
-        description: 预约研讨间所需要的参数
-        required: true
-      responses:
-        "200":
-          description: 成功返回预约研讨间成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/web.Response"
-        "500":
-          description: 系统异常，获取失败
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/web.Response"
-      summary: 预约研讨间
-      tags:
-        - library
   /library/reserve_randomly:
     post:
       description: 全校随机选座（可指定楼层）
@@ -1826,42 +1810,6 @@ paths:
       summary: 预约图书馆座位
       tags:
         - library
-  /library/search_user:
-    get:
-      description: 传入学生学号获取对应的学生ID
-      parameters:
-        - description: Bearer Token
-          in: header
-          name: Authorization
-          required: true
-          schema:
-            type: string
-        - in: query
-          name: student_id
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: 成功返回学生的ID
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/web.Response"
-                  - properties:
-                      data:
-                        $ref: "#/components/schemas/library.SearchUserResponse"
-                    type: object
-        "500":
-          description: 系统异常，获取失败
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/web.Response"
-      summary: 搜索学生ID
-      tags:
-        - library
   /metrics:
     get:
       description: 暴露标准的 Prometheus 监控数据，供 Prometheus 定时拉取，使用BasicAuth进行验证
@@ -1897,27 +1845,77 @@ paths:
       summary: 用于打点的路由
       tags:
         - metrics
-  /semester/getSemester:
-    get:
-      description: 获取当前所属学期
-      parameters:
-        - description: Bearer Token
-          in: header
-          name: Authorization
-          required: true
-          schema:
-            type: string
+  /metrics/client:
+    post:
+      description: 使用独立 App Client Key 的 Bearer Token 鉴权；事件名、Label 名称和值均执行白名单校验
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/metrics.ClientMetricsReq"
+        description: 客户端指标批次
+        required: true
       responses:
         "200":
-          description: 成功
+          description: 接收成功
           content:
-            "*/*":
+            application/json:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/web.Response"
                   - properties:
                       data:
-                        $ref: "#/components/schemas/content.GetSemesterResponse"
+                        additionalProperties:
+                          type: integer
+                        type: object
+                    type: object
+        "400":
+          description: JSON 非法
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "401":
+          description: Client Key 无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "413":
+          description: 请求体过大
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "422":
+          description: 事件或 Label 不符合白名单
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "503":
+          description: Collector 未配置
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+      summary: 批量接收移动端 Prometheus 指标
+      tags:
+        - metrics
+  /semester/getSemester:
+    get:
+      description: 获取当前所属学期
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/web.Response"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/content.Semester"
                     type: object
       summary: 获取当前所属学期
       tags:
@@ -1925,24 +1923,19 @@ paths:
   /semester/getSemesterList:
     get:
       description: 获取所有学期信息
-      parameters:
-        - description: Bearer Token
-          in: header
-          name: Authorization
-          required: true
-          schema:
-            type: string
       responses:
         "200":
           description: 成功
           content:
-            "*/*":
+            application/json:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/web.Response"
                   - properties:
                       data:
-                        $ref: "#/components/schemas/content.GetSemesterListResponse"
+                        items:
+                          $ref: "#/components/schemas/content.Semester"
+                        type: array
                     type: object
       summary: 获取所有学期信息
       tags:
@@ -1950,13 +1943,6 @@ paths:
   /semester/saveSemester:
     post:
       description: 保存学期信息
-      parameters:
-        - description: Bearer Token
-          in: header
-          name: Authorization
-          required: true
-          schema:
-            type: string
       requestBody:
         content:
           application/json:
@@ -2027,6 +2013,14 @@ paths:
   /users/deactivate:
     post:
       description: 用户输入密码验明身份后注销
+      parameters:
+        - description: Bearer 短 token，格式：Bearer {x-jwt-token}
+          in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            default: Bearer <x-jwt-token>
       requestBody:
         content:
           application/json:
@@ -2036,7 +2030,19 @@ paths:
         required: true
       responses:
         "200":
-          description: Success
+          description: 注销成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "401":
+          description: 账号或密码错误，code=40005
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: 注销失败或 token 清理失败，code=51401
           content:
             application/json:
               schema:
@@ -2058,7 +2064,34 @@ paths:
         required: true
       responses:
         "200":
-          description: Success
+          description: 登录成功，token 通过响应头返回
+          headers:
+            x-jwt-token:
+              description: 短 token
+              schema:
+                type: string
+            x-refresh-token:
+              description: 刷新 token
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "401":
+          description: 账号或密码错误，code=40005
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "409":
+          description: 统一身份认证账户尚未初始化，code=40603
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: 登录失败，code=51201；token 生成失败，code=51401
           content:
             application/json:
               schema:
@@ -2069,9 +2102,29 @@ paths:
   /users/logout:
     get:
       description: 通过短token登出
+      parameters:
+        - description: Bearer 短 token，格式：Bearer {x-jwt-token}
+          in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            default: Bearer <x-jwt-token>
       responses:
         "200":
-          description: Success
+          description: 登出成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "401":
+          description: Authorization 错误或过期，code=40001
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: 登出失败，code=51401
           content:
             application/json:
               schema:
@@ -2082,9 +2135,34 @@ paths:
   /users/refresh_token:
     get:
       description: 通过长token刷新短token
+      parameters:
+        - description: Bearer 刷新 token，格式：Bearer {x-refresh-token}
+          in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            default: Bearer <x-refresh-token>
       responses:
         "200":
-          description: Success
+          description: 刷新成功，新的短 token 通过响应头返回
+          headers:
+            x-jwt-token:
+              description: 新的短 token
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "401":
+          description: 刷新 token 无效，code=40001；已过期，code=41401
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: 刷新 token 失败，code=51401
           content:
             application/json:
               schema:
@@ -2484,6 +2562,13 @@ components:
           description: 教室名
           type: string
       type: object
+    classroom.GetClassroomsResp:
+      properties:
+        class_rooms:
+          items:
+            type: string
+          type: array
+      type: object
     classroom.GetFreeClassRoomResp:
       properties:
         stat:
@@ -2583,18 +2668,6 @@ components:
           items:
             $ref: "#/components/schemas/content.InfoSum"
           type: array
-      type: object
-    content.GetSemesterListResponse:
-      properties:
-        semesters:
-          items:
-            $ref: "#/components/schemas/content.Semester"
-          type: array
-      type: object
-    content.GetSemesterResponse:
-      properties:
-        semester:
-          type: string
       type: object
     content.GetUpdateVersionResponse:
       properties:
@@ -2857,6 +2930,10 @@ components:
           type: boolean
         holiday:
           type: boolean
+        library:
+          description: Library is optional so requests from already deployed clients preserve
+            the user's existing library-reminder preference.
+          type: boolean
         muxi:
           type: boolean
       required:
@@ -2906,6 +2983,8 @@ components:
         grade:
           type: boolean
         holiday:
+          type: boolean
+        library:
           type: boolean
         muxi:
           type: boolean
@@ -3281,9 +3360,12 @@ components:
     library.GetSeatRecordRequest:
       properties:
         date:
+          description: YYYY-M-D 或 YYYY-MM-DD
           items:
             type: string
           type: array
+      required:
+        - date
       type: object
     library.GetSeatRecordResponse:
       properties:
@@ -3421,6 +3503,26 @@ components:
         status:
           type: string
       type: object
+    metrics.ClientMetricEvent:
+      properties:
+        labels:
+          additionalProperties:
+            type: string
+          type: object
+        name:
+          type: string
+        timestamp:
+          type: integer
+        value:
+          type: number
+      type: object
+    metrics.ClientMetricsReq:
+      properties:
+        events:
+          items:
+            $ref: "#/components/schemas/metrics.ClientMetricEvent"
+          type: array
+      type: object
     metrics.MetricsReq:
       properties:
         level:
@@ -3440,6 +3542,8 @@ components:
     user.DeleteAccountReq:
       properties:
         password:
+          description: 密码
+          example: your_password
           type: string
       required:
         - password
@@ -3448,8 +3552,11 @@ components:
       properties:
         password:
           description: 密码
+          example: your_password
           type: string
         student_id:
+          description: 学号
+          example: "2024210000"
           type: string
       required:
         - password

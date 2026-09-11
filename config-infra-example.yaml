@@ -4,89 +4,104 @@ otel:
   endpoint: "localhost:4318"
 
 proxy:
-  mode: "remote" # remote 使用 be-proxy，direct 本地开发直连
+  # remote 使用 be-proxy，direct 用于本地开发直连
+  mode: "remote"
 
 mysql:
-  dsn: "root:123456@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "root:password@tcp(localhost:3306)/ccnubox?charset=utf8mb4&parseTime=True&loc=Local"
+  maxOpenConns: 30
+  maxIdleConns: 10
+  connMaxLifetimeSeconds: 1800
+  connMaxIdleTimeSeconds: 300
 
 redis:
   addr: "localhost:6379"
-  password: "123456"
+  password: "password"
 
 etcd:
   endpoints:
     - "localhost:2379"
-  username: root
-  password: "123456"
+  username: "root"
+  password: "password"
 
 kafka:
   addrs:
     - "localhost:9094"
+  username: "root"
+  password: "password"
+
+elasticsearch:
+  urls:
+    - "http://localhost:9200"
+  username: "elastic"
+  password: "password"
+  sniff: false
 
 grpc:
   ccnu:
     name: "ccnu"
+    addr: ":20000"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20000"
   class:
     name: "class"
+    addr: ":20001"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20001"
   classlist:
     name: "classlist"
+    addr: ":20002"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20002"
+    serverTimeout: 2
   content:
     name: "content"
+    addr: ":20003"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20003"
   counter:
     name: "counter"
+    addr: ":20004"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20004"
   elecprice:
     name: "elecprice"
+    addr: ":20005"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20005"
   feed:
     name: "feed"
+    addr: ":20006"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20006"
   grade:
     name: "grade"
+    addr: ":20007"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20007"
   library:
     name: "library"
+    addr: ":20008"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20008"
   proxy:
     name: "proxy"
+    addr: ":20009"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20009"
   user:
     name: "user"
+    addr: ":20010"
     weight: 100
     etcdTTL: 60
     clientTimeout: 60
-    addr: ":20010"

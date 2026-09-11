@@ -546,6 +546,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/web.Response"
                         }
                     },
+                    "409": {
+                        "description": "统一身份认证账户尚未初始化，code=40603",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
                     "422": {
                         "description": "请求参数错误，code=40002",
                         "schema": {
@@ -2013,6 +2019,12 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "409": {
+                        "description": "统一身份认证账户尚未初始化，code=40603",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
                     "500": {
                         "description": "系统异常，获取失败",
                         "schema": {
@@ -2054,6 +2066,12 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "409": {
+                        "description": "统一身份认证账户尚未初始化，code=40603",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
                     "500": {
                         "description": "系统异常，获取失败",
                         "schema": {
@@ -2093,6 +2111,12 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "409": {
+                        "description": "统一身份认证账户尚未初始化，code=40603",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
                         }
                     },
                     "500": {
@@ -2145,6 +2169,12 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "409": {
+                        "description": "统一身份认证账户尚未初始化，code=40603",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
                         }
                     },
                     "500": {
@@ -2773,9 +2803,94 @@ const docTemplate = `{
                 }
             }
         },
+        "/metrics/client": {
+            "post": {
+                "description": "使用独立 App Client Key 的 Bearer Token 鉴权；事件名、Label 名称和值均执行白名单校验",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metrics"
+                ],
+                "summary": "批量接收移动端 Prometheus 指标",
+                "parameters": [
+                    {
+                        "description": "客户端指标批次",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/metrics.ClientMetricsReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "接收成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "integer"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "JSON 非法",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Client Key 无效",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "413": {
+                        "description": "请求体过大",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "事件或 Label 不符合白名单",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Collector 未配置",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/semester/getSemester": {
             "get": {
                 "description": "获取当前所属学期",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "semester"
                 ],
@@ -2792,7 +2907,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/content.GetSemesterResponse"
+                                            "$ref": "#/definitions/content.Semester"
                                         }
                                     }
                                 }
@@ -2805,6 +2920,12 @@ const docTemplate = `{
         "/semester/getSemesterList": {
             "get": {
                 "description": "获取所有学期信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "semester"
                 ],
@@ -2821,7 +2942,10 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/content.GetSemesterListResponse"
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/content.Semester"
+                                            }
                                         }
                                     }
                                 }
@@ -3055,6 +3179,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "账号或密码错误，code=40005",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "统一身份认证账户尚未初始化，code=40603",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -3887,25 +4017,6 @@ const docTemplate = `{
                 }
             }
         },
-        "content.GetSemesterListResponse": {
-            "type": "object",
-            "properties": {
-                "semesters": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/content.Semester"
-                    }
-                }
-            }
-        },
-        "content.GetSemesterResponse": {
-            "type": "object",
-            "properties": {
-                "semester": {
-                    "$ref": "#/definitions/content.Semester"
-                }
-            }
-        },
         "content.GetUpdateVersionResponse": {
             "type": "object",
             "properties": {
@@ -4306,6 +4417,10 @@ const docTemplate = `{
                 "holiday": {
                     "type": "boolean"
                 },
+                "library": {
+                    "description": "Library is optional so requests from already deployed clients preserve the user's existing library-reminder preference.",
+                    "type": "boolean"
+                },
                 "muxi": {
                     "type": "boolean"
                 }
@@ -4370,6 +4485,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "holiday": {
+                    "type": "boolean"
+                },
+                "library": {
                     "type": "boolean"
                 },
                 "muxi": {
@@ -5140,6 +5258,37 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "metrics.ClientMetricEvent": {
+            "type": "object",
+            "properties": {
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "integer"
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        },
+        "metrics.ClientMetricsReq": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/metrics.ClientMetricEvent"
+                    }
                 }
             }
         },

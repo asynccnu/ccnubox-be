@@ -2,6 +2,8 @@ package cron
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"strings"
@@ -74,6 +76,12 @@ func formatSemester(xnm int64, xqm int64) string {
 	return fmt.Sprintf("%d-%d", xnm, xqm)
 }
 
+// gradeDedupeKey 以学生、教学班、成绩和变更版本生成稳定消息 ID，同一次变更的重投会被去重。
+func gradeDedupeKey(studentID, jxbId string, score float32, changeVersion int64) string {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%.2f\x00%d", studentID, jxbId, float64(score), changeVersion)))
+	return "grade:" + hex.EncodeToString(sum[:])
+}
+
 func (p *TieredHandler) gradeRefresh(ctx context.Context, studentId string) error {
 	//获取学生最新成绩
 	resp, err := p.gradeClient.GetUpdateScore(ctx, &gradev1.GetUpdateScoreReq{StudentId: studentId})
@@ -110,6 +118,7 @@ func (p *TieredHandler) gradeRefresh(ctx context.Context, studentId string) erro
 				Content:      fmt.Sprintf("您的课程:%s分数更新了,请及时查看", g.Kcmc),
 				Url:          url,
 				ExtendFields: map[string]string{"url": url},
+				DedupeKey:    gradeDedupeKey(studentId, g.JxbId, g.Cj, g.ChangeVersion),
 			},
 		})
 		if err != nil {

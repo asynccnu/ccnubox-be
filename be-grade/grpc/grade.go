@@ -134,5 +134,6 @@ func convGradesFromDomainToProto(g domain.Grade) *gradev1.Grade {
 		RegularGrade:        g.RegularGrade,
 		FinalGradePercent:   g.FinalGradePercent,
 		FinalGrade:          g.FinalGrade,
+		ChangeVersion:       g.ChangeVersion,
 	}
 }

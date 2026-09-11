@@ -48,7 +48,11 @@ type RedisConf struct {
 }
 
 type MysqlConf struct {
-	DSN string `yaml:"dsn"`
+	DSN                    string `yaml:"dsn"`
+	MaxOpenConns           int    `yaml:"maxOpenConns"`
+	MaxIdleConns           int    `yaml:"maxIdleConns"`
+	ConnMaxLifetimeSeconds int    `yaml:"connMaxLifetimeSeconds"`
+	ConnMaxIdleTimeSeconds int    `yaml:"connMaxIdleTimeSeconds"`
 }
 
 type KafkaConf struct {

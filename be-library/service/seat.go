@@ -129,10 +129,7 @@ type seatRecordQuery struct {
 }
 
 func buildSeatRecordQuery(values []string, now time.Time) (*seatRecordQuery, error) {
-	loc, err := tool.GetLocation()
-	if err != nil {
-		return nil, errorx.Errorf("load library timezone: %w", err)
-	}
+	loc := tool.GetLocation()
 	todayText := now.In(loc).Format("2006-01-02")
 	today, err := time.ParseInLocation("2006-01-02", todayText, loc)
 	if err != nil {

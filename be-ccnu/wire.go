@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/asynccnu/ccnubox-be/be-ccnu/conf"
+	"github.com/asynccnu/ccnubox-be/be-ccnu/crawler"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/grpc"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/ioc"
 	"github.com/asynccnu/ccnubox-be/be-ccnu/service"
@@ -17,6 +18,8 @@ func InitApp() *App {
 		ioc.ProvideLibrarySecret,
 		ioc.InitGRPCxKratosServer,
 		grpc.NewCCNUServiceServer,
+		crawler.NewFactory,
+		wire.Bind(new(service.CrawlerFactory), new(*crawler.Factory)),
 		service.NewCCNUService,
 		ioc.InitOTel,
 		ioc.InitProxyClient,

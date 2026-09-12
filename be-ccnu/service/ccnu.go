@@ -17,12 +17,12 @@ var (
 )
 
 // 这里的err之所以在GetXKCookie和LoginCCNU两个方法里面不进行包装是因为如果进行封装了会导致error类型无法对应上kratos的error导致无法断言
-func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, password string, tpe ...string) (string, error) {
+func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, password string) (string, error) {
 	cr := c.factory.New()
 	stuType := tool.ParseStudentType(studentId)
 	switch stuType {
 	case tool.UnderGraduate:
-		cookie, err := cr.GetUnderGraduateCookie(ctx, studentId, password, tpe...)
+		cookie, err := cr.GetUnderGraduateCookie(ctx, studentId, password)
 		return cookie, mapCrawlerError(err)
 	case tool.PostGraduate:
 		cookie, err := cr.GetPostGraduateCookie(ctx, studentId, password)

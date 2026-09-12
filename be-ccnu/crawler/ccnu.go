@@ -89,7 +89,7 @@ func classifyUnderGraduateLoginError(err error) error {
 	}
 }
 
-func (c *CCNUCrawler) GetUnderGraduateCookie(ctx context.Context, studentID, password string, tpe ...string) (string, error) {
+func (c *CCNUCrawler) GetUnderGraduateCookie(ctx context.Context, studentID, password string) (string, error) {
 	client, ok, err := c.loginUnderGraduate(ctx, studentID, password)
 	if err != nil {
 		return "", errorx.Errorf("getUnderGradCookie loginUnderGrad error: %w", err)

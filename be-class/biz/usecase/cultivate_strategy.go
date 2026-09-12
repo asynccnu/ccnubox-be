@@ -23,8 +23,6 @@ const (
 	identity = "个性发展课程"
 	common   = "通识教育课程"
 	specific = "专业主干课程"
-
-	new_ = "new"
 )
 
 var (
@@ -232,7 +230,7 @@ func distinguishByClassType(classes []model.ToBeStudiedClass) model.ToBeStudiedC
 }
 
 func (c *CultivateStrategyBiz) GetCultivateStrategyFromCCNU(ctx context.Context, stuId string) (model.ToBeStudiedClasses, error) {
-	cookie, err := c.cookieCli.GetCookie(ctx, stuId, new_)
+	cookie, err := c.cookieCli.GetCookie(ctx, stuId)
 	if err != nil {
 		return model.ToBeStudiedClasses{}, err
 	}

@@ -11,7 +11,7 @@ type Crawler interface {
 	LoginUnderGraduate(ctx context.Context, studentID, password string) (bool, error)
 	LoginPostGraduate(ctx context.Context, studentID, password string) (bool, error)
 
-	GetUnderGraduateCookie(ctx context.Context, studentID, password string, tpe ...string) (string, error)
+	GetUnderGraduateCookie(ctx context.Context, studentID, password string) (string, error)
 	GetPostGraduateCookie(ctx context.Context, studentID, password string) (string, error)
 
 	GetLibrarySeatToken(ctx context.Context, studentID, password string) (string, error)

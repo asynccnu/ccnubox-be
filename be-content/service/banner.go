@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"sort"
 
 	"github.com/asynccnu/ccnubox-be/be-content/domain"
 	"github.com/asynccnu/ccnubox-be/be-content/repository"
@@ -39,14 +40,18 @@ func NewBannerService(repo repository.ContentRepo[model.Banner], l logger.Logger
 	}
 }
 
-// GetList 获取横幅列表
+// GetList 按 ID 降序获取横幅列表
 func (s *bannerService) GetList(ctx context.Context) ([]domain.Banner, error) {
 	ms, err := s.repo.GetList(ctx)
 	if err != nil {
 		// 使用 errorx 记录当前层位置和包装底层错误
 		return nil, GET_BANNERS_ERROR(err)
 	}
-	return s.toDomainList(ms), nil
+	banners := s.toDomainList(ms)
+	sort.Slice(banners, func(i, j int) bool {
+		return banners[i].ID > banners[j].ID
+	})
+	return banners, nil
 }
 
 // Save 保存或更新横幅

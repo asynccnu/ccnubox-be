@@ -101,3 +101,39 @@ type DeleteClassNoteReq struct {
 	Year     string `json:"year" binding:"required" example:"2025"`                                   // 学年
 	ClassId  string `json:"classId" binding:"required" example:"Class:测试课程:2025:2:1:1-2:测试老师:测试教室:3"` // 课程ID
 }
+
+type SearchRequest struct {
+	// 搜索关键词,匹配课程名称和教师姓名
+	SearchKeyWords string `form:"searchKeyWords" binding:"required" example:"高等数学"`
+	// 学年,格式为"2025"代表"2025-2026学年"
+	Year string `form:"year" binding:"required" example:"2025"`
+	// 学期,"1"代表第一学期，"2"代表第二学期，"3"代表第三学期
+	Semester string `form:"semester" binding:"required" example:"1"`
+	// 页码,从 1 开始
+	Page int `form:"page" binding:"required" example:"1"`
+	// 每页大小
+	PageSize int `form:"page_size" binding:"required" example:"20"`
+}
+
+type SearchClassResp struct {
+	ClassInfos []*ClassInfo `json:"classInfos"` // 搜索到的课程信息
+}
+
+type ClassToBeStudiedInfo struct {
+	ID        string `json:"id" example:"202501234"`          // 课程ID
+	Name      string `json:"name" example:"高等数学"`             // 课程名称
+	Status    string `json:"status" example:"未修读"`            // 修读状态:未修读/修读中/已修读
+	Property  string `json:"property" example:"专业主干课程"`       // 课程性质
+	Credit    string `json:"credit" example:"4"`              // 学分
+	Studiable string `json:"studiable" example:"2025-2026-1"` // 开设学年期
+}
+
+type GetToBeStudiedClassResp struct {
+	IdentityDevelop []ClassToBeStudiedInfo `json:"identity_develop"` // 个性发展课
+	SpecificSkill   []ClassToBeStudiedInfo `json:"specific_skill"`   // 专业主干课
+	CommonEducate   []ClassToBeStudiedInfo `json:"common_educate"`   // 通识教育课
+}
+
+type GetToBeStudiedClassReq struct {
+	Status string `json:"status" binding:"required" example:"未修读"` // 修读状态:未修读/修读中/已修读
+}

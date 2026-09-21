@@ -656,6 +656,227 @@
                 }
             }
         },
+        "/class/search": {
+            "get": {
+                "description": "根据关键词[课程名称或教师姓名]搜索课程。当返回结果数量大于 page_size 时代表还有下一页，page 从 1 开始。成功时 code=0；page 或 page_size 小于等于 0 返回 code=40004；搜索失败返回 code=50607。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "搜索课程",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token，例如 Bearer xxx",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "description": "页码,从 1 开始",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "example": 20,
+                        "description": "每页大小",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "高等数学",
+                        "description": "搜索关键词,匹配课程名称和教师姓名",
+                        "name": "searchKeyWords",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "1",
+                        "description": "学期,\"1\"代表第一学期，\"2\"代表第二学期，\"3\"代表第三学期",
+                        "name": "semester",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "2025",
+                        "description": "学年,格式为\"2025\"代表\"2025-2026学年\"",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功搜索到课程",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/class.SearchClassResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "非法的参数值，code=40004",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或 token 无效，code=40001",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "搜索课程失败，code=50607",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/class/toBeStudied": {
+            "get": {
+                "description": "获取当前登录学生培养方案中的全部课程，按个性发展/专业主干/通识教育三类返回。成功时 code=0；获取失败返回 code=50608。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "获取培养方案待修读课程(全部)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token，例如 Bearer xxx",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功获取待修读课程",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/class.GetToBeStudiedClassResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或 token 无效，code=40001",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "获取待修读课程失败，code=50608",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "根据修读状态[未修读/修读中/已修读]筛选当前登录学生培养方案中的课程，按个性发展/专业主干/通识教育三类返回。成功时 code=0；获取失败返回 code=50608。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "获取培养方案待修读课程(按状态筛选)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token，例如 Bearer xxx",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "按修读状态筛选请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/class.GetToBeStudiedClassReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功获取待修读课程",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/class.GetToBeStudiedClassResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或 token 无效，code=40001",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "请求参数错误，code=40002",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "获取待修读课程失败，code=50608",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/class/update": {
             "put": {
                 "description": "根据课程 ID 更新当前登录学生的自定义课程。可更新课程名称、节次、地点、教师、周次、星期几、学分；更新后课程 ID 可能改变。成功时 code=0；课程时间冲突返回 code=40601，其他更新失败返回 code=50604。",
@@ -3637,6 +3858,41 @@
                 }
             }
         },
+        "class.ClassToBeStudiedInfo": {
+            "type": "object",
+            "properties": {
+                "credit": {
+                    "description": "学分",
+                    "type": "string",
+                    "example": "4"
+                },
+                "id": {
+                    "description": "课程ID",
+                    "type": "string",
+                    "example": "202501234"
+                },
+                "name": {
+                    "description": "课程名称",
+                    "type": "string",
+                    "example": "高等数学"
+                },
+                "property": {
+                    "description": "课程性质",
+                    "type": "string",
+                    "example": "专业主干课程"
+                },
+                "status": {
+                    "description": "修读状态:未修读/修读中/已修读",
+                    "type": "string",
+                    "example": "未修读"
+                },
+                "studiable": {
+                    "description": "开设学年期",
+                    "type": "string",
+                    "example": "2025-2026-1"
+                }
+            }
+        },
         "class.DeleteClassNoteReq": {
             "type": "object",
             "required": [
@@ -3723,6 +3979,57 @@
                     "description": "开学日期零点时间戳,秒级",
                     "type": "integer",
                     "example": 1739721600
+                }
+            }
+        },
+        "class.GetToBeStudiedClassReq": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "description": "修读状态:未修读/修读中/已修读",
+                    "type": "string",
+                    "example": "未修读"
+                }
+            }
+        },
+        "class.GetToBeStudiedClassResp": {
+            "type": "object",
+            "properties": {
+                "common_educate": {
+                    "description": "通识教育课",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                    }
+                },
+                "identity_develop": {
+                    "description": "个性发展课",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                    }
+                },
+                "specific_skill": {
+                    "description": "专业主干课",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassToBeStudiedInfo"
+                    }
+                }
+            }
+        },
+        "class.SearchClassResp": {
+            "type": "object",
+            "properties": {
+                "classInfos": {
+                    "description": "搜索到的课程信息",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/class.ClassInfo"
+                    }
                 }
             }
         },
@@ -4407,7 +4714,7 @@
                     "type": "boolean"
                 },
                 "library": {
-                    "description": "Library is optional so requests from already deployed clients preserve the user's existing library-reminder preference.",
+                    "description": "Library 为可选字段，使已部署客户端的请求能够保留用户现有的图书馆提醒偏好。",
                     "type": "boolean"
                 },
                 "muxi": {

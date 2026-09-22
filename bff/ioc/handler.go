@@ -63,8 +63,8 @@ func InitElecpriceHandler(cfg *conf.ServerConf, client elecpricev1.ElecpriceServ
 		}))
 }
 
-func InitClassHandler(cfg *conf.ServerConf, client1 classlistv1.ClasserClient, l logger.Logger) *class.ClassHandler {
-	return class.NewClassListHandler(client1,
+func InitClassHandler(cfg *conf.ServerConf, client1 classlistv1.ClasserClient, client2 cs.ClassServiceClient, l logger.Logger) *class.ClassHandler {
+	return class.NewClassListHandler(client1, client2,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
 		}), l)

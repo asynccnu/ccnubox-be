@@ -38,6 +38,7 @@ func InitApp() *App {
 		ioc.InitHealthClient,
 		//基于kratos的微服务
 		ioc.InitClassListClient,
+		ioc.InitClassClient,
 		ioc.InitClassRoomClient,
 		ioc.InitLibrary,
 

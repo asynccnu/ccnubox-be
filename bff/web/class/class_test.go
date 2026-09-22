@@ -1,14 +1,20 @@
 package class
 
 import (
+	"context"
 	"errors"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	b_errorx "github.com/asynccnu/ccnubox-be/bff/pkg/errorx"
+	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	cs "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classService/v1"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	"github.com/asynccnu/ccnubox-be/common/tool"
+	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
 )
 
 func TestMapGetClassListError(t *testing.T) {
@@ -182,4 +188,163 @@ func Test_convertWeekFromIntToArray(t *testing.T) {
 			}
 		})
 	}
+}
+
+type fakeClassServiceClient struct {
+	searchReply    *cs.SearchReply
+	searchErr      error
+	studiedReply   *cs.GetClassToBeStudiedReply
+	studiedErr     error
+	lastStudiedReq *cs.GetClassToBeStudiedRequest
+}
+
+func (f *fakeClassServiceClient) SearchClass(ctx context.Context, in *cs.SearchRequest, opts ...grpc.CallOption) (*cs.SearchReply, error) {
+	return f.searchReply, f.searchErr
+}
+
+func (f *fakeClassServiceClient) AddClass(ctx context.Context, in *cs.AddClassRequest, opts ...grpc.CallOption) (*cs.AddClassReply, error) {
+	return nil, nil
+}
+
+func (f *fakeClassServiceClient) GetClassToBeStudied(ctx context.Context, in *cs.GetClassToBeStudiedRequest, opts ...grpc.CallOption) (*cs.GetClassToBeStudiedReply, error) {
+	f.lastStudiedReq = in
+	return f.studiedReply, f.studiedErr
+}
+
+func newTestGinContext() *gin.Context {
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	return ctx
+}
+
+func assertCustomErrorCode(t *testing.T, err error, wantCode, wantStatus int) {
+	t.Helper()
+	var got *b_errorx.CustomError
+	if !errors.As(err, &got) {
+		t.Fatalf("error %v does not contain a CustomError", err)
+	}
+	if got.Code != wantCode {
+		t.Errorf("code = %d, want %d", got.Code, wantCode)
+	}
+	if got.HttpCode != wantStatus {
+		t.Errorf("HTTP status = %d, want %d", got.HttpCode, wantStatus)
+	}
+}
+
+func TestClassHandler_SearchClass(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		fake := &fakeClassServiceClient{searchReply: &cs.SearchReply{ClassInfos: []*cs.ClassInfo{
+			{
+				Id: "c1", Day: 1, Teacher: "张老师", Where: "n101", ClassWhen: "1-2",
+				WeekDuration: "1-2周", Classname: "高等数学", Credit: 4, Weeks: 3,
+				Semester: "1", Year: "2025",
+			},
+		}}}
+		h := &ClassHandler{ClassServiceClient: fake}
+
+		resp, err := h.SearchClass(newTestGinContext(), SearchRequest{
+			SearchKeyWords: "数学", Year: "2025", Semester: "1", Page: 1, PageSize: 20,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		data, ok := resp.Data.(SearchClassResp)
+		if !ok {
+			t.Fatalf("data type = %T, want SearchClassResp", resp.Data)
+		}
+		if len(data.ClassInfos) != 1 {
+			t.Fatalf("classInfos length = %d, want 1", len(data.ClassInfos))
+		}
+		got := data.ClassInfos[0]
+		if got.ID != "c1" || got.Classname != "高等数学" || got.Teacher != "张老师" {
+			t.Errorf("unexpected class info: %+v", got)
+		}
+		if want := []int{1, 2}; !reflect.DeepEqual(got.Weeks, want) {
+			t.Errorf("weeks = %v, want %v", got.Weeks, want)
+		}
+	})
+
+	t.Run("invalid page", func(t *testing.T) {
+		h := &ClassHandler{ClassServiceClient: &fakeClassServiceClient{}}
+		_, err := h.SearchClass(newTestGinContext(), SearchRequest{
+			SearchKeyWords: "数学", Year: "2025", Semester: "1", Page: 0, PageSize: 20,
+		})
+		assertCustomErrorCode(t, err, errs.INVALID_PARAM_VALUE_ERROR_CODE, 400)
+	})
+
+	t.Run("client error", func(t *testing.T) {
+		h := &ClassHandler{ClassServiceClient: &fakeClassServiceClient{searchErr: errors.New("es unavailable")}}
+		_, err := h.SearchClass(newTestGinContext(), SearchRequest{
+			SearchKeyWords: "数学", Year: "2025", Semester: "1", Page: 1, PageSize: 20,
+		})
+		assertCustomErrorCode(t, err, errs.SEARCH_CLASS_ERROR_CODE, 500)
+	})
+}
+
+func TestClassHandler_GetToBeStudiedClass(t *testing.T) {
+	studiedReply := &cs.GetClassToBeStudiedReply{
+		IdentityDevelop: []*cs.GetClassToBeStudiedReply_ClassToBeStudiedInfo{
+			{Id: "b2", Name: "课程B", Status: "未修读", Property: "个性发展", Credit: "2", Studiable: "2025-2026-1"},
+		},
+		SpecificSkill: []*cs.GetClassToBeStudiedReply_ClassToBeStudiedInfo{
+			{Id: "b1", Name: "课程A", Status: "修读中", Property: "专业主干", Credit: "3", Studiable: "2025-2026-1"},
+			{Id: "a1", Name: "课程C", Status: "已修读", Property: "专业主干", Credit: "4", Studiable: "2024-2025-2"},
+		},
+		CommonEducate: []*cs.GetClassToBeStudiedReply_ClassToBeStudiedInfo{
+			{Id: "c1", Name: "课程D", Status: "未修读", Property: "通识教育", Credit: "1", Studiable: "2025-2026-1"},
+		},
+	}
+
+	t.Run("success and sorted", func(t *testing.T) {
+		h := &ClassHandler{ClassServiceClient: &fakeClassServiceClient{studiedReply: studiedReply}}
+		resp, err := h.GetToBeStudiedClass(newTestGinContext(), ijwt.UserClaims{StudentId: "2025211366"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		data, ok := resp.Data.(GetToBeStudiedClassResp)
+		if !ok {
+			t.Fatalf("data type = %T, want GetToBeStudiedClassResp", resp.Data)
+		}
+		if len(data.IdentityDevelop) != 1 || len(data.SpecificSkill) != 2 || len(data.CommonEducate) != 1 {
+			t.Fatalf("unexpected lengths: identity=%d specific=%d common=%d",
+				len(data.IdentityDevelop), len(data.SpecificSkill), len(data.CommonEducate))
+		}
+		if data.SpecificSkill[0].ID != "a1" || data.SpecificSkill[1].ID != "b1" {
+			t.Errorf("specific skill not sorted by id: %+v", data.SpecificSkill)
+		}
+		if data.CommonEducate[0].Name != "课程D" {
+			t.Errorf("unexpected common educate class: %+v", data.CommonEducate[0])
+		}
+	})
+
+	t.Run("client error", func(t *testing.T) {
+		h := &ClassHandler{ClassServiceClient: &fakeClassServiceClient{studiedErr: errors.New("db unavailable")}}
+		_, err := h.GetToBeStudiedClass(newTestGinContext(), ijwt.UserClaims{StudentId: "2025211366"})
+		assertCustomErrorCode(t, err, errs.GET_TO_BE_STUDIED_CLASS_ERROR_CODE, 500)
+	})
+}
+
+func TestClassHandler_GetToBeStudiedClassByStatus(t *testing.T) {
+	t.Run("status and student id passed through", func(t *testing.T) {
+		fake := &fakeClassServiceClient{studiedReply: &cs.GetClassToBeStudiedReply{}}
+		h := &ClassHandler{ClassServiceClient: fake}
+		_, err := h.GetToBeStudiedClassByStatus(newTestGinContext(),
+			GetToBeStudiedClassReq{Status: "未修读"}, ijwt.UserClaims{StudentId: "2025211366"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if fake.lastStudiedReq.GetStatus() != "未修读" {
+			t.Errorf("status = %q, want %q", fake.lastStudiedReq.GetStatus(), "未修读")
+		}
+		if fake.lastStudiedReq.GetStuId() != "2025211366" {
+			t.Errorf("stu_id = %q, want %q", fake.lastStudiedReq.GetStuId(), "2025211366")
+		}
+	})
+
+	t.Run("client error", func(t *testing.T) {
+		h := &ClassHandler{ClassServiceClient: &fakeClassServiceClient{studiedErr: errors.New("db unavailable")}}
+		_, err := h.GetToBeStudiedClassByStatus(newTestGinContext(),
+			GetToBeStudiedClassReq{Status: "已修读"}, ijwt.UserClaims{StudentId: "2025211366"})
+		assertCustomErrorCode(t, err, errs.GET_TO_BE_STUDIED_CLASS_ERROR_CODE, 500)
+	})
 }

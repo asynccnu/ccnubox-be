@@ -1,12 +1,15 @@
 package class
 
 import (
+	"errors"
+	"sort"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
+	cs "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classService/v1"
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/tool"
@@ -14,20 +17,23 @@ import (
 )
 
 type ClassHandler struct {
-	ClassListClient classlistv1.ClasserClient
-	Administrators  map[string]struct{} // 这里注入的是管理员权限验证配置
-	l               logger.Logger
+	ClassListClient    classlistv1.ClasserClient
+	ClassServiceClient cs.ClassServiceClient
+	Administrators     map[string]struct{} // 这里注入的是管理员权限验证配置
+	l                  logger.Logger
 }
 
 func NewClassListHandler(
 	ClassListClient classlistv1.ClasserClient,
+	ClassServiceClient cs.ClassServiceClient,
 	administrators map[string]struct{},
 	l logger.Logger,
 ) *ClassHandler {
 	return &ClassHandler{
-		ClassListClient: ClassListClient,
-		Administrators:  administrators,
-		l:               l,
+		ClassListClient:    ClassListClient,
+		ClassServiceClient: ClassServiceClient,
+		Administrators:     administrators,
+		l:                  l,
 	}
 }
 
@@ -37,9 +43,12 @@ func (c *ClassHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.Han
 	sg.POST("/add", authMiddleware, ginx.WrapClaimsAndReq(c.AddClass))
 	sg.POST("/delete", authMiddleware, ginx.WrapClaimsAndReq(c.DeleteClass))
 	sg.PUT("/update", authMiddleware, ginx.WrapClaimsAndReq(c.UpdateClass))
+	sg.GET("/search", authMiddleware, ginx.WrapReq(c.SearchClass))
 	sg.GET("/day/get", ginx.Wrap(c.GetSchoolDay))
 	sg.POST("/note/insert", authMiddleware, ginx.WrapClaimsAndReq(c.InsertClassNote))
 	sg.POST("/note/delete", authMiddleware, ginx.WrapClaimsAndReq(c.DeleteClassNote))
+	sg.GET("/toBeStudied", authMiddleware, ginx.WrapClaims(c.GetToBeStudiedClass))
+	sg.POST("/toBeStudied", authMiddleware, ginx.WrapClaimsAndReq(c.GetToBeStudiedClassByStatus))
 }
 
 // GetClassList 获取课表
@@ -231,6 +240,57 @@ func wrapClassMutationError(err error, fallback func(error) error) error {
 	}
 }
 
+// SearchClass 搜索课程
+// @Summary 搜索课程
+// @Description 根据关键词[课程名称或教师姓名]搜索课程。当返回结果数量大于 page_size 时代表还有下一页，page 从 1 开始。成功时 code=0；page 或 page_size 小于等于 0 返回 code=40004；搜索失败返回 code=50607。
+// @Tags class
+// @Produce json
+// @Param Authorization header string true "Bearer Token，例如 Bearer xxx"
+// @Param request query SearchRequest true "搜索课程请求参数"
+// @Success 200 {object} web.Response{data=SearchClassResp} "成功搜索到课程"
+// @Failure 400 {object} web.Response "非法的参数值，code=40004"
+// @Failure 401 {object} web.Response "未登录或 token 无效，code=40001"
+// @Failure 500 {object} web.Response "搜索课程失败，code=50607"
+// @Router /class/search [get]
+func (c *ClassHandler) SearchClass(ctx *gin.Context, req SearchRequest) (web.Response, error) {
+	if req.Page <= 0 || req.PageSize <= 0 {
+		return web.Response{}, errs.INVALID_PARAM_VALUE_ERROR(errors.New("page or pageSize must be greater than 0"))
+	}
+
+	classes, err := c.ClassServiceClient.SearchClass(ctx, &cs.SearchRequest{
+		Year:           req.Year,
+		Semester:       req.Semester,
+		SearchKeyWords: req.SearchKeyWords,
+		Page:           int32(req.Page),
+		PageSize:       int32(req.PageSize),
+	})
+	if err != nil {
+		return web.Response{}, errs.SEARCH_CLASS_ERROR(err)
+	}
+
+	respClasses := make([]*ClassInfo, 0, len(classes.GetClassInfos()))
+	for _, class := range classes.GetClassInfos() {
+		respClasses = append(respClasses, &ClassInfo{
+			ID:           class.GetId(),
+			Day:          class.GetDay(),
+			Teacher:      class.GetTeacher(),
+			Where:        class.GetWhere(),
+			ClassWhen:    class.GetClassWhen(),
+			WeekDuration: class.GetWeekDuration(),
+			Classname:    class.GetClassname(),
+			Credit:       class.GetCredit(),
+			Weeks:        convertWeekFromIntToArray(class.GetWeeks()),
+			Semester:     class.GetSemester(),
+			Year:         class.GetYear(),
+		})
+	}
+
+	return web.Response{
+		Msg:  "Success",
+		Data: SearchClassResp{ClassInfos: respClasses},
+	}, nil
+}
+
 // GetSchoolDay 获取当前周
 // @Summary 获取学期日期配置
 // @Description 获取当前学期的开学日期和放假日期，返回秒级时间戳。前端用 school_time 计算当前周，用 holiday_time 判断学期边界。成功时 code=0；类型转换失败返回 code=50003。
@@ -320,6 +380,99 @@ func (c *ClassHandler) DeleteClassNote(ctx *gin.Context, req DeleteClassNoteReq,
 	return web.Response{
 		Msg: resp.Msg,
 	}, nil
+}
+
+// GetToBeStudiedClass 获取培养方案待修读课程(全部)
+// @Summary 获取培养方案待修读课程(全部)
+// @Description 获取当前登录学生培养方案中的全部课程，按个性发展/专业主干/通识教育三类返回。成功时 code=0；获取失败返回 code=50608。
+// @Tags class
+// @Produce json
+// @Param Authorization header string true "Bearer Token，例如 Bearer xxx"
+// @Success 200 {object} web.Response{data=GetToBeStudiedClassResp} "成功获取待修读课程"
+// @Failure 401 {object} web.Response "未登录或 token 无效，code=40001"
+// @Failure 500 {object} web.Response "获取待修读课程失败，code=50608"
+// @Router /class/toBeStudied [get]
+func (c *ClassHandler) GetToBeStudiedClass(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
+	res, err := c.ClassServiceClient.GetClassToBeStudied(ctx, &cs.GetClassToBeStudiedRequest{
+		StuId: uc.StudentId,
+	})
+	if err != nil {
+		return web.Response{}, errs.GET_TO_BE_STUDIED_CLASS_ERROR(err)
+	}
+
+	resp := studiedClassesToVO(res)
+	sortClassesResp(&resp)
+
+	return web.Response{
+		Msg:  "Success",
+		Data: resp,
+	}, nil
+}
+
+// GetToBeStudiedClassByStatus 根据状态获取培养方案待修读课程
+// @Summary 获取培养方案待修读课程(按状态筛选)
+// @Description 根据修读状态[未修读/修读中/已修读]筛选当前登录学生培养方案中的课程，按个性发展/专业主干/通识教育三类返回。成功时 code=0；获取失败返回 code=50608。
+// @Tags class
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer Token，例如 Bearer xxx"
+// @Param request body GetToBeStudiedClassReq true "按修读状态筛选请求"
+// @Success 200 {object} web.Response{data=GetToBeStudiedClassResp} "成功获取待修读课程"
+// @Failure 401 {object} web.Response "未登录或 token 无效，code=40001"
+// @Failure 422 {object} web.Response "请求参数错误，code=40002"
+// @Failure 500 {object} web.Response "获取待修读课程失败，code=50608"
+// @Router /class/toBeStudied [post]
+func (c *ClassHandler) GetToBeStudiedClassByStatus(ctx *gin.Context, req GetToBeStudiedClassReq, uc ijwt.UserClaims) (web.Response, error) {
+	res, err := c.ClassServiceClient.GetClassToBeStudied(ctx, &cs.GetClassToBeStudiedRequest{
+		StuId:  uc.StudentId,
+		Status: req.Status,
+	})
+	if err != nil {
+		return web.Response{}, errs.GET_TO_BE_STUDIED_CLASS_ERROR(err)
+	}
+
+	resp := studiedClassesToVO(res)
+	sortClassesResp(&resp)
+
+	return web.Response{
+		Msg:  "Success",
+		Data: resp,
+	}, nil
+}
+
+func studiedClassesToVO(res *cs.GetClassToBeStudiedReply) GetToBeStudiedClassResp {
+	return GetToBeStudiedClassResp{
+		IdentityDevelop: convertToBeStudiedClasses(res.GetIdentityDevelop()),
+		SpecificSkill:   convertToBeStudiedClasses(res.GetSpecificSkill()),
+		CommonEducate:   convertToBeStudiedClasses(res.GetCommonEducate()),
+	}
+}
+
+func convertToBeStudiedClasses(classes []*cs.GetClassToBeStudiedReply_ClassToBeStudiedInfo) []ClassToBeStudiedInfo {
+	result := make([]ClassToBeStudiedInfo, 0, len(classes))
+	for _, class := range classes {
+		result = append(result, ClassToBeStudiedInfo{
+			ID:        class.GetId(),
+			Name:      class.GetName(),
+			Status:    class.GetStatus(),
+			Property:  class.GetProperty(),
+			Credit:    class.GetCredit(),
+			Studiable: class.GetStudiable(),
+		})
+	}
+	return result
+}
+
+func sortClassesResp(r *GetToBeStudiedClassResp) {
+	sortClassesById(r.SpecificSkill)
+	sortClassesById(r.IdentityDevelop)
+	sortClassesById(r.CommonEducate)
+}
+
+func sortClassesById(classes []ClassToBeStudiedInfo) {
+	sort.Slice(classes, func(i, j int) bool {
+		return classes[i].ID < classes[j].ID
+	})
 }
 
 func convertWeekFromArrayToInt(weeks []int) int64 {

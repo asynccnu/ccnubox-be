@@ -15,6 +15,7 @@ import (
 	classTool "github.com/asynccnu/ccnubox-be/be-classlist/pkg/tool"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 	"github.com/go-sql-driver/mysql"
 	"golang.org/x/sync/singleflight"
@@ -655,9 +656,9 @@ func (cluc *ClassUsecase) handleRetryMessage(ctx context.Context, _ []byte, valu
 
 	retryInfo, err := decodeRefreshRetryMessage(value)
 	if err != nil {
-		logh.Errorf("invalid refresh retry msg: value=%s, err=%+v", string(value), err)
-		// 没有 DLQ 时确认非法消息，避免 poison message 永久阻塞分区。
-		return true, err
+		logh.Errorf(saramax.LogKeyPartitionBlocked+" invalid refresh retry msg，位点不确认，该分区将停止消费直到人工处理: err=%+v", err)
+		// 不自动丢弃非法消息，由消费器保留位点并退避，修复后重启恢复。
+		return false, err
 	}
 
 	logh.Infof("consume refresh retry msg stu_id=%s year=%s semester=%s attempt=%d max_attempts=%d", retryInfo.StuID, retryInfo.Year, retryInfo.Semester, retryInfo.Attempt, retryInfo.MaxAttempts)

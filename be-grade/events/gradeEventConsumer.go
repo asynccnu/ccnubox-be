@@ -2,7 +2,8 @@ package events
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"sync"
 
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-grade/conf"
@@ -19,10 +20,13 @@ import (
 type GradeDetailEventConsumerHandler struct {
 	cg           consumer.Consumer    //消费者
 	l            logger.Logger        // 日志记录器
-	stopChan     chan struct{}        //用于停止的管道,没用上
 	gradeService service.GradeService // 事件数据的存储库
 	cfg          *saramax.HandlerConfig
 	m            *metricsx.Metrics
+	ctx          context.Context
+	cancel       context.CancelFunc
+	stopOnce     sync.Once
+	wg           sync.WaitGroup
 }
 
 func NewGradeDetailEventConsumerHandler(
@@ -33,6 +37,7 @@ func NewGradeDetailEventConsumerHandler(
 	m *metricsx.Metrics,
 ) *GradeDetailEventConsumerHandler {
 	cg := consumer.NewSaramaConsumer(kafkaClient, topic.GradeDetailEvent)
+	ctx, cancel := context.WithCancel(context.Background())
 	return &GradeDetailEventConsumerHandler{
 		cg: cg,
 		l:  l,
@@ -41,7 +46,8 @@ func NewGradeDetailEventConsumerHandler(
 			ConsumeNum:  cfg.ConsumeConf.ConsumeNum,
 		},
 		gradeService: gradeService,
-		stopChan:     make(chan struct{}),
+		ctx:          ctx,
+		cancel:       cancel,
 		m:            m,
 	}
 }
@@ -50,40 +56,59 @@ func NewGradeDetailEventConsumerHandler(
 func (f *GradeDetailEventConsumerHandler) Start() error {
 
 	// 启动一个 Goroutine 异步消费消息
+	f.wg.Add(1)
 	go func() {
-		for {
-			f.l.Info("开始消费")
-			err := f.cg.Consume(context.Background(), []string{topic.GradeDetailEvent}, saramax.NewHandler(f.l, f.cfg, f.Consume))
-			if err != nil {
-				// 如果消费循环中出现错误，记录错误日志
-				f.l.Error("退出了消费循环异常", logger.Error(err))
-				//feed消息消费出现问题属于重大问题,选择直接panic
-				panic(err)
-			}
-			f.l.Info("消费者退出消费")
-		}
-
+		defer f.wg.Done()
+		saramax.RunConsumer(f.ctx, f.cg, []string{topic.GradeDetailEvent},
+			saramax.NewContextHandler(f.l, f.cfg, f.consume), f.l)
 	}()
 	return nil
+}
+
+func (f *GradeDetailEventConsumerHandler) Stop() {
+	f.stopOnce.Do(func() {
+		if f.cancel != nil {
+			f.cancel()
+		}
+		if f.cg != nil {
+			if err := f.cg.Close(); err != nil {
+				f.l.Error("close grade consumer failed", logger.Error(err))
+			}
+		}
+	})
+	f.wg.Wait()
 }
 
 // Consume 是实际处理 Kafka 消息的函数
 // 接收 Kafka 消息和事件数组作为参数,并存储到到临时变量里面去
 func (f *GradeDetailEventConsumerHandler) Consume(events []domain.NeedDetailGrade) error {
-	var ctx = context.Background()
+	return f.consume(context.Background(), events)
+}
+
+func (f *GradeDetailEventConsumerHandler) consume(ctx context.Context, events []domain.NeedDetailGrade) error {
 	var failed int
+	var consumeErrors []error
 	for _, event := range events {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		err := f.gradeService.UpdateDetailScore(ctx, event)
 		if err != nil {
-			f.l.Warn(fmt.Sprintf("更新%s成绩详情失败:", event.StudentID), logger.Error(err))
+			// 单个学生的详情失败会让整批重投并结束本轮会话，需要靠关键字定位是哪个学生一直失败，
+			// 具体失败科目由 service 层日志给出（不打印成绩等隐私内容）。
+			f.l.Warn(saramax.LogKeyConsumeRetry+" 更新成绩详情失败，整批将重投",
+				logger.String("sid", event.StudentID), logger.Int("grades", len(event.Grades)), logger.Error(err))
 			failed++
+			consumeErrors = append(consumeErrors, err)
 		}
 	}
-	if f.m != nil {
-		if failed > 0 {
+	if f.m != nil && f.m.MQMetrics != nil {
+		if failed > 0 && f.m.MQMetrics.FailedTotal != nil {
 			f.m.MQMetrics.FailedTotal.WithLabelValues(topic.GradeDetailEvent, "consume_error").Add(float64(failed))
 		}
-		f.m.MQMetrics.ConsumedTotal.WithLabelValues(topic.GradeDetailEvent, "OK").Add(float64(len(events) - failed))
+		if f.m.MQMetrics.ConsumedTotal != nil {
+			f.m.MQMetrics.ConsumedTotal.WithLabelValues(topic.GradeDetailEvent, "OK").Add(float64(len(events) - failed))
+		}
 	}
-	return nil
+	return errors.Join(consumeErrors...)
 }

@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -8,18 +9,20 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Producer 接口定义了 Kafka Producer 的行为
 type Producer interface {
-	SendMessage(topic string, msgData domain.NeedDetailGrade) error
+	SendMessage(ctx context.Context, topic string, msgData domain.NeedDetailGrade) error
 	Close() error
 }
 
 // SaramaProducer 使用 sarama.Client 的生产者实现
 type saramaProducer struct {
-	producer sarama.SyncProducer
+	producer  sarama.SyncProducer
+	sendGuard *saramax.SendGuard
 }
 
 // NewSaramaProducer 创建一个新的 SaramaProducer 实例
@@ -31,11 +34,13 @@ func NewSaramaProducer(kafkaClient sarama.Client) Producer {
 		return nil
 	}
 
-	return &saramaProducer{producer: producer}
+	// 令牌桶：稳态 50 次/秒、突发 100 次。详情事件在用户刷新的 30 秒超时内发送，
+	// 突发额度保证正常刷新不会因为限速拿不到令牌；发送失败的日志由 service 层输出。
+	return &saramaProducer{producer: producer, sendGuard: saramax.NewSendGuard(50, 100, nil)}
 }
 
 // SendMessage 发送一条消息到指定的 Kafka 主题
-func (p *saramaProducer) SendMessage(topic string, msgData domain.NeedDetailGrade) error {
+func (p *saramaProducer) SendMessage(ctx context.Context, topic string, msgData domain.NeedDetailGrade) error {
 	//序列化
 	data, err := json.Marshal(msgData)
 	if err != nil {
@@ -44,20 +49,19 @@ func (p *saramaProducer) SendMessage(topic string, msgData domain.NeedDetailGrad
 	//存储数据
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
+		Key:   sarama.StringEncoder(msgData.StudentID),
 		Value: sarama.ByteEncoder(data),
 	}
 
-	_, _, err = p.producer.SendMessage(msg)
-	if err != nil {
+	return p.sendGuard.Send(ctx, func() error {
+		_, _, err := p.producer.SendMessage(msg)
 		return err
-	}
-
-	return nil
+	})
 }
 
 // Close 关闭 Kafka Client
 func (p *saramaProducer) Close() error {
-	return p.producer.Close()
+	return p.sendGuard.Close(p.producer.Close)
 }
 
 // instrumentedProducer 包装 Producer 接口，添加 metrics
@@ -80,8 +84,8 @@ func NewInstrumentedSaramaProducer(kafkaClient sarama.Client, m *metricsx.Metric
 	return NewInstrumentedProducer(NewSaramaProducer(kafkaClient), m.MQMetrics.ProducedTotal, m.MQMetrics.FailedTotal)
 }
 
-func (p *instrumentedProducer) SendMessage(topic string, msgData domain.NeedDetailGrade) error {
-	err := p.Producer.SendMessage(topic, msgData)
+func (p *instrumentedProducer) SendMessage(ctx context.Context, topic string, msgData domain.NeedDetailGrade) error {
+	err := p.Producer.SendMessage(ctx, topic, msgData)
 	if err != nil {
 		if p.mqFailedTotal != nil {
 			p.mqFailedTotal.WithLabelValues(topic, classifyError(err)).Inc()

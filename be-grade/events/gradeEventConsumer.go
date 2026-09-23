@@ -44,6 +44,9 @@ func NewGradeDetailEventConsumerHandler(
 		cfg: &saramax.HandlerConfig{
 			ConsumeTime: cfg.ConsumeConf.ConsumeTime,
 			ConsumeNum:  cfg.ConsumeConf.ConsumeNum,
+			// 爬虫类失败的恢复周期较长，会话内重试只会重复请求教务处；
+			// 长周期恢复交给消费循环的外层退避（上限 30s）。
+			RetryAttempts: 2,
 		},
 		gradeService: gradeService,
 		ctx:          ctx,
@@ -103,6 +106,8 @@ func (f *GradeDetailEventConsumerHandler) consume(ctx context.Context, events []
 		}
 	}
 	if f.m != nil && f.m.MQMetrics != nil {
+		// 框架层 Retry 会对失败批次重试多次，每次都会重新调用本函数，
+		// Failed/Consumed 计数在会话内重试与 Kafka 重投时都会重复累计，只反映相对趋势。
 		if failed > 0 && f.m.MQMetrics.FailedTotal != nil {
 			f.m.MQMetrics.FailedTotal.WithLabelValues(topic.GradeDetailEvent, "consume_error").Add(float64(failed))
 		}

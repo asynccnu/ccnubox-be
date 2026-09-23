@@ -10,9 +10,13 @@ import (
 )
 
 // Retry 在当前会话内有限退避重试，取消后不再发起新的处理。
+// maxAttempts 为总尝试次数上限，<=0 时按默认 4 次处理；
 // fn 可能被重复调用，业务处理必须保证幂等。
-func Retry(ctx context.Context, l logger.Logger, fn func() error) error {
-	const maxAttempts = 4
+func Retry(ctx context.Context, l logger.Logger, maxAttempts int, fn func() error) error {
+	const defaultMaxAttempts = 4
+	if maxAttempts <= 0 {
+		maxAttempts = defaultMaxAttempts
+	}
 	for attempt := 1; ; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -66,6 +70,6 @@ func wait(ctx context.Context, delay time.Duration) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-timer.C:
-		return ctx.Err()
+		return nil
 	}
 }

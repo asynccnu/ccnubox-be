@@ -8,6 +8,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,7 +27,7 @@ type saramaProducer struct {
 }
 
 // NewSaramaProducer 创建一个新的 SaramaProducer 实例
-func NewSaramaProducer(kafkaClient sarama.Client) Producer {
+func NewSaramaProducer(kafkaClient sarama.Client, l logger.Logger) Producer {
 	// 使用 Kafka 客户端创建同步生产者
 	producer, err := sarama.NewSyncProducerFromClient(kafkaClient)
 	if err != nil {
@@ -35,8 +36,9 @@ func NewSaramaProducer(kafkaClient sarama.Client) Producer {
 	}
 
 	// 令牌桶：稳态 50 次/秒、突发 100 次。详情事件在用户刷新的 30 秒超时内发送，
-	// 突发额度保证正常刷新不会因为限速拿不到令牌；发送失败的日志由 service 层输出。
-	return &saramaProducer{producer: producer, sendGuard: saramax.NewSendGuard(50, 100, nil)}
+	// 突发额度保证正常刷新不会因为限速拿不到令牌。
+	// logger 用于输出进入/退出冷却的关键字日志（KAFKA_SEND_FAILED），不能传 nil。
+	return &saramaProducer{producer: producer, sendGuard: saramax.NewSendGuard(50, 100, l)}
 }
 
 // SendMessage 发送一条消息到指定的 Kafka 主题
@@ -80,8 +82,8 @@ func NewInstrumentedProducer(p Producer, producedTotal *prometheus.CounterVec, m
 	}
 }
 
-func NewInstrumentedSaramaProducer(kafkaClient sarama.Client, m *metricsx.Metrics) Producer {
-	return NewInstrumentedProducer(NewSaramaProducer(kafkaClient), m.MQMetrics.ProducedTotal, m.MQMetrics.FailedTotal)
+func NewInstrumentedSaramaProducer(kafkaClient sarama.Client, l logger.Logger, m *metricsx.Metrics) Producer {
+	return NewInstrumentedProducer(NewSaramaProducer(kafkaClient, l), m.MQMetrics.ProducedTotal, m.MQMetrics.FailedTotal)
 }
 
 func (p *instrumentedProducer) SendMessage(ctx context.Context, topic string, msgData domain.NeedDetailGrade) error {

@@ -10,6 +10,8 @@ import (
 
 type KafkaConfigOption func(*sarama.Config)
 
+// InitKafka 面向启动期必须连上 Kafka 的服务（如 be-grade）：初始化失败直接退出进程。
+// 若希望初始化失败交给后台消费循环退避重试，改用 NewKafka。
 func InitKafka(cfg *conf.KafkaConf, options ...KafkaConfigOption) sarama.Client {
 	client, err := NewKafka(cfg, options...)
 	if err != nil {
@@ -18,7 +20,8 @@ func InitKafka(cfg *conf.KafkaConf, options ...KafkaConfigOption) sarama.Client 
 	return client
 }
 
-// NewKafka 将初始化错误交给后台消费者退避恢复，不在恢复循环中退出进程。
+// NewKafka 将初始化错误返回给调用方，供需要退避恢复的后台消费者使用
+// （如 be-classlist 的消费循环），不在恢复循环中退出进程。
 func NewKafka(cfg *conf.KafkaConf, options ...KafkaConfigOption) (sarama.Client, error) {
 	saramaCfg := sarama.NewConfig()
 

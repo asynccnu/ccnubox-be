@@ -31,7 +31,7 @@ func InitApp() App {
 	client2 := ioc.InitHttpProxyClient(proxyClient, infraConf, logger)
 	saramaClient := ioc.InitKafka(infraConf)
 	metrics := ioc.InitMetrics()
-	producerProducer := producer.NewInstrumentedSaramaProducer(saramaClient, metrics)
+	producerProducer := producer.NewInstrumentedSaramaProducer(saramaClient, logger, metrics)
 	gradeService := service.NewGradeService(gradeDAO, logger, userServiceClient, classerClient, client2, producerProducer)
 	rankDAO := dao.NewRankDAO(db)
 	rankService := service.NewRankService(rankDAO, logger, userServiceClient, client2)

@@ -122,11 +122,17 @@ func (h *Handler[T]) ConsumeEvents(events *[]T, msgRecords *[]*sarama.ConsumerMe
 	logh := h.l.With(logger.String("topic", first.Topic),
 		logger.Int32("partition", first.Partition), logger.Int64("offset", first.Offset),
 		logger.Int("batch_size", len(*events)))
-	err := Retry(session.Context(), logh, func() error {
+	err := Retry(session.Context(), logh, h.cfg.RetryAttempts, func() error {
 		return h.fn(session.Context(), *msgRecords, *events)
 	})
 	if err != nil {
-		logh.Error(LogKeyPartitionBlocked+" 批量消费失败，保留位点并停止当前分区消费", logger.Error(err))
+		if session.Context().Err() != nil {
+			// 停机/再平衡导致的失败不是坏消息，位点会随下次会话重投，
+			// 不能打 KAFKA_PARTITION_BLOCKED 造成误告警。
+			logh.Info("会话结束，批次未确认，等待下次会话重投", logger.Error(err))
+		} else {
+			logh.Error(LogKeyPartitionBlocked+" 批量消费失败，保留位点并停止当前分区消费", logger.Error(err))
+		}
 		return err
 	}
 	if err := session.Context().Err(); err != nil {

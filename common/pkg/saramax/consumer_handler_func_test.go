@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 type testSession struct {
@@ -285,6 +288,32 @@ func TestSendGuardSharesFailureCooldown(t *testing.T) {
 	}
 }
 
+func TestSendGuardInflightSuccessDoesNotClearActiveCooldown(t *testing.T) {
+	// 模拟：发送在途期间另一个发送失败设置了冷却。
+	// 在途发送的成功不能清除仍在生效的冷却，否则持续故障期的退避会被并发成功反复清零。
+	guard := NewSendGuard(1000, 10, nil)
+	if err := guard.Send(context.Background(), func() error {
+		guard.mu.Lock()
+		guard.cooldown = time.Now().Add(time.Hour)
+		guard.mu.Unlock()
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	guard.mu.Lock()
+	cooldown := guard.cooldown
+	guard.mu.Unlock()
+	if cooldown.IsZero() {
+		t.Fatal("in-flight success cleared an active cooldown")
+	}
+	if err := guard.Send(context.Background(), func() error {
+		t.Fatal("send passed while cooldown active")
+		return nil
+	}); !errors.Is(err, ErrProducerCoolingDown) {
+		t.Fatalf("send during active cooldown: %v", err)
+	}
+}
+
 func TestSendGuardAllowsBurstWithoutSpacing(t *testing.T) {
 	// 突发额度 3：前三次立即发送，不额外等待；之后按 10 次/秒补充令牌。
 	guard := NewSendGuard(10, 3, nil)
@@ -337,6 +366,42 @@ func TestSendGuardWaitingSendDoesNotBlockOthers(t *testing.T) {
 	close(release)
 	if err := <-finished; err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestConsumeEventsBlockedLogOnlyForLiveSessions(t *testing.T) {
+	core, logs := observer.New(zapcore.InfoLevel)
+	l := zapx.NewZapLogger(zap.New(core))
+	blockedLogs := func() int {
+		n := 0
+		for _, e := range logs.All() {
+			if strings.HasPrefix(e.Message, LogKeyPartitionBlocked) {
+				n++
+			}
+		}
+		return n
+	}
+
+	// 活会话：处理失败必须打 KAFKA_PARTITION_BLOCKED。
+	h := NewHandler(l, &HandlerConfig{ConsumeNum: 1, ConsumeTime: 1, RetryAttempts: 1},
+		func([]int) error { return errors.New("storage down") })
+	if err := h.ConsumeClaim(&testSession{ctx: context.Background()}, newTestClaim("1")); err == nil {
+		t.Fatal("expected error from live session")
+	}
+	if n := blockedLogs(); n != 1 {
+		t.Fatalf("blocked logs = %d, want 1", n)
+	}
+
+	// 停机/再平衡：会话 ctx 已取消时的失败不是坏消息，不能误打 PARTITION_BLOCKED。
+	ctx, cancel := context.WithCancel(context.Background())
+	h2 := NewContextHandler(l, &HandlerConfig{ConsumeNum: 1, ConsumeTime: 1, RetryAttempts: 1},
+		func(context.Context, []int) error {
+			cancel()
+			return errors.New("storage down")
+		})
+	_ = h2.ConsumeClaim(&testSession{ctx: ctx}, newTestClaim("1"))
+	if n := blockedLogs(); n != 1 {
+		t.Fatalf("blocked logs = %d, want 1 (no new entry for cancelled session)", n)
 	}
 }
 

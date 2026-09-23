@@ -169,6 +169,11 @@ func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDe
 	}
 	requested := make(map[string]bool, len(need.Grades))
 	for _, grade := range need.Grades {
+		// 空 jxb_id 无法定位课程，入空 key 反而可能误匹配存量脏数据，直接跳过。
+		if grade.JxbId == "" {
+			s.l.WithContext(ctx).Warn("detail event 携带空 jxb_id，已跳过", logger.String("sid", need.StudentID))
+			continue
+		}
 		requested[grade.JxbId] = true
 	}
 	var failures []error
@@ -252,7 +257,8 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		// 异步获取详情的 MQ 触发
 		var needDetailgrades []model.Grade
 		for _, g := range final {
-			if g.RegularGradePercent == RegularGradePercentMSG && g.FinalGradePercent == FinalGradePercentMAG {
+			// 任一边占比还是占位符就需要补抓：单边占位多来自部分成功的详情抓取。
+			if g.RegularGradePercent == RegularGradePercentMSG || g.FinalGradePercent == FinalGradePercentMAG {
 				needDetailgrades = append(needDetailgrades, g)
 			}
 		}

@@ -146,7 +146,7 @@ func (h *feedEventKafkaHandler) consumeMessage(ctx context.Context, message *sar
 	}
 
 	attempts := 0
-	consumeErr := saramax.Retry(ctx, logh.With(fields...), func() error {
+	consumeErr := saramax.Retry(ctx, logh.With(fields...), 0, func() error {
 		attempts++
 		if attempts > 1 {
 			h.consumer.recordFailure("db_retry", 1)

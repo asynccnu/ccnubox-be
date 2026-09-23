@@ -1,6 +1,9 @@
 package saramax
 
-import "context"
+import (
+	"context"
+	"log"
+)
 
 // TODO 待完善的pkg
 type Consumer interface {
@@ -22,6 +25,9 @@ func StopConsumers(ctx context.Context, consumers []Consumer) bool {
 		for _, c := range consumers {
 			if s, ok := c.(stopper); ok {
 				s.Stop()
+			} else {
+				// 新增消费者忘了实现 Stop 时停机会静默跳过，只能靠这里提醒。
+				log.Printf("KAFKA consumer %T 未实现 Stop()，停机时不再等待其退出", c)
 			}
 		}
 	}()
@@ -36,4 +42,7 @@ func StopConsumers(ctx context.Context, consumers []Consumer) bool {
 type HandlerConfig struct {
 	ConsumeTime int `yaml:"consumeTime"`
 	ConsumeNum  int `yaml:"consumeNum"`
+	// RetryAttempts 是单次批次在会话内的重试次数上限，<=0 时按默认 4 次。
+	// 失败批次最终仍会结束会话并靠 Kafka 重投，长周期故障主要交给消费循环的外层退避。
+	RetryAttempts int `yaml:"retryAttempts"`
 }

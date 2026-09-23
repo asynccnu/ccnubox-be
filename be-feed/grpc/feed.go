@@ -253,6 +253,9 @@ func validatePublicFeedEventRequest(req *feedv1.PublicFeedEventReq) error {
 		return status.Error(codes.InvalidArgument, "valid student_id is required")
 	}
 	event := req.GetEvent()
+	if req.GetIsAll() && strings.TrimSpace(event.GetDedupeKey()) == "" {
+		return status.Error(codes.InvalidArgument, "broadcast requires a stable dedupe_key")
+	}
 	switch event.GetType() {
 	case feedv1.FeedEventType_GRADE,
 		feedv1.FeedEventType_HOLIDAY,

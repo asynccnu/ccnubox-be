@@ -14,6 +14,7 @@ import (
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 )
 
 // FeedEventService
@@ -131,13 +132,23 @@ func (s *feedEventService) InsertEventList(ctx context.Context, feedEvents []dom
 }
 
 func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, event domain.FeedEvent) (feedv1.PublishStatus, error) {
-	l := s.l.WithContext(ctx)
+	if isAll && strings.TrimSpace(event.DedupeKey) == "" {
+		return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(errorx.New("broadcast requires a stable dedupe_key"))
+	}
 	if strings.TrimSpace(event.DedupeKey) == "" {
 		dedupeKey, err := newFeedEventDedupeKey()
 		if err != nil {
 			return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(err)
 		}
 		event.DedupeKey = dedupeKey
+	}
+	// 内部定时任务同样校验，避免把无法入库的消息发送到 Kafka 阻塞分区。
+	validationEvent := event
+	if isAll {
+		validationEvent.StudentId = "broadcast"
+	}
+	if err := domain.ValidateFeedEventForStorage(validationEvent); err != nil {
+		return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(err)
 	}
 	if strings.EqualFold(event.Type, "library") {
 		enabled, err := s.feedUserConfigDAO.IsLibraryEnabled(ctx, event.StudentId)
@@ -170,14 +181,25 @@ func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, even
 				return feedv1.PublishStatus_ACCEPTED, nil
 			}
 
+			// 一次查询本批收件人是否已有该 key 的消息；失败后用相同 key 补发时，
+			// 已落库的前缀不再重复发送到 Kafka。
+			existing, err := s.feedEventDAO.DedupeKeyExistsBatch(ctx, studentIds, event.DedupeKey)
+			if err != nil {
+				return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(err)
+			}
 			for i := range studentIds {
+				if err := ctx.Err(); err != nil {
+					return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(err)
+				}
 				event.StudentId = studentIds[i]
-				err := s.feedProducer.SendMessage(ctx, topic.FeedEvent, event)
-				if err != nil {
-					// 批量推送中的单个失败记录日志，不中断循环
-					l.Error("service: batch send message failed",
-						logger.Error(err),
-						logger.String("studentId", studentIds[i]))
+				if existing[studentIds[i]] {
+					continue
+				}
+				if err := s.feedProducer.SendMessage(ctx, topic.FeedEvent, event); err != nil {
+					// 失败立即停止，不继续扫剩余用户向故障中的 Kafka 发送请求。
+					s.l.WithContext(ctx).Error(saramax.LogKeySendFailed+" 群发中断，剩余收件人未推送，需用相同 dedupe_key 重跑",
+						logger.String("studentId", event.StudentId), logger.String("dedupe_key", event.DedupeKey), logger.Error(err))
+					return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(errorx.Errorf("service: broadcast failed, sid: %s, dedupe_key: %s: %w", event.StudentId, event.DedupeKey, err))
 				}
 			}
 
@@ -187,6 +209,8 @@ func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, even
 
 	err := s.feedProducer.SendMessage(ctx, topic.FeedEvent, event)
 	if err != nil {
+		s.l.WithContext(ctx).Error(saramax.LogKeySendFailed+" 单条推送失败，消息未进入 Kafka",
+			logger.String("studentId", event.StudentId), logger.String("dedupe_key", event.DedupeKey), logger.Error(err))
 		return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(errorx.Errorf("service: send single message failed, studentId: %s, err: %w", event.StudentId, err))
 	}
 	return feedv1.PublishStatus_ACCEPTED, nil

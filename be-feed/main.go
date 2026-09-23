@@ -49,14 +49,19 @@ func NewApp(
 
 func (app *App) Start() {
 	defer func() {
-		for _, c := range app.crons {
-			c.StopCronTask()
+		// 定时任务可能正在群发（逐条推送），消费者可能正卡在一批消息上，
+		// 分别用独立超时兜住停机，超时后保留未确认位点或未删除的计划直接退出。
+		cronCtx, cronCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		if !cron.StopCronTasks(cronCtx, app.crons) {
+			log.Printf("停止定时任务超时，继续退出进程")
 		}
-		for _, c := range app.consumers {
-			if stoppable, ok := c.(interface{ Stop() }); ok {
-				stoppable.Stop()
-			}
+		cronCancel()
+		consumerCtx, consumerCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		if !saramax.StopConsumers(consumerCtx, app.consumers) {
+			log.Printf("停止消费者超时，继续退出进程")
 		}
+		consumerCancel()
+
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := app.shutdown(ctx); err != nil {

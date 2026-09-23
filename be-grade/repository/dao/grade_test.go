@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -22,9 +23,7 @@ func TestGradeUpdateColumns(t *testing.T) {
 		t.Fatalf("gradeUpdateColumns(false) = %v, want %v", base, baseWant)
 	}
 
-	detailWant := append(slices.Clone(baseWant),
-		"regular_grade_percent", "regular_grade", "final_grade_percent", "final_grade",
-	)
+	detailWant := []string{"regular_grade_percent", "regular_grade", "final_grade_percent", "final_grade", "change_version"}
 	detail := gradeUpdateColumns(true)
 	if !slices.Equal(detail, detailWant) {
 		t.Fatalf("gradeUpdateColumns(true) = %v, want %v", detail, detailWant)
@@ -102,5 +101,51 @@ func TestBatchInsertOrUpdateAllocatesConcurrentChangeVersions(t *testing.T) {
 	}
 	if final.ChangeVersion != 3 {
 		t.Fatalf("final change version = %d, want 3", final.ChangeVersion)
+	}
+}
+
+func TestDetailUpdateRejectsStaleVersionAndNeverRewritesBase(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "details.db")), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = db.AutoMigrate(&model.Grade{}); err != nil {
+		t.Fatal(err)
+	}
+	initial := model.Grade{StudentId: "student", JxbId: "class", Cj: 80, ChangeVersion: 2, RegularGradePercent: "未知", FinalGradePercent: "未知"}
+	if err = db.Create(&initial).Error; err != nil {
+		t.Fatal(err)
+	}
+	d := NewGradeDAO(db)
+	detail := initial
+	detail.Cj = 20
+	detail.ChangeVersion = 1
+	detail.RegularGradePercent = "30"
+	detail.FinalGradePercent = "70"
+	detail.RegularGrade = 80
+	detail.FinalGrade = 80
+	if _, err = d.BatchInsertOrUpdate(context.Background(), []model.Grade{detail}, true); !errors.Is(err, ErrGradeVersionChanged) {
+		t.Fatalf("stale update: %v", err)
+	}
+	detail.ChangeVersion = 2
+	if _, err = d.BatchInsertOrUpdate(context.Background(), []model.Grade{detail}, true); err != nil {
+		t.Fatal(err)
+	}
+	// 同一详情再次投递应无写入，即使其携带的版本已经落后。
+	if changed, err := d.BatchInsertOrUpdate(context.Background(), []model.Grade{detail}, true); err != nil || len(changed) != 0 {
+		t.Fatalf("duplicate detail: changed=%v err=%v", changed, err)
+	}
+	var got model.Grade
+	if err = db.First(&got).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got.Cj != 80 || got.RegularGradePercent != "30" || got.ChangeVersion != 3 {
+		t.Fatalf("unexpected grade after detail: %+v", got)
+	}
+	if err = db.Delete(&got).Error; err != nil {
+		t.Fatal(err)
+	}
+	if changed, err := d.BatchInsertOrUpdate(context.Background(), []model.Grade{detail}, true); err != nil || len(changed) != 0 {
+		t.Fatalf("resurrected deleted grade: changed=%v err=%v", changed, err)
 	}
 }

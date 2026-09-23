@@ -19,6 +19,7 @@ import (
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 	"golang.org/x/sync/singleflight"
 )
@@ -135,49 +136,74 @@ func (s *gradeService) GetUpdateScore(ctx context.Context, studentId string) ([]
 }
 
 func (s *gradeService) UpdateDetailScore(ctx context.Context, need domain.NeedDetailGrade) error {
-	l := s.l.WithContext(ctx)
-	ug, err := s.newUGWithCookie(ctx, need.StudentID)
-	if err != nil {
-		return errorx.Errorf("service: init ug for detail failed, sid: %s, err: %w", need.StudentID, err)
-	}
-
-	grades := need.Grades
-	for i, grade := range grades {
+	var ug *crawler.UnderGrad
+	return s.updateDetailScore(ctx, need, func(ctx context.Context, grade model.Grade) (crawler.Score, error) {
+		var err error
+		if ug == nil {
+			ug, err = s.newUGWithCookie(ctx, need.StudentID)
+			if err != nil {
+				return crawler.Score{}, err
+			}
+		}
 		detail, err := ug.GetDetail(ctx, grade.StudentId, grade.JxbId, grade.KcId, grade.Cj)
 		if errors.Is(err, crawler.ErrCookieTimeout) {
 			ug, err = s.newUGWithCookie(ctx, need.StudentID)
 			if err != nil {
-				return errorx.Errorf("service: refresh cookie for detail failed, sid: %s, err: %w", need.StudentID, err)
+				return crawler.Score{}, err
 			}
-			detail, err = ug.GetDetail(ctx, grade.StudentId, grade.JxbId, grade.KcId, grade.Cj)
+			return ug.GetDetail(ctx, grade.StudentId, grade.JxbId, grade.KcId, grade.Cj)
 		}
+		return detail, err
+	})
+}
 
-		if err != nil {
-			l.Warn("service: fetch partial detail failed", logger.String("sid", grade.StudentId), logger.String("kc", grade.Kcmc), logger.Error(err))
+func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDetailGrade,
+	fetch func(context.Context, model.Grade) (crawler.Score, error)) error {
+	if need.StudentID == "" || len(need.Grades) == 0 {
+		return errorx.New("invalid grade detail event: student or grades missing")
+	}
+	// 消息只用来定位课程，处理时重新读取当前成绩，不能把积压消息中的旧快照写回。
+	current, err := s.gradeDAO.FindGrades(ctx, need.StudentID, 0, 0)
+	if err != nil {
+		return err
+	}
+	requested := make(map[string]bool, len(need.Grades))
+	for _, grade := range need.Grades {
+		requested[grade.JxbId] = true
+	}
+	var failures []error
+	for _, grade := range current {
+		if !requested[grade.JxbId] || (grade.RegularGradePercent != RegularGradePercentMSG && grade.FinalGradePercent != FinalGradePercentMAG) {
 			continue
 		}
-
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		detail, err := fetch(ctx, grade)
+		if err != nil {
+			// 单科抓取失败会向上返回，最终让整条详情消息重投（分区停止消费），
+			// 用关键字记录失败科目，便于定位“一直失败的某门课”。
+			s.l.WithContext(ctx).Warn(saramax.LogKeyConsumeRetry+" service: fetch partial detail failed",
+				logger.String("sid", grade.StudentId), logger.String("jxb_id", grade.JxbId), logger.String("kc", grade.Kcmc), logger.Error(err))
+			failures = append(failures, err)
+			continue
+		}
 		if detail.Cjxm3 == 0 && detail.Cjxm1 == 0 && detail.Cjxm3bl != "" && detail.Cjxm1bl != "" {
 			continue
 		}
-
 		grade.RegularGradePercent = detail.Cjxm3bl
 		grade.RegularGrade = detail.Cjxm3
 		grade.FinalGradePercent = detail.Cjxm1bl
 		grade.FinalGrade = detail.Cjxm1
-		grades[i] = grade
+		// 成功一科就保存，重投后跳过已完成部分，避免每次重试重复爬取整个列表。
+		if _, err := s.gradeDAO.BatchInsertOrUpdate(ctx, []model.Grade{grade}, true); err != nil {
+			return errors.Join(append(failures, err)...)
+		}
 	}
-
-	_, err = s.gradeDAO.BatchInsertOrUpdate(ctx, grades, true)
-	if err != nil {
-		return errorx.Errorf("service: batch save details failed, sid: %s, err: %w", need.StudentID, err)
-	}
-
-	return nil
+	return errors.Join(failures...)
 }
 
 func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentId string) (FetchGrades, error) {
-	l := s.l.WithContext(ctx)
 	result, err, _ := s.sf.Do(studentId, func() (interface{}, error) {
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
@@ -232,12 +258,15 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		}
 
 		if len(needDetailgrades) > 0 {
-			err = s.producer.SendMessage(topic.GradeDetailEvent, domain.NeedDetailGrade{
+			err = s.producer.SendMessage(ctx, topic.GradeDetailEvent, domain.NeedDetailGrade{
 				StudentID: studentId,
 				Grades:    needDetailgrades,
 			})
 			if err != nil {
-				l.Error("service: send detail event failed", logger.String("sid", studentId), logger.Error(err))
+				// 基础成绩已提交，不能让详情发布失败隐藏本轮成绩变更。
+				// 未发布详情仍依赖后续刷新补发，持久化 outbox 需要单独实现。
+				s.l.WithContext(ctx).Error(saramax.LogKeySendFailed+" service: send detail event failed",
+					logger.String("sid", studentId), logger.Error(err))
 			}
 		}
 

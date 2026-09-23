@@ -64,21 +64,29 @@ func (g *SendGuard) Send(ctx context.Context, fn func() error) error {
 
 	// Sarama 的同步发送不支持 ctx；网络超时和内部重试另由配置限制。
 	err := fn()
+	now := time.Now()
 	g.mu.Lock()
 	if err != nil {
-		g.cooldown = time.Now().Add(g.backoff.Next())
+		g.cooldown = now.Add(g.backoff.Next())
 		g.mu.Unlock()
 		g.logSendFailed(err)
 		return err
 	}
-	g.cooldown = time.Time{}
-	g.backoff.Reset()
-	rejected := g.rejected
-	g.rejected = 0
-	g.mu.Unlock()
-	if rejected > 0 {
-		g.logCooldownRecovered(rejected)
+	// 冷却不存在，或本次发送是冷却到期后的探测（成功时间已过冷却截止点）：恢复正常。
+	// 若冷却仍在生效期，说明是冷却设置前就已出发的在途发送成功，
+	// 不能据此清除冷却，否则并发下持续故障期的退避会被反复清零。
+	if g.cooldown.IsZero() || now.After(g.cooldown) {
+		g.cooldown = time.Time{}
+		g.backoff.Reset()
+		rejected := g.rejected
+		g.rejected = 0
+		g.mu.Unlock()
+		if rejected > 0 {
+			g.logCooldownRecovered(rejected)
+		}
+		return nil
 	}
+	g.mu.Unlock()
 	return nil
 }
 

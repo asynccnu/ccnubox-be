@@ -2,7 +2,6 @@ package saramax
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -34,57 +33,15 @@ func (h *BatchHandler[T]) Cleanup(session sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-// ConsumeClaim 可以考虑在这个封装里面提供统一的重试机制
+// ConsumeClaim 复用统一的重试和位点确认逻辑，消息与反序列化结果保持一一对应。
 func (h *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession,
 	claim sarama.ConsumerGroupClaim) error {
-	msgsCh := claim.Messages()
-	for {
-		msgs := make([]*sarama.ConsumerMessage, 0, h.cfg.ConsumeNum)
-		ts := make([]T, 0, h.cfg.ConsumeNum)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		done := false
-		for i := 0; i < h.cfg.ConsumeNum && !done; i++ {
-			select {
-			case <-ctx.Done():
-				// 这一批次已经超时了，
-				// 或者，整个 consumer 被关闭了
-				// 不再尝试凑够一批了
-				done = true
-			case msg, ok := <-msgsCh:
-				if !ok {
-					cancel()
-					// channel 被关闭了
-					return nil
-				}
-				msgs = append(msgs, msg)
-				var t T
-				err := json.Unmarshal(msg.Value, &t)
-				if err != nil {
-					// 消息格式都不对，没啥好处理的
-					// 但是也不能直接返回，在线上的时候要继续处理下去
-					h.l.Error("反序列化消息体失败",
-						logger.String("topic", msg.Topic),
-						logger.Int32("partition", msg.Partition),
-						logger.Int64("offset", msg.Offset),
-						// 这里也可以考虑打印 msg.Value，但是有些时候 msg 本身也包含敏感数据
-						logger.Error(err))
-					// 不中断，继续下一个
-					session.MarkMessage(msg, "")
-					continue
-				}
-				ts = append(ts, t)
-			}
-		}
-		err := h.fn(msgs, ts)
-		if err == nil {
-			// 这边就要都提交了
-			for _, msg := range msgs {
-				session.MarkMessage(msg, "")
-			}
-		} else {
-			// 这里可以考虑重试，也可以在具体的业务逻辑里面重试
-			// 也就是 eg.Go 里面重试
-		}
-		cancel()
+	handler := &Handler[T]{
+		l:   h.l,
+		cfg: h.cfg,
+		fn: func(_ context.Context, msgs []*sarama.ConsumerMessage, events []T) error {
+			return h.fn(msgs, events)
+		},
 	}
+	return handler.consumeClaim(session, claim, time.Second, false)
 }

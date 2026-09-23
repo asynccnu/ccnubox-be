@@ -1,7 +1,9 @@
 package saramax
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -10,7 +12,7 @@ import (
 
 type Handler[T any] struct {
 	l   logger.Logger
-	fn  func(t []T) error
+	fn  func(context.Context, []*sarama.ConsumerMessage, []T) error
 	cfg *HandlerConfig
 }
 
@@ -18,9 +20,21 @@ func NewHandler[T any](
 	l logger.Logger,
 	cfg *HandlerConfig,
 	fn func(t []T) error) *Handler[T] {
+	return NewContextHandler(l, cfg, func(_ context.Context, events []T) error {
+		return fn(events)
+	})
+}
+
+// NewContextHandler 将消费会话的取消信号传递给业务处理。
+func NewContextHandler[T any](
+	l logger.Logger,
+	cfg *HandlerConfig,
+	fn func(context.Context, []T) error) *Handler[T] {
 	return &Handler[T]{
-		l:   l,
-		fn:  fn,
+		l: l,
+		fn: func(ctx context.Context, _ []*sarama.ConsumerMessage, events []T) error {
+			return fn(ctx, events)
+		},
 		cfg: cfg,
 	}
 }
@@ -33,61 +47,60 @@ func (h *Handler[T]) Cleanup(session sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-// ConsumeClaim 可以考虑在这个封装里面提供统一的重试机制
 func (h *Handler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	return h.consumeClaim(session, claim, time.Minute*time.Duration(h.cfg.ConsumeTime), true)
+}
+
+func (h *Handler[T]) consumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim, batchTimeout time.Duration, resetOnMessage bool) error {
 	var events []T
-	var msgRecords []*sarama.ConsumerMessage //记录kafka中还未消费的消息
+	var msgRecords []*sarama.ConsumerMessage // 记录 Kafka 中还未消费的消息
 
-	//超时机制：每次接收到消息就重新开启一个计时，超过指定时间分钟没有接收消息就直接消费
-	timeout := time.NewTimer(time.Minute * time.Duration(h.cfg.ConsumeTime))
-	timeout.Stop()
-
-	defer func() {
-		timeout.Stop()
-		if len(events) > 0 {
-			h.ConsumeEvents(&events, &msgRecords, session)
-		}
-	}()
+	// 普通 Handler 使用空闲超时；BatchHandler 保持一秒批次窗口，不因新消息延长。
+	timeout := time.NewTimer(batchTimeout)
+	h.StopTimer(timeout)
+	defer timeout.Stop()
 
 	for {
 		select {
 		case <-session.Context().Done():
+			// 会话退出时不再刷新缓冲区，未确认消息由下一次会话重投。
 			return nil
-
 		case msg, ok := <-claim.Messages():
 			if !ok {
+				return h.ConsumeEvents(&events, &msgRecords, session)
+			}
+			if session.Context().Err() != nil {
 				return nil
 			}
-			// 从msg中提取获得附带的值
 			var t T
-			err := json.Unmarshal(msg.Value, &t)
-			if err != nil {
-				h.l.Error("反序列化消息体失败",
+			if err := json.Unmarshal(msg.Value, &t); err != nil {
+				h.l.Error(LogKeyPartitionBlocked+" 反序列化消息体失败，保留位点并停止当前分区消费",
 					logger.String("topic", msg.Topic),
 					logger.Int32("partition", msg.Partition),
 					logger.Int64("offset", msg.Offset),
 					logger.Error(err))
-				session.MarkMessage(msg, "")
-				continue
+				// 只允许确认坏消息之前成功处理的连续前缀，不能消费后续消息越过它。
+				if consumeErr := h.ConsumeEvents(&events, &msgRecords, session); consumeErr != nil {
+					return consumeErr
+				}
+				return fmt.Errorf("decode Kafka message %s/%d/%d: %w", msg.Topic, msg.Partition, msg.Offset, err)
 			}
 
 			events = append(events, t)
 			msgRecords = append(msgRecords, msg)
-			// 如果数量达到额定值就批量插入消费
 			if len(events) >= h.cfg.ConsumeNum {
-				h.ConsumeEvents(&events, &msgRecords, session)
-				//此时队列中的消息消费完，停止计时器
 				h.StopTimer(timeout)
-			} else {
-				//没有达到消息限额，重置定时器
+				if err := h.ConsumeEvents(&events, &msgRecords, session); err != nil {
+					return err
+				}
+			} else if len(events) == 1 || resetOnMessage {
 				h.StopTimer(timeout)
-				timeout.Reset(time.Minute * time.Duration(h.cfg.ConsumeTime))
+				timeout.Reset(batchTimeout)
 			}
-
-		//如果超时，就把未推送的消息推送，定时器停止
 		case <-timeout.C:
-			h.ConsumeEvents(&events, &msgRecords, session)
-			h.StopTimer(timeout)
+			if err := h.ConsumeEvents(&events, &msgRecords, session); err != nil {
+				return err
+			}
 		}
 	}
 }
@@ -101,21 +114,30 @@ func (h *Handler[T]) StopTimer(timeout *time.Timer) {
 	}
 }
 
-func (h *Handler[T]) ConsumeEvents(events *[]T, msgRecords *[]*sarama.ConsumerMessage, session sarama.ConsumerGroupSession) {
+func (h *Handler[T]) ConsumeEvents(events *[]T, msgRecords *[]*sarama.ConsumerMessage, session sarama.ConsumerGroupSession) error {
 	if len(*events) == 0 {
-		return
+		return nil
 	}
-	//处理待消费的事件
-	err := h.fn(*events)
+	first := (*msgRecords)[0]
+	logh := h.l.With(logger.String("topic", first.Topic),
+		logger.Int32("partition", first.Partition), logger.Int64("offset", first.Offset),
+		logger.Int("batch_size", len(*events)))
+	err := Retry(session.Context(), logh, func() error {
+		return h.fn(session.Context(), *msgRecords, *events)
+	})
 	if err != nil {
-		h.l.Error("批量推送消息发生失败", logger.Error(err))
+		logh.Error(LogKeyPartitionBlocked+" 批量消费失败，保留位点并停止当前分区消费", logger.Error(err))
+		return err
+	}
+	if err := session.Context().Err(); err != nil {
+		return err
 	}
 
-	//标记消息已消费，清空未消费消息
+	// 整个批次成功后才能确认位点；部分成功时整个批次可能重投，业务需保证幂等。
 	for _, msg := range *msgRecords {
 		session.MarkMessage(msg, "")
 	}
-
 	*events = nil
 	*msgRecords = nil
+	return nil
 }

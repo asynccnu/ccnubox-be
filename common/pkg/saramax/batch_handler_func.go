@@ -11,6 +11,7 @@ import (
 type BatchHandler[T any] struct {
 	l   logger.Logger
 	cfg *HandlerConfig
+	sk  *Skipper
 	fn  func(msgs []*sarama.ConsumerMessage, t []T) error
 }
 
@@ -21,7 +22,9 @@ func NewBatchHandler[T any](
 	return &BatchHandler[T]{
 		l:   l,
 		cfg: cfg,
-		fn:  fn,
+		// 跳过计数要跨会话保持，否则每次 ConsumeClaim 重建后阈值永远累计不到。
+		sk: NewSkipper(cfg.SkipAttempts, l),
+		fn: fn,
 	}
 }
 
@@ -39,9 +42,13 @@ func (h *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession,
 	handler := &Handler[T]{
 		l:   h.l,
 		cfg: h.cfg,
+		sk:  h.sk,
 		fn: func(_ context.Context, msgs []*sarama.ConsumerMessage, events []T) error {
 			return h.fn(msgs, events)
 		},
 	}
-	return handler.consumeClaim(session, claim, time.Second, false)
+	// claim 跑在 sarama 自己的协程里，panic 会直接崩掉进程，这里兜底成一次普通失败。
+	return CatchPanic(h.l, func() error {
+		return handler.consumeClaim(session, claim, time.Second, false)
+	})
 }

@@ -22,6 +22,7 @@ type FeedEventConsumerHandler struct {
 	l           logger.Logger            // 日志记录器
 	feedService service.FeedEventService // 事件数据的存储库
 	m           *metricsx.Metrics
+	sk          *saramax.Skipper // 永久失败消息的跳过判定
 	ctx         context.Context
 	cancel      context.CancelFunc
 	stopOnce    sync.Once
@@ -43,6 +44,7 @@ func NewFeedEventConsumerHandler(
 		l:           l,
 		feedService: feedService,
 		m:           m,
+		sk:          saramax.NewSkipper(saramax.DefaultSkipAttempts, l),
 		ctx:         ctx,
 		cancel:      cancel,
 	}
@@ -98,6 +100,13 @@ func (h *feedEventKafkaHandler) Setup(sarama.ConsumerGroupSession) error   { ret
 func (h *feedEventKafkaHandler) Cleanup(sarama.ConsumerGroupSession) error { return nil }
 
 func (h *feedEventKafkaHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	// claim 跑在 sarama 自己的协程里，panic 会直接崩掉进程，这里兜底成一次普通失败。
+	return saramax.CatchPanic(h.consumer.l, func() error {
+		return h.consumeClaim(session, claim)
+	})
+}
+
+func (h *feedEventKafkaHandler) consumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for {
 		select {
 		case <-session.Context().Done():
@@ -109,15 +118,46 @@ func (h *feedEventKafkaHandler) ConsumeClaim(session sarama.ConsumerGroupSession
 			if session.Context().Err() != nil {
 				return nil
 			}
-			ack, err := h.consumeMessage(session.Context(), message)
-			if ack && session.Context().Err() == nil {
-				session.MarkMessage(message, "")
+			fields := saramax.MessageFields(message)
+			// panic 在这里兜底，否则会连带崩掉整个进程。
+			ack, err := saramax.Catch(h.consumer.l, func() (bool, error) {
+				return h.consumeMessage(session.Context(), message)
+			}, fields...)
+			if err == nil {
+				if ack {
+					h.consumer.sk.Forget(message)
+					session.MarkMessage(message, "")
+				}
+				continue
 			}
-			if err != nil {
+			// 永久失败（消息体或字段非法）按阈值跳过，避免一条坏消息永久卡住分区；
+			// 依赖故障（DB、下游）不计数也不跳过，保留位点等重投。
+			if !saramax.IsPermanent(err) || session.Context().Err() != nil {
+				return err
+			}
+			if err := h.dropPermanentMessage(session, message, fields, err); err != nil {
 				return err
 			}
 		}
 	}
+}
+
+// dropPermanentMessage 处理反复永久失败的消息：阈值内保留位点并结束本轮会话（留人工介入窗口），
+// 达到阈值后跳过它，让分区继续前进。返回非 nil 表示未达阈值，需要停止消费该分区。
+func (h *feedEventKafkaHandler) dropPermanentMessage(session sarama.ConsumerGroupSession, message *sarama.ConsumerMessage, fields []logger.Field, cause error) error {
+	logh := h.consumer.l.WithContext(session.Context()).With(fields...)
+	count, reached := h.consumer.sk.Fail(message)
+	if !reached {
+		logh.Error(saramax.LogKeyPartitionBlocked+" feed event permanently failed; offset left uncommitted",
+			logger.Int("attempts", count), logger.Error(cause))
+		return cause
+	}
+	logh.Error(saramax.LogKeyMessageDropped+" feed event permanently failed and reached skip threshold; dropped",
+		logger.Int("attempts", count), logger.Error(cause))
+	h.consumer.recordFailure("poison_dropped", 1)
+	h.consumer.sk.Forget(message)
+	session.MarkMessage(message, "")
+	return nil
 }
 
 func (h *feedEventKafkaHandler) consumeMessage(ctx context.Context, message *sarama.ConsumerMessage) (bool, error) {
@@ -132,8 +172,9 @@ func (h *feedEventKafkaHandler) consumeMessage(ctx context.Context, message *sar
 	var event domain.FeedEvent
 	if err := json.Unmarshal(message.Value, &event); err != nil {
 		h.consumer.recordFailure("decode_error", 1)
-		logh.Error(saramax.LogKeyPartitionBlocked+" feed event invalid payload; offset left uncommitted", append(fields, logger.Error(err))...)
-		return false, err
+		logh.Error("feed event invalid payload", append(fields, logger.Error(err))...)
+		// 消息体非法是永久失败：由消费循环按阈值决定保留位点还是跳过。
+		return false, saramax.Permanent(err)
 	}
 	if strings.TrimSpace(event.DedupeKey) == "" {
 		// 旧生产者没有消息 ID 时使用 Kafka 坐标兜底，同一条消息重投仍得到相同 key。
@@ -141,8 +182,8 @@ func (h *feedEventKafkaHandler) consumeMessage(ctx context.Context, message *sar
 	}
 	if err := domain.ValidateFeedEventForStorage(event); err != nil {
 		h.consumer.recordFailure("invalid_event", 1)
-		logh.Error(saramax.LogKeyPartitionBlocked+" feed event invalid storage fields; offset left uncommitted", append(fields, logger.Error(err))...)
-		return false, err
+		logh.Error("feed event invalid storage fields", append(fields, logger.Error(err))...)
+		return false, saramax.Permanent(err)
 	}
 
 	attempts := 0

@@ -186,3 +186,33 @@ func TestConsumerRecoversUnknownSessionErrorWithoutRecreatingClient(t *testing.T
 		t.Fatalf("clients=%d/%d calls=%d closed groups=%d", created, closed, calls, closedGroups)
 	}
 }
+
+// 永久失败的消息阈值内保留位点并结束会话，达到阈值后跳过，后续消息继续处理。
+func TestPermanentFailureSkippedAfterThreshold(t *testing.T) {
+	l := zapx.NewZapLogger(zap.NewNop())
+	h := FuncConsumeHandler{log: l, sk: saramax.NewSkipper(2, l), f: func(_ context.Context, _ []byte, value []byte) (bool, error) {
+		if string(value) == "bad" {
+			return false, saramax.Permanent(errors.New("invalid payload"))
+		}
+		return true, nil
+	}}
+	claimWith := func() testClaim {
+		ch := make(chan *sarama.ConsumerMessage, 2)
+		ch <- &sarama.ConsumerMessage{Topic: "test", Offset: 1, Value: []byte("bad")}
+		ch <- &sarama.ConsumerMessage{Topic: "test", Offset: 2, Value: []byte("good")}
+		close(ch)
+		return testClaim{messages: ch}
+	}
+
+	// 阈值内：不确认位点，后面的消息也不处理。
+	session := &testSession{ctx: context.Background()}
+	first := claimWith()
+	if err := h.ConsumeClaim(session, first); err != nil || session.marked != 0 || len(first.messages) != 1 {
+		t.Fatalf("first round: err=%v marked=%d remaining=%d", err, session.marked, len(first.messages))
+	}
+	// 达到阈值：跳过坏消息，后续正常消息照常确认。
+	second := claimWith()
+	if err := h.ConsumeClaim(session, second); err != nil || session.marked != 2 || len(second.messages) != 0 {
+		t.Fatalf("second round: err=%v marked=%d remaining=%d", err, session.marked, len(second.messages))
+	}
+}

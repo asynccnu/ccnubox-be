@@ -160,7 +160,8 @@ func (s *gradeService) UpdateDetailScore(ctx context.Context, need domain.NeedDe
 func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDetailGrade,
 	fetch func(context.Context, model.Grade) (crawler.Score, error)) error {
 	if need.StudentID == "" || len(need.Grades) == 0 {
-		return errorx.New("invalid grade detail event: student or grades missing")
+		// 消息本身缺字段，重投不会成功，交给消费器按阈值决定保留位点还是跳过。
+		return saramax.Permanent(errorx.New("invalid grade detail event: student or grades missing"))
 	}
 	// 消息只用来定位课程，处理时重新读取当前成绩，不能把积压消息中的旧快照写回。
 	current, err := s.gradeDAO.FindGrades(ctx, need.StudentID, 0, 0)

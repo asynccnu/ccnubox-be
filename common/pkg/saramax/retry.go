@@ -12,6 +12,7 @@ import (
 // Retry 在当前会话内有限退避重试，取消后不再发起新的处理。
 // maxAttempts 为总尝试次数上限，<=0 时按默认 4 次处理；
 // fn 可能被重复调用，业务处理必须保证幂等。
+// 永久失败（Permanent 包装）重试不会改变结果，直接返回交给跳过策略。
 func Retry(ctx context.Context, l logger.Logger, maxAttempts int, fn func() error) error {
 	const defaultMaxAttempts = 4
 	if maxAttempts <= 0 {
@@ -22,7 +23,7 @@ func Retry(ctx context.Context, l logger.Logger, maxAttempts int, fn func() erro
 			return err
 		}
 		err := fn()
-		if err == nil || attempt == maxAttempts {
+		if err == nil || attempt == maxAttempts || IsPermanent(err) {
 			return err
 		}
 		delay := time.Duration(1<<(attempt-1)) * 100 * time.Millisecond
@@ -34,14 +35,18 @@ func Retry(ctx context.Context, l logger.Logger, maxAttempts int, fn func() erro
 	}
 }
 
-// RunConsumer 在会话结束后重新消费，失败消息仍由 Kafka 保留，不跳过位点。
+// RunConsumer 在会话结束后重新消费：只有 ctx 取消和消费组被关闭才退出，
+// 其余异常（含 panic）都会转成错误，退避后重建会话；失败消息仍由 Kafka 保留，不跳过位点。
 func RunConsumer(ctx context.Context, cg interface {
 	Consume(context.Context, []string, sarama.ConsumerGroupHandler) error
 }, topics []string, handler sarama.ConsumerGroupHandler, l logger.Logger) error {
 	var backoff Backoff
 	for ctx.Err() == nil {
 		started := time.Now()
-		err := cg.Consume(ctx, topics, handler)
+		// Setup/Cleanup 等回调在 Consume 的调用栈里执行，panic 必须在这里兜住。
+		err := CatchPanic(l, func() error {
+			return cg.Consume(ctx, topics, handler)
+		})
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}

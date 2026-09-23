@@ -656,9 +656,9 @@ func (cluc *ClassUsecase) handleRetryMessage(ctx context.Context, _ []byte, valu
 
 	retryInfo, err := decodeRefreshRetryMessage(value)
 	if err != nil {
-		logh.Errorf(saramax.LogKeyPartitionBlocked+" invalid refresh retry msg，位点不确认，该分区将停止消费直到人工处理: err=%+v", err)
-		// 不自动丢弃非法消息，由消费器保留位点并退避，修复后重启恢复。
-		return false, err
+		logh.Errorf("invalid refresh retry msg: err=%+v", err)
+		// 消息体非法属于永久失败：消费器按阈值决定保留位点（等人工处理）还是跳过。
+		return false, saramax.Permanent(err)
 	}
 
 	logh.Infof("consume refresh retry msg stu_id=%s year=%s semester=%s attempt=%d max_attempts=%d", retryInfo.StuID, retryInfo.Year, retryInfo.Semester, retryInfo.Attempt, retryInfo.MaxAttempts)

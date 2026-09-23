@@ -64,6 +64,13 @@ func (c *DelaySendHandler) Cleanup(sarama.ConsumerGroupSession) error {
 }
 
 func (c *DelaySendHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	// claim 跑在 sarama 自己的协程里，panic 会直接崩掉进程，这里兜底成一次普通失败。
+	return saramax.CatchPanic(c.log, func() error {
+		return c.consumeClaim(session, claim)
+	})
+}
+
+func (c *DelaySendHandler) consumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for {
 		select {
 		case <-session.Context().Done():
@@ -183,6 +190,7 @@ func (c *DelaySendHandler) Close() error {
 type FuncConsumeHandler struct {
 	f             func(ctx context.Context, key []byte, value []byte) (ack bool, err error)
 	log           logger.Logger
+	sk            *saramax.Skipper // 永久失败消息的跳过判定
 	consumedTotal *prometheus.CounterVec
 	mqFailedTotal *prometheus.CounterVec
 }
@@ -191,6 +199,7 @@ func NewFuncConsumeHandler(f func(ctx context.Context, key []byte, value []byte)
 	return FuncConsumeHandler{
 		f:             f,
 		log:           l,
+		sk:            saramax.NewSkipper(saramax.DefaultSkipAttempts, l),
 		consumedTotal: m.MQMetrics.ConsumedTotal,
 		mqFailedTotal: m.MQMetrics.FailedTotal,
 	}
@@ -207,6 +216,13 @@ func (fc FuncConsumeHandler) Cleanup(sarama.ConsumerGroupSession) error {
 }
 
 func (fc FuncConsumeHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	// claim 跑在 sarama 自己的协程里，panic 会直接崩掉进程，这里兜底成一次普通失败。
+	return saramax.CatchPanic(fc.log, func() error {
+		return fc.consumeClaim(session, claim)
+	})
+}
+
+func (fc FuncConsumeHandler) consumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for {
 		select {
 		case <-session.Context().Done():
@@ -261,6 +277,20 @@ func (fc FuncConsumeHandler) handleWithRetry(session sarama.ConsumerGroupSession
 		span.End()
 
 		if ack {
+			return true
+		}
+		// 永久失败（消息体非法、字段非法等）按阈值跳过，避免一条坏消息永久卡住分区；
+		// 依赖故障继续原地退避，不越过失败位点。
+		if saramax.IsPermanent(err) {
+			count, reached := fc.sk.Fail(message)
+			if !reached {
+				tlog.Errorf(saramax.LogKeyPartitionBlocked+" message permanently failed; retaining offset and ending the session: topic=%s partition=%d offset=%d attempts=%d err=%v",
+					message.Topic, message.Partition, message.Offset, count, err)
+				return false
+			}
+			tlog.Errorf(saramax.LogKeyMessageDropped+" message permanently failed and reached skip threshold; dropped: topic=%s partition=%d offset=%d attempts=%d err=%v",
+				message.Topic, message.Partition, message.Offset, count, err)
+			fc.sk.Forget(message)
 			return true
 		}
 		tlog.Warnf(saramax.LogKeyConsumeRetry+" message not acknowledged; retaining offset and backing off: topic=%s partition=%d offset=%d attempt=%d",
@@ -349,7 +379,10 @@ func (c *Consumer) Consume(ctx context.Context, topics []string, groupID string,
 
 	var backoff saramax.Backoff
 	for runCtx.Err() == nil {
-		err := c.consumeGroup(runCtx, topics, groupID, handler)
+		// 一轮消费里的 panic（含建 client、建消费组）在这里兜底，不让后台协程带崩进程。
+		err := saramax.CatchPanic(c.log, func() error {
+			return c.consumeGroup(runCtx, topics, groupID, handler)
+		})
 		if runCtx.Err() != nil {
 			return runCtx.Err()
 		}

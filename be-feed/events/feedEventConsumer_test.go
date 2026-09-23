@@ -9,6 +9,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 )
@@ -72,5 +73,35 @@ func TestFeedFailureNeverAcknowledgesOrSkips(t *testing.T) {
 				t.Fatalf("marked=%d calls=%d remaining=%d", session.marked, svc.calls, len(claim.messages))
 			}
 		})
+	}
+}
+
+// 消息体非法属于永久失败：阈值内阻塞分区等人工介入，达到阈值后跳过并继续消费后续消息。
+func TestFeedInvalidPayloadSkippedAfterThreshold(t *testing.T) {
+	const valid = `{"student_id":"student","type":"grade"}`
+	l := zapx.NewZapLogger(zap.NewNop())
+	svc := &testFeedService{}
+	session := &testFeedSession{}
+	h := &feedEventKafkaHandler{consumer: &FeedEventConsumerHandler{
+		feedService: svc,
+		l:           l,
+		sk:          saramax.NewSkipper(2, l),
+	}}
+
+	consume := func() error {
+		claim := &testFeedClaim{messages: make(chan *sarama.ConsumerMessage, 2)}
+		claim.messages <- &sarama.ConsumerMessage{Topic: "feed_event", Partition: 0, Offset: 1, Value: []byte("invalid")}
+		claim.messages <- &sarama.ConsumerMessage{Topic: "feed_event", Partition: 0, Offset: 2, Value: []byte(valid)}
+		close(claim.messages)
+		return h.ConsumeClaim(session, claim)
+	}
+
+	// 阈值内：坏消息阻塞分区，后面的正常消息不处理。
+	if err := consume(); err == nil || session.marked != 0 {
+		t.Fatalf("first round: err=%v marked=%d", err, session.marked)
+	}
+	// 达到阈值：跳过坏消息，后续正常消息照常确认。
+	if err := consume(); err != nil || session.marked != 2 || svc.calls != 1 {
+		t.Fatalf("second round: err=%v marked=%d calls=%d", err, session.marked, svc.calls)
 	}
 }

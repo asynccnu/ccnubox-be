@@ -45,4 +45,8 @@ type HandlerConfig struct {
 	// RetryAttempts 是单次批次在会话内的重试次数上限，<=0 时按默认 4 次。
 	// 失败批次最终仍会结束会话并靠 Kafka 重投，长周期故障主要交给消费循环的外层退避。
 	RetryAttempts int `yaml:"retryAttempts"`
+	// SkipAttempts 是同一条消息永久失败多少次后允许跳过，0 时按 DefaultSkipAttempts、
+	// 小于 0 时禁用跳过（永久失败的消息会一直阻塞分区，等人工处理）。
+	// 只有 saramax.Permanent 包装的错误参与计数，依赖故障不会被跳过。
+	SkipAttempts int `yaml:"skipAttempts"`
 }

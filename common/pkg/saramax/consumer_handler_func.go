@@ -14,6 +14,7 @@ type Handler[T any] struct {
 	l   logger.Logger
 	fn  func(context.Context, []*sarama.ConsumerMessage, []T) error
 	cfg *HandlerConfig
+	sk  *Skipper
 }
 
 func NewHandler[T any](
@@ -36,6 +37,7 @@ func NewContextHandler[T any](
 			return fn(ctx, events)
 		},
 		cfg: cfg,
+		sk:  NewSkipper(cfg.SkipAttempts, l),
 	}
 }
 
@@ -48,7 +50,10 @@ func (h *Handler[T]) Cleanup(session sarama.ConsumerGroupSession) error {
 }
 
 func (h *Handler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	return h.consumeClaim(session, claim, time.Minute*time.Duration(h.cfg.ConsumeTime), true)
+	// claim 跑在 sarama 自己的协程里，panic 会直接崩掉进程，这里兜底成一次普通失败。
+	return CatchPanic(h.l, func() error {
+		return h.consumeClaim(session, claim, time.Minute*time.Duration(h.cfg.ConsumeTime), true)
+	})
 }
 
 func (h *Handler[T]) consumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim, batchTimeout time.Duration, resetOnMessage bool) error {
@@ -74,16 +79,15 @@ func (h *Handler[T]) consumeClaim(session sarama.ConsumerGroupSession, claim sar
 			}
 			var t T
 			if err := json.Unmarshal(msg.Value, &t); err != nil {
-				h.l.Error(LogKeyPartitionBlocked+" 反序列化消息体失败，保留位点并停止当前分区消费",
-					logger.String("topic", msg.Topic),
-					logger.Int32("partition", msg.Partition),
-					logger.Int64("offset", msg.Offset),
-					logger.Error(err))
 				// 只允许确认坏消息之前成功处理的连续前缀，不能消费后续消息越过它。
 				if consumeErr := h.ConsumeEvents(&events, &msgRecords, session); consumeErr != nil {
 					return consumeErr
 				}
-				return fmt.Errorf("decode Kafka message %s/%d/%d: %w", msg.Topic, msg.Partition, msg.Offset, err)
+				// 反序列化失败是确定性的永久失败，按阈值决定保留位点还是跳过。
+				if consumeErr := h.dropDecodeFailure(session, msg, err); consumeErr != nil {
+					return consumeErr
+				}
+				continue
 			}
 
 			events = append(events, t)
@@ -119,20 +123,26 @@ func (h *Handler[T]) ConsumeEvents(events *[]T, msgRecords *[]*sarama.ConsumerMe
 		return nil
 	}
 	first := (*msgRecords)[0]
-	logh := h.l.With(logger.String("topic", first.Topic),
-		logger.Int32("partition", first.Partition), logger.Int64("offset", first.Offset),
-		logger.Int("batch_size", len(*events)))
+	logh := h.l.With(MessageFields(first)...).With(logger.Int("batch_size", len(*events)))
 	err := Retry(session.Context(), logh, h.cfg.RetryAttempts, func() error {
-		return h.fn(session.Context(), *msgRecords, *events)
+		return CatchPanic(h.l, func() error {
+			return h.fn(session.Context(), *msgRecords, *events)
+		}, MessageFields(first)...)
 	})
 	if err != nil {
 		if session.Context().Err() != nil {
 			// 停机/再平衡导致的失败不是坏消息，位点会随下次会话重投，
 			// 不能打 KAFKA_PARTITION_BLOCKED 造成误告警。
 			logh.Info("会话结束，批次未确认，等待下次会话重投", logger.Error(err))
-		} else {
-			logh.Error(LogKeyPartitionBlocked+" 批量消费失败，保留位点并停止当前分区消费", logger.Error(err))
+			return err
 		}
+		// 整批错误里含永久失败（消息体非法、字段非法等）时逐条定位：
+		// 只跳过确认处理不了的消息，正常的消息照常确认。
+		// 依赖故障（普通错误）直接保留整批位点——逐条重试只会放大故障。
+		if IsPermanent(err) {
+			return h.consumeOneByOne(events, msgRecords, session, logh)
+		}
+		logh.Error(LogKeyPartitionBlocked+" 批量消费失败，保留位点并停止当前分区消费", logger.Error(err))
 		return err
 	}
 	if err := session.Context().Err(); err != nil {
@@ -142,8 +152,100 @@ func (h *Handler[T]) ConsumeEvents(events *[]T, msgRecords *[]*sarama.ConsumerMe
 	// 整个批次成功后才能确认位点；部分成功时整个批次可能重投，业务需保证幂等。
 	for _, msg := range *msgRecords {
 		session.MarkMessage(msg, "")
+		h.sk.Forget(msg)
 	}
 	*events = nil
 	*msgRecords = nil
 	return nil
+}
+
+// dropDecodeFailure 处理无法反序列化的消息：阈值内保留位点、停止分区消费等人工介入，
+// 达到阈值后跳过它，避免分区长期停摆。
+// 返回 nil 表示消息已跳过，可以继续消费后续消息。
+func (h *Handler[T]) dropDecodeFailure(session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage, cause error) error {
+	fields := MessageFields(msg)
+	logh := h.l.With(fields...)
+	count, reached := h.sk.Fail(msg)
+	if !reached {
+		logh.Error(LogKeyPartitionBlocked+" 反序列化消息体失败，保留位点并停止当前分区消费",
+			logger.Int("attempts", count), logger.Error(cause))
+		return fmt.Errorf("decode Kafka message %s/%d/%d: %w", msg.Topic, msg.Partition, msg.Offset, cause)
+	}
+	if err := session.Context().Err(); err != nil {
+		// 停机/再平衡时确认无效，交给下次会话重投。
+		return err
+	}
+	h.sk.Forget(msg)
+	logh.Error(LogKeyMessageDropped+" 反序列化失败次数达到阈值，跳过该消息",
+		logger.Int("attempts", count), logger.Error(cause))
+	session.MarkMessage(msg, "")
+	return nil
+}
+
+// consumeOneByOne 在整批失败后逐条重试，定位到底哪几条消息处理不了：
+// 成功的消息照常确认（不再随整批重投），永久失败的消息按阈值决定跳过还是继续阻塞。
+// 先收齐每条结果再统一确认，避免中途确认后面的消息越过前面的失败位点。
+func (h *Handler[T]) consumeOneByOne(events *[]T, msgRecords *[]*sarama.ConsumerMessage, session sarama.ConsumerGroupSession, logh logger.Logger) error {
+	msgs, evs := *msgRecords, *events
+	results := make([]error, len(msgs))
+	succeeded := 0
+	for i, msg := range msgs {
+		if err := session.Context().Err(); err != nil {
+			return err
+		}
+		err := CatchPanic(h.l, func() error {
+			return h.fn(session.Context(), msgs[i:i+1], evs[i:i+1])
+		}, MessageFields(msg)...)
+		results[i] = err
+		if err == nil {
+			succeeded++
+		}
+	}
+
+	// 一条都没成功时，更像是依赖整体不可用而不是某几条消息有问题，
+	// 这种情况下整批保持原位点重投，不跳过任何消息；
+	// 批次只有一条消息时不存在这种歧义，反复永久失败就按坏消息处理。
+	systemic := succeeded == 0 && len(msgs) > 1
+
+	var blockingErr error
+	for i, msg := range msgs {
+		if err := session.Context().Err(); err != nil {
+			return err
+		}
+		msgLog := logh.With(MessageFields(msg)...)
+		err := results[i]
+		if err == nil {
+			h.sk.Forget(msg)
+			session.MarkMessage(msg, "")
+			continue
+		}
+		if !IsPermanent(err) || systemic {
+			msgLog.Error(LogKeyPartitionBlocked+" 批量消费失败，保留位点并停止当前分区消费", logger.Error(err))
+			blockingErr = err
+			break
+		}
+		count, reached := h.sk.Fail(msg)
+		if !reached {
+			msgLog.Error(LogKeyPartitionBlocked+" 消息永久失败，保留位点等待人工处理",
+				logger.Int("attempts", count), logger.Error(err))
+			blockingErr = err
+			break
+		}
+		h.sk.Forget(msg)
+		msgLog.Error(LogKeyMessageDropped+" 消息永久失败次数达到阈值，跳过该消息",
+			logger.Int("attempts", count), logger.Error(err))
+		session.MarkMessage(msg, "")
+	}
+	*events = nil
+	*msgRecords = nil
+	return blockingErr
+}
+
+// MessageFields 返回日志里统一使用的消息位点字段。
+func MessageFields(msg *sarama.ConsumerMessage) []logger.Field {
+	return []logger.Field{
+		logger.String("topic", msg.Topic),
+		logger.Int32("partition", msg.Partition),
+		logger.Int64("offset", msg.Offset),
+	}
 }

@@ -424,3 +424,115 @@ func TestBatchHandlerPreservesOneSecondWindow(t *testing.T) {
 		t.Fatalf("calls=%d marked=%v", calls, session.marked)
 	}
 }
+
+// 永久失败的消息阈值内保留位点、达到阈值后跳过；依赖故障永远不会走到跳过。
+func TestHandlerSkipsPermanentMessageAfterThreshold(t *testing.T) {
+	for _, batch := range []bool{false, true} {
+		name := "handler"
+		if batch {
+			name = "batch"
+		}
+		t.Run(name, func(t *testing.T) {
+			l := zapx.NewZapLogger(zap.NewNop())
+			cfg := &HandlerConfig{ConsumeNum: 1, ConsumeTime: 1, RetryAttempts: 1, SkipAttempts: 2}
+			var handler sarama.ConsumerGroupHandler = NewHandler(l, cfg, func([]int) error {
+				return Permanent(errors.New("invalid payload"))
+			})
+			if batch {
+				handler = NewBatchHandler(l, cfg, func(_ []*sarama.ConsumerMessage, _ []int) error {
+					return Permanent(errors.New("invalid payload"))
+				})
+			}
+
+			// 阈值内：不确认位点，等人工介入。
+			first := &testSession{ctx: context.Background()}
+			if err := handler.ConsumeClaim(first, newTestClaim("1")); err == nil || len(first.marked) != 0 {
+				t.Fatalf("first round: err=%v marked=%v", err, first.marked)
+			}
+			// 达到阈值：跳过该消息，分区继续前进。
+			second := &testSession{ctx: context.Background()}
+			if err := handler.ConsumeClaim(second, newTestClaim("1")); err != nil || !reflect.DeepEqual(second.marked, []int64{0}) {
+				t.Fatalf("second round: err=%v marked=%v", err, second.marked)
+			}
+		})
+	}
+}
+
+// 依赖故障（普通错误）无论重投多少轮都不能被跳过。
+func TestHandlerNeverSkipsTransientFailures(t *testing.T) {
+	cfg := &HandlerConfig{ConsumeNum: 1, ConsumeTime: 1, RetryAttempts: 1, SkipAttempts: 2}
+	h := NewHandler(zapx.NewZapLogger(zap.NewNop()), cfg, func([]int) error {
+		return errors.New("storage unavailable")
+	})
+	for round := 0; round < 4; round++ {
+		session := &testSession{ctx: context.Background()}
+		if err := h.ConsumeClaim(session, newTestClaim("1")); err == nil || len(session.marked) != 0 {
+			t.Fatalf("round %d: err=%v marked=%v", round, err, session.marked)
+		}
+	}
+}
+
+// 整批都永久失败且没有一条成功时判为依赖整体不可用，不能整批丢弃。
+func TestHandlerDoesNotSkipWholeFailingBatch(t *testing.T) {
+	cfg := &HandlerConfig{ConsumeNum: 2, ConsumeTime: 1, RetryAttempts: 1, SkipAttempts: 1}
+	h := NewHandler(zapx.NewZapLogger(zap.NewNop()), cfg, func([]int) error {
+		return Permanent(errors.New("invalid payload"))
+	})
+	for round := 0; round < 3; round++ {
+		session := &testSession{ctx: context.Background()}
+		if err := h.ConsumeClaim(session, newTestClaim("1", "2")); err == nil || len(session.marked) != 0 {
+			t.Fatalf("round %d: err=%v marked=%v", round, err, session.marked)
+		}
+	}
+}
+
+// 反序列化失败也是永久失败，超过阈值后跳过。
+func TestHandlerSkipsUndecodableMessageAfterThreshold(t *testing.T) {
+	cfg := &HandlerConfig{ConsumeNum: 1, ConsumeTime: 1, SkipAttempts: 2}
+	h := NewHandler(zapx.NewZapLogger(zap.NewNop()), cfg, func([]int) error { return nil })
+
+	first := &testSession{ctx: context.Background()}
+	if err := h.ConsumeClaim(first, newTestClaim("invalid")); err == nil || len(first.marked) != 0 {
+		t.Fatalf("first round: err=%v marked=%v", err, first.marked)
+	}
+	second := &testSession{ctx: context.Background()}
+	if err := h.ConsumeClaim(second, newTestClaim("invalid")); err != nil || !reflect.DeepEqual(second.marked, []int64{0}) {
+		t.Fatalf("second round: err=%v marked=%v", err, second.marked)
+	}
+}
+
+// 业务处理 panic 必须兜底成处理失败：不崩溃、不确认位点、日志带关键字。
+func TestHandlerRecoversFromPanic(t *testing.T) {
+	for _, batch := range []bool{false, true} {
+		name := "handler"
+		if batch {
+			name = "batch"
+		}
+		t.Run(name, func(t *testing.T) {
+			core, logs := observer.New(zapcore.InfoLevel)
+			l := zapx.NewZapLogger(zap.New(core))
+			cfg := &HandlerConfig{ConsumeNum: 1, ConsumeTime: 1, RetryAttempts: 1}
+			var handler sarama.ConsumerGroupHandler = NewHandler(l, cfg, func([]int) error {
+				panic("boom")
+			})
+			if batch {
+				handler = NewBatchHandler(l, cfg, func(_ []*sarama.ConsumerMessage, _ []int) error {
+					panic("boom")
+				})
+			}
+			session := &testSession{ctx: context.Background()}
+			if err := handler.ConsumeClaim(session, newTestClaim("1")); err == nil || len(session.marked) != 0 {
+				t.Fatalf("err=%v marked=%v", err, session.marked)
+			}
+			panicLogs := 0
+			for _, e := range logs.All() {
+				if strings.HasPrefix(e.Message, LogKeyConsumerPanic) {
+					panicLogs++
+				}
+			}
+			if panicLogs == 0 {
+				t.Fatal("panic was not logged with the consumer panic keyword")
+			}
+		})
+	}
+}

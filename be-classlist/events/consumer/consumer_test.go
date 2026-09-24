@@ -216,3 +216,34 @@ func TestPermanentFailureSkippedAfterThreshold(t *testing.T) {
 		t.Fatalf("second round: err=%v marked=%d remaining=%d", err, session.marked, len(second.messages))
 	}
 }
+
+func TestForwardingPermanentErrorSkipsAfterThresholdWithoutCoolingOthers(t *testing.T) {
+	for _, failure := range []error{sarama.ErrMessageSizeTooLarge, sarama.ErrInvalidTopic} {
+		l := zapx.NewZapLogger(zap.NewNop())
+		guard := saramax.NewSendGuard(1000, 10, nil)
+		h := &DelaySendHandler{log: l, sk: saramax.NewSkipper(2, l), sendGuard: guard, kp: testProducer{send: func(msg *sarama.ProducerMessage) error {
+			value, _ := msg.Value.Encode()
+			if string(value) == "bad" {
+				return &sarama.ProducerError{Err: failure}
+			}
+			return nil
+		}}}
+		for round := range 2 {
+			session := &testSession{ctx: context.Background()}
+			claim := messages("bad", "good")
+			if err := h.ConsumeClaim(session, claim); err != nil {
+				t.Fatal(err)
+			}
+			want := 0
+			if round == 1 {
+				want = 2
+			}
+			if session.marked != want {
+				t.Fatalf("round=%d marked=%d want=%d", round, session.marked, want)
+			}
+			if err := guard.Send(context.Background(), func() error { return nil }); err != nil {
+				t.Fatalf("interactive send rejected: %v", err)
+			}
+		}
+	}
+}

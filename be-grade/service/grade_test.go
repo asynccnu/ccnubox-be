@@ -14,7 +14,10 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
+	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"go.uber.org/zap"
 )
 
@@ -191,5 +194,44 @@ func TestUpdateDetailScorePropagatesPartialFailureAndResumes(t *testing.T) {
 	})
 	if err != nil || calls != 1 || len(d.writes) != 2 {
 		t.Fatalf("err=%v calls=%d writes=%v", err, calls, d.writes)
+	}
+}
+
+func TestDetailFailuresAreClassifiedWithoutDroppingTransientCourses(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		err       error
+		permanent bool
+	}{
+		{"password", userv1.ErrorIncorrectPasswordError("账号密码错误"), true},
+		{"initialization", tool.ErrCCNUAccountInitializationRequired, true},
+		{"parse", crawler.ErrDetailParse, true},
+		{"expired after refresh", crawler.ErrCookieTimeout, true},
+		{"network", errors.New("connection reset"), false},
+		{"timeout", context.DeadlineExceeded, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := &detailGradeDAO{grades: []model.Grade{{StudentId: "s", JxbId: "a", RegularGradePercent: RegularGradePercentMSG}}}
+			s := &gradeService{gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
+			need := domain.NeedDetailGrade{StudentID: "s", Grades: d.grades}
+			err := s.updateDetailScore(context.Background(), need, func(context.Context, model.Grade) (crawler.Score, error) { return crawler.Score{}, tc.err })
+			if !errors.Is(err, tc.err) || saramax.IsPermanent(err) != tc.permanent {
+				t.Fatalf("err=%v permanent=%v", err, saramax.IsPermanent(err))
+			}
+		})
+	}
+	d := &detailGradeDAO{grades: []model.Grade{
+		{StudentId: "s", JxbId: "a", RegularGradePercent: RegularGradePercentMSG},
+		{StudentId: "s", JxbId: "b", RegularGradePercent: RegularGradePercentMSG},
+	}}
+	s := &gradeService{gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
+	err := s.updateDetailScore(context.Background(), domain.NeedDetailGrade{StudentID: "s", Grades: d.grades}, func(_ context.Context, g model.Grade) (crawler.Score, error) {
+		if g.JxbId == "a" {
+			return crawler.Score{}, crawler.ErrDetailParse
+		}
+		return crawler.Score{}, context.DeadlineExceeded
+	})
+	if saramax.IsPermanent(err) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("mixed course failures must remain retryable: %v", err)
 	}
 }

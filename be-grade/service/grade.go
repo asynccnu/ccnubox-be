@@ -22,6 +22,8 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 	"golang.org/x/sync/singleflight"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -177,7 +179,7 @@ func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDe
 		}
 		requested[grade.JxbId] = true
 	}
-	var failures []error
+	var failures, retryable []error
 	for _, grade := range current {
 		if !requested[grade.JxbId] || (grade.RegularGradePercent != RegularGradePercentMSG && grade.FinalGradePercent != FinalGradePercentMAG) {
 			continue
@@ -187,11 +189,14 @@ func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDe
 		}
 		detail, err := fetch(ctx, grade)
 		if err != nil {
-			// 单科抓取失败会向上返回，最终让整条详情消息重投（分区停止消费），
-			// 用关键字记录失败科目，便于定位“一直失败的某门课”。
+			// 认证、详情解析等确定性错误参与跳过计数；网络故障继续重试。
+			err = classifyDetailError(err)
 			s.l.WithContext(ctx).Warn(saramax.LogKeyConsumeRetry+" service: fetch partial detail failed",
 				logger.String("sid", grade.StudentId), logger.String("jxb_id", grade.JxbId), logger.String("kc", grade.Kcmc), logger.Error(err))
 			failures = append(failures, err)
+			if !saramax.IsPermanent(err) {
+				retryable = append(retryable, err)
+			}
 			continue
 		}
 		if detail.Cjxm3 == 0 && detail.Cjxm1 == 0 && detail.Cjxm3bl != "" && detail.Cjxm1bl != "" {
@@ -203,10 +208,26 @@ func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDe
 		grade.FinalGrade = detail.Cjxm1
 		// 成功一科就保存，重投后跳过已完成部分，避免每次重试重复爬取整个列表。
 		if _, err := s.gradeDAO.BatchInsertOrUpdate(ctx, []model.Grade{grade}, true); err != nil {
-			return errors.Join(append(failures, err)...)
+			return err
 		}
 	}
+	// 同一消息含临时失败时不能携带 Permanent 标记，否则会连同未恢复的课程一起跳过。
+	if len(retryable) > 0 {
+		return errors.Join(retryable...)
+	}
 	return errors.Join(failures...)
+}
+
+func classifyDetailError(err error) error {
+	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	if errors.Is(err, crawler.ErrDetailParse) || errors.Is(err, crawler.ErrCookieTimeout) ||
+		tool.IsCCNUAccountInitializationRequired(err) || userv1.IsIncorrectPasswordError(err) ||
+		userv1.IsUserNotFoundError(err) || status.Code(err) == codes.Unauthenticated || status.Code(err) == codes.PermissionDenied {
+		return saramax.Permanent(err)
+	}
+	return err
 }
 
 func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentId string) (FetchGrades, error) {
@@ -354,6 +375,9 @@ func (s *gradeService) newUGWithCookie(ctx context.Context, studentId string) (*
 	cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
 	if err != nil {
 		return nil, errorx.Errorf("service: newUG rpc cookie failed, sid: %s, err: %w", studentId, err)
+	}
+	if cookieResp == nil || cookieResp.Cookie == "" {
+		return nil, saramax.Permanent(errorx.New("service: empty cookie for grade detail"))
 	}
 	return s.newUG(cookieResp.Cookie)
 }

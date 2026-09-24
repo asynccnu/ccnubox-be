@@ -278,7 +278,7 @@ func TestSendGuardSharesFailureCooldown(t *testing.T) {
 			t.Fatalf("request bypassed shared cooldown: %v", err)
 		}
 	}
-	// 时间边界之外只放行一次探测，成功后才解除退避。
+	// 冷却到期后允许发送，任意一次成功都会解除退避。
 	guard.cooldown = time.Now().Add(-time.Second)
 	if err := guard.Send(context.Background(), func() error { return nil }); err != nil {
 		t.Fatal(err)
@@ -472,16 +472,42 @@ func TestHandlerNeverSkipsTransientFailures(t *testing.T) {
 	}
 }
 
-// 整批都永久失败且没有一条成功时判为依赖整体不可用，不能整批丢弃。
-func TestHandlerDoesNotSkipWholeFailingBatch(t *testing.T) {
-	cfg := &HandlerConfig{ConsumeNum: 2, ConsumeTime: 1, RetryAttempts: 1, SkipAttempts: 1}
-	h := NewHandler(zapx.NewZapLogger(zap.NewNop()), cfg, func([]int) error {
-		return Permanent(errors.New("invalid payload"))
+// 整批永久失败也要累计阈值，但只确认连续前缀，不能越过未达阈值的消息。
+func TestHandlerSkipsWholePermanentBatchInOrder(t *testing.T) {
+	cfg := &HandlerConfig{ConsumeNum: 2, ConsumeTime: 1, RetryAttempts: 1, SkipAttempts: 2}
+	h := NewHandler(zapx.NewZapLogger(zap.NewNop()), cfg, func(events []int) error {
+		var errs []error
+		for range events {
+			errs = append(errs, Permanent(errors.New("invalid payload")))
+		}
+		return errors.Join(errs...)
 	})
-	for round := 0; round < 3; round++ {
+	for round, want := range [][]int64{nil, {0}, {1}} {
+		session := &testSession{ctx: context.Background()}
+		events := []int{1, 2}
+		msgs := []*sarama.ConsumerMessage{{Topic: "test", Offset: 0}, {Topic: "test", Offset: 1}}
+		if round == 2 {
+			events, msgs = events[1:], msgs[1:]
+		}
+		err := h.ConsumeEvents(&events, &msgs, session)
+		if (err != nil) != (round < 2) || !reflect.DeepEqual(session.marked, want) {
+			t.Fatalf("round %d: err=%v marked=%v want=%v", round, err, session.marked, want)
+		}
+	}
+}
+
+func TestHandlerMixedBatchDoesNotSkipTransientHead(t *testing.T) {
+	cfg := &HandlerConfig{ConsumeNum: 2, ConsumeTime: 1, RetryAttempts: 1, SkipAttempts: 1}
+	h := NewHandler(zapx.NewZapLogger(zap.NewNop()), cfg, func(events []int) error {
+		if len(events) > 1 || events[0] == 2 {
+			return Permanent(errors.New("invalid payload"))
+		}
+		return errors.New("database unavailable")
+	})
+	for range 3 {
 		session := &testSession{ctx: context.Background()}
 		if err := h.ConsumeClaim(session, newTestClaim("1", "2")); err == nil || len(session.marked) != 0 {
-			t.Fatalf("round %d: err=%v marked=%v", round, err, session.marked)
+			t.Fatalf("err=%v marked=%v", err, session.marked)
 		}
 	}
 }
@@ -534,5 +560,24 @@ func TestHandlerRecoversFromPanic(t *testing.T) {
 				t.Fatal("panic was not logged with the consumer panic keyword")
 			}
 		})
+	}
+}
+
+func TestSendGuardPermanentErrorsDoNotAffectSharedCooldown(t *testing.T) {
+	for _, cause := range []error{sarama.ErrMessageSizeTooLarge, sarama.ErrMessageTooLarge, sarama.ErrInvalidTopic} {
+		for _, wrapped := range []bool{false, true} {
+			guard := NewSendGuard(1000, 10, nil)
+			failure := cause
+			if wrapped {
+				failure = &sarama.ProducerError{Err: cause}
+			}
+			err := guard.Send(context.Background(), func() error { return failure })
+			if !IsPermanent(err) || !errors.Is(err, failure) || !guard.cooldown.IsZero() || guard.backoff.delay != 0 {
+				t.Fatalf("err=%v cooldown=%v backoff=%v", err, guard.cooldown, guard.backoff.delay)
+			}
+			if err := guard.Send(context.Background(), func() error { return nil }); err != nil {
+				t.Fatalf("unrelated send rejected: %v", err)
+			}
+		}
 	}
 }

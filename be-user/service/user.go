@@ -190,6 +190,10 @@ func (s *userService) GetCookie(ctx context.Context, studentId string, tpe ...st
 	})
 
 	if err != nil {
+		// 保留账号错误分类，详情消费者才能区分需要用户介入与临时依赖故障。
+		if ccnuv1.IsInvalidSidOrPwd(err) {
+			return "", InCorrectPassword(err)
+		}
 		return "", CCNU_GETCOOKIE_ERROR(err)
 	}
 	return result.(string), nil

@@ -11,7 +11,7 @@ import (
 
 const (
 	kafkaDialTimeout     = 3 * time.Second
-	kafkaReadTimeout     = 5 * time.Second
+	kafkaReadTimeout     = 10 * time.Second
 	kafkaWriteTimeout    = 5 * time.Second
 	kafkaProducerTimeout = 5 * time.Second
 	kafkaProducerRetries = 1
@@ -22,8 +22,8 @@ func InitKafka(cfg *conf.InfraConf) sarama.Client {
 }
 
 func InitKafkaConsumerClientFactory(cfg *conf.InfraConf) consumer.ClientFactory {
-	return func() sarama.Client {
-		return infra.InitKafka(cfg.Kafka)
+	return func() (sarama.Client, error) {
+		return infra.NewKafka(cfg.Kafka)
 	}
 }
 

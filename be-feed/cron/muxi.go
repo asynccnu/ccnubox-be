@@ -11,6 +11,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 )
 
 type MuxiController struct {
@@ -21,10 +22,17 @@ type MuxiController struct {
 	stopChan     chan struct{}
 	l            logger.Logger
 	stopOnce     sync.Once
+	ctx          context.Context
+	cancel       context.CancelFunc
+	wg           sync.WaitGroup
 }
 
 func (c *MuxiController) StopCronTask() {
-	c.stopOnce.Do(func() { close(c.stopChan) })
+	c.stopOnce.Do(func() {
+		c.cancel()
+		close(c.stopChan)
+	})
+	c.wg.Wait()
 }
 
 func NewMuxiController(
@@ -34,7 +42,10 @@ func NewMuxiController(
 	l logger.Logger,
 	cfg *conf.ServerConf,
 ) *MuxiController {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &MuxiController{
+		ctx:          ctx,
+		cancel:       cancel,
 		muxi:         muxi,
 		push:         push,
 		feed:         feed,
@@ -45,7 +56,9 @@ func NewMuxiController(
 }
 
 func (c *MuxiController) StartCronTask() error {
+	c.wg.Add(1)
 	go func() {
+		defer c.wg.Done()
 		ticker := time.NewTicker(c.durationTime)
 
 		for {
@@ -63,11 +76,11 @@ func (c *MuxiController) StartCronTask() error {
 }
 
 func (c *MuxiController) publicMuxiFeed() {
-	ctx := context.Background()
+	ctx := c.ctx
 	//获取feed列表
 	msgs, err := c.muxi.GetToBePublicOfficialMSG(ctx, true)
 	if err != nil {
-		c.l.Warn("获取木犀消息失败!", logger.Error(err))
+		c.l.Warn(saramax.LogKeyConsumeRetry+" 获取木犀消息失败!", logger.Error(err))
 		return
 	}
 	if len(msgs) == 0 {
@@ -75,16 +88,36 @@ func (c *MuxiController) publicMuxiFeed() {
 	}
 
 	for _, msg := range msgs {
-		//发布消息给全体成员
-		_, err = c.feed.PublicFeedEvent(ctx, true, domain.FeedEvent{
+		event := domain.FeedEvent{
+			DedupeKey:    "muxi:" + msg.Id,
 			Type:         strings.ToLower(feedv1.FeedEventType_MUXI.String()),
 			Title:        msg.Title,
 			Content:      msg.Content,
 			ExtendFields: msg.ExtendFields,
-		})
+		}
+		// 管理端录入的内容可能永远无法入库（校验失败）且重试无法修复，
+		// 一直留在队列里会让后续所有木犀消息都发不出去，只能记录后删除该计划。
+		check := event
+		check.StudentId = "broadcast"
+		if err := domain.ValidateFeedEventForStorage(check); err != nil {
+			c.l.Error(saramax.LogKeyMessageDropped+" 木犀消息无法入库，删除该计划",
+				logger.String("msg_id", msg.Id), logger.Error(err))
+			if stopErr := c.muxi.StopMuxiOfficialMSG(ctx, msg.Id); stopErr != nil {
+				c.l.Warn("删除无法发布的木犀消息失败", logger.String("msg_id", msg.Id), logger.Error(stopErr))
+				return
+			}
+			continue
+		}
 
+		//发布消息给全体成员
+		_, err = c.feed.PublicFeedEvent(ctx, true, event)
 		if err != nil {
-			c.l.Warn("消息推送失败!", logger.Error(err))
+			c.l.Warn(saramax.LogKeySendFailed+" 消息推送失败!", logger.String("msg_id", msg.Id), logger.Error(err))
+			return
+		}
+		// 全部收件人发布成功后再移除计划，失败或重启后仍能用原 key 补发。
+		if err := c.muxi.StopMuxiOfficialMSG(ctx, msg.Id); err != nil {
+			c.l.Warn("确认木犀消息发布完成失败", logger.Error(err))
 			return
 		}
 	}

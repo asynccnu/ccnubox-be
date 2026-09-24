@@ -13,7 +13,8 @@ then
             "ZRANGEBYSCORE",
             zsetKey,
             0,
-            now
+            now,
+            "LIMIT", 0, 10
     )
 else
     ids=redis.call(
@@ -29,10 +30,10 @@ for _,id in ipairs(ids) do
     local data=redis.call("GET",key)
     if data then
         table.insert(res,data)
-        if isToPublic=="1" then
-            redis.call("ZREM",zsetKey,id)
-            redis.call("DEL",key)
-        end
+        -- 发布成功后由调用方删除，读取时不能提前确认任务。
+    elseif isToPublic=="1" then
+        -- 清理没有载荷的残留索引，避免占满有限批次使后续任务永远取不到。
+        redis.call("ZREM",zsetKey,id)
     end
 end
 return res

@@ -3,10 +3,8 @@ package events
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
@@ -15,7 +13,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
-	"github.com/go-sql-driver/mysql"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 )
 
 // FeedEventConsumerHandler 是处理 Feed 事件消费的结构体
@@ -24,6 +22,7 @@ type FeedEventConsumerHandler struct {
 	l           logger.Logger            // 日志记录器
 	feedService service.FeedEventService // 事件数据的存储库
 	m           *metricsx.Metrics
+	sk          *saramax.Skipper // 永久失败消息的跳过判定
 	ctx         context.Context
 	cancel      context.CancelFunc
 	stopOnce    sync.Once
@@ -45,6 +44,7 @@ func NewFeedEventConsumerHandler(
 		l:           l,
 		feedService: feedService,
 		m:           m,
+		sk:          saramax.NewSkipper(saramax.DefaultSkipAttempts, l),
 		ctx:         ctx,
 		cancel:      cancel,
 	}
@@ -57,31 +57,7 @@ func (f *FeedEventConsumerHandler) Start() error {
 	f.wg.Add(1)
 	go func() {
 		defer f.wg.Done()
-		for {
-			f.l.Info("开始消费")
-			// 开始消费主题为 "feed_event" 的消息，并使用自定义的处理函数
-			er := f.cg.Consume(f.ctx, []string{topic.FeedEvent}, &feedEventKafkaHandler{consumer: f})
-			if f.ctx.Err() != nil {
-				return
-			}
-			if er != nil {
-				// 如果消费循环中出现错误，记录错误日志
-				f.l.Error("退出了消费循环异常", logger.Error(er))
-			} else {
-				f.l.Info("消费者停止消费")
-			}
-
-			// ConsumeClaim 返回错误时 Sarama 可能以 nil 结束本轮 Consume，
-			// 统一退避后再重建 session，避免数据库持续故障时频繁 rejoin。
-			timer := time.NewTimer(time.Second)
-			select {
-			case <-f.ctx.Done():
-				timer.Stop()
-				return
-			case <-timer.C:
-			}
-		}
-
+		saramax.RunConsumer(f.ctx, f.cg, []string{topic.FeedEvent}, &feedEventKafkaHandler{consumer: f}, f.l)
 	}()
 	return nil
 }
@@ -100,8 +76,6 @@ func (f *FeedEventConsumerHandler) Stop() {
 	f.wg.Wait()
 }
 
-const maxFeedConsumeAttempts = 4
-
 func (f *FeedEventConsumerHandler) recordFailure(errorType string, count int) {
 	if count <= 0 || f.m == nil || f.m.MQMetrics == nil || f.m.MQMetrics.FailedTotal == nil {
 		return
@@ -116,9 +90,8 @@ func (f *FeedEventConsumerHandler) recordConsumed(status string, count int) {
 	f.m.MQMetrics.ConsumedTotal.WithLabelValues(topic.FeedEvent, status).Add(float64(count))
 }
 
-// feedEventKafkaHandler 按分区顺序处理消息。格式或字段非法的消息无法通过重试恢复，
-// 因此记录足够的定位信息和指标后确认；数据库错误则有限退避重试，耗尽后不
-// 确认 offset，让 Kafka 在下一次 consumer session 中重新投递。
+// feedEventKafkaHandler 按分区顺序处理消息。任何失败都不确认位点，
+// 也不再处理该分区后续消息，避免后续确认覆盖失败消息。
 type feedEventKafkaHandler struct {
 	consumer *FeedEventConsumerHandler
 }
@@ -127,6 +100,13 @@ func (h *feedEventKafkaHandler) Setup(sarama.ConsumerGroupSession) error   { ret
 func (h *feedEventKafkaHandler) Cleanup(sarama.ConsumerGroupSession) error { return nil }
 
 func (h *feedEventKafkaHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	// claim 跑在 sarama 自己的协程里，panic 会直接崩掉进程，这里兜底成一次普通失败。
+	return saramax.CatchPanic(h.consumer.l, func() error {
+		return h.consumeClaim(session, claim)
+	})
+}
+
+func (h *feedEventKafkaHandler) consumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for {
 		select {
 		case <-session.Context().Done():
@@ -135,15 +115,49 @@ func (h *feedEventKafkaHandler) ConsumeClaim(session sarama.ConsumerGroupSession
 			if !ok {
 				return nil
 			}
-			ack, err := h.consumeMessage(session.Context(), message)
-			if ack {
-				session.MarkMessage(message, "")
+			if session.Context().Err() != nil {
+				return nil
 			}
-			if err != nil {
+			fields := saramax.MessageFields(message)
+			// panic 在这里兜底，否则会连带崩掉整个进程。
+			ack, err := saramax.Catch(h.consumer.l, func() (bool, error) {
+				return h.consumeMessage(session.Context(), message)
+			}, fields...)
+			if err == nil {
+				if ack {
+					h.consumer.sk.Forget(message)
+					session.MarkMessage(message, "")
+				}
+				continue
+			}
+			// 永久失败（消息体或字段非法）按阈值跳过，避免一条坏消息永久卡住分区；
+			// 依赖故障（DB、下游）不计数也不跳过，保留位点等重投。
+			if !saramax.IsPermanent(err) || session.Context().Err() != nil {
+				return err
+			}
+			if err := h.dropPermanentMessage(session, message, fields, err); err != nil {
 				return err
 			}
 		}
 	}
+}
+
+// dropPermanentMessage 处理反复永久失败的消息：阈值内保留位点并结束本轮会话（留人工介入窗口），
+// 达到阈值后跳过它，让分区继续前进。返回非 nil 表示未达阈值，需要停止消费该分区。
+func (h *feedEventKafkaHandler) dropPermanentMessage(session sarama.ConsumerGroupSession, message *sarama.ConsumerMessage, fields []logger.Field, cause error) error {
+	logh := h.consumer.l.WithContext(session.Context()).With(fields...)
+	count, reached := h.consumer.sk.Fail(message)
+	if !reached {
+		logh.Error(saramax.LogKeyPartitionBlocked+" feed event permanently failed; offset left uncommitted",
+			logger.Int("attempts", count), logger.Error(cause))
+		return cause
+	}
+	logh.Error(saramax.LogKeyMessageDropped+" feed event permanently failed and reached skip threshold; dropped",
+		logger.Int("attempts", count), logger.Error(cause))
+	h.consumer.recordFailure("poison_dropped", 1)
+	h.consumer.sk.Forget(message)
+	session.MarkMessage(message, "")
+	return nil
 }
 
 func (h *feedEventKafkaHandler) consumeMessage(ctx context.Context, message *sarama.ConsumerMessage) (bool, error) {
@@ -158,9 +172,9 @@ func (h *feedEventKafkaHandler) consumeMessage(ctx context.Context, message *sar
 	var event domain.FeedEvent
 	if err := json.Unmarshal(message.Value, &event); err != nil {
 		h.consumer.recordFailure("decode_error", 1)
-		h.consumer.recordConsumed("Discarded", 1)
-		logh.Error("feed event message discarded: invalid payload", append(fields, logger.Error(err))...)
-		return true, nil
+		logh.Error("feed event invalid payload", append(fields, logger.Error(err))...)
+		// 消息体非法是永久失败：由消费循环按阈值决定保留位点还是跳过。
+		return false, saramax.Permanent(err)
 	}
 	if strings.TrimSpace(event.DedupeKey) == "" {
 		// 旧生产者没有消息 ID 时使用 Kafka 坐标兜底，同一条消息重投仍得到相同 key。
@@ -168,80 +182,27 @@ func (h *feedEventKafkaHandler) consumeMessage(ctx context.Context, message *sar
 	}
 	if err := domain.ValidateFeedEventForStorage(event); err != nil {
 		h.consumer.recordFailure("invalid_event", 1)
-		h.consumer.recordConsumed("Discarded", 1)
-		logh.Error("feed event message discarded: invalid storage fields", append(fields, logger.Error(err))...)
+		logh.Error("feed event invalid storage fields", append(fields, logger.Error(err))...)
+		return false, saramax.Permanent(err)
+	}
+
+	attempts := 0
+	consumeErr := saramax.Retry(ctx, logh.With(fields...), 0, func() error {
+		attempts++
+		if attempts > 1 {
+			h.consumer.recordFailure("db_retry", 1)
+		}
+		return h.consumer.feedService.InsertEventList(ctx, []domain.FeedEvent{event})
+	})
+	if consumeErr == nil {
+		h.consumer.recordConsumed("OK", 1)
 		return true, nil
 	}
-
-	var consumeErr error
-	for attempt := 1; attempt <= maxFeedConsumeAttempts; attempt++ {
-		consumeErr = h.consumer.feedService.InsertEventList(ctx, []domain.FeedEvent{event})
-		if consumeErr == nil {
-			h.consumer.recordConsumed("OK", 1)
-			if attempt > 1 {
-				logh.Info("feed event message stored after retry", append(fields, logger.Int("attempts", attempt))...)
-			}
-			return true, nil
-		}
-		if ctx.Err() != nil {
-			return false, nil
-		}
-		if isPermanentFeedStorageError(consumeErr) {
-			h.consumer.recordFailure("permanent_db_error", 1)
-			h.consumer.recordConsumed("Discarded", 1)
-			logh.Error("feed event message discarded: permanent storage error",
-				append(fields, logger.Error(consumeErr))...)
-			return true, nil
-		}
-		if attempt == maxFeedConsumeAttempts {
-			break
-		}
-
-		delay := time.Duration(1<<(attempt-1)) * 100 * time.Millisecond
-		h.consumer.recordFailure("db_retry", 1)
-		logh.Warn("feed event storage failed; retrying",
-			append(fields,
-				logger.Int("attempt", attempt),
-				logger.Int64("retry_delay_ms", delay.Milliseconds()),
-				logger.Error(consumeErr),
-			)...)
-		timer := time.NewTimer(delay)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return false, nil
-		case <-timer.C:
-		}
+	if ctx.Err() != nil {
+		return false, ctx.Err()
 	}
-
 	h.consumer.recordFailure("db_error", 1)
-	logh.Error("feed event storage retries exhausted; offset left uncommitted",
-		append(fields,
-			logger.Int("attempts", maxFeedConsumeAttempts),
-			logger.Error(consumeErr),
-		)...)
+	logh.Error(saramax.LogKeyPartitionBlocked+" feed event storage retries exhausted; offset left uncommitted",
+		append(fields, logger.Int("attempts", attempts), logger.Error(consumeErr))...)
 	return false, consumeErr
-}
-
-func isPermanentFeedStorageError(err error) bool {
-	var validationErr *domain.FeedEventValidationError
-	if errors.As(err, &validationErr) {
-		return true
-	}
-	var mysqlErr *mysql.MySQLError
-	if !errors.As(err, &mysqlErr) {
-		return false
-	}
-	switch mysqlErr.Number {
-	case 1048, // column cannot be null
-		1062,       // duplicate key outside the expected dedupe conflict
-		1264,       // out of range
-		1292,       // invalid or truncated value
-		1366,       // incorrect string value
-		1406,       // data too long
-		3819, 4025: // check constraint violation (MySQL/MariaDB)
-		return true
-	default:
-		return false
-	}
 }

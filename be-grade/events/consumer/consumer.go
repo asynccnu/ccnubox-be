@@ -9,6 +9,7 @@ import (
 // 定义一个空的接口
 type Consumer interface {
 	Consume(ctx context.Context, topics []string, handler sarama.ConsumerGroupHandler) error
+	Close() error
 }
 
 // SaramaProducer 使用 sarama.Client 的生产者实现
@@ -29,4 +30,11 @@ func NewSaramaConsumer(kafkaClient sarama.Client, feedGroup string) Consumer {
 // 随便包了一层,主要是比较方便统一更改设定
 func (c *saramaConsumer) Consume(ctx context.Context, topics []string, handler sarama.ConsumerGroupHandler) error {
 	return c.consumerGroup.Consume(ctx, topics, handler)
+}
+
+// Close 只结束消费组会话并退出消费者组。
+// 由于这里用的是 NewConsumerGroupFromClient，sarama 会把传入的 client 包在 nopCloserClient 里，
+// 关闭消费组并不会关闭共享的 client，调用方必须在生产者停止之后单独关闭该 client。
+func (c *saramaConsumer) Close() error {
+	return c.consumerGroup.Close()
 }

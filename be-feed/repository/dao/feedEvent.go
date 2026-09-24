@@ -24,6 +24,7 @@ type FeedEventDAO interface {
 	BeginTx(ctx context.Context) (*gorm.DB, error)
 	MarkFeedEventRead(ctx context.Context, studentID string, id int64) error
 	DedupeKeyExists(ctx context.Context, studentID, dedupeKey string) (bool, error)
+	DedupeKeyExistsBatch(ctx context.Context, studentIDs []string, dedupeKey string) (map[string]bool, error)
 	StoreFeedEvents(ctx context.Context, events []model.FeedEvent) (inserted []model.FeedEvent, suppressed int, err error)
 }
 
@@ -104,6 +105,27 @@ func (dao *feedEventDAO) DedupeKeyExists(ctx context.Context, studentID, dedupeK
 		return false, errorx.Errorf("dao: check feed dedupe key failed, err: %w", err)
 	}
 	return count > 0, nil
+}
+
+// DedupeKeyExistsBatch 一次查询一批收件人是否已有该 dedupe_key 的消息，
+// 避免群发补发时逐条查询。返回值为已存在的收件人集合。
+func (dao *feedEventDAO) DedupeKeyExistsBatch(ctx context.Context, studentIDs []string, dedupeKey string) (map[string]bool, error) {
+	existing := make(map[string]bool, len(studentIDs))
+	if len(studentIDs) == 0 || dedupeKey == "" {
+		return existing, nil
+	}
+	var found []string
+	err := dao.gorm.WithContext(ctx).Unscoped().Model(&model.FeedEvent{}).
+		Where("dedupe_key = ? AND student_id IN ?", dedupeKey, studentIDs).
+		Distinct("student_id").
+		Pluck("student_id", &found).Error
+	if err != nil {
+		return nil, errorx.Errorf("dao: check feed dedupe key batch failed, count: %d, err: %w", len(studentIDs), err)
+	}
+	for _, studentID := range found {
+		existing[studentID] = true
+	}
+	return existing, nil
 }
 
 // StoreFeedEvents 封装事务，避免竞争

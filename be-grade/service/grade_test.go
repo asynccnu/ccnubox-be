@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -10,9 +11,13 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-grade/crawler"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
+	"github.com/asynccnu/ccnubox-be/be-grade/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
+	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"go.uber.org/zap"
 )
 
@@ -135,5 +140,98 @@ func TestUndergraduateStudentFetchesOnlyGradeList(t *testing.T) {
 	}
 	if grades[0].RegularGradePercent != RegularGradePercentMSG || grades[0].FinalGradePercent != FinalGradePercentMAG {
 		t.Fatalf("detail placeholders not set: %#v", grades[0])
+	}
+}
+
+type detailGradeDAO struct {
+	dao.GradeDAO
+	grades []model.Grade
+	writes []model.Grade
+}
+
+func (d *detailGradeDAO) FindGrades(context.Context, string, int64, int64) ([]model.Grade, error) {
+	return append([]model.Grade(nil), d.grades...), nil
+}
+func (d *detailGradeDAO) BatchInsertOrUpdate(_ context.Context, grades []model.Grade, _ bool) ([]model.Grade, error) {
+	for _, grade := range grades {
+		d.writes = append(d.writes, grade)
+		for i := range d.grades {
+			if d.grades[i].JxbId == grade.JxbId {
+				d.grades[i] = grade
+			}
+		}
+	}
+	return grades, nil
+}
+
+func TestUpdateDetailScorePropagatesPartialFailureAndResumes(t *testing.T) {
+	d := &detailGradeDAO{grades: []model.Grade{
+		{StudentId: "s", JxbId: "a", Cj: 90, ChangeVersion: 5, RegularGradePercent: RegularGradePercentMSG, FinalGradePercent: FinalGradePercentMAG},
+		{StudentId: "s", JxbId: "b", Cj: 80, ChangeVersion: 2, RegularGradePercent: RegularGradePercentMSG, FinalGradePercent: FinalGradePercentMAG},
+	}}
+	s := &gradeService{gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
+	need := domain.NeedDetailGrade{StudentID: "s", Grades: []model.Grade{{JxbId: "a", Cj: 50, ChangeVersion: 1}, {JxbId: "b"}}}
+	failure := errors.New("detail request failed")
+	err := s.updateDetailScore(context.Background(), need, func(_ context.Context, grade model.Grade) (crawler.Score, error) {
+		if grade.JxbId == "a" {
+			if grade.Cj != 90 || grade.ChangeVersion != 5 {
+				t.Fatalf("used stale message snapshot: %+v", grade)
+			}
+			return crawler.Score{Cjxm3: 90, Cjxm1: 90, Cjxm3bl: "30", Cjxm1bl: "70"}, nil
+		}
+		return crawler.Score{}, failure
+	})
+	if !errors.Is(err, failure) || len(d.writes) != 1 {
+		t.Fatalf("err=%v writes=%v", err, d.writes)
+	}
+	calls := 0
+	err = s.updateDetailScore(context.Background(), need, func(_ context.Context, grade model.Grade) (crawler.Score, error) {
+		calls++
+		if grade.JxbId != "b" {
+			t.Fatal("retried already completed detail")
+		}
+		return crawler.Score{Cjxm3: 80, Cjxm1: 80, Cjxm3bl: "30", Cjxm1bl: "70"}, nil
+	})
+	if err != nil || calls != 1 || len(d.writes) != 2 {
+		t.Fatalf("err=%v calls=%d writes=%v", err, calls, d.writes)
+	}
+}
+
+func TestDetailFailuresAreClassifiedWithoutDroppingTransientCourses(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		err       error
+		permanent bool
+	}{
+		{"password", userv1.ErrorIncorrectPasswordError("账号密码错误"), true},
+		{"initialization", tool.ErrCCNUAccountInitializationRequired, true},
+		{"parse", crawler.ErrDetailParse, true},
+		{"expired after refresh", crawler.ErrCookieTimeout, true},
+		{"network", errors.New("connection reset"), false},
+		{"timeout", context.DeadlineExceeded, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := &detailGradeDAO{grades: []model.Grade{{StudentId: "s", JxbId: "a", RegularGradePercent: RegularGradePercentMSG}}}
+			s := &gradeService{gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
+			need := domain.NeedDetailGrade{StudentID: "s", Grades: d.grades}
+			err := s.updateDetailScore(context.Background(), need, func(context.Context, model.Grade) (crawler.Score, error) { return crawler.Score{}, tc.err })
+			if !errors.Is(err, tc.err) || saramax.IsPermanent(err) != tc.permanent {
+				t.Fatalf("err=%v permanent=%v", err, saramax.IsPermanent(err))
+			}
+		})
+	}
+	d := &detailGradeDAO{grades: []model.Grade{
+		{StudentId: "s", JxbId: "a", RegularGradePercent: RegularGradePercentMSG},
+		{StudentId: "s", JxbId: "b", RegularGradePercent: RegularGradePercentMSG},
+	}}
+	s := &gradeService{gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
+	err := s.updateDetailScore(context.Background(), domain.NeedDetailGrade{StudentID: "s", Grades: d.grades}, func(_ context.Context, g model.Grade) (crawler.Score, error) {
+		if g.JxbId == "a" {
+			return crawler.Score{}, crawler.ErrDetailParse
+		}
+		return crawler.Score{}, context.DeadlineExceeded
+	})
+	if saramax.IsPermanent(err) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("mixed course failures must remain retryable: %v", err)
 	}
 }

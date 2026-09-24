@@ -64,6 +64,9 @@ func (d *gradeDAO) FindGrades(ctx context.Context, studentId string, Xnm int64, 
 
 const maxGradeTransactionAttempts = 5
 
+// ErrGradeVersionChanged 让消费端重新读取当前版本后再抓取详情。
+var ErrGradeVersionChanged = errors.New("grade changed while fetching details")
+
 // BatchInsertOrUpdate 批量处理成绩同步逻辑
 func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) ([]model.Grade, error) {
 	if len(grades) == 0 {
@@ -103,6 +106,18 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 			for _, grade := range grades {
 				key := grade.StudentId + grade.JxbId
 				existing, exists := existingMap[key]
+				if ifDetail {
+					// 详情任务不能重建已删除的成绩，也不能覆盖更新后的基础成绩。
+					if !exists || gradeDetailsEqual(existing, grade) {
+						continue
+					}
+					if existing.ChangeVersion != grade.ChangeVersion {
+						return ErrGradeVersionChanged
+					}
+					grade.ChangeVersion = existing.ChangeVersion + 1
+					toUpdate = append(toUpdate, grade)
+					continue
+				}
 				if !exists {
 					grade.ChangeVersion = 1
 					toInsert = append(toInsert, grade)
@@ -161,15 +176,19 @@ func isRetryableGradeTransactionError(err error) bool {
 }
 
 func gradeUpdateColumns(ifDetail bool) []string {
-	columns := []string{
+	if ifDetail {
+		return []string{"regular_grade_percent", "regular_grade", "final_grade_percent", "final_grade", "change_version"}
+	}
+	return []string{
 		"kc_id", "kcmc", "xnm", "xqm", "xf", "kcxzmc", "kclbmc", "kcbj", "jd", "cj", "change_version",
 	}
-	if ifDetail {
-		columns = append(columns,
-			"regular_grade_percent", "regular_grade", "final_grade_percent", "final_grade",
-		)
-	}
-	return columns
+}
+
+func gradeDetailsEqual(a, b model.Grade) bool {
+	return a.RegularGradePercent == b.RegularGradePercent &&
+		a.RegularGrade == b.RegularGrade &&
+		a.FinalGradePercent == b.FinalGradePercent &&
+		a.FinalGrade == b.FinalGrade
 }
 
 func (d *gradeDAO) GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -20,7 +21,8 @@ type Producer interface {
 
 // SaramaProducer 使用 sarama.Client 的生产者实现
 type saramaProducer struct {
-	producer sarama.SyncProducer
+	producer  sarama.SyncProducer
+	sendGuard *saramax.SendGuard
 }
 
 // NewSaramaProducer 创建一个新的 SaramaProducer 实例
@@ -32,7 +34,9 @@ func NewSaramaProducer(kafkaClient sarama.Client) Producer {
 		return nil
 	}
 
-	return &saramaProducer{producer: producer}
+	// 令牌桶：稳态 200 次/秒、突发 400 次，空闲时单条推送不需要额外等待，
+	// 群发按用户逐条发送也不会被限速放大到小时级；发送失败的日志由 service 层输出。
+	return &saramaProducer{producer: producer, sendGuard: saramax.NewSendGuard(200, 400, nil)}
 }
 
 // SendMessage 发送一条消息到指定的 Kafka 主题
@@ -51,17 +55,15 @@ func (p *saramaProducer) SendMessage(ctx context.Context, topic string, msgData 
 		Value: sarama.ByteEncoder(data),
 	}
 
-	_, _, err = p.producer.SendMessage(msg)
-	if err != nil {
+	return p.sendGuard.Send(ctx, func() error {
+		_, _, err := p.producer.SendMessage(msg)
 		return err
-	}
-
-	return nil
+	})
 }
 
-// Close 关闭 Kafka Client
+// Close 关闭生产者；共享 Kafka Client 由调用方单独关闭。
 func (p *saramaProducer) Close() error {
-	return p.producer.Close()
+	return p.sendGuard.Close(p.producer.Close)
 }
 
 // instrumentedProducer 包装 Producer 接口，添加 metrics

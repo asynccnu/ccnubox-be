@@ -31,6 +31,8 @@ func (c *saramaConsumer) Consume(ctx context.Context, topics []string, handler s
 	return c.consumerGroup.Consume(ctx, topics, handler)
 }
 
+// Close 只关闭消费者组本身。NewConsumerGroupFromClient 不会关闭传入的 client，
+// 停机时需由调用方先关闭 producer，再单独关闭共享的 sarama.Client。
 func (c *saramaConsumer) Close() error {
 	return c.consumerGroup.Close()
 }

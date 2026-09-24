@@ -19,8 +19,11 @@ import (
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 	"golang.org/x/sync/singleflight"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -135,49 +138,99 @@ func (s *gradeService) GetUpdateScore(ctx context.Context, studentId string) ([]
 }
 
 func (s *gradeService) UpdateDetailScore(ctx context.Context, need domain.NeedDetailGrade) error {
-	l := s.l.WithContext(ctx)
-	ug, err := s.newUGWithCookie(ctx, need.StudentID)
-	if err != nil {
-		return errorx.Errorf("service: init ug for detail failed, sid: %s, err: %w", need.StudentID, err)
-	}
-
-	grades := need.Grades
-	for i, grade := range grades {
+	var ug *crawler.UnderGrad
+	return s.updateDetailScore(ctx, need, func(ctx context.Context, grade model.Grade) (crawler.Score, error) {
+		var err error
+		if ug == nil {
+			ug, err = s.newUGWithCookie(ctx, need.StudentID)
+			if err != nil {
+				return crawler.Score{}, err
+			}
+		}
 		detail, err := ug.GetDetail(ctx, grade.StudentId, grade.JxbId, grade.KcId, grade.Cj)
 		if errors.Is(err, crawler.ErrCookieTimeout) {
 			ug, err = s.newUGWithCookie(ctx, need.StudentID)
 			if err != nil {
-				return errorx.Errorf("service: refresh cookie for detail failed, sid: %s, err: %w", need.StudentID, err)
+				return crawler.Score{}, err
 			}
-			detail, err = ug.GetDetail(ctx, grade.StudentId, grade.JxbId, grade.KcId, grade.Cj)
+			return ug.GetDetail(ctx, grade.StudentId, grade.JxbId, grade.KcId, grade.Cj)
 		}
+		return detail, err
+	})
+}
 
-		if err != nil {
-			l.Warn("service: fetch partial detail failed", logger.String("sid", grade.StudentId), logger.String("kc", grade.Kcmc), logger.Error(err))
+func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDetailGrade,
+	fetch func(context.Context, model.Grade) (crawler.Score, error)) error {
+	if need.StudentID == "" || len(need.Grades) == 0 {
+		// 消息本身缺字段，重投不会成功，交给消费器按阈值决定保留位点还是跳过。
+		return saramax.Permanent(errorx.New("invalid grade detail event: student or grades missing"))
+	}
+	// 消息只用来定位课程，处理时重新读取当前成绩，不能把积压消息中的旧快照写回。
+	current, err := s.gradeDAO.FindGrades(ctx, need.StudentID, 0, 0)
+	if err != nil {
+		return err
+	}
+	requested := make(map[string]bool, len(need.Grades))
+	for _, grade := range need.Grades {
+		// 空 jxb_id 无法定位课程，入空 key 反而可能误匹配存量脏数据，直接跳过。
+		if grade.JxbId == "" {
+			s.l.WithContext(ctx).Warn("detail event 携带空 jxb_id，已跳过", logger.String("sid", need.StudentID))
 			continue
 		}
-
+		requested[grade.JxbId] = true
+	}
+	var failures, retryable []error
+	for _, grade := range current {
+		if !requested[grade.JxbId] || (grade.RegularGradePercent != RegularGradePercentMSG && grade.FinalGradePercent != FinalGradePercentMAG) {
+			continue
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		detail, err := fetch(ctx, grade)
+		if err != nil {
+			// 认证、详情解析等确定性错误参与跳过计数；网络故障继续重试。
+			err = classifyDetailError(err)
+			s.l.WithContext(ctx).Warn(saramax.LogKeyConsumeRetry+" service: fetch partial detail failed",
+				logger.String("sid", grade.StudentId), logger.String("jxb_id", grade.JxbId), logger.String("kc", grade.Kcmc), logger.Error(err))
+			failures = append(failures, err)
+			if !saramax.IsPermanent(err) {
+				retryable = append(retryable, err)
+			}
+			continue
+		}
 		if detail.Cjxm3 == 0 && detail.Cjxm1 == 0 && detail.Cjxm3bl != "" && detail.Cjxm1bl != "" {
 			continue
 		}
-
 		grade.RegularGradePercent = detail.Cjxm3bl
 		grade.RegularGrade = detail.Cjxm3
 		grade.FinalGradePercent = detail.Cjxm1bl
 		grade.FinalGrade = detail.Cjxm1
-		grades[i] = grade
+		// 成功一科就保存，重投后跳过已完成部分，避免每次重试重复爬取整个列表。
+		if _, err := s.gradeDAO.BatchInsertOrUpdate(ctx, []model.Grade{grade}, true); err != nil {
+			return err
+		}
 	}
-
-	_, err = s.gradeDAO.BatchInsertOrUpdate(ctx, grades, true)
-	if err != nil {
-		return errorx.Errorf("service: batch save details failed, sid: %s, err: %w", need.StudentID, err)
+	// 同一消息含临时失败时不能携带 Permanent 标记，否则会连同未恢复的课程一起跳过。
+	if len(retryable) > 0 {
+		return errors.Join(retryable...)
 	}
+	return errors.Join(failures...)
+}
 
-	return nil
+func classifyDetailError(err error) error {
+	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	if errors.Is(err, crawler.ErrDetailParse) || errors.Is(err, crawler.ErrCookieTimeout) ||
+		tool.IsCCNUAccountInitializationRequired(err) || userv1.IsIncorrectPasswordError(err) ||
+		userv1.IsUserNotFoundError(err) || status.Code(err) == codes.Unauthenticated || status.Code(err) == codes.PermissionDenied {
+		return saramax.Permanent(err)
+	}
+	return err
 }
 
 func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentId string) (FetchGrades, error) {
-	l := s.l.WithContext(ctx)
 	result, err, _ := s.sf.Do(studentId, func() (interface{}, error) {
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
@@ -226,18 +279,22 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		// 异步获取详情的 MQ 触发
 		var needDetailgrades []model.Grade
 		for _, g := range final {
-			if g.RegularGradePercent == RegularGradePercentMSG && g.FinalGradePercent == FinalGradePercentMAG {
+			// 任一边占比还是占位符就需要补抓：单边占位多来自部分成功的详情抓取。
+			if g.RegularGradePercent == RegularGradePercentMSG || g.FinalGradePercent == FinalGradePercentMAG {
 				needDetailgrades = append(needDetailgrades, g)
 			}
 		}
 
 		if len(needDetailgrades) > 0 {
-			err = s.producer.SendMessage(topic.GradeDetailEvent, domain.NeedDetailGrade{
+			err = s.producer.SendMessage(ctx, topic.GradeDetailEvent, domain.NeedDetailGrade{
 				StudentID: studentId,
 				Grades:    needDetailgrades,
 			})
 			if err != nil {
-				l.Error("service: send detail event failed", logger.String("sid", studentId), logger.Error(err))
+				// 基础成绩已提交，不能让详情发布失败隐藏本轮成绩变更。
+				// 未发布详情仍依赖后续刷新补发，持久化 outbox 需要单独实现。
+				s.l.WithContext(ctx).Error(saramax.LogKeySendFailed+" service: send detail event failed",
+					logger.String("sid", studentId), logger.Error(err))
 			}
 		}
 
@@ -318,6 +375,9 @@ func (s *gradeService) newUGWithCookie(ctx context.Context, studentId string) (*
 	cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
 	if err != nil {
 		return nil, errorx.Errorf("service: newUG rpc cookie failed, sid: %s, err: %w", studentId, err)
+	}
+	if cookieResp == nil || cookieResp.Cookie == "" {
+		return nil, saramax.Permanent(errorx.New("service: empty cookie for grade detail"))
 	}
 	return s.newUG(cookieResp.Cookie)
 }

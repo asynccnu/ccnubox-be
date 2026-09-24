@@ -6,9 +6,15 @@ import (
 	"testing"
 
 	usercrypto "github.com/asynccnu/ccnubox-be/be-user/pkg/crypto"
+	"github.com/asynccnu/ccnubox-be/be-user/repository/cache"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/model"
+	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 type saveUserDAO struct {
@@ -186,5 +192,48 @@ func TestDeleteKeepsUserWhenCacheCleanupFails(t *testing.T) {
 	}
 	if userDAO.user == nil {
 		t.Fatal("Delete() removed user after cache cleanup failure")
+	}
+}
+
+type missingCookieCache struct{ deleteUserCache }
+
+func (*missingCookieCache) GetCookie(context.Context, string) (string, error) {
+	return "", cache.ErrKeyNotFound
+}
+
+type failedCookieClient struct {
+	ccnuv1.CCNUServiceClient
+	err error
+}
+
+func (c failedCookieClient) GetXKCookie(context.Context, *ccnuv1.GetXKCookieRequest, ...grpc.CallOption) (*ccnuv1.GetXKCookieResponse, error) {
+	return nil, c.err
+}
+
+func TestGetCookiePreservesPasswordClassification(t *testing.T) {
+	cryptoClient, err := usercrypto.NewCrypto("muxiStudioSecret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	password, err := cryptoClient.Encrypt("password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		err           error
+		passwordError bool
+	}{
+		{ccnuv1.ErrorInvalidSidOrPwd("账号密码错误"), true},
+		{ccnuv1.ErrorCcnuserverError("服务不可用"), false},
+	} {
+		s := &userService{
+			dao:   &saveUserDAO{user: &model.User{StudentId: "2024000000", Password: password}},
+			cache: &missingCookieCache{}, cryptoClient: cryptoClient,
+			ccnu: failedCookieClient{err: status.Convert(tc.err).Err()}, l: zapx.NewZapLogger(zap.NewNop()),
+		}
+		_, err := s.GetCookie(context.Background(), "2024000000")
+		if err == nil || userv1.IsIncorrectPasswordError(status.Convert(err).Err()) != tc.passwordError {
+			t.Fatalf("err=%v want password error=%v", err, tc.passwordError)
+		}
 	}
 }

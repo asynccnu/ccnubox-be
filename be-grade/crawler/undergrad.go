@@ -23,6 +23,8 @@ const (
 var (
 	// ErrCookieTimeout 定义为 errorx 类型，方便上层做类型断言或错误码识别
 	ErrCookieTimeout = errorx.New("crawler: cookie expired or session invalid")
+	// ErrDetailParse 区分详情内容不可解析与网络、服务不可用。
+	ErrDetailParse = errorx.New("crawler: invalid detail content")
 )
 
 // UnderGrad 存放本科生院相关的爬虫
@@ -152,19 +154,26 @@ func (c *UnderGrad) GetDetail(ctx context.Context, xs0101id string, jx0404id str
 		return Score{}, errorx.Errorf("crawler: do detail request failed, err: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return Score{}, ErrCookieTimeout
+	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return Score{}, errorx.Errorf("crawler: detail system status error, code: %d", resp.StatusCode)
+	}
 
 	body, err := httpx.ReadResponse(resp)
 	if err != nil {
 		return Score{}, errorx.Errorf("crawler: read detail body failed, err: %w", err)
 	}
 
-	if strings.Contains(string(body), Login_URL) {
+	if strings.Contains(string(body), Login_URL) ||
+		(resp.Request != nil && resp.Request.URL != nil && strings.Contains(resp.Request.URL.String(), Login_URL)) {
 		return Score{}, ErrCookieTimeout
 	}
 
 	score, err := ParseScoreFromHTML(string(body))
 	if err != nil {
-		return Score{}, errorx.Errorf("crawler: parse detail html failed, sid_info: %s, err: %w", cj0708id, err)
+		return Score{}, fmt.Errorf("crawler: parse detail html failed, sid_info: %s: %w: %w", cj0708id, ErrDetailParse, err)
 	}
 	return score, nil
 }

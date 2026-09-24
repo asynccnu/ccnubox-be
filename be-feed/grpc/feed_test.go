@@ -34,6 +34,8 @@ func TestValidatePublicFeedEventRequest(t *testing.T) {
 		code codes.Code
 	}{
 		{name: "nil request", code: codes.InvalidArgument},
+		{name: "broadcast requires dedupe key", req: &feedv1.PublicFeedEventReq{IsAll: true, Event: &feedv1.FeedEvent{Type: feedv1.FeedEventType_MUXI}}, code: codes.InvalidArgument},
+		{name: "broadcast stable key", req: &feedv1.PublicFeedEventReq{IsAll: true, Event: &feedv1.FeedEvent{Type: feedv1.FeedEventType_MUXI, DedupeKey: "announcement"}}, code: codes.OK},
 		{name: "nil event", req: &feedv1.PublicFeedEventReq{StudentId: "u"}, code: codes.InvalidArgument},
 		{
 			name: "library requires durable metadata",

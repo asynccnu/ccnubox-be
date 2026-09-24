@@ -8,6 +8,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
@@ -16,6 +17,7 @@ import (
 type Producer struct {
 	topic         string
 	kp            syncProducer
+	sendGuard     *saramax.SendGuard
 	log           logger.Logger
 	producedTotal *prometheus.CounterVec
 	mqFailedTotal *prometheus.CounterVec
@@ -26,7 +28,7 @@ type syncProducer interface {
 	Close() error
 }
 
-func NewProducer(topic string, client sarama.Client, l logger.Logger, m *metricsx.Metrics) (*Producer, error) {
+func NewProducer(topic string, client sarama.Client, l logger.Logger, m *metricsx.Metrics, sendGuard *saramax.SendGuard) (*Producer, error) {
 	kp, err := sarama.NewSyncProducerFromClient(client)
 	if err != nil {
 		return nil, err
@@ -34,6 +36,7 @@ func NewProducer(topic string, client sarama.Client, l logger.Logger, m *metrics
 	return &Producer{
 		topic:         topic,
 		kp:            kp,
+		sendGuard:     sendGuard,
 		log:           l,
 		producedTotal: m.MQMetrics.ProducedTotal,
 		mqFailedTotal: m.MQMetrics.FailedTotal,
@@ -62,7 +65,10 @@ func (p *Producer) SendMessage(ctx context.Context, key, value []byte) error {
 		return err
 	}
 
-	_, _, err := p.kp.SendMessage(msg)
+	err := p.sendGuard.Send(ctx, func() error {
+		_, _, err := p.kp.SendMessage(msg)
+		return err
+	})
 	if err != nil {
 		span.RecordError(err)
 		p.recordFailure(err)
@@ -82,7 +88,7 @@ func (p *Producer) recordFailure(err error) {
 }
 
 func (p *Producer) Close() {
-	if err := p.kp.Close(); err != nil {
+	if err := p.sendGuard.Close(p.kp.Close); err != nil {
 		p.log.Errorf("Error closing kp: %v", err)
 		return
 	}

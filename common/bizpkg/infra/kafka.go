@@ -27,7 +27,7 @@ func NewKafka(cfg *conf.KafkaConf, options ...KafkaConfigOption) (sarama.Client,
 
 	// 限制单次失败的网络等待和内部重试，不与业务重试层叠放大。
 	saramaCfg.Net.DialTimeout = 3 * time.Second
-	saramaCfg.Net.ReadTimeout = 10 * time.Second
+	saramaCfg.Net.ReadTimeout = saramaCfg.Consumer.Group.Rebalance.Timeout + 10*time.Second
 	saramaCfg.Net.WriteTimeout = 5 * time.Second
 	saramaCfg.Producer.RequiredAcks = sarama.WaitForAll
 	saramaCfg.Producer.Timeout = 5 * time.Second
@@ -50,5 +50,7 @@ func NewKafka(cfg *conf.KafkaConf, options ...KafkaConfigOption) (sarama.Client,
 		}
 	}
 
+	// JoinGroup 使用通用网络读超时；必须覆盖 broker 等待成员重加入的窗口。
+	saramaCfg.Net.ReadTimeout = max(saramaCfg.Net.ReadTimeout, saramaCfg.Consumer.Group.Rebalance.Timeout+10*time.Second)
 	return sarama.NewClient(cfg.Addrs, saramaCfg)
 }

@@ -16,6 +16,7 @@ import (
 )
 
 type DelayKafka struct {
+	client       sarama.Client
 	p            *producer.Producer
 	c            *consumer.Consumer
 	delaySend    *consumer.DelaySendHandler
@@ -44,9 +45,11 @@ func NewDelayKafkaConfig() DelayKafkaConfig {
 	}
 }
 
+// NewDelayKafka 接管生产者共享 client，初始化失败或 Close 时在生产者之后释放。
 func NewDelayKafka(client sarama.Client, newConsumerClient consumer.ClientFactory, cf DelayKafkaConfig, l logger.Logger, m *metricsx.Metrics) (biz.DelayQueue, func(), error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	dk := &DelayKafka{
+		client:       client,
 		delayTopic:   cf.DelayTopic,
 		realTopic:    cf.RealTopic,
 		delayTime:    cf.DelayTime,
@@ -58,17 +61,20 @@ func NewDelayKafka(client sarama.Client, newConsumerClient consumer.ClientFactor
 	}
 
 	// 入延迟队列和到期转发共享发送预算：令牌桶稳态 50 次/秒、突发 100 次，
-	// 交互式入队不会被转发批量任务长期挤占，等待上界是补一个令牌的时间。
+	// 令牌不足时按补充速度等待，实际等待还取决于并发发送量。
+	// 只有临时失败的实际冷却窗口会拒绝其他发送，到期后的成功发送会重置退避。
 	guard := saramax.NewSendGuard(50, 100, l)
 	p, err := producer.NewProducer(dk.delayTopic, client, l, m, guard)
 	if err != nil {
 		cancel()
+		_ = client.Close()
 		return nil, nil, err
 	}
 	ds, err := consumer.NewDelaySendHandler(dk.delayTopic, dk.realTopic, client, dk.delayTime, l, m, guard)
 	if err != nil {
 		p.Close()
 		cancel()
+		_ = client.Close()
 		return nil, nil, err
 	}
 	c := consumer.NewConsumer(newConsumerClient, l)
@@ -116,6 +122,11 @@ func (d *DelayKafka) Close() {
 		}
 		if d.p != nil {
 			d.p.Close()
+		}
+		if d.client != nil {
+			if err := d.client.Close(); err != nil {
+				d.log.Error("关闭 Kafka client 失败", logger.Error(err))
+			}
 		}
 	})
 }

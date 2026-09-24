@@ -61,7 +61,7 @@ func (p *saramaProducer) SendMessage(ctx context.Context, topic string, msgData 
 	})
 }
 
-// Close 关闭 Kafka Client
+// Close 关闭生产者；共享 Kafka Client 由调用方单独关闭。
 func (p *saramaProducer) Close() error {
 	return p.sendGuard.Close(p.producer.Close)
 }

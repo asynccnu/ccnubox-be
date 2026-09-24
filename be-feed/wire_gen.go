@@ -52,6 +52,6 @@ func InitApp() *App {
 	feedEventConsumerHandler := events.NewFeedEventConsumerHandler(client, logger, feedEventService, metrics)
 	v2 := ioc.InitConsumers(feedEventConsumerHandler)
 	v3 := ioc.InitOTel(infraConf)
-	app := NewApp(server, metricsxServer, v, v2, v3)
+	app := NewApp(server, metricsxServer, v, v2, v3, client, producerProducer)
 	return app
 }

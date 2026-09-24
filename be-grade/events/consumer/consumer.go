@@ -34,8 +34,7 @@ func (c *saramaConsumer) Consume(ctx context.Context, topics []string, handler s
 
 // Close 只结束消费组会话并退出消费者组。
 // 由于这里用的是 NewConsumerGroupFromClient，sarama 会把传入的 client 包在 nopCloserClient 里，
-// 关闭消费组并不会关闭共享的 client（当前进程退出前也无人显式关闭它，连接随进程回收）；
-// 若后续需要确定性关闭，必须在生产者也停止之后单独关闭该 client。
+// 关闭消费组并不会关闭共享的 client，调用方必须在生产者停止之后单独关闭该 client。
 func (c *saramaConsumer) Close() error {
 	return c.consumerGroup.Close()
 }

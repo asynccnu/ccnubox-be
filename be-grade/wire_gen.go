@@ -41,6 +41,6 @@ func InitApp() App {
 	gradeDetailEventConsumerHandler := events.NewGradeDetailEventConsumerHandler(saramaClient, logger, gradeService, serverConf, metrics)
 	v := ioc.InitConsumers(gradeDetailEventConsumerHandler)
 	v2 := ioc.InitOTel(infraConf)
-	app := NewApp(server, metricsxServer, v, v2)
+	app := NewApp(server, metricsxServer, v, v2, saramaClient, producerProducer)
 	return app
 }

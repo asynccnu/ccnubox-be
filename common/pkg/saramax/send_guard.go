@@ -18,7 +18,8 @@ var (
 // 空闲时不需要额外等待，等待中的发送不占用任何共享资源，
 // 不会出现旧实现那种“一个发送等待间隔时把其他发送一起堵住”的队头阻塞，
 // 因此单条交互式发送不会被批量任务长期挤占（等待时间只取决于令牌补充速度与并发方数量）。
-// 发送失败时共享冷却期，避免大量业务请求各自重试放大 Kafka 故障。
+// 临时发送失败时共享冷却期；永久失败只影响当前消息，不抑制其他发送。
+// 首次冷却约 1–1.25 秒，到期后的成功发送会清除冷却并重置退避。
 // 不异步缓存消息；限流、取消或发送失败必须由调用方处理。
 type SendGuard struct {
 	l     logger.Logger
@@ -63,7 +64,10 @@ func (g *SendGuard) Send(ctx context.Context, fn func() error) error {
 	defer g.inflight.Done()
 
 	// Sarama 的同步发送不支持 ctx；网络超时和内部重试另由配置限制。
-	err := fn()
+	err := ProducerError(fn())
+	if IsPermanent(err) {
+		return err
+	}
 	now := time.Now()
 	g.mu.Lock()
 	if err != nil {
@@ -93,6 +97,9 @@ func (g *SendGuard) Send(ctx context.Context, fn func() error) error {
 // acquire 校验关闭与冷却状态，等待令牌并标记在途发送。
 func (g *SendGuard) acquire(ctx context.Context) error {
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		g.mu.Lock()
 		if g.closed {
 			g.mu.Unlock()

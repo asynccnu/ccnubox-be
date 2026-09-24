@@ -188,7 +188,6 @@ func (h *Handler[T]) dropDecodeFailure(session sarama.ConsumerGroupSession, msg 
 func (h *Handler[T]) consumeOneByOne(events *[]T, msgRecords *[]*sarama.ConsumerMessage, session sarama.ConsumerGroupSession, logh logger.Logger) error {
 	msgs, evs := *msgRecords, *events
 	results := make([]error, len(msgs))
-	succeeded := 0
 	for i, msg := range msgs {
 		if err := session.Context().Err(); err != nil {
 			return err
@@ -197,15 +196,10 @@ func (h *Handler[T]) consumeOneByOne(events *[]T, msgRecords *[]*sarama.Consumer
 			return h.fn(session.Context(), msgs[i:i+1], evs[i:i+1])
 		}, MessageFields(msg)...)
 		results[i] = err
-		if err == nil {
-			succeeded++
-		}
 	}
 
-	// 一条都没成功时，更像是依赖整体不可用而不是某几条消息有问题，
-	// 这种情况下整批保持原位点重投，不跳过任何消息；
-	// 批次只有一条消息时不存在这种歧义，反复永久失败就按坏消息处理。
-	systemic := succeeded == 0 && len(msgs) > 1
+	// 是否可跳过由错误分类决定，不能因整批失败而绕过永久失败计数。
+	// 只推进连续前缀，遇到未达阈值或临时失败的队首就停止确认。
 
 	var blockingErr error
 	for i, msg := range msgs {
@@ -219,7 +213,7 @@ func (h *Handler[T]) consumeOneByOne(events *[]T, msgRecords *[]*sarama.Consumer
 			session.MarkMessage(msg, "")
 			continue
 		}
-		if !IsPermanent(err) || systemic {
+		if !IsPermanent(err) {
 			msgLog.Error(LogKeyPartitionBlocked+" 批量消费失败，保留位点并停止当前分区消费", logger.Error(err))
 			blockingErr = err
 			break

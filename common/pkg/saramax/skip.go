@@ -34,6 +34,23 @@ func IsPermanent(err error) bool {
 	return errors.As(err, &pe)
 }
 
+// ProducerError 将消息大小、topic 非法等确定性发送错误标记为永久失败。
+// Sarama 的 ProducerError 不保证通过 Unwrap 暴露底层错误，需要显式检查。
+func ProducerError(err error) error {
+	if err == nil || IsPermanent(err) {
+		return err
+	}
+	cause := err
+	var pe *sarama.ProducerError
+	if errors.As(err, &pe) {
+		cause = pe.Err
+	}
+	if errors.Is(cause, sarama.ErrMessageTooLarge) || errors.Is(cause, sarama.ErrMessageSizeTooLarge) || errors.Is(cause, sarama.ErrInvalidTopic) {
+		return Permanent(err)
+	}
+	return err
+}
+
 // DefaultSkipAttempts 是一条永久失败的消息连续失败多少次后允许跳过。
 // 没有 DLQ 和告警，阈值内的重投是留给人工介入的窗口；超过阈值后丢弃，
 // 让分区继续前进——分区长期停摆时积压消息会在 topic 保留期内被 Kafka 清理，损失更大。

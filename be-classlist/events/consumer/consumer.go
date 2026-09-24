@@ -22,6 +22,7 @@ type DelaySendHandler struct {
 	topic         string
 	kp            sarama.SyncProducer
 	sendGuard     *saramax.SendGuard
+	sk            *saramax.Skipper
 	delayTime     time.Duration
 	log           logger.Logger
 	setOnce       sync.Once
@@ -41,6 +42,7 @@ func NewDelaySendHandler(delayTopic, topic string, client sarama.Client, delayTi
 		topic:         topic,
 		kp:            kp,
 		sendGuard:     sendGuard,
+		sk:            saramax.NewSkipper(saramax.DefaultSkipAttempts, l),
 		delayTime:     delayTime,
 		log:           l,
 		producedTotal: m.MQMetrics.ProducedTotal,
@@ -87,8 +89,8 @@ func (c *DelaySendHandler) consumeClaim(session sarama.ConsumerGroupSession, cla
 	}
 }
 
-// processMessage 等待消息到期并转发，失败在当前分区内有上限地退避，不反复重建会话。
-// 返回 false 表示 session 已结束，当前消息不得提交 offset。
+// processMessage 等待消息到期并转发，临时失败在当前分区内按有上限的间隔退避。
+// 永久失败按阈值跳过；返回 false 时当前消息不得提交 offset。
 func (c *DelaySendHandler) processMessage(session sarama.ConsumerGroupSession, message *sarama.ConsumerMessage) bool {
 	// 未到期就原地等到期。分区内消息按投递时间有序，阻塞本分区正是延迟队列想要的语义。
 	for {
@@ -103,6 +105,7 @@ func (c *DelaySendHandler) processMessage(session sarama.ConsumerGroupSession, m
 
 	// 严重滞后的消息直接丢弃，不再转发。
 	if c.delayTime > 0 && time.Since(message.Timestamp) >= 20*c.delayTime {
+		c.sk.Forget(message)
 		c.log.Warnf(saramax.LogKeyMessageDropped+" delay message expired and dropped: topic=%s partition=%d offset=%d", message.Topic, message.Partition, message.Offset)
 		return session.Context().Err() == nil
 	}
@@ -133,6 +136,7 @@ func (c *DelaySendHandler) processMessage(session sarama.ConsumerGroupSession, m
 				c.consumedTotal.WithLabelValues(c.delayTopic, "OK").Inc()
 			}
 			span.End()
+			c.sk.Forget(message)
 			return true
 		}
 
@@ -140,6 +144,22 @@ func (c *DelaySendHandler) processMessage(session sarama.ConsumerGroupSession, m
 		span.RecordError(err)
 		if c.mqFailedTotal != nil {
 			c.mqFailedTotal.WithLabelValues(c.topic, classifyError(err)).Inc()
+		}
+
+		if session.Context().Err() != nil {
+			span.End()
+			return false
+		}
+		if saramax.IsPermanent(err) {
+			span.End()
+			count, reached := c.sk.Fail(message)
+			if !reached {
+				tlog.Errorf(saramax.LogKeyPartitionBlocked+" 转发永久失败，保留位点: topic=%s partition=%d offset=%d attempts=%d err=%v", message.Topic, message.Partition, message.Offset, count, err)
+				return false
+			}
+			c.sk.Forget(message)
+			tlog.Errorf(saramax.LogKeyMessageDropped+" 转发永久失败达到阈值，跳过消息: topic=%s partition=%d offset=%d attempts=%d err=%v", message.Topic, message.Partition, message.Offset, count, err)
+			return true
 		}
 
 		tlog.Warnf(saramax.LogKeyConsumeRetry+" forwarding failed; retaining offset and backing off: topic=%s partition=%d offset=%d attempt=%d",
@@ -403,8 +423,8 @@ func (c *Consumer) consumeGroup(ctx context.Context, topics []string, groupID st
 	if client == nil {
 		return ErrNilClient
 	}
-	// 消费者组由该 client 创建，cg.Close() 会一并关闭 client（sarama 语义），
-	// 这里只兜住建组失败的情况，重复关闭不算错误。
+	// NewConsumerGroupFromClient 不拥有传入的 client，关闭组后仍需单独关闭。
+	// 此 defer 同时覆盖建组失败的清理。
 	defer func() {
 		if err := client.Close(); err != nil && !errors.Is(err, sarama.ErrClosedClient) {
 			c.log.Errorf("Error closing Kafka client for consumer group %s: %v", groupID, err)

@@ -1,18 +1,17 @@
 package crawler
 
 import (
-	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
-	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
+
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 )
 
-var (
-	INCorrectPASSWORD = errorx.New("账号密码错误")
-)
+var INCorrectPASSWORD = errorx.New("账号密码错误")
 
-func NewCrawlerClient(pc proxy.Client, t time.Duration, options ...proxy.Option) *http.Client {
+func newCrawlerClient(pc proxy.Client, t time.Duration, options ...proxy.Option) *http.Client {
 	j, _ := cookiejar.New(&cookiejar.Options{})
 	opts := []proxy.Option{
 		proxy.WithProxyTransport(),

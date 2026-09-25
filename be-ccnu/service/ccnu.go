@@ -2,15 +2,10 @@ package service
 
 import (
 	"context"
-	"crypto/rsa"
-	"net/http"
-
-	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 
-	"github.com/asynccnu/ccnubox-be/be-ccnu/crawler"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
 )
 
@@ -22,192 +17,83 @@ var (
 )
 
 // 这里的err之所以在GetXKCookie和LoginCCNU两个方法里面不进行包装是因为如果进行封装了会导致error类型无法对应上kratos的error导致无法断言
-func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, password string, tpe ...string) (string, error) {
+func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, password string) (string, error) {
+	cr := c.factory.New()
 	stuType := tool.ParseStudentType(studentId)
 	switch stuType {
 	case tool.UnderGraduate:
-		cookie, err := c.getUnderGradCookie(ctx, studentId, password, tpe...)
-		if err != nil {
-			return "", err
-		}
-		return cookie, nil
+		cookie, err := cr.GetUnderGraduateCookie(ctx, studentId, password)
+		return cookie, mapCrawlerError(err)
 	case tool.PostGraduate:
-		cookie, err := c.getGradCookie(ctx, studentId, password)
-		if err != nil {
-			return "", err
-		}
-		return cookie, nil
+		cookie, err := cr.GetPostGraduateCookie(ctx, studentId, password)
+		return cookie, mapCrawlerError(err)
 	default:
 		return "", Invalid_SidOrPwd_ERROR(errorx.New("studentId format invalid"))
 	}
 }
 
 func (c *ccnuService) LoginCCNU(ctx context.Context, studentId string, password string) (bool, error) {
+	cr := c.factory.New()
 	stuType := tool.ParseStudentType(studentId)
 
 	switch stuType {
 	case tool.PostGraduate:
-		pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.p, c.timeout))
-		ok, err := c.loginGrad(ctx, pg, studentId, password)
-		if err != nil {
-			return false, err
-		}
-		return ok, nil
+		ok, err := cr.LoginPostGraduate(ctx, studentId, password)
+		return ok, mapCrawlerError(err)
 
 	case tool.UnderGraduate:
-		_, ok, err := c.loginUnderGrad(ctx, studentId, password)
-		if err != nil {
-			return false, err
-		}
-		return ok, nil
+		ok, err := cr.LoginUnderGraduate(ctx, studentId, password)
+		return ok, mapCrawlerError(err)
 
 	default:
 		return false, Invalid_SidOrPwd_ERROR(errorx.New("studentId format invalid"))
 	}
 }
 
-func (c *ccnuService) loginGrad(ctx context.Context, pg *crawler.PostGraduate, studentId string, password string) (bool, error) {
-	var isInCorrectPASSWORD = false
-
-	pubkey, err := tool.Retry(func() (*rsa.PublicKey, error) {
-		return pg.FetchPublicKey(ctx)
-	})
-	if err != nil {
-		return false, CCNUSERVER_ERROR(errorx.Errorf("loginGrad FetchPublicKey error: %w", err))
-	}
-
-	_, err = tool.Retry(func() (string, error) {
-		err := pg.LoginPostgraduateSystem(ctx, studentId, password, pubkey)
-		if errorx.Is(err, crawler.INCorrectPASSWORD) {
-			isInCorrectPASSWORD = true
-			return "", nil
-		}
-		return "", err
-	})
-
-	if isInCorrectPASSWORD {
-		return false, Invalid_SidOrPwd_ERROR(errorx.New("loginGrad incorrect password"))
-	}
-	if err != nil {
-		return false, CCNUSERVER_ERROR(errorx.Errorf("loginGrad LoginPostgraduateSystem error: %w", err))
-	}
-	return true, nil
-}
-
-func (c *ccnuService) loginUnderGrad(ctx context.Context, studentId string, password string) (*http.Client, bool, error) {
-	ps := crawler.NewPassport(crawler.NewCrawlerClient(c.p, c.timeout))
-	flag, err := ps.LoginPassport(ctx, studentId, password)
-	if err != nil {
-		return nil, flag, wrapUnderGradLoginError(err)
-	}
-	return ps.Client, flag, nil
-}
-
-func wrapUnderGradLoginError(err error) error {
-	switch {
-	case errorx.Is(err, crawler.INCorrectPASSWORD):
-		return Invalid_SidOrPwd_ERROR(errorx.Errorf("loginUnderGrad passport error: %w", err))
-	case tool.IsCCNUAccountInitializationRequired(err):
-		return CCNU_ACCOUNT_INITIALIZATION_REQUIRED_ERROR(errorx.Errorf("loginUnderGrad account initialization required: %w", err))
-	default:
-		return CCNUSERVER_ERROR(errorx.Errorf("loginUnderGrad internal error: %w", err))
-	}
-}
-
-func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password string, tpe ...string) (string, error) {
-	ug := crawler.NewUnderGrad(crawler.NewCrawlerClient(c.p, c.timeout))
-	client, ok, err := c.loginUnderGrad(ctx, stuId, password)
-	if err != nil {
-		if tool.IsCCNUAccountInitializationRequired(err) {
-			return "", err
-		}
-		return "", errorx.Errorf("getUnderGradCookie loginUnderGrad error: %w", err)
-	}
-	if !ok {
-		// 如果登录没有报错但返回 flag 为 false，通常也是账号密码问题
-		return "", Invalid_SidOrPwd_ERROR(errorx.New("getUnderGradCookie login failed"))
-	}
-
-	ug.Client = client
-	_, err = tool.Retry(func() (string, error) {
-		err := ug.LoginUnderGradSystem(ctx)
-		if err != nil {
-			return "", err
-		}
-		return "", nil
-	})
-	if err != nil {
-		return "", CCNUSERVER_ERROR(errorx.Errorf("getUnderGradCookie LoginUnderGradSystem error: %w", err))
-	}
-
-	cookie, err := ug.GetCookieFromUnderGradSystem()
-	if err != nil {
-		return "", CCNUSERVER_ERROR(errorx.Errorf("getUnderGradCookie GetCookieFromUnderGradSystem error: %w", err))
-	}
-
-	return cookie, nil
-}
-
-func (c *ccnuService) getGradCookie(ctx context.Context, stuId, password string) (string, error) {
-	pg := crawler.NewPostGraduate(crawler.NewCrawlerClient(c.p, c.timeout))
-	pubkey, err := tool.Retry(func() (*rsa.PublicKey, error) {
-		return pg.FetchPublicKey(ctx)
-	})
-	if err != nil {
-		return "", CCNUSERVER_ERROR(errorx.Errorf("getGradCookie FetchPublicKey error: %w", err))
-	}
-
-	cookie, err := pg.GetCookie(ctx, stuId, password, pubkey)
-	if err != nil {
-		return "", CCNUSERVER_ERROR(errorx.Errorf("getGradCookie GetCookie error: %w", err))
-	}
-	return cookie, nil
-}
-
 func (c *ccnuService) GetLibraryToken(ctx context.Context, studentId, password string, service ccnuv1.LIBRARY_TYPE) (string, error) {
-	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.p, c.timeout, proxy.WithoutProxy()), c.secret) // 这里简化了，实际可按需加 Proxy
-	client, ok, err := c.loginUnderGrad(ctx, studentId, password)
-	if err != nil {
-		if tool.IsCCNUAccountInitializationRequired(err) {
-			return "", err
-		}
-		return "", errorx.Errorf("GetLibraryDiscussionToken loginUnderGrad error: %w", err)
-	}
-	if !ok {
-		return "", Invalid_SidOrPwd_ERROR(errorx.New("GetLibraryDiscussionToken login failed"))
-	}
-
-	l.Client = client
-	err = l.LoginLibrary(ctx)
-	if err != nil {
-		return "", CCNUSERVER_ERROR(errorx.Errorf("GetLibraryDiscussionToken LoginLibrary error: %w", err))
-	}
-	var token string
+	cr := c.factory.New()
+	var (
+		token string
+		err   error
+	)
 	switch service {
 	case ccnuv1.LIBRARY_TYPE_LIBRARY_SEAT:
-		token, err = l.GetSeatAuthTokenFromLibrary(ctx)
+		token, err = cr.GetLibrarySeatToken(ctx, studentId, password)
 	case ccnuv1.LIBRARY_TYPE_LIBRARY_DISCUSSION:
-		token, err = l.GetDiscussionAuthTokenFromLibrary(ctx)
+		token, err = cr.GetLibraryDiscussionToken(ctx, studentId, password)
 	}
-	if err != nil {
-		return "", CCNUSERVER_ERROR(errorx.Errorf("GetLibraryDiscussionToken GetRawTokenFromLibrarySystem error: %w", err))
-	}
-
-	return token, nil
+	return token, mapCrawlerError(err)
 }
 
 func (c *ccnuService) CheckLibraryToken(ctx context.Context, token string, service ccnuv1.LIBRARY_TYPE) (bool, error) {
-	var err error
-	l := crawler.NewLibrary(crawler.NewCrawlerClient(c.p, c.timeout, proxy.WithoutProxy()), c.secret)
-	var ok bool
+	cr := c.factory.New()
+	var (
+		ok  bool
+		err error
+	)
 	switch service {
 	case ccnuv1.LIBRARY_TYPE_LIBRARY_SEAT:
-		ok, err = l.CheckLibrarySeatToken(ctx, token)
+		ok, err = cr.CheckLibrarySeatToken(ctx, token)
 	case ccnuv1.LIBRARY_TYPE_LIBRARY_DISCUSSION:
-		ok, err = l.CheckLibraryDiscussionToken(ctx, token)
+		ok, err = cr.CheckLibraryDiscussionToken(ctx, token)
 	}
-	if err != nil {
-		return false, CCNUSERVER_ERROR(errorx.Errorf("CheckLibraryDiscussionToken library crawler check token err:%w", err))
+	return ok, mapCrawlerError(err)
+}
+
+func mapCrawlerError(err error) error {
+	if err == nil {
+		return nil
 	}
-	return ok, nil
+
+	var crawlerErr *CrawlerError
+	if errorx.As(err, &crawlerErr) {
+		switch crawlerErr.Kind {
+		case CrawlerInvalidCredential:
+			return Invalid_SidOrPwd_ERROR(errorx.Errorf("crawler invalid credential: %w", err))
+		case CrawlerAccountInitializationRequired:
+			return CCNU_ACCOUNT_INITIALIZATION_REQUIRED_ERROR(errorx.Errorf("crawler account initialization required: %w", err))
+		}
+	}
+
+	return CCNUSERVER_ERROR(errorx.Errorf("crawler upstream error: %w", err))
 }

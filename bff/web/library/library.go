@@ -32,6 +32,8 @@ func (h *LibraryHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 	sg.GET("/get_comments", authMiddleware, ginx.WrapClaimsAndReq(h.GetComments))
 	sg.GET("/delete_comment", authMiddleware, ginx.WrapClaimsAndReq(h.DeleteComment))
 	sg.POST("/reserve_randomly", authMiddleware, ginx.WrapClaimsAndReq(h.ReserveSeatRandomly))
+	sg.POST("/get_random_seat", authMiddleware, ginx.WrapClaimsAndReq(h.GetRandomSeat))
+	sg.POST("/confirm_reservation", authMiddleware, ginx.WrapClaimsAndReq(h.ConfirmReservation))
 }
 
 // GetSeatInfos 获取图书馆座位信息
@@ -60,22 +62,7 @@ func (h *LibraryHandler) GetSeatInfos(ctx *gin.Context, req GetSeatRequest, uc i
 		seatList := make([]Seat, 0, len(room.Seats))
 
 		for _, seat := range room.Seats {
-			freeList := make([]FreeTime, 0, len(seat.FreeList))
-			for _, ts := range seat.FreeList {
-				freeList = append(freeList, FreeTime{
-					Start: ts.Start,
-					End:   ts.End,
-				})
-			}
-
-			seatList = append(seatList, Seat{
-				ID:        seat.ID,
-				Label:     seat.Label,
-				Name:      seat.Name,
-				Status:    seat.Status,
-				AfterFree: seat.AfterFree,
-				FreeList:  freeList,
-			})
+			seatList = append(seatList, convertSeatVO(seat))
 		}
 
 		roomList = append(roomList, Room{
@@ -92,6 +79,28 @@ func (h *LibraryHandler) GetSeatInfos(ctx *gin.Context, req GetSeatRequest, uc i
 		Msg:  "Success",
 		Data: resp,
 	}, nil
+}
+
+// convertSeatVO 将图书馆 proto 座位转换为前端 VO
+func convertSeatVO(seat *libraryv1.Seat) Seat {
+	if seat == nil {
+		return Seat{}
+	}
+	freeList := make([]FreeTime, 0, len(seat.FreeList))
+	for _, ts := range seat.FreeList {
+		freeList = append(freeList, FreeTime{
+			Start: ts.Start,
+			End:   ts.End,
+		})
+	}
+	return Seat{
+		ID:        seat.ID,
+		Label:     seat.Label,
+		Name:      seat.Name,
+		Status:    seat.Status,
+		AfterFree: seat.AfterFree,
+		FreeList:  freeList,
+	}
 }
 
 // ReserveSeat 预约图书馆座位
@@ -452,6 +461,74 @@ func (h *LibraryHandler) ReserveSeatRandomly(ctx *gin.Context, req ReserveSeatRa
 	})
 	if err != nil {
 		return web.Response{}, errs.RESERVE_SEAT_ERROR(err)
+	}
+
+	return web.Response{
+		Msg: msg.Message,
+	}, nil
+}
+
+// GetRandomSeat 随机选座（返回候选座位，不直接预约）
+// @Summary 随机选座（候选）
+// @Description 根据房间、日期与时间段随机返回一个可用座位，不直接预约；重新随机时可通过 exclude_seat_ids 排除已出现过的座位
+// @Tags library
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer Token"
+// @Param request body GetRandomSeatRequest true "随机选座请求"
+// @Success 200 {object} web.Response{data=GetRandomSeatResponse} "成功返回随机候选座位"
+// @Failure 401 {object} web.Response "未登录"
+// @Failure 422 {object} web.Response "参数错误，code=40002"
+// @Failure 500 {object} web.Response "系统异常，获取失败；该时段无可用座位时 code=51515"
+// @Router /library/get_random_seat [post]
+func (h *LibraryHandler) GetRandomSeat(ctx *gin.Context, req GetRandomSeatRequest, uc ijwt.UserClaims) (web.Response, error) {
+	res, err := h.LibraryClient.GetRandomSeat(ctx, &libraryv1.GetRandomSeatRequest{
+		StuId:          uc.StudentId,
+		RoomIds:        req.RoomIDs,
+		Date:           req.Date,
+		Start:          req.Start,
+		End:            req.End,
+		ExcludeSeatIds: req.ExcludeSeatIDs,
+	})
+	if err != nil {
+		if libraryv1.IsNoAvailableSeatError(err) {
+			return web.Response{}, errs.NO_AVAILABLE_SEAT_ERROR(err)
+		}
+		return web.Response{}, errs.GET_RANDOM_SEAT_ERROR(err)
+	}
+
+	return web.Response{
+		Msg: "Success",
+		Data: GetRandomSeatResponse{
+			RoomID: res.RoomId,
+			Seat:   convertSeatVO(res.Seat),
+		},
+	}, nil
+}
+
+// ConfirmReservation 确认预约座位
+// @Summary 确认预约座位
+// @Description 预约随机选座中确认的座位（携带指定日期与时间段）
+// @Tags library
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer Token"
+// @Param request body ConfirmReservationRequest true "确认预约请求"
+// @Success 200 {object} web.Response "成功返回预约结果"
+// @Failure 401 {object} web.Response "未登录"
+// @Failure 422 {object} web.Response "参数错误，code=40002"
+// @Failure 500 {object} web.Response "系统异常，预约失败"
+// @Router /library/confirm_reservation [post]
+func (h *LibraryHandler) ConfirmReservation(ctx *gin.Context, req ConfirmReservationRequest, uc ijwt.UserClaims) (web.Response, error) {
+	msg, err := h.LibraryClient.ConfirmReservation(ctx, &libraryv1.ConfirmReservationRequest{
+		StuId: uc.StudentId,
+		DevId: req.DevID,
+		Date:  req.Date,
+		Start: req.Start,
+		End:   req.End,
+	})
+	if err != nil {
+		return web.Response{}, errs.CONFIRM_RESERVATION_ERROR(err)
 	}
 
 	return web.Response{

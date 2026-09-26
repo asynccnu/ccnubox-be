@@ -1687,6 +1687,51 @@ paths:
       summary: 取消预约
       tags:
         - library
+  /library/confirm_reservation:
+    post:
+      description: 预约随机选座中确认的座位（携带指定日期与时间段）
+      parameters:
+        - description: Bearer Token
+          in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/library.ConfirmReservationRequest"
+        description: 确认预约请求
+        required: true
+      responses:
+        "200":
+          description: 成功返回预约结果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "401":
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "422":
+          description: 参数错误，code=40002
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: 系统异常，预约失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+      summary: 确认预约座位
+      tags:
+        - library
   /library/create_comment:
     post:
       description: 创建座位评论
@@ -1827,6 +1872,56 @@ paths:
               schema:
                 $ref: "#/components/schemas/web.Response"
       summary: 获取图书馆研讨间信息
+      tags:
+        - library
+  /library/get_random_seat:
+    post:
+      description: 根据房间、日期与时间段随机返回一个可用座位，不直接预约；重新随机时可通过 exclude_seat_ids 排除已出现过的座位
+      parameters:
+        - description: Bearer Token
+          in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/library.GetRandomSeatRequest"
+        description: 随机选座请求
+        required: true
+      responses:
+        "200":
+          description: 成功返回随机候选座位
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/web.Response"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/library.GetRandomSeatResponse"
+                    type: object
+        "401":
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "422":
+          description: 参数错误，code=40002
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: 系统异常，获取失败；该时段无可用座位时 code=51515
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+      summary: 随机选座（候选）
       tags:
         - library
   /library/get_seat:
@@ -3490,6 +3585,21 @@ components:
           description: 发表评论的用户
           type: string
       type: object
+    library.ConfirmReservationRequest:
+      properties:
+        date:
+          description: 格式 YYYY-MM-DD
+          type: string
+        dev_id:
+          description: 座位 ID
+          type: string
+        end:
+          description: 格式 HH:MM
+          type: string
+        start:
+          description: 格式 HH:MM
+          type: string
+      type: object
     library.CreateCommentReq:
       properties:
         content:
@@ -3583,6 +3693,35 @@ components:
           items:
             $ref: "#/components/schemas/library.Discussion"
           type: array
+      type: object
+    library.GetRandomSeatRequest:
+      properties:
+        date:
+          description: 预约日期，格式 YYYY-MM-DD
+          type: string
+        end:
+          description: 结束时间，格式 HH:MM
+          type: string
+        exclude_seat_ids:
+          description: 重新随机时排除已出现过的座位
+          items:
+            type: string
+          type: array
+        room_ids:
+          description: 参与随机的房间（区域）ID
+          items:
+            type: string
+          type: array
+        start:
+          description: 开始时间，格式 HH:MM
+          type: string
+      type: object
+    library.GetRandomSeatResponse:
+      properties:
+        room_id:
+          type: string
+        seat:
+          $ref: "#/components/schemas/library.Seat"
       type: object
     library.GetSeatRecordRequest:
       properties:

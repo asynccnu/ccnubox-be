@@ -14,4 +14,5 @@ enum LibraryErrorReason {
   GET_DISCUSSION_ERROR = 1 [(errors.code) = 502];
   PARSE_TIME_ERROR = 2 [(errors.code) = 503];
   GET_TOKEN_ERROR = 3 [(errors.code) = 504];
+  NO_AVAILABLE_SEAT_ERROR = 4 [(errors.code) = 505];
 }

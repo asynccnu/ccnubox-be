@@ -13,6 +13,8 @@ service LibraryService {
     rpc ReserveDiscussion (ReserveDiscussionRequest) returns (ReserveDiscussionResponse);
     rpc CancelReserve (CancelReserveRequest) returns (CancelReserveResponse);
     rpc ReserveSeatRandomly (ReserveSeatRandomlyRequest) returns (ReserveSeatRandomlyResponse);
+    rpc GetRandomSeat (GetRandomSeatRequest) returns (GetRandomSeatResponse);
+    rpc ConfirmReservation (ConfirmReservationRequest) returns (ConfirmReservationResponse);
     rpc CreateComment (CreateCommentReq) returns (Resp);
     rpc GetComments (ID) returns (GetCommentResp);
     rpc DeleteComment (ID) returns (Resp);
@@ -189,6 +191,34 @@ message ReserveSeatRandomlyRequest {
 }
 
 message ReserveSeatRandomlyResponse {
+    string message = 1;
+}
+
+// 随机选座（候选，不直接预约）
+message GetRandomSeatRequest {
+    string stu_id = 1;
+    repeated string room_ids = 2;
+    string date = 3;                      // 预约日期，格式 YYYY-MM-DD
+    string start = 4;                     // 开始时间，格式 HH:MM
+    string end = 5;                       // 结束时间，格式 HH:MM
+    repeated string exclude_seat_ids = 6; // 需要排除的座位（重新随机时传入，避免重复）
+}
+
+message GetRandomSeatResponse {
+    string room_id = 1;
+    Seat seat = 2;
+}
+
+// 确认预约（带日期）
+message ConfirmReservationRequest {
+    string stu_id = 1;
+    string dev_id = 2;
+    string date = 3;   // 格式 YYYY-MM-DD
+    string start = 4;  // 格式 HH:MM
+    string end = 5;    // 格式 HH:MM
+}
+
+message ConfirmReservationResponse {
     string message = 1;
 }
 

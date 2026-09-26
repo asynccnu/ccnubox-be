@@ -56,6 +56,14 @@ func (l *LibraryServiceServer) ReserveSeatRandomly(ctx context.Context, req *v1.
 	return l.seat.ReserveSeatRandomly(ctx, req)
 }
 
+func (l *LibraryServiceServer) GetRandomSeat(ctx context.Context, req *v1.GetRandomSeatRequest) (*v1.GetRandomSeatResponse, error) {
+	return l.seat.GetRandomSeat(ctx, req)
+}
+
+func (l *LibraryServiceServer) ConfirmReservation(ctx context.Context, req *v1.ConfirmReservationRequest) (*v1.ConfirmReservationResponse, error) {
+	return l.seat.ConfirmReservation(ctx, req)
+}
+
 func (l *LibraryServiceServer) CreateComment(ctx context.Context, req *v1.CreateCommentReq) (*v1.Resp, error) {
 	return l.comment.CreateComment(ctx, req)
 }

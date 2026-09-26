@@ -2525,6 +2525,65 @@
                 }
             }
         },
+        "/library/confirm_reservation": {
+            "post": {
+                "description": "预约随机选座中确认的座位（携带指定日期与时间段）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "library"
+                ],
+                "summary": "确认预约座位",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "确认预约请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/library.ConfirmReservationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回预约结果",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "参数错误，code=40002",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，预约失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/library/create_comment": {
             "post": {
                 "description": "创建座位评论",
@@ -2729,6 +2788,77 @@
                     },
                     "500": {
                         "description": "系统异常，获取失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/library/get_random_seat": {
+            "post": {
+                "description": "根据房间、日期与时间段随机返回一个可用座位，不直接预约；重新随机时可通过 exclude_seat_ids 排除已出现过的座位",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "library"
+                ],
+                "summary": "随机选座（候选）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "随机选座请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/library.GetRandomSeatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回随机候选座位",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/library.GetRandomSeatResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "参数错误，code=40002",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，获取失败；该时段无可用座位时 code=51515",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -5188,6 +5318,27 @@
                 }
             }
         },
+        "library.ConfirmReservationRequest": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "description": "格式 YYYY-MM-DD",
+                    "type": "string"
+                },
+                "dev_id": {
+                    "description": "座位 ID",
+                    "type": "string"
+                },
+                "end": {
+                    "description": "格式 HH:MM",
+                    "type": "string"
+                },
+                "start": {
+                    "description": "格式 HH:MM",
+                    "type": "string"
+                }
+            }
+        },
         "library.CreateCommentReq": {
             "type": "object",
             "properties": {
@@ -5329,6 +5480,48 @@
                     "items": {
                         "$ref": "#/definitions/library.Discussion"
                     }
+                }
+            }
+        },
+        "library.GetRandomSeatRequest": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "description": "预约日期，格式 YYYY-MM-DD",
+                    "type": "string"
+                },
+                "end": {
+                    "description": "结束时间，格式 HH:MM",
+                    "type": "string"
+                },
+                "exclude_seat_ids": {
+                    "description": "重新随机时排除已出现过的座位",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "room_ids": {
+                    "description": "参与随机的房间（区域）ID",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "start": {
+                    "description": "开始时间，格式 HH:MM",
+                    "type": "string"
+                }
+            }
+        },
+        "library.GetRandomSeatResponse": {
+            "type": "object",
+            "properties": {
+                "room_id": {
+                    "type": "string"
+                },
+                "seat": {
+                    "$ref": "#/definitions/library.Seat"
                 }
             }
         },

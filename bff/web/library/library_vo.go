@@ -141,6 +141,26 @@ type ReserveSeatRandomlyResponse struct {
 	Message string `json:"message"`
 }
 
+type GetRandomSeatRequest struct {
+	RoomIDs        []string `json:"room_ids"`         // 参与随机的房间（区域）ID
+	Date           string   `json:"date"`             // 预约日期，格式 YYYY-MM-DD
+	Start          string   `json:"start"`            // 开始时间，格式 HH:MM
+	End            string   `json:"end"`              // 结束时间，格式 HH:MM
+	ExcludeSeatIDs []string `json:"exclude_seat_ids"` // 重新随机时排除已出现过的座位
+}
+
+type GetRandomSeatResponse struct {
+	RoomID string `json:"room_id"`
+	Seat   Seat   `json:"seat"`
+}
+
+type ConfirmReservationRequest struct {
+	DevID string `json:"dev_id"` // 座位 ID
+	Date  string `json:"date"`   // 格式 YYYY-MM-DD
+	Start string `json:"start"`  // 格式 HH:MM
+	End   string `json:"end"`    // 格式 HH:MM
+}
+
 type GetSeatRecordRequest struct {
 	Date []string `json:"date" binding:"required"` // YYYY-M-D 或 YYYY-MM-DD
 }

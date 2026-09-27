@@ -54,6 +54,7 @@ func NewWithRegisterer(reg prometheus.Registerer, namespace string) *Metrics {
 	m.Library.PreferenceSyncTotal = registerVec(reg, m.Library.PreferenceSyncTotal)
 	m.Library.PreferenceSyncLagSeconds = registerVec(reg, m.Library.PreferenceSyncLagSeconds)
 	m.Library.RefreshUsersTotal = registerVec(reg, m.Library.RefreshUsersTotal)
+	m.Library.TeamScanUsersTotal = registerVec(reg, m.Library.TeamScanUsersTotal)
 	m.Library.UpstreamRequestsTotal = registerVec(reg, m.Library.UpstreamRequestsTotal)
 	m.Library.UpstreamDurationSeconds = registerVec(reg, m.Library.UpstreamDurationSeconds)
 	m.Library.ActiveReservations = registerVec(reg, m.Library.ActiveReservations)

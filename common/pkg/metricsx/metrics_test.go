@@ -29,6 +29,9 @@ func TestNewWithRegistererReusesAlreadyRegisteredCollectors(t *testing.T) {
 	if first.Library.PreferenceSyncTotal != second.Library.PreferenceSyncTotal {
 		t.Fatal("expected library preference counter to reuse the registered collector")
 	}
+	if first.Library.TeamScanUsersTotal != second.Library.TeamScanUsersTotal {
+		t.Fatal("expected team scan counter to be reused")
+	}
 	if first.Feed.LibraryPublishTotal != second.Feed.LibraryPublishTotal {
 		t.Fatal("expected Feed library publish counter to reuse the registered collector")
 	}
@@ -48,6 +51,7 @@ func TestNewUsesDefaultRegisterer(t *testing.T) {
 	defer prometheus.DefaultRegisterer.Unregister(m.Library.PreferenceSyncTotal)
 	defer prometheus.DefaultRegisterer.Unregister(m.Library.PreferenceSyncLagSeconds)
 	defer prometheus.DefaultRegisterer.Unregister(m.Library.RefreshUsersTotal)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.TeamScanUsersTotal)
 	defer prometheus.DefaultRegisterer.Unregister(m.Library.UpstreamRequestsTotal)
 	defer prometheus.DefaultRegisterer.Unregister(m.Library.UpstreamDurationSeconds)
 	defer prometheus.DefaultRegisterer.Unregister(m.Library.ActiveReservations)

@@ -8,6 +8,7 @@ type LibraryReminderMetrics struct {
 	PreferenceSyncTotal           *prometheus.CounterVec
 	PreferenceSyncLagSeconds      prometheus.Gauge
 	RefreshUsersTotal             *prometheus.CounterVec
+	TeamScanUsersTotal            *prometheus.CounterVec
 	UpstreamRequestsTotal         *prometheus.CounterVec
 	UpstreamDurationSeconds       *prometheus.HistogramVec
 	ActiveReservations            prometheus.Gauge
@@ -24,6 +25,7 @@ func newLibraryReminderMetrics(namespace string) *LibraryReminderMetrics {
 		PreferenceSyncTotal:           prometheus.NewCounterVec(prometheus.CounterOpts{Namespace: namespace, Name: "library_preference_sync_total", Help: "Library preference synchronization runs by result."}, []string{"result"}),
 		PreferenceSyncLagSeconds:      prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "library_preference_sync_lag_seconds", Help: "Age of the newest applied Feed preference revision."}),
 		RefreshUsersTotal:             prometheus.NewCounterVec(prometheus.CounterOpts{Namespace: namespace, Name: "library_refresh_users_total", Help: "Library user refreshes by result."}, []string{"result"}),
+		TeamScanUsersTotal:            prometheus.NewCounterVec(prometheus.CounterOpts{Namespace: namespace, Name: "library_team_scan_users_total", Help: "Library team scans by result."}, []string{"result"}),
 		UpstreamRequestsTotal:         prometheus.NewCounterVec(prometheus.CounterOpts{Namespace: namespace, Name: "library_upstream_requests_total", Help: "School library requests by endpoint and result."}, []string{"endpoint", "result"}),
 		UpstreamDurationSeconds:       prometheus.NewHistogramVec(prometheus.HistogramOpts{Namespace: namespace, Name: "library_upstream_duration_seconds", Help: "School library request latency.", Buckets: prometheus.DefBuckets}, []string{"endpoint"}),
 		ActiveReservations:            prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "library_active_reservations", Help: "Users with an active reservation window."}),

@@ -58,3 +58,15 @@ func IsGetTokenError(err error) bool {
 func ErrorGetTokenError(format string, args ...interface{}) *errors.Error {
 	return errors.New(504, LibraryErrorReason_GET_TOKEN_ERROR.String(), fmt.Sprintf(format, args...))
 }
+
+func IsNoAvailableSeatError(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == LibraryErrorReason_NO_AVAILABLE_SEAT_ERROR.String() && e.Code == 505
+}
+
+func ErrorNoAvailableSeatError(format string, args ...interface{}) *errors.Error {
+	return errors.New(505, LibraryErrorReason_NO_AVAILABLE_SEAT_ERROR.String(), fmt.Sprintf(format, args...))
+}

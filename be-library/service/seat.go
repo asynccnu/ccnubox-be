@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	ErrGetSeat  = errorx.FormatErrorFunc(v1.ErrorGetSeatError("获取座位失败"))
-	ErrGetToken = errorx.FormatErrorFunc(v1.ErrorGetTokenError("获取token失败"))
+	ErrGetSeat         = errorx.FormatErrorFunc(v1.ErrorGetSeatError("获取座位失败"))
+	ErrGetToken        = errorx.FormatErrorFunc(v1.ErrorGetTokenError("获取token失败"))
+	ErrNoAvailableSeat = errorx.FormatErrorFunc(v1.ErrorNoAvailableSeatError("该时段无可用座位"))
 )
 
 type SeatService interface {
@@ -25,6 +26,8 @@ type SeatService interface {
 	GetSeatRecord(ctx context.Context, req *v1.GetSeatRecordRequest) (*v1.GetSeatRecordResponse, error)
 	CancelReserve(ctx context.Context, req *v1.CancelReserveRequest) (*v1.CancelReserveResponse, error)
 	ReserveSeatRandomly(ctx context.Context, req *v1.ReserveSeatRandomlyRequest) (*v1.ReserveSeatRandomlyResponse, error)
+	GetRandomSeat(ctx context.Context, req *v1.GetRandomSeatRequest) (*v1.GetRandomSeatResponse, error)
+	ConfirmReservation(ctx context.Context, req *v1.ConfirmReservationRequest) (*v1.ConfirmReservationResponse, error)
 }
 
 type seatService struct {
@@ -78,7 +81,7 @@ func (s *seatService) ReserveSeat(ctx context.Context, req *v1.ReserveSeatReques
 	if err != nil {
 		return nil, err
 	}
-	message, err := s.crawler.ReserveSeat(ctx, token, req.DevId, req.Start, req.End)
+	message, err := s.crawler.ReserveSeat(ctx, token, req.DevId, "", req.Start, req.End)
 	if err != nil {
 		return nil, ErrGetSeat(errorx.Errorf("reserve seat failed, stuId: %s, err: %w", req.StuId, err))
 	}
@@ -223,7 +226,7 @@ func (s *seatService) ReserveSeatRandomly(ctx context.Context, req *v1.ReserveSe
 	if err != nil {
 		return nil, err
 	}
-	roomSeats, err := s.crawler.GetSeatInfosForPeriod(ctx, token, req.RoomId, req.Start, req.End)
+	roomSeats, err := s.crawler.GetSeatInfosForPeriod(ctx, token, req.RoomId, "", req.Start, req.End)
 	if err != nil {
 		return nil, ErrGetSeat(errorx.Errorf("find available seat failed, stuId: %s, err: %w", req.StuId, err))
 	}
@@ -236,11 +239,106 @@ func (s *seatService) ReserveSeatRandomly(ctx context.Context, req *v1.ReserveSe
 	}
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	seat := candidates[rng.Intn(len(candidates))]
-	message, err := s.crawler.ReserveSeat(ctx, token, seat.ID, req.Start, req.End)
+	message, err := s.crawler.ReserveSeat(ctx, token, seat.ID, "", req.Start, req.End)
 	if err != nil {
 		return nil, ErrGetSeat(errorx.Errorf("reserve randomly selected seat failed, stuId: %s, err: %w", req.StuId, err))
 	}
 	return &v1.ReserveSeatRandomlyResponse{Message: message}, nil
+}
+
+// GetRandomSeat 随机选座（仅返回候选座位，不直接预约）
+func (s *seatService) GetRandomSeat(ctx context.Context, req *v1.GetRandomSeatRequest) (*v1.GetRandomSeatResponse, error) {
+	if req == nil || len(req.RoomIds) == 0 || req.Date == "" || req.Start == "" || req.End == "" {
+		return nil, ErrGetSeat(errorx.New("room_ids, date, start and end are required"))
+	}
+	if err := validateSeatDate(req.Date); err != nil {
+		return nil, ErrGetSeat(err)
+	}
+	token, err := s.getSeatToken(ctx, req.StuId)
+	if err != nil {
+		return nil, err
+	}
+	roomSeats, err := s.crawler.GetSeatInfosForPeriod(ctx, token, req.RoomIds, req.Date, req.Start, req.End)
+	if err != nil {
+		return nil, ErrGetSeat(errorx.Errorf("find available seat failed, stuId: %s, err: %w", req.StuId, err))
+	}
+
+	candidates := make([]seatCandidate, 0, len(req.RoomIds))
+	for _, roomID := range req.RoomIds {
+		for _, seat := range roomSeats[roomID] {
+			if seat == nil {
+				continue
+			}
+			candidates = append(candidates, seatCandidate{RoomID: roomID, Seat: seat})
+		}
+	}
+	picked, ok := pickRandomSeat(candidates, req.ExcludeSeatIds)
+	if !ok {
+		return nil, ErrNoAvailableSeat(errorx.Errorf("no available seat, stuId: %s, date: %s, period: %s-%s", req.StuId, req.Date, req.Start, req.End))
+	}
+	return &v1.GetRandomSeatResponse{
+		RoomId: picked.RoomID,
+		Seat:   convertSeat(picked.Seat),
+	}, nil
+}
+
+// ConfirmReservation 确认预约指定座位
+func (s *seatService) ConfirmReservation(ctx context.Context, req *v1.ConfirmReservationRequest) (*v1.ConfirmReservationResponse, error) {
+	if req == nil || req.DevId == "" || req.Date == "" || req.Start == "" || req.End == "" {
+		return nil, ErrGetSeat(errorx.New("dev_id, date, start and end are required"))
+	}
+	if err := validateSeatDate(req.Date); err != nil {
+		return nil, ErrGetSeat(err)
+	}
+	token, err := s.getSeatToken(ctx, req.StuId)
+	if err != nil {
+		return nil, err
+	}
+	message, err := s.crawler.ReserveSeat(ctx, token, req.DevId, req.Date, req.Start, req.End)
+	if err != nil {
+		return nil, ErrGetSeat(errorx.Errorf("confirm reservation failed, stuId: %s, err: %w", req.StuId, err))
+	}
+	return &v1.ConfirmReservationResponse{Message: message}, nil
+}
+
+type seatCandidate struct {
+	RoomID string
+	Seat   *crawler.Seat
+}
+
+// pickRandomSeat 从候选中随机挑选一个座位；excludeSeatIDs 用于重新随机时排除已出现过的座位，
+// 若排除后没有剩余候选则忽略排除列表，避免误报无可用座位。
+func pickRandomSeat(candidates []seatCandidate, excludeSeatIDs []string) (seatCandidate, bool) {
+	if len(candidates) == 0 {
+		return seatCandidate{}, false
+	}
+	pickFrom := candidates
+	if len(excludeSeatIDs) > 0 {
+		excluded := make(map[string]struct{}, len(excludeSeatIDs))
+		for _, id := range excludeSeatIDs {
+			excluded[id] = struct{}{}
+		}
+		filtered := make([]seatCandidate, 0, len(candidates))
+		for _, candidate := range candidates {
+			if _, ok := excluded[candidate.Seat.ID]; ok {
+				continue
+			}
+			filtered = append(filtered, candidate)
+		}
+		if len(filtered) > 0 {
+			pickFrom = filtered
+		}
+	}
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return pickFrom[rng.Intn(len(pickFrom))], true
+}
+
+// validateSeatDate 校验日期格式为 YYYY-MM-DD
+func validateSeatDate(value string) error {
+	if _, err := time.ParseInLocation("2006-01-02", value, tool.GetLocation()); err != nil {
+		return errorx.Errorf("invalid date %q, expected YYYY-MM-DD", value)
+	}
+	return nil
 }
 
 func (s *seatService) getSeatToken(ctx context.Context, studentID string) (string, error) {
@@ -257,6 +355,20 @@ func (s *seatService) getSeatToken(ctx context.Context, studentID string) (strin
 	return tokenResp.Token, nil
 }
 
+func convertSeat(seat *crawler.Seat) *v1.Seat {
+	if seat == nil {
+		return nil
+	}
+	return &v1.Seat{
+		ID:        seat.ID,
+		Label:     seat.Label,
+		Name:      seat.Name,
+		Status:    seat.Status,
+		AfterFree: seat.AfterFree,
+		FreeList:  convertFreeTimes(seat.FreeList),
+	}
+}
+
 func convertSeats(src []*crawler.Seat) []*v1.Seat {
 	if len(src) == 0 {
 		return nil
@@ -266,14 +378,7 @@ func convertSeats(src []*crawler.Seat) []*v1.Seat {
 		if seat == nil {
 			continue
 		}
-		result = append(result, &v1.Seat{
-			ID:        seat.ID,
-			Label:     seat.Label,
-			Name:      seat.Name,
-			Status:    seat.Status,
-			AfterFree: seat.AfterFree,
-			FreeList:  convertFreeTimes(seat.FreeList),
-		})
+		result = append(result, convertSeat(seat))
 	}
 	return result
 }

@@ -36,6 +36,8 @@ type LibraryReminderConf struct {
 	// 扫描正在使用的预约
 	ActiveScanCron         string        `yaml:"activeScanCron"`
 	ActiveScanMinInterval  time.Duration `yaml:"activeScanMinInterval"`
+	TeamScanCron           string        `yaml:"teamScanCron"`
+	TeamScanMinInterval    time.Duration `yaml:"teamScanMinInterval"`
 	JobDispatchCron        string        `yaml:"jobDispatchCron"`
 	JobDispatchBatchSize   int           `yaml:"jobDispatchBatchSize"`
 	JobDispatchBudget      int           `yaml:"jobDispatchBudget"`
@@ -66,6 +68,7 @@ type NotificationTypesConf struct {
 	Away80                bool `yaml:"away80"`
 	Breach                bool `yaml:"breach"`
 	Blacklisted           bool `yaml:"blacklisted"`
+	TeamSuccess           bool `yaml:"teamSuccess"`
 }
 
 // Reminder 返回完整且保守的配置。配置段缺失时等同于 enabled:false，
@@ -78,6 +81,8 @@ func (c *ServerConf) Reminder() LibraryReminderConf {
 		FullRefreshMinInterval: 25 * time.Minute,
 		ActiveScanCron:         "*/5 * * * *",
 		ActiveScanMinInterval:  4 * time.Minute,
+		TeamScanCron:           "*/5 * * * *",
+		TeamScanMinInterval:    4 * time.Minute,
 		JobDispatchCron:        "* * * * *",
 		JobDispatchBatchSize:   100,
 		JobDispatchBudget:      1000,
@@ -132,6 +137,12 @@ func (c *ServerConf) Reminder() LibraryReminderConf {
 	}
 	if configured.ActiveScanMinInterval > 0 {
 		result.ActiveScanMinInterval = configured.ActiveScanMinInterval
+	}
+	if configured.TeamScanCron != "" {
+		result.TeamScanCron = configured.TeamScanCron
+	}
+	if configured.TeamScanMinInterval > 0 {
+		result.TeamScanMinInterval = configured.TeamScanMinInterval
 	}
 	if configured.JobDispatchCron != "" {
 		result.JobDispatchCron = configured.JobDispatchCron

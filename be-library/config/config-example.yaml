@@ -21,6 +21,8 @@ libraryReminder:
   fullRefreshMinInterval: 25m
   activeScanCron: "*/5 * * * *"
   activeScanMinInterval: 4m
+  teamScanCron: "*/5 * * * *" # 组队中有效期约 60 分钟；仅在 teamSuccess 开启时注册
+  teamScanMinInterval: 4m
   jobDispatchCron: "* * * * *"
   jobDispatchBatchSize: 100
   jobDispatchBudget: 1000
@@ -48,3 +50,4 @@ libraryReminder:
     away80: true
     breach: true
     blacklisted: true
+    teamSuccess: false # APP 消息及手机通知栏推送；联调完成后显式开启

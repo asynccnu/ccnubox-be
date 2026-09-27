@@ -62,6 +62,11 @@ func NewReminderScheduler(service *ReminderService, l logger.Logger) *ReminderSc
 			panic(fmt.Sprintf("invalid library reminder cron %q: %v", entry.spec, err))
 		}
 	}
+	if service.notificationEnabled(NotificationTeamSuccess) {
+		if _, err := c.AddFunc(service.config.TeamScanCron, func() { scheduler.run("cron", "team_scan", service.ScanTeams) }); err != nil {
+			panic(fmt.Sprintf("invalid library reminder cron %q: %v", service.config.TeamScanCron, err))
+		}
+	}
 	return scheduler
 }
 

@@ -40,6 +40,10 @@ func (f *reminderTestFeed) Publish(context.Context, string, *feedv1.FeedEvent) (
 
 type reminderTestUser struct{ userv1.UserServiceClient }
 
+func (reminderTestUser) GetLibraryDiscussionToken(context.Context, *userv1.GetLibraryTokenRequest, ...grpc.CallOption) (*userv1.GetLibraryTokenResponse, error) {
+	return &userv1.GetLibraryTokenResponse{Token: "discussion-token"}, nil
+}
+
 func (reminderTestUser) GetLibrarySeatToken(context.Context, *userv1.GetLibraryTokenRequest, ...grpc.CallOption) (*userv1.GetLibraryTokenResponse, error) {
 	return &userv1.GetLibraryTokenResponse{Token: "test-token"}, nil
 }
@@ -47,6 +51,12 @@ func (reminderTestUser) GetLibrarySeatToken(context.Context, *userv1.GetLibraryT
 type reminderTestCrawler struct {
 	crawler.ReminderCrawler
 	current *crawler.ReminderReservation
+	team    *crawler.ReminderTeam
+	teamErr error
+}
+
+func (c reminderTestCrawler) GetCurrentTeam(context.Context, string) (*crawler.ReminderTeam, error) {
+	return c.team, c.teamErr
 }
 
 func (c reminderTestCrawler) GetCurrentReservation(context.Context, string) (*crawler.ReminderReservation, error) {
@@ -64,7 +74,7 @@ func newReminderTestService(t *testing.T) (*ReminderService, *gorm.DB) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := db.AutoMigrate(&dao.LibraryReminderSubscription{}, &dao.LibraryPreferenceSyncCursor{}, &dao.ReservationSnapshot{}, &dao.AwayEpisode{}, &dao.NotificationJob{}, &dao.NotificationOutbox{}); err != nil {
+	if err := db.AutoMigrate(&dao.LibraryReminderSubscription{}, &dao.LibraryPreferenceSyncCursor{}, &dao.ReservationSnapshot{}, &dao.LibraryTeamSnapshot{}, &dao.AwayEpisode{}, &dao.NotificationJob{}, &dao.NotificationOutbox{}); err != nil {
 		t.Fatal(err)
 	}
 	config := (*conf.ServerConf)(nil).Reminder()
@@ -452,5 +462,159 @@ func TestAwayEpisodeCurrentRejectsLegacyWork(t *testing.T) {
 				t.Fatalf("current=%v err=%v", ok, err)
 			}
 		})
+	}
+}
+
+func TestTeamSuccessBaselineAndDurableDedupe(t *testing.T) {
+	ctx := context.Background()
+	s, db := newReminderTestService(t)
+	yes := true
+	s.config.BaselineOnEnable = &yes
+	s.config.NotificationTypes.TeamSuccess = true
+	s.userTaskGate = newUserTaskGate()
+	sub := dao.LibraryReminderSubscription{StudentID: "20260001", Enabled: true, PreferenceVersion: 1}
+	if err := db.Create(&sub).Error; err != nil {
+		t.Fatal(err)
+	}
+	observe := func(team *crawler.ReminderTeam) {
+		t.Helper()
+		s.crawler = reminderTestCrawler{team: team}
+		if err := s.scanTeamUser(ctx, sub); err != nil {
+			t.Fatal(err)
+		}
+		next := s.now().Add(5 * time.Minute)
+		s.now = func() time.Time { return next }
+	}
+	observe(&crawler.ReminderTeam{ID: "team-1", Status: 1})
+	var row dao.LibraryTeamSnapshot
+	if err := db.First(&row).Error; err != nil || row.SuccessDisposition != "baseline" {
+		t.Fatalf("baseline row=%+v err=%v", row, err)
+	}
+	observe(&crawler.ReminderTeam{ID: "team-2", Status: 0})
+	observe(&crawler.ReminderTeam{ID: "team-2", Status: 1, OnDate: "2026-06-02"})
+	observe(nil)
+	observe(&crawler.ReminderTeam{ID: "team-2", Status: 1})
+	var outbox []dao.NotificationOutbox
+	if err := db.Find(&outbox).Error; err != nil || len(outbox) != 1 {
+		t.Fatalf("outbox=%+v err=%v", outbox, err)
+	}
+	if outbox[0].DedupeKey != "library:team_success:20260001:team-2" || outbox[0].ExternalReservationID != "" {
+		t.Fatalf("invalid outbox: %+v", outbox[0])
+	}
+	var payload notificationPayload
+	if err := json.Unmarshal(outbox[0].Payload, &payload); err != nil || payload.TeamID != "team-2" || payload.OnDate != "2026-06-02" {
+		t.Fatalf("payload=%+v err=%v", payload, err)
+	}
+	// Outbox 清理后，同队再次成功也不能重建消息。
+	if err := db.Delete(&dao.NotificationOutbox{}, outbox[0].ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	observe(&crawler.ReminderTeam{ID: "team-2", Status: 1})
+	var count int64
+	db.Model(&dao.NotificationOutbox{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("outbox recreated: %d", count)
+	}
+}
+
+func TestTeamScanFailureDoesNotCompleteBaseline(t *testing.T) {
+	ctx := context.Background()
+	s, db := newReminderTestService(t)
+	yes := true
+	s.config.BaselineOnEnable = &yes
+	s.config.NotificationTypes.TeamSuccess = true
+	s.config.UpstreamRetryAttempts = 1
+	s.userTaskGate = newUserTaskGate()
+	sub := dao.LibraryReminderSubscription{StudentID: "20260001", Enabled: true, PreferenceVersion: 1, AuthStatus: dao.SubscriptionAuthOK}
+	if err := db.Create(&sub).Error; err != nil {
+		t.Fatal(err)
+	}
+	s.crawler = reminderTestCrawler{teamErr: errors.New("upstream failure")}
+	if err := s.scanTeamUser(ctx, sub); err == nil {
+		t.Fatal("expected failure")
+	}
+	var stored dao.LibraryReminderSubscription
+	db.First(&stored, sub.ID)
+	if stored.TeamBaselineCompleted || stored.LastTeamScanAt != nil || stored.LastTeamScanAttemptAt == nil || stored.AuthStatus != dao.SubscriptionAuthOK {
+		t.Fatalf("failed scan modified state: %+v", stored)
+	}
+}
+
+func TestTeamSuccessWithoutBaselineAndPreferenceReset(t *testing.T) {
+	ctx := context.Background()
+	s, db := newReminderTestService(t)
+	s.config.NotificationTypes.TeamSuccess = true
+	s.userTaskGate = newUserTaskGate()
+	sub := dao.LibraryReminderSubscription{StudentID: "20260001", Enabled: true, FeedRevision: 1, PreferenceVersion: 1}
+	if err := db.Create(&sub).Error; err != nil {
+		t.Fatal(err)
+	}
+	s.crawler = reminderTestCrawler{team: &crawler.ReminderTeam{ID: "team-1", Status: 1}}
+	if err := s.scanTeamUser(ctx, sub); err != nil {
+		t.Fatal(err)
+	}
+	var count int64
+	if err := db.Model(&dao.NotificationOutbox{}).Count(&count).Error; err != nil || count != 1 {
+		t.Fatalf("outbox=%d err=%v", count, err)
+	}
+	_, err := s.dao.ApplyPreferenceChanges(ctx, []dao.PreferenceChange{{Revision: 2, StudentID: sub.StudentID, Enabled: false}, {Revision: 3, StudentID: sub.StudentID, Enabled: true}}, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated, err := s.dao.Subscription(ctx, sub.StudentID)
+	if err != nil || updated.TeamBaselineCompleted || updated.LastTeamScanAt != nil || updated.LastTeamScanAttemptAt != nil {
+		t.Fatalf("reset sub=%+v err=%v", updated, err)
+	}
+	if err := s.scanTeamUser(ctx, *updated); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(&dao.NotificationOutbox{}).Count(&count).Error; err != nil || count != 1 {
+		t.Fatalf("duplicate outbox=%d err=%v", count, err)
+	}
+}
+
+func TestTeamSubscriptionsPagesOldestAttemptsFirst(t *testing.T) {
+	ctx := context.Background()
+	s, db := newReminderTestService(t)
+	now := s.now()
+	for i := 0; i < 205; i++ {
+		row := dao.LibraryReminderSubscription{StudentID: fmt.Sprintf("%08d", i), Enabled: true, PreferenceVersion: 1}
+		if i < 3 {
+			at := now.Add(-5 * time.Minute)
+			row.LastTeamScanAttemptAt = &at
+		}
+		if err := db.Create(&row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	cutoff := now.Add(-s.config.TeamScanMinInterval)
+	var after *time.Time
+	var id int64
+	seen := make(map[int64]bool)
+	for {
+		rows, err := s.dao.TeamSubscriptions(ctx, cutoff, after, id, 20)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(rows) == 0 {
+			break
+		}
+		if len(seen) == 0 && rows[0].LastTeamScanAttemptAt != nil {
+			t.Fatal("未尝试用户未被优先选择")
+		}
+		for _, row := range rows {
+			if seen[row.ID] {
+				t.Fatalf("重复扫描订阅 %d", row.ID)
+			}
+			seen[row.ID] = true
+			if _, err := s.dao.MarkTeamAttempt(ctx, row.StudentID, row.PreferenceVersion, now); err != nil {
+				t.Fatal(err)
+			}
+		}
+		last := rows[len(rows)-1]
+		id, after = last.ID, last.LastTeamScanAttemptAt
+	}
+	if len(seen) != 205 {
+		t.Fatalf("扫描数量=%d", len(seen))
 	}
 }

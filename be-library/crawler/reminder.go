@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	reminderTeamPath    = "/spa/static/api/reservation/team/queryUserCurrentTeam"
 	reminderTodayPath   = "/jsq/static/frontApi/user/lastMake"
 	reminderHistoryPath = "/jsq/static/frontApi/user/history/%d/%d"
 	reminderCurrentPath = "/jsq/static/frontApi/user/currentUseMake"
@@ -44,6 +45,7 @@ type ReminderCrawler interface {
 	GetCurrentReservation(context.Context, string) (*ReminderReservation, error)
 	GetUserState(context.Context, string) (LibraryUserState, error)
 	GetDoorLogs(context.Context, string, string) ([]DoorLog, error)
+	GetCurrentTeam(context.Context, string) (*ReminderTeam, error)
 }
 
 type HistoryWatermark struct {
@@ -532,7 +534,11 @@ func (c *ReminderHTTPClient) fetchSigningKey(parent context.Context, token strin
 	return key, nil
 }
 
-func (c *ReminderHTTPClient) do(req *http.Request) (data json.RawMessage, err error) {
+func (c *ReminderHTTPClient) do(req *http.Request) (json.RawMessage, error) {
+	return c.doResponse(req, false)
+}
+
+func (c *ReminderHTTPClient) doResponse(req *http.Request, strict bool) (data json.RawMessage, err error) {
 	started := time.Now()
 	endpoint := reminderMetricEndpoint(req.URL.Path)
 	if c.metrics != nil {
@@ -570,7 +576,7 @@ func (c *ReminderHTTPClient) do(req *http.Request) (data json.RawMessage, err er
 	if err := json.Unmarshal(body, &env); err != nil {
 		return nil, &upstreamError{Endpoint: endpoint, HTTPCode: resp.StatusCode, Cause: err}
 	}
-	if !env.Status || (env.Code != 0 && env.Code != http.StatusOK) {
+	if !env.Status || (strict && env.Code != http.StatusOK) || (!strict && env.Code != 0 && env.Code != http.StatusOK) {
 		return nil, &upstreamError{Endpoint: endpoint, HTTPCode: resp.StatusCode, Code: env.Code, Message: env.Message}
 	}
 	if env.Data == nil {
@@ -581,6 +587,8 @@ func (c *ReminderHTTPClient) do(req *http.Request) (data json.RawMessage, err er
 
 func reminderMetricEndpoint(path string) string {
 	switch {
+	case path == reminderTeamPath:
+		return "current_team"
 	case path == reminderTodayPath:
 		return "last_make"
 	case strings.HasPrefix(path, "/jsq/static/frontApi/user/history/"):
@@ -606,7 +614,7 @@ func ClassifyUpstreamError(err error) string {
 	}
 	var upstream *upstreamError
 	if errors.As(err, &upstream) {
-		if isAuthRejection(err) {
+		if isAuthRejection(err) || (upstream.Endpoint == "current_team" && upstream.Code == 20003) {
 			return "auth_error"
 		}
 		if upstream.HTTPCode != 0 && (upstream.HTTPCode < 200 || upstream.HTTPCode >= 300) {

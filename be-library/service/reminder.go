@@ -38,6 +38,7 @@ const (
 	NotificationAway80                = "AWAY_80"
 	NotificationBreach                = "BREACH"
 	NotificationBlacklisted           = "BLACKLISTED"
+	NotificationTeamSuccess           = "TEAM_SUCCESS"
 
 	reservationStatusMaxBytes   = 32
 	notificationMessageMaxBytes = 8 << 10
@@ -59,6 +60,8 @@ type notificationPayload struct {
 	TargetAt         int64  `json:"target_at,omitempty"`
 	EpisodeVersion   int    `json:"episode_version,omitempty"`
 	Message          string `json:"message,omitempty"`
+	TeamID           string `json:"team_id,omitempty"`
+	OnDate           string `json:"on_date,omitempty"`
 }
 
 type userTaskKey struct {
@@ -1092,6 +1095,9 @@ func (s *ReminderService) sendOutboxRow(ctx context.Context, row dao.Notificatio
 	if err := json.Unmarshal(row.Payload, &payload); err != nil {
 		return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "invalid payload", nil)
 	}
+	if row.Type == NotificationTeamSuccess && (payload.NotificationType != row.Type || strings.TrimSpace(payload.TeamID) == "" || payload.TargetAt <= 0 || row.ExternalReservationID != "") {
+		return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "invalid team payload", nil)
+	}
 	canSend, err := s.dao.CanSendOutbox(ctx, row)
 	if err != nil {
 		return err
@@ -1321,6 +1327,8 @@ func (s *ReminderService) notificationEnabled(notificationType string) bool {
 		return types.Breach
 	case NotificationBlacklisted:
 		return types.Blacklisted
+	case NotificationTeamSuccess:
+		return types.TeamSuccess
 	default:
 		return false
 	}
@@ -1670,6 +1678,12 @@ func payloadFeedEvent(dedupeKey string, payload notificationPayload) *feedv1.Fee
 		content = "你已暂离约 80 分钟，请尽快返回。"
 	case NotificationBreach:
 		content = "检测到新的图书馆违约记录，请查看图书馆规则。"
+	case NotificationTeamSuccess:
+		title = "研讨间组队成功"
+		content = "检测到你参与的研讨间队伍已组队成功。"
+		if payload.OnDate != "" {
+			content = fmt.Sprintf("检测到你参与的研讨间队伍已组队成功，预计使用日期为 %s。", payload.OnDate)
+		}
 	case NotificationBlacklisted:
 		content = truncateUTF8(payload.Message, notificationMessageMaxBytes)
 		if content == "" {
@@ -1683,6 +1697,8 @@ func payloadFeedEvent(dedupeKey string, payload notificationPayload) *feedv1.Fee
 		}
 	}
 	set("reservation_id", payload.ReservationID)
+	set("team_id", payload.TeamID)
+	set("on_date", payload.OnDate)
 	set("seat_id", payload.SeatID)
 	set("seat_label", payload.SeatLabel)
 	set("location", payload.Location)
@@ -1692,7 +1708,7 @@ func payloadFeedEvent(dedupeKey string, payload notificationPayload) *feedv1.Fee
 	if payload.EndAt != 0 {
 		extend["end_at"] = strconvFormat(payload.EndAt)
 	}
-	if payload.TargetAt != 0 {
+	if payload.TargetAt != 0 && payload.NotificationType != NotificationTeamSuccess {
 		extend["target_at"] = strconvFormat(payload.TargetAt)
 	}
 	if payload.EpisodeVersion != 0 {

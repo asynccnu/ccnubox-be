@@ -29,17 +29,20 @@ const (
 )
 
 type LibraryReminderSubscription struct {
-	ID                int64  `gorm:"primaryKey;autoIncrement"`
-	StudentID         string `gorm:"column:student_id;type:varchar(64);not null;uniqueIndex"`
-	Enabled           bool   `gorm:"not null;default:false;index"`
-	FeedRevision      int64  `gorm:"not null;default:0"`
-	PreferenceVersion int64  `gorm:"not null;default:0"`
-	BaselineCompleted bool   `gorm:"not null;default:false"`
-	AuthStatus        string `gorm:"type:varchar(32);not null;default:UNKNOWN"`
-	LastFullRefreshAt *time.Time
-	LastActiveScanAt  *time.Time
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	ID                    int64  `gorm:"primaryKey;autoIncrement"`
+	StudentID             string `gorm:"column:student_id;type:varchar(64);not null;uniqueIndex"`
+	Enabled               bool   `gorm:"not null;default:false;index;index:idx_team_scan,priority:1"`
+	FeedRevision          int64  `gorm:"not null;default:0"`
+	PreferenceVersion     int64  `gorm:"not null;default:0"`
+	BaselineCompleted     bool   `gorm:"not null;default:false"`
+	TeamBaselineCompleted bool   `gorm:"not null;default:false"`
+	LastTeamScanAt        *time.Time
+	LastTeamScanAttemptAt *time.Time `gorm:"index:idx_team_scan,priority:2"`
+	AuthStatus            string     `gorm:"type:varchar(32);not null;default:UNKNOWN"`
+	LastFullRefreshAt     *time.Time
+	LastActiveScanAt      *time.Time
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
 func (LibraryReminderSubscription) TableName() string { return "library_reminder_subscriptions" }
@@ -72,6 +75,24 @@ type ReservationSnapshot struct {
 }
 
 func (ReservationSnapshot) TableName() string { return "reservation_snapshots" }
+
+type LibraryTeamSnapshot struct {
+	ID                 int64  `gorm:"primaryKey;autoIncrement"`
+	StudentID          string `gorm:"column:student_id;type:varchar(64);not null;uniqueIndex:uidx_library_team,priority:1"`
+	TeamID             string `gorm:"type:varchar(128);not null;uniqueIndex:uidx_library_team,priority:2"`
+	Status             int    `gorm:"not null"`
+	OnDate             string `gorm:"type:varchar(10)"`
+	Total              int
+	ExpirationTime     *time.Time
+	FirstSeenAt        time.Time `gorm:"not null"`
+	LastSeenAt         time.Time `gorm:"not null"`
+	SuccessObservedAt  *time.Time
+	SuccessDisposition string `gorm:"type:varchar(32)"`
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+}
+
+func (LibraryTeamSnapshot) TableName() string { return "library_team_snapshots" }
 
 type LibraryUserStateSnapshot struct {
 	ID               int64  `gorm:"primaryKey;autoIncrement"`

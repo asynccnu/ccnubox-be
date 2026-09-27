@@ -618,3 +618,81 @@ func TestTeamSubscriptionsPagesOldestAttemptsFirst(t *testing.T) {
 		t.Fatalf("扫描数量=%d", len(seen))
 	}
 }
+
+type teamScanTestCrawler struct {
+	reminderTestCrawler
+	getTeam func(context.Context) (*crawler.ReminderTeam, error)
+}
+
+func (c teamScanTestCrawler) GetCurrentTeam(ctx context.Context, _ string) (*crawler.ReminderTeam, error) {
+	return c.getTeam(ctx)
+}
+
+func TestScanTeamsAggregatesPages(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		fail   bool
+		cancel bool
+	}{
+		{name: "all successful"},
+		{name: "multiple failed pages", fail: true},
+		{name: "canceled after failed page", fail: true, cancel: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, db := newReminderTestService(t)
+			s.config.NotificationTypes.TeamSuccess = true
+			s.config.UserConcurrency = 1
+			s.config.UserJitter = 0
+			s.config.UpstreamRetryAttempts = 1
+			s.userTaskGate = newUserTaskGate()
+			rows := make([]dao.LibraryReminderSubscription, 2*teamScanPageSize+5)
+			for i := range rows {
+				rows[i] = dao.LibraryReminderSubscription{StudentID: fmt.Sprintf("2026%04d", i), Enabled: true, PreferenceVersion: 1}
+			}
+			if err := db.CreateInBatches(&rows, 100).Error; err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			calls := 0
+			s.crawler = teamScanTestCrawler{getTeam: func(context.Context) (*crawler.ReminderTeam, error) {
+				calls++
+				if !tc.fail || calls <= teamScanPageSize {
+					return nil, nil
+				}
+				if calls <= 2*teamScanPageSize {
+					return nil, crawler.ErrUpstreamStateUnknown
+				}
+				if tc.cancel {
+					cancel()
+					return nil, context.Canceled
+				}
+				return nil, context.DeadlineExceeded
+			}}
+			err := s.ScanTeams(ctx)
+			if !tc.fail {
+				if err != nil || calls != len(rows) {
+					t.Fatalf("calls=%d err=%v", calls, err)
+				}
+				return
+			}
+			var batch *subscriptionBatchError
+			if !errors.As(err, &batch) {
+				t.Fatalf("expected batch error, got %v", err)
+			}
+			if batch.Total != len(rows) || batch.Succeeded != teamScanPageSize || batch.Groups["invalid_response"] != teamScanPageSize {
+				t.Fatalf("batch=%+v groups=%v", batch, batch.Groups)
+			}
+			if batch.Launched != batch.Succeeded+batch.Failed || batch.Total != batch.Launched+batch.Canceled || len(batch.Samples) != batchErrorSampleLimit {
+				t.Fatalf("batch=%+v samples=%d", batch, len(batch.Samples))
+			}
+			if tc.cancel {
+				if !errors.Is(err, context.Canceled) || batch.Groups["context_canceled"] == 0 || batch.Failed != teamScanPageSize+batch.Groups["context_canceled"] {
+					t.Fatalf("cancellation lost: batch=%+v groups=%v cause=%v", batch, batch.Groups, batch.Cause)
+				}
+			} else if batch.Failed != teamScanPageSize+5 || batch.Canceled != 0 || batch.Groups["upstream_timeout"] != 5 || !errors.Is(err, crawler.ErrUpstreamStateUnknown) {
+				t.Fatalf("batch=%+v groups=%v cause=%v", batch, batch.Groups, batch.Cause)
+			}
+		})
+	}
+}

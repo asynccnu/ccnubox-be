@@ -22,11 +22,13 @@ func (s *ReminderService) ScanTeams(ctx context.Context) error {
 	cutoff := s.now().Add(-s.config.TeamScanMinInterval)
 	var afterID int64
 	var afterAttempt *time.Time
-	var firstErr error
+	batch := &subscriptionBatchError{Groups: map[string]int{}}
 	for {
 		rows, err := s.dao.TeamSubscriptions(ctx, cutoff, afterAttempt, afterID, teamScanPageSize)
 		if err != nil {
-			return err
+			// 查询失败或取消时也保留此前已扫描批次的统计。
+			batch.Cause = err
+			return batch
 		}
 		if len(rows) == 0 {
 			break
@@ -34,18 +36,42 @@ func (s *ReminderService) ScanTeams(ctx context.Context) error {
 		afterID = rows[len(rows)-1].ID
 		afterAttempt = rows[len(rows)-1].LastTeamScanAttemptAt
 		if err := s.forEachSubscription(ctx, rows, s.scanTeamUser); err != nil {
-			if ctx.Err() != nil {
-				return err
+			var page *subscriptionBatchError
+			if !errors.As(err, &page) {
+				batch.Cause = err
+				return batch
 			}
-			if firstErr == nil {
-				firstErr = err
+			batch.Total += page.Total
+			batch.Launched += page.Launched
+			batch.Succeeded += page.Succeeded
+			batch.Failed += page.Failed
+			batch.Canceled += page.Canceled
+			for kind, count := range page.Groups {
+				batch.Groups[kind] += count
 			}
+			// 样例上限属于整轮扫描，不能随分页数量增长。
+			remaining := batchErrorSampleLimit - len(batch.Samples)
+			batch.Samples = append(batch.Samples, page.Samples[:min(remaining, len(page.Samples))]...)
+			if batch.Cause == nil {
+				batch.Cause = page.Cause
+			}
+		} else {
+			batch.Total += len(rows)
+			batch.Launched += len(rows)
+			batch.Succeeded += len(rows)
+		}
+		if err := ctx.Err(); err != nil {
+			batch.Cause = err
+			return batch
 		}
 		if len(rows) < teamScanPageSize {
 			break
 		}
 	}
-	return firstErr
+	if batch.Cause != nil {
+		return batch
+	}
+	return nil
 }
 
 func (s *ReminderService) scanTeamUser(ctx context.Context, sub dao.LibraryReminderSubscription) (err error) {

@@ -36,11 +36,13 @@ func (c *ReminderHTTPClient) GetCurrentTeam(parent context.Context, token string
 	}
 	req.Header.Set("Authorization", token)
 	req.Header.Set("Accept", "application/json")
-	raw, err := c.doResponse(req, true)
-	if err != nil {
-		return nil, err
-	}
-	return decodeReminderTeam(raw)
+	var team *ReminderTeam
+	_, err = c.doResponse(req, true, func(raw json.RawMessage) error {
+		var decodeErr error
+		team, decodeErr = decodeReminderTeam(raw)
+		return decodeErr
+	})
+	return team, err
 }
 
 func decodeReminderTeam(raw json.RawMessage) (*ReminderTeam, error) {

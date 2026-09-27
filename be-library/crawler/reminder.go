@@ -535,10 +535,11 @@ func (c *ReminderHTTPClient) fetchSigningKey(parent context.Context, token strin
 }
 
 func (c *ReminderHTTPClient) do(req *http.Request) (json.RawMessage, error) {
-	return c.doResponse(req, false)
+	return c.doResponse(req, false, nil)
 }
 
-func (c *ReminderHTTPClient) doResponse(req *http.Request, strict bool) (data json.RawMessage, err error) {
+// decode 在请求结果统计前完成业务数据校验，避免非法响应被记为成功。
+func (c *ReminderHTTPClient) doResponse(req *http.Request, strict bool, decode func(json.RawMessage) error) (data json.RawMessage, err error) {
 	started := time.Now()
 	endpoint := reminderMetricEndpoint(req.URL.Path)
 	if c.metrics != nil {
@@ -581,6 +582,11 @@ func (c *ReminderHTTPClient) doResponse(req *http.Request, strict bool) (data js
 	}
 	if env.Data == nil {
 		return nil, &upstreamError{Endpoint: endpoint, HTTPCode: resp.StatusCode, Code: env.Code, Message: "missing data"}
+	}
+	if decode != nil {
+		if err := decode(env.Data); err != nil {
+			return nil, err
+		}
 	}
 	return env.Data, nil
 }

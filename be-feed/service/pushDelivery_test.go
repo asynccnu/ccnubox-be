@@ -87,6 +87,7 @@ func TestLibraryPushExpired(t *testing.T) {
 		{"RESERVATION_DISCOVERED", "library", "RESERVATION_DISCOVERED"},
 		{"BREACH", "library", "BREACH"},
 		{"BLACKLISTED", "library", "BLACKLISTED"},
+		{"TEAM_SUCCESS", "library", "TEAM_SUCCESS"},
 		{"unknown", "library", "UNKNOWN"},
 		{"missing_notification_type", "library", ""},
 	}

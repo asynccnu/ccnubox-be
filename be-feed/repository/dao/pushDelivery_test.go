@@ -141,3 +141,35 @@ func TestPushDeliveryRecoversSendingOnlyAtStartup(t *testing.T) {
 		t.Fatal("pending delivery was finalized without being claimed")
 	}
 }
+
+func TestTeamSuccessStoredWithPushDelivery(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedUserConfig{}, &model.FeedPushDelivery{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.FeedUserConfig{StudentId: "20260001", PushConfig: model.DefaultPushConfig}).Error; err != nil {
+		t.Fatal(err)
+	}
+	repo := NewFeedEventDAO(db)
+	team := model.FeedEvent{StudentId: "20260001", Type: "library", DedupeKey: "team-1", ExtendFields: model.ExtendFields{"notification_type": "TEAM_SUCCESS", "team_id": "1"}}
+	normal := model.FeedEvent{StudentId: "20260001", Type: "library", DedupeKey: "normal-1", ExtendFields: model.ExtendFields{"notification_type": "START_30"}}
+	inserted, suppressed, err := repo.StoreFeedEvents(context.Background(), []model.FeedEvent{team, normal, team})
+	if err != nil || suppressed != 0 || len(inserted) != 2 {
+		t.Fatalf("inserted=%+v suppressed=%d err=%v", inserted, suppressed, err)
+	}
+	var count int64
+	if err := db.Model(&model.FeedPushDelivery{}).Count(&count).Error; err != nil || count != 2 {
+		t.Fatalf("deliveries=%d err=%v", count, err)
+	}
+	for _, event := range inserted {
+		if err := db.Model(&model.FeedPushDelivery{}).Where("feed_event_id = ? AND status = ?", event.ID, model.PushDeliveryPending).Count(&count).Error; err != nil || count != 1 {
+			t.Fatalf("event %d push delivery count=%d err=%v", event.ID, count, err)
+		}
+	}
+	if err := db.Model(&model.FeedEvent{}).Count(&count).Error; err != nil || count != 2 {
+		t.Fatalf("events=%d err=%v", count, err)
+	}
+}

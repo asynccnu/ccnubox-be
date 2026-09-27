@@ -286,6 +286,8 @@ func validatePublicFeedEventRequest(req *feedv1.PublicFeedEventReq) error {
 		}
 		allowedFields := map[string]struct{}{
 			"notification_type": {},
+			"team_id":           {},
+			"on_date":           {},
 			"reservation_id":    {},
 			"seat_id":           {},
 			"seat_label":        {},
@@ -295,6 +297,9 @@ func validatePublicFeedEventRequest(req *feedv1.PublicFeedEventReq) error {
 			"target_at":         {},
 			"episode_version":   {},
 			"deep_link":         {},
+		}
+		if strings.EqualFold(strings.TrimSpace(event.GetExtendFields()["notification_type"]), "TEAM_SUCCESS") && strings.TrimSpace(event.GetExtendFields()["team_id"]) == "" {
+			return status.Error(codes.InvalidArgument, "team_success requires team_id")
 		}
 		for key := range event.GetExtendFields() {
 			if _, allowed := allowedFields[key]; !allowed {

@@ -21,6 +21,7 @@ type pushService struct {
 
 type PushService interface {
 	GetPushCID(context.Context) (string, error)
+	LoadPushTargets(ctx context.Context, studentIDs []string) (*PushTargets, error)
 	PreparePush(ctx context.Context, pushData *domain.FeedEvent) (*PreparedPush, error)
 	PreparePushForDelivery(ctx context.Context, pushData *domain.FeedEvent) (*PreparedPush, string, error)
 	PushPreparedMSGWithCID(ctx context.Context, pushData *domain.FeedEvent, prepared *PreparedPush, cid string) error
@@ -32,6 +33,39 @@ type PushService interface {
 // PreparedPush 保存已通过 Token 和推送开关检查的接收目标。
 type PreparedPush struct {
 	tokens []string
+}
+
+// PushTargets 仅在一个准备分组内共享，配置和 token 均按只读快照使用。
+type PushTargets struct {
+	users map[string]pushTarget
+}
+
+type pushTarget struct {
+	config dao.PushConfigSnapshot
+	tokens []string
+}
+
+func (targets *PushTargets) prepare(pushData *domain.FeedEvent) (*PreparedPush, string, error) {
+	if !tool.IsValidStudentID(pushData.StudentId) {
+		return nil, "suppressed_no_target_or_disabled", nil
+	}
+	target, exists := targets.users[pushData.StudentId]
+	if !exists {
+		// 未预取不等于配置缺失，不能据此使用默认允许规则。
+		return nil, "", errorx.Errorf("service: push target not prefetched, sid: %s", pushData.StudentId)
+	}
+	prepared, reason := preparePushTarget(pushData.Type, target)
+	return prepared, reason, nil
+}
+
+func preparePushTarget(label string, target pushTarget) (*PreparedPush, string) {
+	if !pushAllowed(label, target.config) {
+		return nil, suppressionReason(label)
+	}
+	if len(target.tokens) == 0 {
+		return nil, "suppressed_no_target_or_disabled"
+	}
+	return &PreparedPush{tokens: target.tokens}, ""
 }
 
 type ErrWithData struct {
@@ -82,6 +116,35 @@ func (s *pushService) PushMSGS(ctx context.Context, pushDatas []domain.FeedEvent
 	return errs
 }
 
+func (s *pushService) LoadPushTargets(ctx context.Context, studentIDs []string) (*PushTargets, error) {
+	targets := &PushTargets{users: make(map[string]pushTarget)}
+	ids := make([]string, 0, len(studentIDs))
+	for _, id := range studentIDs {
+		if !tool.IsValidStudentID(id) {
+			continue
+		}
+		if _, exists := targets.users[id]; !exists {
+			targets.users[id] = pushTarget{}
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return targets, nil
+	}
+	configs, err := s.userFeedConfigDAO.GetPushConfigs(ctx, ids)
+	if err != nil {
+		return nil, errorx.Errorf("service: load push configs failed: %w", err)
+	}
+	tokens, err := s.feedTokenDAO.GetTokensBatch(ctx, ids)
+	if err != nil {
+		return nil, errorx.Errorf("service: load push tokens failed: %w", err)
+	}
+	for _, id := range ids {
+		targets.users[id] = pushTarget{config: configs[id], tokens: tokens[id]}
+	}
+	return targets, nil
+}
+
 func (s *pushService) GetPushCID(ctx context.Context) (string, error) {
 	cid, err := s.pushClient.GetCID(ctx)
 	if err != nil {
@@ -123,10 +186,8 @@ func (s *pushService) PreparePushForDelivery(ctx context.Context, pushData *doma
 	if err != nil {
 		return nil, "", errorx.Errorf("service: get tokens failed for push, sid: %s, err: %w", pushData.StudentId, err)
 	}
-	if len(tokens) == 0 {
-		return nil, "suppressed_no_target_or_disabled", nil
-	}
-	return &PreparedPush{tokens: tokens}, "", nil
+	prepared, reason := preparePushTarget(pushData.Type, pushTarget{config: config, tokens: tokens})
+	return prepared, reason, nil
 }
 
 func suppressionReason(label string) string {

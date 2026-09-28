@@ -94,6 +94,31 @@ func (s *pushDeliveryService) DispatchDue(ctx context.Context) error {
 }
 
 func (s *pushDeliveryService) dispatchBatch(ctx context.Context, deliveries []model.FeedPushDelivery) error {
+	for start := 0; start < len(deliveries); start += pushDeliveryMaxConcurrency {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		group := deliveries[start:min(start+pushDeliveryMaxConcurrency, len(deliveries))]
+		studentIDs := make([]string, 0, len(group))
+		for _, delivery := range group {
+			studentIDs = append(studentIDs, delivery.StudentId)
+		}
+		// 预取成功后才逐条认领；失败时整组仍为 pending，不增加尝试次数。
+		targets, err := s.push.LoadPushTargets(ctx, studentIDs)
+		if err != nil {
+			return err
+		}
+		if err = ctx.Err(); err != nil {
+			return err
+		}
+		if err = s.dispatchGroup(ctx, group, targets); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *pushDeliveryService) dispatchGroup(ctx context.Context, deliveries []model.FeedPushDelivery, targets *PushTargets) error {
 	workerCount := min(pushDeliveryMaxConcurrency, len(deliveries))
 	jobs := make(chan model.FeedPushDelivery)
 	errs := make(chan error, len(deliveries)+1)
@@ -103,7 +128,7 @@ func (s *pushDeliveryService) dispatchBatch(ctx context.Context, deliveries []mo
 		go func() {
 			defer wg.Done()
 			for delivery := range jobs {
-				if err := s.dispatchOne(ctx, delivery); err != nil {
+				if err := s.dispatchOne(ctx, delivery, targets); err != nil {
 					errs <- err
 				}
 			}
@@ -132,7 +157,7 @@ sendLoop:
 	return errors.Join(batchErrors...)
 }
 
-func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.FeedPushDelivery) error {
+func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.FeedPushDelivery, targets *PushTargets) error {
 	claimed, err := s.dao.Claim(ctx, delivery.ID)
 	if err != nil || !claimed {
 		return err
@@ -159,7 +184,7 @@ func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.Fe
 	}
 	if err == nil {
 		domainEvent := convFeedEventsFromModelToDomain([]model.FeedEvent{*event})[0]
-		prepared, reason, prepareErr := s.push.PreparePushForDelivery(ctx, &domainEvent)
+		prepared, reason, prepareErr := targets.prepare(&domainEvent)
 		err = prepareErr
 		if err == nil && prepared == nil {
 			err = s.markSuppressed(ctx, delivery.ID)

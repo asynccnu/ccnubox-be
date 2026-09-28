@@ -141,3 +141,55 @@ func TestPushDeliveryRecoversSendingOnlyAtStartup(t *testing.T) {
 		t.Fatal("pending delivery was finalized without being claimed")
 	}
 }
+
+func TestPushTargetReadOnlyAndBounded(t *testing.T) {
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = db.AutoMigrate(&model.FeedUserConfig{}, &model.FeedUserToken{}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	configs := []model.FeedUserConfig{{StudentId: "one", PushConfig: 0}, {StudentId: "deleted", PushConfig: model.DefaultPushConfig}}
+	if err = db.Create(&configs).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err = db.Delete(&configs[1]).Error; err != nil {
+		t.Fatal(err)
+	}
+	configDAO := NewFeedUserConfigDAO(db)
+	for _, tt := range []struct {
+		id   string
+		want PushConfigSnapshot
+	}{
+		{"one", PushConfigSnapshot{Exists: true}},
+		{"deleted", PushConfigSnapshot{Exists: true, Deleted: true, Config: model.DefaultPushConfig}},
+		{"missing", PushConfigSnapshot{}},
+	} {
+		got, err := configDAO.GetPushConfig(ctx, tt.id)
+		if err != nil || got != tt.want {
+			t.Fatalf("config[%s]=%+v, want=%+v, err=%v", tt.id, got, tt.want, err)
+		}
+	}
+	var count int64
+	if err = db.Model(&model.FeedUserConfig{}).Count(&count).Error; err != nil || count != 1 {
+		t.Fatalf("read created config: count=%d, err=%v", count, err)
+	}
+	for i := 0; i < 6; i++ {
+		token := model.FeedUserToken{StudentId: "one", Token: fmt.Sprintf("token-%d", i)}
+		if err = db.Create(&token).Error; err != nil {
+			t.Fatal(err)
+		}
+		if i == 5 {
+			if err = db.Delete(&token).Error; err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	tokens, err := NewUserFeedTokenDAO(db).GetTokens(ctx, "one")
+	if err != nil || len(tokens) != 4 || tokens[0] != "token-4" || tokens[3] != "token-1" {
+		t.Fatalf("latest active tokens=%v, err=%v", tokens, err)
+	}
+}

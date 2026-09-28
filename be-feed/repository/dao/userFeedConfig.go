@@ -14,6 +14,7 @@ import (
 // FeedUserConfigDAO 用来对用户的feed数据进行处理
 type FeedUserConfigDAO interface {
 	FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.FeedUserConfig, error)
+	GetPushConfig(ctx context.Context, studentID string) (PushConfigSnapshot, error)
 	SaveUserFeedConfig(ctx context.Context, req *model.FeedUserConfig) error
 	SetConfigBit(config *uint16, position int)
 	ClearConfigBit(config *uint16, position int)
@@ -24,6 +25,13 @@ type FeedUserConfigDAO interface {
 	ListLibraryPreferenceChanges(ctx context.Context, afterRevision int64, limit int) ([]model.FeedUserConfigChange, error)
 	LatestLibraryPreferenceRevision(ctx context.Context) (int64, error)
 	ListLibraryReminderUsers(ctx context.Context, afterID, snapshotRevision int64, limit int) ([]model.FeedUserConfig, error)
+}
+
+// PushConfigSnapshot 区分不存在、有效及软删除；不存在不写回数据库。
+type PushConfigSnapshot struct {
+	Config  uint16
+	Exists  bool
+	Deleted bool
 }
 
 type feedUserConfigDAO struct {
@@ -62,6 +70,19 @@ func (dao *feedUserConfigDAO) FindOrCreateUserFeedConfig(ctx context.Context, st
 		return nil, errorx.Errorf("dao: find or create user feed config failed, sid: %s, err: %w", studentId, err)
 	}
 	return &allowList, nil
+}
+
+func (dao *feedUserConfigDAO) GetPushConfig(ctx context.Context, studentID string) (PushConfigSnapshot, error) {
+	var config model.FeedUserConfig
+	err := dao.gorm.WithContext(ctx).Unscoped().
+		Select("student_id", "push_config", "deleted_at").Where("student_id = ?", studentID).First(&config).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return PushConfigSnapshot{}, nil
+	}
+	if err != nil {
+		return PushConfigSnapshot{}, errorx.Errorf("dao: get push config failed, sid: %s, err: %w", studentID, err)
+	}
+	return PushConfigSnapshot{Config: config.PushConfig, Exists: true, Deleted: config.DeletedAt.Valid}, nil
 }
 
 // SaveUserFeedConfig 保存 FeedUserConfig

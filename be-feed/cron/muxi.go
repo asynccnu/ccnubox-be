@@ -16,7 +16,6 @@ import (
 
 type MuxiController struct {
 	muxi         service.MuxiOfficialMSGService
-	push         service.PushService
 	feed         service.FeedEventService
 	durationTime time.Duration
 	stopChan     chan struct{}
@@ -38,7 +37,6 @@ func (c *MuxiController) StopCronTask() {
 func NewMuxiController(
 	muxi service.MuxiOfficialMSGService,
 	feed service.FeedEventService,
-	push service.PushService,
 	l logger.Logger,
 	cfg *conf.ServerConf,
 ) *MuxiController {
@@ -47,7 +45,6 @@ func NewMuxiController(
 		ctx:          ctx,
 		cancel:       cancel,
 		muxi:         muxi,
-		push:         push,
 		feed:         feed,
 		durationTime: time.Duration(cfg.MuxiController.DurationTime) * time.Second,
 		stopChan:     make(chan struct{}),

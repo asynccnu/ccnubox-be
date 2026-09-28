@@ -15,6 +15,7 @@ import (
 type FeedUserConfigDAO interface {
 	FindOrCreateUserFeedConfig(ctx context.Context, studentId string) (*model.FeedUserConfig, error)
 	GetPushConfig(ctx context.Context, studentID string) (PushConfigSnapshot, error)
+	GetPushConfigs(ctx context.Context, studentIDs []string) (map[string]PushConfigSnapshot, error)
 	SaveUserFeedConfig(ctx context.Context, req *model.FeedUserConfig) error
 	SetConfigBit(config *uint16, position int)
 	ClearConfigBit(config *uint16, position int)
@@ -83,6 +84,36 @@ func (dao *feedUserConfigDAO) GetPushConfig(ctx context.Context, studentID strin
 		return PushConfigSnapshot{}, errorx.Errorf("dao: get push config failed, sid: %s, err: %w", studentID, err)
 	}
 	return PushConfigSnapshot{Config: config.PushConfig, Exists: true, Deleted: config.DeletedAt.Valid}, nil
+}
+
+func (dao *feedUserConfigDAO) GetPushConfigs(ctx context.Context, studentIDs []string) (map[string]PushConfigSnapshot, error) {
+	result := make(map[string]PushConfigSnapshot)
+	studentIDs = uniqueStudentIDs(studentIDs)
+	if len(studentIDs) == 0 {
+		return result, nil
+	}
+	var configs []model.FeedUserConfig
+	err := dao.gorm.WithContext(ctx).Unscoped().
+		Select("student_id", "push_config", "deleted_at").Where("student_id IN ?", studentIDs).Find(&configs).Error
+	if err != nil {
+		return nil, errorx.Errorf("dao: get push configs failed, count: %d, err: %w", len(studentIDs), err)
+	}
+	for _, config := range configs {
+		result[config.StudentId] = PushConfigSnapshot{Config: config.PushConfig, Exists: true, Deleted: config.DeletedAt.Valid}
+	}
+	return result, nil
+}
+
+func uniqueStudentIDs(studentIDs []string) []string {
+	seen := make(map[string]struct{}, len(studentIDs))
+	result := make([]string, 0, len(studentIDs))
+	for _, id := range studentIDs {
+		if _, exists := seen[id]; !exists {
+			seen[id] = struct{}{}
+			result = append(result, id)
+		}
+	}
+	return result
 }
 
 // SaveUserFeedConfig 保存 FeedUserConfig

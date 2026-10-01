@@ -94,6 +94,31 @@ func (s *pushDeliveryService) DispatchDue(ctx context.Context) error {
 }
 
 func (s *pushDeliveryService) dispatchBatch(ctx context.Context, deliveries []model.FeedPushDelivery) error {
+	for start := 0; start < len(deliveries); start += pushDeliveryMaxConcurrency {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		group := deliveries[start:min(start+pushDeliveryMaxConcurrency, len(deliveries))]
+		studentIDs := make([]string, 0, len(group))
+		for _, delivery := range group {
+			studentIDs = append(studentIDs, delivery.StudentId)
+		}
+		// 预取成功后才逐条认领；失败时整组仍为 pending，不增加尝试次数。
+		targets, err := s.push.LoadPushTargets(ctx, studentIDs)
+		if err != nil {
+			return err
+		}
+		if err = ctx.Err(); err != nil {
+			return err
+		}
+		if err = s.dispatchGroup(ctx, group, targets); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *pushDeliveryService) dispatchGroup(ctx context.Context, deliveries []model.FeedPushDelivery, targets *PushTargets) error {
 	workerCount := min(pushDeliveryMaxConcurrency, len(deliveries))
 	jobs := make(chan model.FeedPushDelivery)
 	errs := make(chan error, len(deliveries)+1)
@@ -103,7 +128,7 @@ func (s *pushDeliveryService) dispatchBatch(ctx context.Context, deliveries []mo
 		go func() {
 			defer wg.Done()
 			for delivery := range jobs {
-				if err := s.dispatchOne(ctx, delivery); err != nil {
+				if err := s.dispatchOne(ctx, delivery, targets); err != nil {
 					errs <- err
 				}
 			}
@@ -132,7 +157,7 @@ sendLoop:
 	return errors.Join(batchErrors...)
 }
 
-func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.FeedPushDelivery) error {
+func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.FeedPushDelivery, targets *PushTargets) error {
 	claimed, err := s.dao.Claim(ctx, delivery.ID)
 	if err != nil || !claimed {
 		return err
@@ -148,35 +173,24 @@ func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.Fe
 			return nil
 		}
 	}
+	if err == nil && event.StudentId != delivery.StudentId {
+		err = errors.New("push delivery student id does not match event")
+	}
 	if err == nil && libraryPushExpired(event, time.Now()) {
 		err = s.markExpired(ctx, delivery.ID)
 		if err == nil {
 			return nil
 		}
 	}
-	if err == nil && strings.EqualFold(event.Type, "library") && s.gate != nil {
-		enabled, gateErr := s.gate.IsLibraryEnabled(ctx, event.StudentId)
-		if gateErr != nil {
-			err = gateErr
-		} else if !enabled {
-			err = s.markSuppressed(ctx, delivery.ID)
-			if err == nil {
-				if s.metrics != nil {
-					s.metrics.PushDeliveryTotal.WithLabelValues("suppressed_by_allow_list").Inc()
-				}
-				return nil
-			}
-		}
-	}
 	if err == nil {
 		domainEvent := convFeedEventsFromModelToDomain([]model.FeedEvent{*event})[0]
-		prepared, prepareErr := s.push.PreparePush(ctx, &domainEvent)
+		prepared, reason, prepareErr := targets.prepare(&domainEvent)
 		err = prepareErr
 		if err == nil && prepared == nil {
 			err = s.markSuppressed(ctx, delivery.ID)
 			if err == nil {
 				if s.metrics != nil {
-					s.metrics.PushDeliveryTotal.WithLabelValues("suppressed_no_target_or_disabled").Inc()
+					s.metrics.PushDeliveryTotal.WithLabelValues(reason).Inc()
 				}
 				return nil
 			}
@@ -189,8 +203,22 @@ func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.Fe
 					err = s.saveCID(ctx, delivery.ID, cid)
 				}
 			}
+			if err == nil && strings.EqualFold(event.Type, "library") {
+				// 准备后的偏好变更应尽量在实际发送前生效；查询失败必须走重试。
+				var enabled bool
+				enabled, err = s.gate.IsLibraryEnabled(ctx, event.StudentId)
+				if err == nil && !enabled {
+					err = s.markSuppressed(ctx, delivery.ID)
+					if err == nil {
+						if s.metrics != nil {
+							s.metrics.PushDeliveryTotal.WithLabelValues("suppressed_by_allow_list").Inc()
+						}
+						return nil
+					}
+				}
+			}
 			if err == nil && libraryPushExpired(event, time.Now()) {
-				// 取目标、获取及保存 CID 也可能跨过有效期，实际推送前必须复核。
+				// 取目标、获取及保存 CID、最终权限查询也可能跨过有效期。
 				err = s.markExpired(ctx, delivery.ID)
 				if err == nil {
 					return nil

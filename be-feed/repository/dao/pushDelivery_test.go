@@ -141,3 +141,144 @@ func TestPushDeliveryRecoversSendingOnlyAtStartup(t *testing.T) {
 		t.Fatal("pending delivery was finalized without being claimed")
 	}
 }
+
+func TestPushTargetReadOnlyAndBounded(t *testing.T) {
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = db.AutoMigrate(&model.FeedUserConfig{}, &model.FeedUserToken{}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	configs := []model.FeedUserConfig{{StudentId: "one", PushConfig: 0}, {StudentId: "deleted", PushConfig: model.DefaultPushConfig}}
+	if err = db.Create(&configs).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err = db.Delete(&configs[1]).Error; err != nil {
+		t.Fatal(err)
+	}
+	configDAO := NewFeedUserConfigDAO(db)
+	for _, tt := range []struct {
+		id   string
+		want PushConfigSnapshot
+	}{
+		{"one", PushConfigSnapshot{Exists: true}},
+		{"deleted", PushConfigSnapshot{Exists: true, Deleted: true, Config: model.DefaultPushConfig}},
+		{"missing", PushConfigSnapshot{}},
+	} {
+		got, err := configDAO.GetPushConfig(ctx, tt.id)
+		if err != nil || got != tt.want {
+			t.Fatalf("config[%s]=%+v, want=%+v, err=%v", tt.id, got, tt.want, err)
+		}
+	}
+	var count int64
+	if err = db.Model(&model.FeedUserConfig{}).Count(&count).Error; err != nil || count != 1 {
+		t.Fatalf("read created config: count=%d, err=%v", count, err)
+	}
+	for i := 0; i < 6; i++ {
+		token := model.FeedUserToken{StudentId: "one", Token: fmt.Sprintf("token-%d", i)}
+		if err = db.Create(&token).Error; err != nil {
+			t.Fatal(err)
+		}
+		if i == 5 {
+			if err = db.Delete(&token).Error; err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	tokens, err := NewUserFeedTokenDAO(db).GetTokens(ctx, "one")
+	if err != nil || len(tokens) != 4 || tokens[0] != "token-4" || tokens[3] != "token-1" {
+		t.Fatalf("latest active tokens=%v, err=%v", tokens, err)
+	}
+}
+
+func TestPushTargetsBatchReads(t *testing.T) {
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = db.AutoMigrate(&model.FeedUserConfig{}, &model.FeedUserToken{}); err != nil {
+		t.Fatal(err)
+	}
+	configs := []model.FeedUserConfig{
+		{StudentId: "enabled", PushConfig: model.DefaultPushConfig},
+		{StudentId: "disabled", PushConfig: 0},
+		{StudentId: "deleted", PushConfig: model.DefaultPushConfig},
+	}
+	if err = db.Create(&configs).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err = db.Delete(&configs[2]).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"enabled", "disabled", "missing"} {
+		for i := 0; i < 7; i++ {
+			token := model.FeedUserToken{StudentId: id, Token: fmt.Sprintf("%s-%d", id, i)}
+			if err = db.Create(&token).Error; err != nil {
+				t.Fatal(err)
+			}
+			if i == 6 {
+				if err = db.Delete(&token).Error; err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+	}
+	// 固定同秒时间戳，验证按 ID 排序以及排名前排除软删除。
+	if err = db.Unscoped().Model(&model.FeedUserToken{}).Where("1 = 1").Update("created_at", 100).Error; err != nil {
+		t.Fatal(err)
+	}
+	reads := 0
+	countRead := func(tx *gorm.DB) {
+		if !tx.DryRun {
+			reads++
+		}
+	}
+	if err = db.Callback().Query().Before("gorm:query").Register("test:count_query", countRead); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.Callback().Row().Before("gorm:row").Register("test:count_row", countRead); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	configDAO := NewFeedUserConfigDAO(db)
+	tokenDAO := NewUserFeedTokenDAO(db)
+	ids := []string{"enabled", "disabled", "deleted", "missing", "enabled"}
+	snapshots, err := configDAO.GetPushConfigs(ctx, ids)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tokens, err := tokenDAO.GetTokensBatch(ctx, ids)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reads != 2 {
+		t.Fatalf("batch reads=%d, want 2", reads)
+	}
+	for _, id := range ids {
+		config, err := configDAO.GetPushConfig(ctx, id)
+		if err != nil || snapshots[id] != config {
+			t.Fatalf("config[%s]=%+v, want %+v, err=%v", id, snapshots[id], config, err)
+		}
+		single, err := tokenDAO.GetTokens(ctx, id)
+		if err != nil || fmt.Sprint(tokens[id]) != fmt.Sprint(single) {
+			t.Fatalf("tokens[%s]=%v, want %v, err=%v", id, tokens[id], single, err)
+		}
+		if id != "deleted" && (len(tokens[id]) != 4 || tokens[id][0] != id+"-5" || tokens[id][3] != id+"-2") {
+			t.Fatalf("tokens[%s]=%v", id, tokens[id])
+		}
+	}
+	reads = 0
+	if result, err := configDAO.GetPushConfigs(ctx, nil); err != nil || len(result) != 0 {
+		t.Fatalf("empty configs=%v, err=%v", result, err)
+	}
+	if result, err := tokenDAO.GetTokensBatch(ctx, []string{}); err != nil || len(result) != 0 {
+		t.Fatalf("empty tokens=%v, err=%v", result, err)
+	}
+	if reads != 0 {
+		t.Fatalf("empty batch made %d reads", reads)
+	}
+}

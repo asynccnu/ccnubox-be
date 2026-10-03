@@ -34,6 +34,7 @@ func InitApp() App {
 		// 第三方
 		ioc.InitEtcdClient,
 		ioc.InitDB,
+		ioc.InitRedisClient,
 		ioc.InitLogger,
 		ioc.InitMetrics,
 		ioc.InitMetricsServer,

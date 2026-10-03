@@ -34,6 +34,9 @@ func (h *LibraryHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.H
 	sg.POST("/reserve_randomly", authMiddleware, ginx.WrapClaimsAndReq(h.ReserveSeatRandomly))
 	sg.POST("/get_random_seat", authMiddleware, ginx.WrapClaimsAndReq(h.GetRandomSeat))
 	sg.POST("/confirm_reservation", authMiddleware, ginx.WrapClaimsAndReq(h.ConfirmReservation))
+	sg.POST("/get_smart_seat", authMiddleware, ginx.WrapClaimsAndReq(h.GetSmartSeatPlans))
+	sg.POST("/reserve_smart_seat", authMiddleware, ginx.WrapClaimsAndReq(h.ReserveSmartSeatPlan))
+	sg.POST("/cancel_smart_seat", authMiddleware, ginx.WrapClaimsAndReq(h.CancelSmartSeatPlan))
 }
 
 // GetSeatInfos 获取图书馆座位信息
@@ -529,6 +532,129 @@ func (h *LibraryHandler) ConfirmReservation(ctx *gin.Context, req ConfirmReserva
 	})
 	if err != nil {
 		return web.Response{}, errs.CONFIRM_RESERVATION_ERROR(err)
+	}
+
+	return web.Response{
+		Msg: msg.Message,
+	}, nil
+}
+
+// GetSmartSeatPlans 智能选座方案
+// @Summary 智能选座方案
+// @Description 根据房间、日期与时间段生成多个座位接力方案；本接口只返回方案，不直接预约
+// @Tags library
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer Token"
+// @Param request body GetSmartSeatRequest true "智能选座方案请求"
+// @Success 200 {object} web.Response{data=GetSmartSeatResponse} "成功返回智能选座方案（按换座次数升序）"
+// @Failure 401 {object} web.Response "未登录"
+// @Failure 422 {object} web.Response "参数错误，code=40002"
+// @Failure 500 {object} web.Response "系统异常，获取失败；该时段无法拼出完整方案时 code=51515"
+// @Router /library/get_smart_seat [post]
+func (h *LibraryHandler) GetSmartSeatPlans(ctx *gin.Context, req GetSmartSeatRequest, uc ijwt.UserClaims) (web.Response, error) {
+	res, err := h.LibraryClient.GetSmartSeatPlans(ctx, &libraryv1.GetSmartSeatPlansRequest{
+		StuId:   uc.StudentId,
+		RoomIds: req.RoomIDs,
+		Date:    req.Date,
+		Start:   req.Start,
+		End:     req.End,
+	})
+	if err != nil {
+		if libraryv1.IsNoAvailableSeatError(err) {
+			return web.Response{}, errs.NO_AVAILABLE_SEAT_ERROR(err)
+		}
+		return web.Response{}, errs.GET_SMART_SEAT_ERROR(err)
+	}
+
+	plans := make([]SmartSeatPlan, 0, len(res.Plans))
+	for _, plan := range res.Plans {
+		segments := make([]SmartSeatSegment, 0, len(plan.Segments))
+		for _, segment := range plan.Segments {
+			segments = append(segments, SmartSeatSegment{
+				SeatID:    segment.SeatId,
+				SeatLabel: segment.SeatLabel,
+				SeatName:  segment.SeatName,
+				RoomID:    segment.RoomId,
+				Start:     segment.Start,
+				End:       segment.End,
+			})
+		}
+		plans = append(plans, SmartSeatPlan{
+			Segments:     segments,
+			SegmentCount: plan.SegmentCount,
+		})
+	}
+
+	return web.Response{
+		Msg:  "Success",
+		Data: GetSmartSeatResponse{Plans: plans},
+	}, nil
+}
+
+// ReserveSmartSeatPlan 预约智能选座方案
+// @Summary 预约智能选座方案
+// @Description 预约选中的智能选座方案（携带全部座位分段，全部成功才算预约成功）
+// @Tags library
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer Token"
+// @Param request body ReserveSmartSeatRequest true "预约智能选座请求"
+// @Success 200 {object} web.Response "成功返回预约结果"
+// @Failure 401 {object} web.Response "未登录"
+// @Failure 422 {object} web.Response "参数错误，code=40002"
+// @Failure 500 {object} web.Response "系统异常，预约失败；部分座位被占用时 code=51515"
+// @Router /library/reserve_smart_seat [post]
+func (h *LibraryHandler) ReserveSmartSeatPlan(ctx *gin.Context, req ReserveSmartSeatRequest, uc ijwt.UserClaims) (web.Response, error) {
+	segments := make([]*libraryv1.SmartSeatSegment, 0, len(req.Segments))
+	for _, segment := range req.Segments {
+		segments = append(segments, &libraryv1.SmartSeatSegment{
+			SeatId:    segment.SeatID,
+			SeatLabel: segment.SeatLabel,
+			SeatName:  segment.SeatName,
+			RoomId:    segment.RoomID,
+			Start:     segment.Start,
+			End:       segment.End,
+		})
+	}
+
+	msg, err := h.LibraryClient.ReserveSmartSeatPlan(ctx, &libraryv1.ReserveSmartSeatPlanRequest{
+		StuId:    uc.StudentId,
+		Date:     req.Date,
+		Segments: segments,
+	})
+	if err != nil {
+		if libraryv1.IsNoAvailableSeatError(err) {
+			return web.Response{}, errs.NO_AVAILABLE_SEAT_ERROR(err)
+		}
+		return web.Response{}, errs.RESERVE_SMART_SEAT_ERROR(err)
+	}
+
+	return web.Response{
+		Msg: msg.Message,
+	}, nil
+}
+
+// CancelSmartSeatPlan 取消智能选座
+// @Summary 取消智能选座
+// @Description 取消指定日期下整组智能选座预约（包含全部座位分段）
+// @Tags library
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer Token"
+// @Param request body CancelSmartSeatRequest true "取消智能选座请求"
+// @Success 200 {object} web.Response "成功返回取消结果"
+// @Failure 401 {object} web.Response "未登录"
+// @Failure 422 {object} web.Response "参数错误，code=40002"
+// @Failure 500 {object} web.Response "系统异常，取消失败"
+// @Router /library/cancel_smart_seat [post]
+func (h *LibraryHandler) CancelSmartSeatPlan(ctx *gin.Context, req CancelSmartSeatRequest, uc ijwt.UserClaims) (web.Response, error) {
+	msg, err := h.LibraryClient.CancelSmartSeatPlan(ctx, &libraryv1.CancelSmartSeatPlanRequest{
+		StuId: uc.StudentId,
+		Date:  req.Date,
+	})
+	if err != nil {
+		return web.Response{}, errs.CANCEL_SMART_SEAT_ERROR(err)
 	}
 
 	return web.Response{

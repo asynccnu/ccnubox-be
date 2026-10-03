@@ -340,6 +340,16 @@ func parseMinute(value string) (int, error) {
 	return parsed.Hour()*60 + parsed.Minute(), nil
 }
 
+// ParseMinute 将 HH:MM 或分钟数转换为分钟；供上层服务复用。
+func ParseMinute(value string) (int, error) {
+	return parseMinute(value)
+}
+
+// FormatMinute 将分钟数格式化为 HH:MM。
+func FormatMinute(minute int) string {
+	return fmt.Sprintf("%02d:%02d", minute/60, minute%60)
+}
+
 // GetSeatInfosForPeriod 获取指定时间段内的空闲座位；date 为空时使用默认日期（当天，22 点后为次日）。
 func (c *Crawler) GetSeatInfosForPeriod(ctx context.Context, token string, roomIDs []string, date, start, end string) (map[string][]*Seat, error) {
 	beginMinute, err := parseMinute(start)
@@ -414,8 +424,23 @@ func (c *Crawler) getSeatInfos(ctx context.Context, token, roomID, date string, 
 	return result, nil
 }
 
-func (c *Crawler) GetFreeList(ctx context.Context, token string, seatID string) ([]*FreeTime, error) {
-	date, _ := defaultSeatQuery(time.Now())
+// GetSeatInfosWithWindow 查询指定房间在给定时间窗口内的座位信息；date 为空时使用默认日期，minMinute 用于过滤可预约时长。
+func (c *Crawler) GetSeatInfosWithWindow(ctx context.Context, token, roomID, date string, startMinute, endMinute, minMinute int) ([]*Seat, error) {
+	if date == "" {
+		date = deriveDefaultSeatDate(time.Now())
+	}
+	return c.getSeatInfos(ctx, token, roomID, date, getSeatInfoReq{
+		BeginMinute: startMinute,
+		EndMinute:   endMinute,
+		MinMinute:   minMinute,
+	})
+}
+
+// GetFreeList 获取指定座位在指定日期的空闲时间段；date 为空时使用默认日期。
+func (c *Crawler) GetFreeList(ctx context.Context, token string, seatID, date string) ([]*FreeTime, error) {
+	if date == "" {
+		date = deriveDefaultSeatDate(time.Now())
+	}
 	fullURL := fmt.Sprintf("%s/jsq/static/frontApi/res/getTimeLine/%s/%s", c.baseURL, seatID, date)
 
 	resp, err := c.doSeatRequestWithToken(ctx, http.MethodPost, fullURL, token, nil)

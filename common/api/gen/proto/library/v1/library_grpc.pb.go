@@ -19,20 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	LibraryService_GetSeat_FullMethodName             = "/library.v1.LibraryService/GetSeat"
-	LibraryService_ReserveSeat_FullMethodName         = "/library.v1.LibraryService/ReserveSeat"
-	LibraryService_GetSeatRecord_FullMethodName       = "/library.v1.LibraryService/GetSeatRecord"
-	LibraryService_GetCreditPoint_FullMethodName      = "/library.v1.LibraryService/GetCreditPoint"
-	LibraryService_GetDiscussion_FullMethodName       = "/library.v1.LibraryService/GetDiscussion"
-	LibraryService_SearchUser_FullMethodName          = "/library.v1.LibraryService/SearchUser"
-	LibraryService_ReserveDiscussion_FullMethodName   = "/library.v1.LibraryService/ReserveDiscussion"
-	LibraryService_CancelReserve_FullMethodName       = "/library.v1.LibraryService/CancelReserve"
-	LibraryService_ReserveSeatRandomly_FullMethodName = "/library.v1.LibraryService/ReserveSeatRandomly"
-	LibraryService_GetRandomSeat_FullMethodName       = "/library.v1.LibraryService/GetRandomSeat"
-	LibraryService_ConfirmReservation_FullMethodName  = "/library.v1.LibraryService/ConfirmReservation"
-	LibraryService_CreateComment_FullMethodName       = "/library.v1.LibraryService/CreateComment"
-	LibraryService_GetComments_FullMethodName         = "/library.v1.LibraryService/GetComments"
-	LibraryService_DeleteComment_FullMethodName       = "/library.v1.LibraryService/DeleteComment"
+	LibraryService_GetSeat_FullMethodName              = "/library.v1.LibraryService/GetSeat"
+	LibraryService_ReserveSeat_FullMethodName          = "/library.v1.LibraryService/ReserveSeat"
+	LibraryService_GetSeatRecord_FullMethodName        = "/library.v1.LibraryService/GetSeatRecord"
+	LibraryService_GetCreditPoint_FullMethodName       = "/library.v1.LibraryService/GetCreditPoint"
+	LibraryService_GetDiscussion_FullMethodName        = "/library.v1.LibraryService/GetDiscussion"
+	LibraryService_SearchUser_FullMethodName           = "/library.v1.LibraryService/SearchUser"
+	LibraryService_ReserveDiscussion_FullMethodName    = "/library.v1.LibraryService/ReserveDiscussion"
+	LibraryService_CancelReserve_FullMethodName        = "/library.v1.LibraryService/CancelReserve"
+	LibraryService_ReserveSeatRandomly_FullMethodName  = "/library.v1.LibraryService/ReserveSeatRandomly"
+	LibraryService_GetRandomSeat_FullMethodName        = "/library.v1.LibraryService/GetRandomSeat"
+	LibraryService_ConfirmReservation_FullMethodName   = "/library.v1.LibraryService/ConfirmReservation"
+	LibraryService_GetSmartSeatPlans_FullMethodName    = "/library.v1.LibraryService/GetSmartSeatPlans"
+	LibraryService_ReserveSmartSeatPlan_FullMethodName = "/library.v1.LibraryService/ReserveSmartSeatPlan"
+	LibraryService_CancelSmartSeatPlan_FullMethodName  = "/library.v1.LibraryService/CancelSmartSeatPlan"
+	LibraryService_CreateComment_FullMethodName        = "/library.v1.LibraryService/CreateComment"
+	LibraryService_GetComments_FullMethodName          = "/library.v1.LibraryService/GetComments"
+	LibraryService_DeleteComment_FullMethodName        = "/library.v1.LibraryService/DeleteComment"
 )
 
 // LibraryServiceClient is the client API for LibraryService service.
@@ -50,6 +53,9 @@ type LibraryServiceClient interface {
 	ReserveSeatRandomly(ctx context.Context, in *ReserveSeatRandomlyRequest, opts ...grpc.CallOption) (*ReserveSeatRandomlyResponse, error)
 	GetRandomSeat(ctx context.Context, in *GetRandomSeatRequest, opts ...grpc.CallOption) (*GetRandomSeatResponse, error)
 	ConfirmReservation(ctx context.Context, in *ConfirmReservationRequest, opts ...grpc.CallOption) (*ConfirmReservationResponse, error)
+	GetSmartSeatPlans(ctx context.Context, in *GetSmartSeatPlansRequest, opts ...grpc.CallOption) (*GetSmartSeatPlansResponse, error)
+	ReserveSmartSeatPlan(ctx context.Context, in *ReserveSmartSeatPlanRequest, opts ...grpc.CallOption) (*ReserveSmartSeatPlanResponse, error)
+	CancelSmartSeatPlan(ctx context.Context, in *CancelSmartSeatPlanRequest, opts ...grpc.CallOption) (*CancelSmartSeatPlanResponse, error)
 	CreateComment(ctx context.Context, in *CreateCommentReq, opts ...grpc.CallOption) (*Resp, error)
 	GetComments(ctx context.Context, in *ID, opts ...grpc.CallOption) (*GetCommentResp, error)
 	DeleteComment(ctx context.Context, in *ID, opts ...grpc.CallOption) (*Resp, error)
@@ -173,6 +179,36 @@ func (c *libraryServiceClient) ConfirmReservation(ctx context.Context, in *Confi
 	return out, nil
 }
 
+func (c *libraryServiceClient) GetSmartSeatPlans(ctx context.Context, in *GetSmartSeatPlansRequest, opts ...grpc.CallOption) (*GetSmartSeatPlansResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSmartSeatPlansResponse)
+	err := c.cc.Invoke(ctx, LibraryService_GetSmartSeatPlans_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *libraryServiceClient) ReserveSmartSeatPlan(ctx context.Context, in *ReserveSmartSeatPlanRequest, opts ...grpc.CallOption) (*ReserveSmartSeatPlanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReserveSmartSeatPlanResponse)
+	err := c.cc.Invoke(ctx, LibraryService_ReserveSmartSeatPlan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *libraryServiceClient) CancelSmartSeatPlan(ctx context.Context, in *CancelSmartSeatPlanRequest, opts ...grpc.CallOption) (*CancelSmartSeatPlanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelSmartSeatPlanResponse)
+	err := c.cc.Invoke(ctx, LibraryService_CancelSmartSeatPlan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *libraryServiceClient) CreateComment(ctx context.Context, in *CreateCommentReq, opts ...grpc.CallOption) (*Resp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Resp)
@@ -218,6 +254,9 @@ type LibraryServiceServer interface {
 	ReserveSeatRandomly(context.Context, *ReserveSeatRandomlyRequest) (*ReserveSeatRandomlyResponse, error)
 	GetRandomSeat(context.Context, *GetRandomSeatRequest) (*GetRandomSeatResponse, error)
 	ConfirmReservation(context.Context, *ConfirmReservationRequest) (*ConfirmReservationResponse, error)
+	GetSmartSeatPlans(context.Context, *GetSmartSeatPlansRequest) (*GetSmartSeatPlansResponse, error)
+	ReserveSmartSeatPlan(context.Context, *ReserveSmartSeatPlanRequest) (*ReserveSmartSeatPlanResponse, error)
+	CancelSmartSeatPlan(context.Context, *CancelSmartSeatPlanRequest) (*CancelSmartSeatPlanResponse, error)
 	CreateComment(context.Context, *CreateCommentReq) (*Resp, error)
 	GetComments(context.Context, *ID) (*GetCommentResp, error)
 	DeleteComment(context.Context, *ID) (*Resp, error)
@@ -263,6 +302,15 @@ func (UnimplementedLibraryServiceServer) GetRandomSeat(context.Context, *GetRand
 }
 func (UnimplementedLibraryServiceServer) ConfirmReservation(context.Context, *ConfirmReservationRequest) (*ConfirmReservationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ConfirmReservation not implemented")
+}
+func (UnimplementedLibraryServiceServer) GetSmartSeatPlans(context.Context, *GetSmartSeatPlansRequest) (*GetSmartSeatPlansResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSmartSeatPlans not implemented")
+}
+func (UnimplementedLibraryServiceServer) ReserveSmartSeatPlan(context.Context, *ReserveSmartSeatPlanRequest) (*ReserveSmartSeatPlanResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReserveSmartSeatPlan not implemented")
+}
+func (UnimplementedLibraryServiceServer) CancelSmartSeatPlan(context.Context, *CancelSmartSeatPlanRequest) (*CancelSmartSeatPlanResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelSmartSeatPlan not implemented")
 }
 func (UnimplementedLibraryServiceServer) CreateComment(context.Context, *CreateCommentReq) (*Resp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateComment not implemented")
@@ -492,6 +540,60 @@ func _LibraryService_ConfirmReservation_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LibraryService_GetSmartSeatPlans_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSmartSeatPlansRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LibraryServiceServer).GetSmartSeatPlans(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LibraryService_GetSmartSeatPlans_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LibraryServiceServer).GetSmartSeatPlans(ctx, req.(*GetSmartSeatPlansRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LibraryService_ReserveSmartSeatPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReserveSmartSeatPlanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LibraryServiceServer).ReserveSmartSeatPlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LibraryService_ReserveSmartSeatPlan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LibraryServiceServer).ReserveSmartSeatPlan(ctx, req.(*ReserveSmartSeatPlanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LibraryService_CancelSmartSeatPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelSmartSeatPlanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LibraryServiceServer).CancelSmartSeatPlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LibraryService_CancelSmartSeatPlan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LibraryServiceServer).CancelSmartSeatPlan(ctx, req.(*CancelSmartSeatPlanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _LibraryService_CreateComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateCommentReq)
 	if err := dec(in); err != nil {
@@ -596,6 +698,18 @@ var LibraryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ConfirmReservation",
 			Handler:    _LibraryService_ConfirmReservation_Handler,
+		},
+		{
+			MethodName: "GetSmartSeatPlans",
+			Handler:    _LibraryService_GetSmartSeatPlans_Handler,
+		},
+		{
+			MethodName: "ReserveSmartSeatPlan",
+			Handler:    _LibraryService_ReserveSmartSeatPlan_Handler,
+		},
+		{
+			MethodName: "CancelSmartSeatPlan",
+			Handler:    _LibraryService_CancelSmartSeatPlan_Handler,
 		},
 		{
 			MethodName: "CreateComment",

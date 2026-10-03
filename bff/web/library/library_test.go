@@ -16,12 +16,21 @@ import (
 
 type fakeLibraryClient struct {
 	libraryv1.LibraryServiceClient
-	randomSeatResp *libraryv1.GetRandomSeatResponse
-	randomSeatErr  error
-	lastRandomReq  *libraryv1.GetRandomSeatRequest
-	confirmResp    *libraryv1.ConfirmReservationResponse
-	confirmErr     error
-	lastConfirmReq *libraryv1.ConfirmReservationRequest
+	randomSeatResp      *libraryv1.GetRandomSeatResponse
+	randomSeatErr       error
+	lastRandomReq       *libraryv1.GetRandomSeatRequest
+	confirmResp         *libraryv1.ConfirmReservationResponse
+	confirmErr          error
+	lastConfirmReq      *libraryv1.ConfirmReservationRequest
+	smartPlansResp      *libraryv1.GetSmartSeatPlansResponse
+	smartPlansErr       error
+	lastSmartPlansReq   *libraryv1.GetSmartSeatPlansRequest
+	reserveSmartResp    *libraryv1.ReserveSmartSeatPlanResponse
+	reserveSmartErr     error
+	lastReserveSmartReq *libraryv1.ReserveSmartSeatPlanRequest
+	cancelSmartResp     *libraryv1.CancelSmartSeatPlanResponse
+	cancelSmartErr      error
+	lastCancelSmartReq  *libraryv1.CancelSmartSeatPlanRequest
 }
 
 func (f *fakeLibraryClient) GetRandomSeat(ctx context.Context, in *libraryv1.GetRandomSeatRequest, opts ...grpc.CallOption) (*libraryv1.GetRandomSeatResponse, error) {
@@ -32,6 +41,21 @@ func (f *fakeLibraryClient) GetRandomSeat(ctx context.Context, in *libraryv1.Get
 func (f *fakeLibraryClient) ConfirmReservation(ctx context.Context, in *libraryv1.ConfirmReservationRequest, opts ...grpc.CallOption) (*libraryv1.ConfirmReservationResponse, error) {
 	f.lastConfirmReq = in
 	return f.confirmResp, f.confirmErr
+}
+
+func (f *fakeLibraryClient) GetSmartSeatPlans(ctx context.Context, in *libraryv1.GetSmartSeatPlansRequest, opts ...grpc.CallOption) (*libraryv1.GetSmartSeatPlansResponse, error) {
+	f.lastSmartPlansReq = in
+	return f.smartPlansResp, f.smartPlansErr
+}
+
+func (f *fakeLibraryClient) ReserveSmartSeatPlan(ctx context.Context, in *libraryv1.ReserveSmartSeatPlanRequest, opts ...grpc.CallOption) (*libraryv1.ReserveSmartSeatPlanResponse, error) {
+	f.lastReserveSmartReq = in
+	return f.reserveSmartResp, f.reserveSmartErr
+}
+
+func (f *fakeLibraryClient) CancelSmartSeatPlan(ctx context.Context, in *libraryv1.CancelSmartSeatPlanRequest, opts ...grpc.CallOption) (*libraryv1.CancelSmartSeatPlanResponse, error) {
+	f.lastCancelSmartReq = in
+	return f.cancelSmartResp, f.cancelSmartErr
 }
 
 func newLibraryTestContext() *gin.Context {
@@ -156,5 +180,174 @@ func TestConfirmReservation(t *testing.T) {
 			DevID: "s1", Date: "2026-09-10", Start: "14:30", End: "16:30",
 		}, claims)
 		assertCustomErrorCode(t, err, errs.CONFIRM_RESERVATION_ERROR_CODE, 500)
+	})
+}
+
+func TestGetSmartSeatPlans(t *testing.T) {
+	claims := ijwt.UserClaims{StudentId: "2025211366"}
+
+	t.Run("success", func(t *testing.T) {
+		client := &fakeLibraryClient{
+			smartPlansResp: &libraryv1.GetSmartSeatPlansResponse{
+				Plans: []*libraryv1.SmartSeatPlan{
+					{
+						SegmentCount: 1,
+						Segments: []*libraryv1.SmartSeatSegment{
+							{SeatId: "s1", SeatLabel: "A区 K3", SeatName: "K3", RoomId: "room-1", Start: "09:00", End: "12:00"},
+						},
+					},
+					{
+						SegmentCount: 2,
+						Segments: []*libraryv1.SmartSeatSegment{
+							{SeatId: "s2", SeatLabel: "A区 K4", SeatName: "K4", RoomId: "room-1", Start: "09:00", End: "10:00"},
+							{SeatId: "s3", SeatLabel: "B区 K1", SeatName: "K1", RoomId: "room-2", Start: "10:00", End: "12:00"},
+						},
+					},
+				},
+			},
+		}
+		handler := NewLibraryHandler(client, nil)
+		resp, err := handler.GetSmartSeatPlans(newLibraryTestContext(), GetSmartSeatRequest{
+			RoomIDs: []string{"room-1", "room-2"}, Date: "2026-09-10", Start: "09:00", End: "12:00",
+		}, claims)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		data, ok := resp.Data.(GetSmartSeatResponse)
+		if !ok {
+			t.Fatalf("unexpected response data type %T", resp.Data)
+		}
+		if len(data.Plans) != 2 {
+			t.Fatalf("got %d plans, want 2", len(data.Plans))
+		}
+		first := data.Plans[0]
+		if first.SegmentCount != 1 || len(first.Segments) != 1 {
+			t.Fatalf("unexpected first plan: %+v", first)
+		}
+		if first.Segments[0].SeatID != "s1" || first.Segments[0].SeatLabel != "A区 K3" || first.Segments[0].RoomID != "room-1" || first.Segments[0].Start != "09:00" || first.Segments[0].End != "12:00" {
+			t.Fatalf("unexpected first segment: %+v", first.Segments[0])
+		}
+		second := data.Plans[1]
+		if second.SegmentCount != 2 || len(second.Segments) != 2 {
+			t.Fatalf("unexpected second plan: %+v", second)
+		}
+		if second.Segments[1].SeatID != "s3" || second.Segments[1].RoomID != "room-2" || second.Segments[1].Start != "10:00" || second.Segments[1].End != "12:00" {
+			t.Fatalf("unexpected segment: %+v", second.Segments[1])
+		}
+
+		req := client.lastSmartPlansReq
+		if req == nil {
+			t.Fatal("request was not forwarded")
+		}
+		if req.StuId != claims.StudentId || req.Date != "2026-09-10" || req.Start != "09:00" || req.End != "12:00" {
+			t.Fatalf("unexpected request: %+v", req)
+		}
+		if len(req.RoomIds) != 2 || req.RoomIds[0] != "room-1" || req.RoomIds[1] != "room-2" {
+			t.Fatalf("unexpected room ids: %v", req.RoomIds)
+		}
+	})
+
+	t.Run("no available plan", func(t *testing.T) {
+		client := &fakeLibraryClient{smartPlansErr: libraryv1.ErrorNoAvailableSeatError("该时段无可用座位")}
+		handler := NewLibraryHandler(client, nil)
+		_, err := handler.GetSmartSeatPlans(newLibraryTestContext(), GetSmartSeatRequest{
+			RoomIDs: []string{"room-1"}, Date: "2026-09-10", Start: "09:00", End: "12:00",
+		}, claims)
+		assertCustomErrorCode(t, err, errs.NO_AVAILABLE_SEAT_ERROR_CODE, 500)
+	})
+
+	t.Run("unexpected error", func(t *testing.T) {
+		client := &fakeLibraryClient{smartPlansErr: errors.New("upstream unavailable")}
+		handler := NewLibraryHandler(client, nil)
+		_, err := handler.GetSmartSeatPlans(newLibraryTestContext(), GetSmartSeatRequest{
+			RoomIDs: []string{"room-1"}, Date: "2026-09-10", Start: "09:00", End: "12:00",
+		}, claims)
+		assertCustomErrorCode(t, err, errs.GET_SMART_SEAT_ERROR_CODE, 500)
+	})
+}
+
+func TestReserveSmartSeatPlan(t *testing.T) {
+	claims := ijwt.UserClaims{StudentId: "2025211366"}
+	segments := []SmartSeatSegment{
+		{SeatID: "s1", SeatLabel: "A区 K3", SeatName: "K3", RoomID: "room-1", Start: "09:00", End: "10:00"},
+		{SeatID: "s2", SeatLabel: "B区 K1", SeatName: "K1", RoomID: "room-2", Start: "10:00", End: "12:00"},
+	}
+
+	t.Run("success", func(t *testing.T) {
+		client := &fakeLibraryClient{reserveSmartResp: &libraryv1.ReserveSmartSeatPlanResponse{Message: "预约成功，共 2 个座位"}}
+		handler := NewLibraryHandler(client, nil)
+		resp, err := handler.ReserveSmartSeatPlan(newLibraryTestContext(), ReserveSmartSeatRequest{
+			Date: "2026-09-10", Segments: segments,
+		}, claims)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resp.Msg != "预约成功，共 2 个座位" {
+			t.Fatalf("message = %q", resp.Msg)
+		}
+
+		req := client.lastReserveSmartReq
+		if req == nil {
+			t.Fatal("request was not forwarded")
+		}
+		if req.StuId != claims.StudentId || req.Date != "2026-09-10" || len(req.Segments) != 2 {
+			t.Fatalf("unexpected request: %+v", req)
+		}
+		if req.Segments[0].SeatId != "s1" || req.Segments[0].RoomId != "room-1" || req.Segments[0].Start != "09:00" || req.Segments[0].End != "10:00" {
+			t.Fatalf("unexpected first segment: %+v", req.Segments[0])
+		}
+		if req.Segments[1].SeatId != "s2" || req.Segments[1].RoomId != "room-2" || req.Segments[1].Start != "10:00" || req.Segments[1].End != "12:00" {
+			t.Fatalf("unexpected second segment: %+v", req.Segments[1])
+		}
+	})
+
+	t.Run("no available seat", func(t *testing.T) {
+		client := &fakeLibraryClient{reserveSmartErr: libraryv1.ErrorNoAvailableSeatError("座位已被占用")}
+		handler := NewLibraryHandler(client, nil)
+		_, err := handler.ReserveSmartSeatPlan(newLibraryTestContext(), ReserveSmartSeatRequest{
+			Date: "2026-09-10", Segments: segments,
+		}, claims)
+		assertCustomErrorCode(t, err, errs.NO_AVAILABLE_SEAT_ERROR_CODE, 500)
+	})
+
+	t.Run("unexpected error", func(t *testing.T) {
+		client := &fakeLibraryClient{reserveSmartErr: errors.New("upstream unavailable")}
+		handler := NewLibraryHandler(client, nil)
+		_, err := handler.ReserveSmartSeatPlan(newLibraryTestContext(), ReserveSmartSeatRequest{
+			Date: "2026-09-10", Segments: segments,
+		}, claims)
+		assertCustomErrorCode(t, err, errs.RESERVE_SMART_SEAT_ERROR_CODE, 500)
+	})
+}
+
+func TestCancelSmartSeatPlan(t *testing.T) {
+	claims := ijwt.UserClaims{StudentId: "2025211366"}
+
+	t.Run("success", func(t *testing.T) {
+		client := &fakeLibraryClient{cancelSmartResp: &libraryv1.CancelSmartSeatPlanResponse{Message: "已取消 2 个座位"}}
+		handler := NewLibraryHandler(client, nil)
+		resp, err := handler.CancelSmartSeatPlan(newLibraryTestContext(), CancelSmartSeatRequest{Date: "2026-09-10"}, claims)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resp.Msg != "已取消 2 个座位" {
+			t.Fatalf("message = %q", resp.Msg)
+		}
+
+		req := client.lastCancelSmartReq
+		if req == nil {
+			t.Fatal("request was not forwarded")
+		}
+		if req.StuId != claims.StudentId || req.Date != "2026-09-10" {
+			t.Fatalf("unexpected request: %+v", req)
+		}
+	})
+
+	t.Run("unexpected error", func(t *testing.T) {
+		client := &fakeLibraryClient{cancelSmartErr: errors.New("cancel failed")}
+		handler := NewLibraryHandler(client, nil)
+		_, err := handler.CancelSmartSeatPlan(newLibraryTestContext(), CancelSmartSeatRequest{Date: "2026-09-10"}, claims)
+		assertCustomErrorCode(t, err, errs.CANCEL_SMART_SEAT_ERROR_CODE, 500)
 	})
 }

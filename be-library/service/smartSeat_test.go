@@ -459,3 +459,87 @@ func TestNormalizeSmartSeatRoomIDs(t *testing.T) {
 		}
 	})
 }
+
+func TestSegmentFromRecord(t *testing.T) {
+	loc := tool.GetLocation()
+	record := &crawler.Record{
+		RoomID:    "room-1",
+		SeatID:    "seat-1",
+		SeatLabel: "A区 K3",
+		MakeBegin: time.Date(2026, 10, 6, 9, 0, 0, 0, loc),
+		MakeEnd:   time.Date(2026, 10, 6, 10, 30, 0, 0, loc),
+	}
+	segment := segmentFromRecord(record)
+	if segment.RoomID != "room-1" || segment.SeatID != "seat-1" || segment.SeatLabel != "A区 K3" {
+		t.Fatalf("unexpected segment: %+v", segment)
+	}
+	if segment.StartMinute != 9*60 || segment.EndMinute != 10*60+30 {
+		t.Fatalf("unexpected minutes: %+v", segment)
+	}
+}
+
+func TestMatchSmartSeatRecords(t *testing.T) {
+	loc := tool.GetLocation()
+	records := []*crawler.Record{
+		{
+			ID: "rec-1", RoomID: "room-1", SeatID: "seat-1", SeatLabel: "A区 K1",
+			MakeDate:  time.Date(2026, 10, 6, 0, 0, 0, 0, loc),
+			MakeBegin: time.Date(2026, 10, 6, 9, 0, 0, 0, loc),
+			MakeEnd:   time.Date(2026, 10, 6, 10, 0, 0, 0, loc),
+		},
+		{
+			ID: "rec-2", RoomID: "room-2", SeatID: "seat-2", SeatLabel: "B区 K2",
+			MakeDate:  time.Date(2026, 10, 6, 0, 0, 0, 0, loc),
+			MakeBegin: time.Date(2026, 10, 6, 10, 0, 0, 0, loc),
+			MakeEnd:   time.Date(2026, 10, 6, 12, 0, 0, 0, loc),
+		},
+	}
+	segments := []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-1", SeatLabel: "A区 K1", StartMinute: 9 * 60, EndMinute: 10 * 60},
+		{RoomID: "room-2", SeatID: "seat-2", SeatLabel: "B区 K2", StartMinute: 10 * 60, EndMinute: 12 * 60},
+	}
+
+	matched, missing := matchSmartSeatRecords(records, "2026-10-06", segments)
+	if len(matched) != 2 || len(missing) != 0 {
+		t.Fatalf("expected all matched, got matched=%d missing=%d", len(matched), len(missing))
+	}
+	if matched[0].ID != "rec-1" || matched[1].ID != "rec-2" {
+		t.Fatalf("unexpected matched records: %+v", matched)
+	}
+
+	t.Run("time mismatch becomes missing", func(t *testing.T) {
+		_, missing := matchSmartSeatRecords(records, "2026-10-06", []smartSeatSegment{
+			{SeatID: "seat-1", StartMinute: 9 * 60, EndMinute: 11 * 60},
+		})
+		if len(missing) != 1 {
+			t.Fatalf("expected 1 missing, got %d", len(missing))
+		}
+	})
+
+	t.Run("date mismatch becomes missing", func(t *testing.T) {
+		_, missing := matchSmartSeatRecords(records, "2026-10-05", segments)
+		if len(missing) != len(segments) {
+			t.Fatalf("expected %d missing, got %d", len(segments), len(missing))
+		}
+	})
+
+	t.Run("record cannot be reused", func(t *testing.T) {
+		matched, missing := matchSmartSeatRecords(records, "2026-10-06", []smartSeatSegment{
+			{RoomID: "room-1", SeatID: "seat-1", StartMinute: 9 * 60, EndMinute: 10 * 60},
+			{RoomID: "room-1", SeatID: "seat-1", StartMinute: 9 * 60, EndMinute: 10 * 60},
+		})
+		if len(matched) != 1 || len(missing) != 1 {
+			t.Fatalf("expected matched=1 missing=1, got matched=%d missing=%d", len(matched), len(missing))
+		}
+	})
+}
+
+func TestSmartSeatSegmentLabels(t *testing.T) {
+	got := smartSeatSegmentLabels([]smartSeatSegment{
+		{SeatID: "seat-1", SeatLabel: "A区 K1"},
+		{SeatID: "seat-2"},
+	})
+	if got != "A区 K1, seat-2" {
+		t.Fatalf("got %q, want %q", got, "A区 K1, seat-2")
+	}
+}

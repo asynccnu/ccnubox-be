@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 
 const (
 	smartSeatMaxPlans       = 3
+	smartSeatMaxRooms       = 10
 	smartSeatTargetSliceMin = 30
 	smartSeatMaxSlices      = 8
 	smartSeatMaxCandidates  = 12
@@ -87,10 +89,38 @@ type smartSeatPlanner struct {
 	l       logger.Logger
 }
 
+// normalizeSmartSeatRoomIDs 校验并规范化房间列表：去重、去空白、限制数量上限。
+func normalizeSmartSeatRoomIDs(roomIDs []string) ([]string, error) {
+	seen := make(map[string]struct{}, len(roomIDs))
+	result := make([]string, 0, len(roomIDs))
+	for _, roomID := range roomIDs {
+		roomID = strings.TrimSpace(roomID)
+		if roomID == "" {
+			continue
+		}
+		if _, ok := seen[roomID]; ok {
+			continue
+		}
+		seen[roomID] = struct{}{}
+		result = append(result, roomID)
+	}
+	if len(result) == 0 {
+		return nil, errorx.New("room_ids must not be empty")
+	}
+	if len(result) > smartSeatMaxRooms {
+		return nil, errorx.Errorf("too many rooms: %d, max %d", len(result), smartSeatMaxRooms)
+	}
+	return result, nil
+}
+
 // GetSmartSeatPlans 生成智能选座接力方案。
 func (s *seatService) GetSmartSeatPlans(ctx context.Context, req *v1.GetSmartSeatPlansRequest) (*v1.GetSmartSeatPlansResponse, error) {
 	if req == nil || len(req.RoomIds) == 0 || req.Date == "" || req.Start == "" || req.End == "" {
 		return nil, ErrGetSeat(errorx.New("room_ids, date, start and end are required"))
+	}
+	roomIDs, err := normalizeSmartSeatRoomIDs(req.RoomIds)
+	if err != nil {
+		return nil, ErrGetSeat(err)
 	}
 	if err := validateSeatDate(req.Date); err != nil {
 		return nil, ErrGetSeat(err)
@@ -113,7 +143,7 @@ func (s *seatService) GetSmartSeatPlans(ctx context.Context, req *v1.GetSmartSea
 	}
 
 	planner := &smartSeatPlanner{crawler: s.crawler, rdb: s.rdb, l: s.l}
-	chains, err := planner.buildPlans(ctx, token, req.Date, req.RoomIds, startMinute, endMinute)
+	chains, err := planner.buildPlans(ctx, token, req.Date, roomIDs, startMinute, endMinute)
 	if err != nil {
 		return nil, ErrGetSeat(errorx.Errorf("build smart seat plans failed, stuId: %s, err: %w", req.StuId, err))
 	}
@@ -151,7 +181,7 @@ func (p *smartSeatPlanner) buildPlans(ctx context.Context, token, date string, r
 
 	chains := p.singleSeatPlans(ctx, token, date, roomIDs, start, end)
 	if len(chains) < smartSeatMaxPlans {
-		composed, err := p.composedPlans(ctx, token, date, roomIDs, start, end)
+		composed, err := p.composedPlans(ctx, token, date, roomIDs, start, end, chains)
 		if err != nil {
 			p.logWarn("smart seat: compose plans failed, err: %v", err)
 		} else {
@@ -226,7 +256,8 @@ func (p *smartSeatPlanner) singleSeatPlans(ctx context.Context, token, date stri
 }
 
 // composedPlans 按子窗口收集候选座位，再用精确时间线贪心拼接接力链。
-func (p *smartSeatPlanner) composedPlans(ctx context.Context, token, date string, roomIDs []string, start, end int) ([][]smartSeatPick, error) {
+// base 为已生成的整段单座方案，其中的座位不再参与拼接。
+func (p *smartSeatPlanner) composedPlans(ctx context.Context, token, date string, roomIDs []string, start, end int, base [][]smartSeatPick) ([][]smartSeatPick, error) {
 	slices := splitSmartSeatWindow(start, end)
 	if len(slices) < 2 {
 		return nil, nil
@@ -278,7 +309,6 @@ func (p *smartSeatPlanner) composedPlans(ctx context.Context, token, date string
 	wg.Wait()
 
 	// 已在单座方案中出现过的座位无需重复参与拼接
-	base := p.singleSeatPlans(ctx, token, date, roomIDs, start, end)
 	used := make(map[string]struct{})
 	for _, chain := range base {
 		for _, pick := range chain {

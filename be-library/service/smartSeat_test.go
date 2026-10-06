@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -413,6 +414,48 @@ func TestSmartSeatGroupTTL(t *testing.T) {
 		ttl := smartSeatGroupTTL("2026-09-10", now)
 		if ttl != time.Hour {
 			t.Fatalf("got %v, want 1h", ttl)
+		}
+	})
+}
+
+func TestNormalizeSmartSeatRoomIDs(t *testing.T) {
+	t.Run("dedupe and keep order", func(t *testing.T) {
+		got, err := normalizeSmartSeatRoomIDs([]string{"r2", "r1", "r2", " r1 "})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(got) != 2 || got[0] != "r2" || got[1] != "r1" {
+			t.Fatalf("got %+v, want [r2 r1]", got)
+		}
+	})
+
+	t.Run("blank entries are dropped", func(t *testing.T) {
+		got, err := normalizeSmartSeatRoomIDs([]string{" ", "", "r1"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(got) != 1 || got[0] != "r1" {
+			t.Fatalf("got %+v, want [r1]", got)
+		}
+	})
+
+	t.Run("empty input rejected", func(t *testing.T) {
+		if _, err := normalizeSmartSeatRoomIDs([]string{"", "  "}); err == nil {
+			t.Fatal("expected error for empty rooms")
+		}
+	})
+
+	t.Run("max rooms boundary", func(t *testing.T) {
+		rooms := make([]string, 0, smartSeatMaxRooms)
+		for i := 0; i < smartSeatMaxRooms; i++ {
+			rooms = append(rooms, fmt.Sprintf("r%d", i))
+		}
+		if _, err := normalizeSmartSeatRoomIDs(rooms); err != nil {
+			t.Fatalf("unexpected error at boundary: %v", err)
+		}
+		rooms = append(rooms, "overflow")
+		if _, err := normalizeSmartSeatRoomIDs(rooms); err == nil {
+			t.Fatal("expected error when exceeding max rooms")
 		}
 	})
 }

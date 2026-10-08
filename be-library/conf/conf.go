@@ -279,6 +279,9 @@ func (c LibraryReminderConf) ValidateInvitation() error {
 	if enabled && !c.Enabled {
 		return fmt.Errorf("team invitation requires libraryReminder.enabled")
 	}
+	if enabled && (c.PreferenceSyncInterval <= 0 || c.PreferenceSyncInterval*2 > v.PreferenceMaxLag) {
+		return fmt.Errorf("team invitation requires preferrenceSyncInterval <= preferenceMaxLag/2")
+	}
 	if enabled && !v.ContractVerified {
 		return fmt.Errorf("team invitation school contract is not verified")
 	}

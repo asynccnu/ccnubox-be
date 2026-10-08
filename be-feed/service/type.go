@@ -81,21 +81,6 @@ func convFeedFailEventFromModelToDomain(feedEvents []model.FeedFailEvent) []doma
 	}
 	return result
 }
-func convFeedFailEventFromDomainToModel(feedEvents []domain.FeedEvent) []model.FeedFailEvent {
-	result := make([]model.FeedFailEvent, len(feedEvents)) // 直接预分配
-	for i := range feedEvents {
-		result[i] = model.FeedFailEvent{
-			StudentId:    feedEvents[i].StudentId,
-			Type:         feedEvents[i].Type,
-			Title:        feedEvents[i].Title,
-			Content:      feedEvents[i].Content,
-			Url:          feedEvents[i].Url,
-			ExtendFields: feedEvents[i].ExtendFields,
-		}
-	}
-	return result
-}
-
 func convMuxiMessageFromCacheToDomain(feeds []cache.MuxiOfficialMSG) []domain.MuxiOfficialMSG {
 	//类型转换
 	result := make([]domain.MuxiOfficialMSG, len(feeds))

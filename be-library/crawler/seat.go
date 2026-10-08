@@ -302,18 +302,28 @@ func (c *Crawler) GetSeatInfos(ctx context.Context, token string, roomIDs []stri
 func defaultSeatQuery(now time.Time) (string, getSeatInfoReq) {
 	loc := tool.GetLocation()
 	now = now.In(loc)
+	date := deriveDefaultSeatDate(now)
 	if now.Hour() >= 22 {
-		return now.AddDate(0, 0, 1).Format("2006-01-02"), getSeatInfoReq{
+		return date, getSeatInfoReq{
 			BeginMinute: -1,
 			EndMinute:   0,
 			MinMinute:   0,
 		}
 	}
-	return now.Format("2006-01-02"), getSeatInfoReq{
+	return date, getSeatInfoReq{
 		BeginMinute: tool.ParseTimeToMinute(now),
 		EndMinute:   0,
 		MinMinute:   0,
 	}
+}
+
+// deriveDefaultSeatDate 计算默认预约日期：当天；22 点后为次日。
+func deriveDefaultSeatDate(now time.Time) string {
+	now = now.In(tool.GetLocation())
+	if now.Hour() >= 22 {
+		return now.AddDate(0, 0, 1).Format("2006-01-02")
+	}
+	return now.Format("2006-01-02")
 }
 
 func parseMinute(value string) (int, error) {
@@ -330,7 +340,8 @@ func parseMinute(value string) (int, error) {
 	return parsed.Hour()*60 + parsed.Minute(), nil
 }
 
-func (c *Crawler) GetSeatInfosForPeriod(ctx context.Context, token string, roomIDs []string, start, end string) (map[string][]*Seat, error) {
+// GetSeatInfosForPeriod 获取指定时间段内的空闲座位；date 为空时使用默认日期（当天，22 点后为次日）。
+func (c *Crawler) GetSeatInfosForPeriod(ctx context.Context, token string, roomIDs []string, date, start, end string) (map[string][]*Seat, error) {
 	beginMinute, err := parseMinute(start)
 	if err != nil {
 		return nil, err
@@ -343,11 +354,8 @@ func (c *Crawler) GetSeatInfosForPeriod(ctx context.Context, token string, roomI
 		return nil, errorx.Errorf("end time must be after start time")
 	}
 
-	loc := tool.GetLocation()
-	now := time.Now().In(loc)
-	date := now.Format("2006-01-02")
-	if now.Hour() >= 22 {
-		date = now.AddDate(0, 0, 1).Format("2006-01-02")
+	if date == "" {
+		date = deriveDefaultSeatDate(time.Now())
 	}
 	reqData := getSeatInfoReq{BeginMinute: beginMinute, EndMinute: endMinute, MinMinute: 0}
 	results := make(map[string][]*Seat, len(roomIDs))
@@ -453,12 +461,26 @@ func (c *Crawler) GetFreeList(ctx context.Context, token string, seatID string) 
 	return freeList, nil
 }
 
-// ReserveSeat 预约座位
-func (c *Crawler) ReserveSeat(ctx context.Context, token string, devid, start, end string) (string, error) {
+// ReserveSeat 预约座位；date 为空时使用默认日期（当天，22 点后为次日），start/end 支持 HH:MM 或分钟数。
+func (c *Crawler) ReserveSeat(ctx context.Context, token string, devid, date, start, end string) (string, error) {
+	if date == "" {
+		date = deriveDefaultSeatDate(time.Now())
+	}
+	startMinute, err := parseMinute(start)
+	if err != nil {
+		return "", err
+	}
+	endMinute, err := parseMinute(end)
+	if err != nil {
+		return "", err
+	}
+	if endMinute <= startMinute {
+		return "", errorx.Errorf("end time must be after start time")
+	}
+
 	params := url.Values{}
 	params.Add("capToken", "capToken")
-	date, _ := defaultSeatQuery(time.Now())
-	path := fmt.Sprintf("%s/%s/%s/%s/%s", ReserveAPIPath, devid, date, start, end)
+	path := fmt.Sprintf("%s/%s/%s/%d/%d", ReserveAPIPath, devid, date, startMinute, endMinute)
 	fullURL, err := buildURL(c.baseURL, path, params)
 	if err != nil {
 		return "", err

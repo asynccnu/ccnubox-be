@@ -9,8 +9,8 @@ import (
 )
 
 type FeedTokenDAO interface {
-	GetStudentIdAndTokensByCursor(ctx context.Context, lastID int64, limit int) (map[string][]string, int64, error)
 	GetTokens(ctx context.Context, studentId string) ([]string, error)
+	GetTokensBatch(ctx context.Context, studentIDs []string) (map[string][]string, error)
 	AddToken(ctx context.Context, studentId string, token string) error
 	RemoveToken(ctx context.Context, studentId string, token string) error
 }
@@ -24,57 +24,46 @@ func NewUserFeedTokenDAO(db *gorm.DB) FeedTokenDAO {
 	return &feedTokenDAO{gorm: db}
 }
 
-func (dao *feedTokenDAO) GetStudentIdAndTokensByCursor(ctx context.Context, lastID int64, limit int) (map[string][]string, int64, error) {
-	type UserTokens struct {
-		ID        uint   `gorm:"column:id"`
-		StudentId string `gorm:"column:student_id"`
-		Token     string `gorm:"column:token"`
-	}
-
-	userTokenMap := make(map[string][]string)
-	var userTokens []UserTokens
-
-	query := dao.gorm.WithContext(ctx).
-		Model(model.FeedUserToken{}).
-		Select("id, student_id, token").
-		Order("id ASC").
-		Limit(limit)
-
-	if lastID != -1 {
-		query = query.Where("id > ?", lastID)
-	}
-
-	err := query.Scan(&userTokens).Error
-	if err != nil {
-		return nil, -1, errorx.Errorf("dao: get student id and tokens by cursor failed, lastID: %d, limit: %d, err: %w", lastID, limit, err)
-	}
-
-	if len(userTokens) == 0 {
-		return nil, -1, nil
-	}
-
-	var newLastID int64
-	for _, ut := range userTokens {
-		userTokenMap[ut.StudentId] = append(userTokenMap[ut.StudentId], ut.Token)
-		newLastID = int64(ut.ID)
-	}
-
-	return userTokenMap, newLastID, nil
-}
-
 func (dao *feedTokenDAO) GetTokens(ctx context.Context, studentId string) ([]string, error) {
 	var tokens []string
 	err := dao.gorm.WithContext(ctx).
 		Model(model.FeedUserToken{}).
 		Select("token").
 		Where("student_id = ?", studentId).
-		Order("created_at DESC").
+		Order("created_at DESC, id DESC").
 		Limit(4).
 		Find(&tokens).Error
 	if err != nil {
 		return nil, errorx.Errorf("dao: get tokens failed, sid: %s, err: %w", studentId, err)
 	}
 	return tokens, nil
+}
+
+// GetTokensBatch 依赖窗口函数（MySQL 8.0+），每个用户最多返回最近 4 条有效 token。
+func (dao *feedTokenDAO) GetTokensBatch(ctx context.Context, studentIDs []string) (map[string][]string, error) {
+	result := make(map[string][]string)
+	studentIDs = uniqueStudentIDs(studentIDs)
+	if len(studentIDs) == 0 {
+		return result, nil
+	}
+	var tokens []struct {
+		StudentId string
+		Token     string
+	}
+	// 模型的默认作用域在排名前过滤软删除记录，避免其占用前 4 个名额。
+	ranked := dao.gorm.WithContext(ctx).Model(&model.FeedUserToken{}).
+		Select("student_id, token, ROW_NUMBER() OVER (PARTITION BY student_id ORDER BY created_at DESC, id DESC) AS token_rank").
+		Where("student_id IN ?", studentIDs)
+	err := dao.gorm.WithContext(ctx).Table("(?) AS ranked_tokens", ranked).
+		Select("student_id, token").Where("token_rank <= ?", 4).
+		Order("student_id ASC, token_rank ASC").Scan(&tokens).Error
+	if err != nil {
+		return nil, errorx.Errorf("dao: get tokens batch failed, count: %d, err: %w", len(studentIDs), err)
+	}
+	for _, token := range tokens {
+		result[token.StudentId] = append(result[token.StudentId], token.Token)
+	}
+	return result, nil
 }
 
 // AddToken 添加 FeedUserToken

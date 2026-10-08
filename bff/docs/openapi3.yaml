@@ -1687,6 +1687,51 @@ paths:
       summary: 取消预约
       tags:
         - library
+  /library/cancel_smart_seat:
+    post:
+      description: 取消指定日期下整组智能选座预约（包含全部座位分段）
+      parameters:
+        - description: Bearer Token
+          in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/library.CancelSmartSeatRequest"
+        description: 取消智能选座请求
+        required: true
+      responses:
+        "200":
+          description: 成功返回取消结果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "401":
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "422":
+          description: 参数错误，code=40002
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: 系统异常，取消失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+      summary: 取消智能选座
+      tags:
+        - library
   /library/confirm_reservation:
     post:
       description: 预约随机选座中确认的座位（携带指定日期与时间段）
@@ -2000,6 +2045,56 @@ paths:
       summary: 获取预约记录
       tags:
         - library
+  /library/get_smart_seat:
+    post:
+      description: 根据房间、日期与时间段生成多个座位接力方案；本接口只返回方案，不直接预约
+      parameters:
+        - description: Bearer Token
+          in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/library.GetSmartSeatRequest"
+        description: 智能选座方案请求
+        required: true
+      responses:
+        "200":
+          description: 成功返回智能选座方案（按换座次数升序）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/web.Response"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/library.GetSmartSeatResponse"
+                    type: object
+        "401":
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "422":
+          description: 参数错误，code=40002
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: 系统异常，获取失败；该时段无法拼出完整方案时 code=51515
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+      summary: 智能选座方案
+      tags:
+        - library
   /library/notify_team_invitation:
     post:
       description: 仅队长上报学校已邀请且待确认的成员；同队同人最多一次。受理不表示已送达，不返回收件人订阅或设备情况。默认关闭，临时失败最多自动重试三次。
@@ -2149,6 +2244,51 @@ paths:
               schema:
                 $ref: "#/components/schemas/web.Response"
       summary: 预约图书馆座位
+      tags:
+        - library
+  /library/reserve_smart_seat:
+    post:
+      description: 预约选中的智能选座方案（携带全部座位分段，全部成功才算预约成功）
+      parameters:
+        - description: Bearer Token
+          in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/library.ReserveSmartSeatRequest"
+        description: 预约智能选座请求
+        required: true
+      responses:
+        "200":
+          description: 成功返回预约结果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "401":
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "422":
+          description: 参数错误，code=40002
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: 系统异常，预约失败；部分座位被占用时 code=51515
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+      summary: 预约智能选座方案
       tags:
         - library
   /metrics:
@@ -3644,6 +3784,12 @@ components:
         - grade_score_list
         - kcxzmc
       type: object
+    library.CancelSmartSeatRequest:
+      properties:
+        date:
+          description: 预约日期，格式 YYYY-MM-DD
+          type: string
+      type: object
     library.Comment:
       properties:
         content:
@@ -3834,6 +3980,31 @@ components:
             $ref: "#/components/schemas/library.Room"
           type: array
       type: object
+    library.GetSmartSeatRequest:
+      properties:
+        date:
+          description: 预约日期，格式 YYYY-MM-DD
+          type: string
+        end:
+          description: 结束时间，格式 HH:MM
+          type: string
+        room_ids:
+          description: 参与智能选座的房间（区域）ID
+          items:
+            type: string
+          type: array
+        start:
+          description: 开始时间，格式 HH:MM
+          type: string
+      type: object
+    library.GetSmartSeatResponse:
+      properties:
+        plans:
+          description: 智能选座方案（按换座次数升序）
+          items:
+            $ref: "#/components/schemas/library.SmartSeatPlan"
+          type: array
+      type: object
     library.NotifyTeamInvitationRequest:
       properties:
         student_ids:
@@ -3926,6 +4097,17 @@ components:
         start:
           type: string
       type: object
+    library.ReserveSmartSeatRequest:
+      properties:
+        date:
+          description: 预约日期，格式 YYYY-MM-DD
+          type: string
+        segments:
+          description: 选中的方案分段
+          items:
+            $ref: "#/components/schemas/library.SmartSeatSegment"
+          type: array
+      type: object
     library.Room:
       properties:
         room_id:
@@ -3966,6 +4148,38 @@ components:
         name:
           type: string
         status:
+          type: string
+      type: object
+    library.SmartSeatPlan:
+      properties:
+        segment_count:
+          description: 分段数量
+          type: integer
+        segments:
+          description: 座位接力分段
+          items:
+            $ref: "#/components/schemas/library.SmartSeatSegment"
+          type: array
+      type: object
+    library.SmartSeatSegment:
+      properties:
+        end:
+          description: 结束时间，格式 HH:MM
+          type: string
+        room_id:
+          description: 房间（区域）ID
+          type: string
+        seat_id:
+          description: 座位 ID
+          type: string
+        seat_label:
+          description: 座位编号（如 A区 K3）
+          type: string
+        seat_name:
+          description: 座位名称
+          type: string
+        start:
+          description: 开始时间，格式 HH:MM
           type: string
       type: object
     metrics.ClientMetricEvent:

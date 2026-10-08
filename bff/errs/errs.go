@@ -163,6 +163,9 @@ var (
 	GET_RANDOM_SEAT_ERROR     = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, GET_RANDOM_SEAT_ERROR_CODE, "获取随机座位失败!"))
 	NO_AVAILABLE_SEAT_ERROR   = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, NO_AVAILABLE_SEAT_ERROR_CODE, "该时段暂无可用座位!"))
 	CONFIRM_RESERVATION_ERROR = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, CONFIRM_RESERVATION_ERROR_CODE, "确认预约失败!"))
+	GET_SMART_SEAT_ERROR      = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, GET_SMART_SEAT_ERROR_CODE, "获取智能选座方案失败!"))
+	RESERVE_SMART_SEAT_ERROR  = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, RESERVE_SMART_SEAT_ERROR_CODE, "预约智能选座失败!"))
+	CANCEL_SMART_SEAT_ERROR   = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, CANCEL_SMART_SEAT_ERROR_CODE, "取消智能选座失败!"))
 )
 
 // --- Swag ---

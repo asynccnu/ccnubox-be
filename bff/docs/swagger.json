@@ -2525,6 +2525,65 @@
                 }
             }
         },
+        "/library/cancel_smart_seat": {
+            "post": {
+                "description": "取消指定日期下整组智能选座预约（包含全部座位分段）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "library"
+                ],
+                "summary": "取消智能选座",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "取消智能选座请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/library.CancelSmartSeatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回取消结果",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "参数错误，code=40002",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，取消失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/library/confirm_reservation": {
             "post": {
                 "description": "预约随机选座中确认的座位（携带指定日期与时间段）",
@@ -2984,6 +3043,77 @@
                 }
             }
         },
+        "/library/get_smart_seat": {
+            "post": {
+                "description": "根据房间、日期与时间段生成多个座位接力方案；本接口只返回方案，不直接预约",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "library"
+                ],
+                "summary": "智能选座方案",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "智能选座方案请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/library.GetSmartSeatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回智能选座方案（按换座次数升序）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/library.GetSmartSeatResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "参数错误，code=40002",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，获取失败；该时段无法拼出完整方案时 code=51515",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/library/notify_team_invitation": {
             "post": {
                 "description": "仅队长上报学校已邀请且待确认的成员；同队同人最多一次。受理不表示已送达，不返回收件人订阅或设备情况。默认关闭，临时失败最多自动重试三次。",
@@ -3184,6 +3314,65 @@
                     },
                     "500": {
                         "description": "系统异常，预约失败",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/library/reserve_smart_seat": {
+            "post": {
+                "description": "预约选中的智能选座方案（携带全部座位分段，全部成功才算预约成功）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "library"
+                ],
+                "summary": "预约智能选座方案",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "预约智能选座请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/library.ReserveSmartSeatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回预约结果",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "参数错误，code=40002",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "系统异常，预约失败；部分座位被占用时 code=51515",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -5390,6 +5579,15 @@
                 }
             }
         },
+        "library.CancelSmartSeatRequest": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "description": "预约日期，格式 YYYY-MM-DD",
+                    "type": "string"
+                }
+            }
+        },
         "library.Comment": {
             "type": "object",
             "properties": {
@@ -5674,6 +5872,42 @@
                 }
             }
         },
+        "library.GetSmartSeatRequest": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "description": "预约日期，格式 YYYY-MM-DD",
+                    "type": "string"
+                },
+                "end": {
+                    "description": "结束时间，格式 HH:MM",
+                    "type": "string"
+                },
+                "room_ids": {
+                    "description": "参与智能选座的房间（区域）ID",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "start": {
+                    "description": "开始时间，格式 HH:MM",
+                    "type": "string"
+                }
+            }
+        },
+        "library.GetSmartSeatResponse": {
+            "type": "object",
+            "properties": {
+                "plans": {
+                    "description": "智能选座方案（按换座次数升序）",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/library.SmartSeatPlan"
+                    }
+                }
+            }
+        },
         "library.NotifyTeamInvitationRequest": {
             "type": "object",
             "required": [
@@ -5814,6 +6048,22 @@
                 }
             }
         },
+        "library.ReserveSmartSeatRequest": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "description": "预约日期，格式 YYYY-MM-DD",
+                    "type": "string"
+                },
+                "segments": {
+                    "description": "选中的方案分段",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/library.SmartSeatSegment"
+                    }
+                }
+            }
+        },
         "library.Room": {
             "type": "object",
             "properties": {
@@ -5875,6 +6125,51 @@
                     "type": "string"
                 },
                 "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "library.SmartSeatPlan": {
+            "type": "object",
+            "properties": {
+                "segment_count": {
+                    "description": "分段数量",
+                    "type": "integer"
+                },
+                "segments": {
+                    "description": "座位接力分段",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/library.SmartSeatSegment"
+                    }
+                }
+            }
+        },
+        "library.SmartSeatSegment": {
+            "type": "object",
+            "properties": {
+                "end": {
+                    "description": "结束时间，格式 HH:MM",
+                    "type": "string"
+                },
+                "room_id": {
+                    "description": "房间（区域）ID",
+                    "type": "string"
+                },
+                "seat_id": {
+                    "description": "座位 ID",
+                    "type": "string"
+                },
+                "seat_label": {
+                    "description": "座位编号（如 A区 K3）",
+                    "type": "string"
+                },
+                "seat_name": {
+                    "description": "座位名称",
+                    "type": "string"
+                },
+                "start": {
+                    "description": "开始时间，格式 HH:MM",
                     "type": "string"
                 }
             }

@@ -16,6 +16,9 @@ service LibraryService {
     rpc ReserveSeatRandomly (ReserveSeatRandomlyRequest) returns (ReserveSeatRandomlyResponse);
     rpc GetRandomSeat (GetRandomSeatRequest) returns (GetRandomSeatResponse);
     rpc ConfirmReservation (ConfirmReservationRequest) returns (ConfirmReservationResponse);
+    rpc GetSmartSeatPlans (GetSmartSeatPlansRequest) returns (GetSmartSeatPlansResponse);
+    rpc ReserveSmartSeatPlan (ReserveSmartSeatPlanRequest) returns (ReserveSmartSeatPlanResponse);
+    rpc CancelSmartSeatPlan (CancelSmartSeatPlanRequest) returns (CancelSmartSeatPlanResponse);
     rpc CreateComment (CreateCommentReq) returns (Resp);
     rpc GetComments (ID) returns (GetCommentResp);
     rpc DeleteComment (ID) returns (Resp);
@@ -220,6 +223,54 @@ message ConfirmReservationRequest {
 }
 
 message ConfirmReservationResponse {
+    string message = 1;
+}
+
+// 智能选座（多座位接力方案）
+message GetSmartSeatPlansRequest {
+    string stu_id = 1;
+    repeated string room_ids = 2;
+    string date = 3;   // 格式 YYYY-MM-DD
+    string start = 4;  // 格式 HH:MM
+    string end = 5;    // 格式 HH:MM
+}
+
+message SmartSeatSegment {
+    string seat_id = 1;
+    string seat_label = 2;
+    string seat_name = 3;
+    string room_id = 4;
+    string start = 5;  // 格式 HH:MM
+    string end = 6;    // 格式 HH:MM
+}
+
+message SmartSeatPlan {
+    repeated SmartSeatSegment segments = 1;
+    int32 segment_count = 2;
+}
+
+message GetSmartSeatPlansResponse {
+    repeated SmartSeatPlan plans = 1;
+}
+
+// 预约智能选座方案
+message ReserveSmartSeatPlanRequest {
+    string stu_id = 1;
+    string date = 2;
+    repeated SmartSeatSegment segments = 3;
+}
+
+message ReserveSmartSeatPlanResponse {
+    string message = 1;
+}
+
+// 取消智能选座方案
+message CancelSmartSeatPlanRequest {
+    string stu_id = 1;
+    string date = 2;
+}
+
+message CancelSmartSeatPlanResponse {
     string message = 1;
 }
 

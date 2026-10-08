@@ -161,6 +161,40 @@ type ConfirmReservationRequest struct {
 	End   string `json:"end"`    // 格式 HH:MM
 }
 
+type GetSmartSeatRequest struct {
+	RoomIDs []string `json:"room_ids"` // 参与智能选座的房间（区域）ID
+	Date    string   `json:"date"`     // 预约日期，格式 YYYY-MM-DD
+	Start   string   `json:"start"`    // 开始时间，格式 HH:MM
+	End     string   `json:"end"`      // 结束时间，格式 HH:MM
+}
+
+type SmartSeatSegment struct {
+	SeatID    string `json:"seat_id"`    // 座位 ID
+	SeatLabel string `json:"seat_label"` // 座位编号（如 A区 K3）
+	SeatName  string `json:"seat_name"`  // 座位名称
+	RoomID    string `json:"room_id"`    // 房间（区域）ID
+	Start     string `json:"start"`      // 开始时间，格式 HH:MM
+	End       string `json:"end"`        // 结束时间，格式 HH:MM
+}
+
+type SmartSeatPlan struct {
+	Segments     []SmartSeatSegment `json:"segments"`      // 座位接力分段
+	SegmentCount int32              `json:"segment_count"` // 分段数量
+}
+
+type GetSmartSeatResponse struct {
+	Plans []SmartSeatPlan `json:"plans"` // 智能选座方案（按换座次数升序）
+}
+
+type ReserveSmartSeatRequest struct {
+	Date     string             `json:"date"`     // 预约日期，格式 YYYY-MM-DD
+	Segments []SmartSeatSegment `json:"segments"` // 选中的方案分段
+}
+
+type CancelSmartSeatRequest struct {
+	Date string `json:"date"` // 预约日期，格式 YYYY-MM-DD
+}
+
 type GetSeatRecordRequest struct {
 	Date []string `json:"date" binding:"required"` // YYYY-M-D 或 YYYY-MM-DD
 }

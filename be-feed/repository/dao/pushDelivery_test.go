@@ -173,3 +173,39 @@ func TestTeamSuccessStoredWithPushDelivery(t *testing.T) {
 		t.Fatalf("events=%d err=%v", count, err)
 	}
 }
+
+func TestInvitationStoreIsAtomicAndDeduplicated(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqlDB, _ := db.DB()
+	defer sqlDB.Close()
+	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedPushDelivery{}, &model.FeedUserConfig{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.FeedUserConfig{StudentId: "A", PushConfig: 1 << model.LibraryPos}).Error; err != nil {
+		t.Fatal(err)
+	}
+	event := model.FeedEvent{StudentId: "A", Type: "library", DedupeKey: "invitation", Source: "library", OccurredAt: 1, ExtendFields: model.ExtendFields{"notification_type": "TEAM_INVITATION", "team_id": "1", "expires_at": "2"}}
+	repo := NewFeedEventDAO(db)
+	// 过期只影响推送，不能阻止已被接受的事实落库。
+	inserted, suppressed, err := repo.StoreFeedEvents(context.Background(), []model.FeedEvent{event, event})
+	if err != nil || len(inserted) != 1 || suppressed != 0 {
+		t.Fatalf("inserted=%v suppressed=%d err=%v", inserted, suppressed, err)
+	}
+	for _, m := range []any{&model.FeedEvent{}, &model.FeedPushDelivery{}} {
+		var count int64
+		if err := db.Model(m).Count(&count).Error; err != nil || count != 1 {
+			t.Fatalf("model=%T count=%d err=%v", m, count, err)
+		}
+	}
+	if priority := pushDeliveryPriority(event); priority != 0 {
+		t.Fatalf("priority=%d", priority)
+	}
+	event.StudentId = "not-subscribed"
+	inserted, suppressed, err = repo.StoreFeedEvents(context.Background(), []model.FeedEvent{event})
+	if err != nil || len(inserted) != 0 || suppressed != 1 {
+		t.Fatalf("inserted=%v suppressed=%d err=%v", inserted, suppressed, err)
+	}
+}

@@ -5,8 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	commontool "github.com/asynccnu/ccnubox-be/common/tool"
 )
 
 const (
@@ -34,6 +37,9 @@ func (e *FeedEventValidationError) Error() string {
 
 // ValidateFeedEventForStorage 校验 feed_events 及投递表会写入的全部有限字段。
 func ValidateFeedEventForStorage(event FeedEvent) error {
+	if err := ValidateLibraryTeamInvitation(event); err != nil {
+		return err
+	}
 	if err := validateRequiredChars("student_id", event.StudentId, MaxFeedEventStudentIDChars); err != nil {
 		return err
 	}
@@ -154,4 +160,29 @@ type MuxiOfficialMSG struct {
 	ExtendFields       // 拓展字段如果要发额外的东西的话
 	PublicTime   int64 // 正式发布的时间
 	Id           string
+}
+
+// ValidateLibraryTeamInvitation 由 RPC 和 Kafka 存储入口共用；合法过期事实仍可展示。
+func ValidateLibraryTeamInvitation(event FeedEvent) error {
+	if !strings.EqualFold(event.Type, "library") || !strings.EqualFold(strings.TrimSpace(event.ExtendFields["notification_type"]), "TEAM_INVITATION") {
+		return nil
+	}
+	invalid := func() error {
+		return &FeedEventValidationError{Field: "team_invitation", Reason: "invalid invitation metadata"}
+	}
+	if event.Source != "library" || event.Url != "" || event.OccurredAt <= 0 || !commontool.IsValidLibraryTeamID(event.ExtendFields["team_id"]) {
+		return invalid()
+	}
+	expires, err := strconv.ParseInt(event.ExtendFields["expires_at"], 10, 64)
+	if err != nil || expires <= event.OccurredAt {
+		return invalid()
+	}
+	for key := range event.ExtendFields {
+		switch key {
+		case "notification_type", "team_id", "on_date", "expires_at":
+		default:
+			return invalid()
+		}
+	}
+	return nil
 }

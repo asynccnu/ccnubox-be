@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/pkg/jpush"
@@ -141,7 +144,20 @@ func (s *pushService) PushPreparedMSGWithCID(ctx context.Context, pushData *doma
 	if prepared == nil || len(prepared.tokens) == 0 {
 		return nil
 	}
+	var expires *time.Time
+	if strings.EqualFold(pushData.Type, "library") && strings.EqualFold(strings.TrimSpace(pushData.ExtendFields["notification_type"]), "TEAM_INVITATION") {
+		if err := domain.ValidateLibraryTeamInvitation(*pushData); err != nil {
+			return jpush.ErrPushExpired
+		}
+		value, err := strconv.ParseInt(pushData.ExtendFields["expires_at"], 10, 64)
+		if err != nil {
+			return jpush.ErrPushExpired
+		}
+		at := time.Unix(value, 0)
+		expires = &at
+	}
 	err := s.pushClient.Push(ctx, prepared.tokens, jpush.PushData{
+		ExpiresAt:   expires,
 		ContentType: pushData.Type,
 		Extras:      pushData.ExtendFields,
 		MsgContent:  pushData.Content,

@@ -51,3 +51,16 @@ libraryReminder:
     breach: true
     blacklisted: true
     teamSuccess: false # APP 消息及手机通知栏推送；联调完成后显式开启
+    teamInvitation: false
+  teamInvitation:
+    maxRecipients: 20
+    maxDeliveryAge: 15m
+    requestTimeout: 15s
+    maxConcurrentRequests: 4
+    requestsPerMinute: 10
+    recipientDailyLimit: 20
+    preferenceMaxLag: 30s
+    # 抓包确认端点、身份字段、有效期和全部成员枚举后才能开启，不猜测待确认状态。
+    contractVerified: false
+    pendingMemberStatuses: []
+    knownMemberStatuses: []

@@ -4,6 +4,7 @@ package library.v1;
 option go_package = "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1;libraryv1";
 
 service LibraryService {
+    rpc NotifyTeamInvitation (NotifyTeamInvitationRequest) returns (NotifyTeamInvitationResponse);
     rpc GetSeat (GetSeatRequest) returns (GetSeatResponse);
     rpc ReserveSeat (ReserveSeatRequest) returns (ReserveSeatResponse);
     rpc GetSeatRecord (GetSeatRecordRequest) returns (GetSeatRecordResponse);
@@ -224,3 +225,12 @@ message Resp {
     string message = 1;
 }
 
+
+// 仅受理已由学校邀请且尚待确认的成员通知。
+message NotifyTeamInvitationRequest {
+    string operator_student_id = 1;
+    string team_id = 2;
+    repeated string student_ids = 3;
+}
+
+message NotifyTeamInvitationResponse {}

@@ -26,6 +26,9 @@ func TestNewWithRegistererReusesAlreadyRegisteredCollectors(t *testing.T) {
 	if first.Client.AppErrorsTotal != second.Client.AppErrorsTotal {
 		t.Fatal("expected client app error counter to reuse the registered collector")
 	}
+	if first.Library.InvitationRequestsTotal != second.Library.InvitationRequestsTotal || first.Library.PreferenceCaughtUpAt != second.Library.PreferenceCaughtUpAt {
+		t.Fatal("invitation collectors were not reused")
+	}
 	if first.Library.PreferenceSyncTotal != second.Library.PreferenceSyncTotal {
 		t.Fatal("expected library preference counter to reuse the registered collector")
 	}
@@ -48,6 +51,8 @@ func TestNewUsesDefaultRegisterer(t *testing.T) {
 	defer prometheus.DefaultRegisterer.Unregister(m.Client.StartupDuration)
 	defer prometheus.DefaultRegisterer.Unregister(m.Client.IngestedEventsTotal)
 	defer prometheus.DefaultRegisterer.Unregister(m.Client.RejectedBatches)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.InvitationRequestsTotal)
+	defer prometheus.DefaultRegisterer.Unregister(m.Library.PreferenceCaughtUpAt)
 	defer prometheus.DefaultRegisterer.Unregister(m.Library.PreferenceSyncTotal)
 	defer prometheus.DefaultRegisterer.Unregister(m.Library.PreferenceSyncLagSeconds)
 	defer prometheus.DefaultRegisterer.Unregister(m.Library.RefreshUsersTotal)
@@ -120,5 +125,34 @@ func TestNewWithRegistererInitializesUserMetrics(t *testing.T) {
 	got := m.User.ActiveUsers24h.Desc().String()
 	if !strings.Contains(got, "ccnubox_test_active_users_24h") {
 		t.Fatalf("expected desc to contain 'ccnubox_test_active_users_24h', got: %s", got)
+	}
+}
+
+func TestInvitationMetricRegistration(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	m := NewWithRegisterer(reg, "invitation_test")
+	m.Library.InvitationRequestsTotal.WithLabelValues("accepted").Inc()
+	m.Library.PreferenceCaughtUpAt.Set(123)
+	families, err := reg.Gather()
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := 0
+	for _, family := range families {
+		switch family.GetName() {
+		case "invitation_test_library_invitation_requests_total":
+			if len(family.Metric) != 1 || len(family.Metric[0].Label) != 1 || family.Metric[0].Label[0].GetName() != "result" {
+				t.Fatal("unexpected labels")
+			}
+			found++
+		case "invitation_test_library_preference_caught_up_timestamp_seconds":
+			if family.Metric[0].Gauge.GetValue() != 123 {
+				t.Fatal("unexpected timestamp")
+			}
+			found++
+		}
+	}
+	if found != 2 {
+		t.Fatalf("metrics found=%d", found)
 	}
 }

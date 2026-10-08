@@ -178,3 +178,14 @@ var (
 	GET_SEMESTER_ERROR  = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, GET_SEMESTER_ERROR_CODE, "获取学期列表失败"))
 	SAVE_SEMESTER_ERROR = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, SAVE_SEMESTER_ERROR_CODE, "保存学期失败"))
 )
+
+// 邀请错误仅暴露固定文案，不透传学校成员数据或收件人订阅状态。
+var (
+	TEAM_INVITATION_INVALID_ERROR     = errorx.FormatErrorFunc(b_errorx.New(http.StatusBadRequest, TEAM_INVITATION_INVALID_ERROR_CODE, "邀请通知参数错误"))
+	TEAM_INVITATION_FORBIDDEN_ERROR   = errorx.FormatErrorFunc(b_errorx.New(http.StatusForbidden, TEAM_INVITATION_FORBIDDEN_ERROR_CODE, "仅学校队伍队长可以提交邀请通知"))
+	TEAM_INVITATION_CONFLICT_ERROR    = errorx.FormatErrorFunc(b_errorx.New(http.StatusConflict, TEAM_INVITATION_CONFLICT_ERROR_CODE, "队伍或邀请状态已变化，请刷新学校状态"))
+	TEAM_INVITATION_TOO_LARGE_ERROR   = errorx.FormatErrorFunc(b_errorx.New(http.StatusRequestEntityTooLarge, TEAM_INVITATION_TOO_LARGE_ERROR_CODE, "邀请通知请求体过大"))
+	TEAM_INVITATION_LIMITED_ERROR     = errorx.FormatErrorFunc(b_errorx.New(http.StatusTooManyRequests, TEAM_INVITATION_LIMITED_ERROR_CODE, "请求过于频繁，请稍后重试"))
+	TEAM_INVITATION_UNAVAILABLE_ERROR = errorx.FormatErrorFunc(b_errorx.New(http.StatusServiceUnavailable, TEAM_INVITATION_UNAVAILABLE_ERROR_CODE, "邀请提醒暂不可用，请稍后重试"))
+	TEAM_INVITATION_INTERNAL_ERROR    = errorx.FormatErrorFunc(b_errorx.New(http.StatusInternalServerError, TEAM_INVITATION_INTERNAL_ERROR_CODE, "邀请提醒处理失败，可使用相同参数重试"))
+)

@@ -46,6 +46,7 @@ type ReminderCrawler interface {
 	GetUserState(context.Context, string) (LibraryUserState, error)
 	GetDoorLogs(context.Context, string, string) ([]DoorLog, error)
 	GetCurrentTeam(context.Context, string) (*ReminderTeam, error)
+	GetCurrentTeamForInvitation(context.Context, string) (*InvitationTeam, error)
 }
 
 type HistoryWatermark struct {

@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/conf"
@@ -27,9 +28,10 @@ type CryptoConf struct {
 }
 
 type LibraryReminderConf struct {
-	Enabled                bool          `yaml:"enabled"`
-	PreferenceSyncInterval time.Duration `yaml:"preferenceSyncInterval"`
-	PreferenceFullSyncCron string        `yaml:"preferenceFullSyncCron"`
+	TeamInvitation         *TeamInvitationConf `yaml:"teamInvitation"`
+	Enabled                bool                `yaml:"enabled"`
+	PreferenceSyncInterval time.Duration       `yaml:"preferenceSyncInterval"`
+	PreferenceFullSyncCron string              `yaml:"preferenceFullSyncCron"`
 	// 全量刷新预约
 	FullRefreshCron        string        `yaml:"fullRefreshCron"`
 	FullRefreshMinInterval time.Duration `yaml:"fullRefreshMinInterval"`
@@ -60,7 +62,22 @@ type LibraryReminderConf struct {
 	NotificationTypes *NotificationTypesConf `yaml:"notificationTypes"`
 }
 
+type TeamInvitationConf struct {
+	MaxRecipients         int           `yaml:"maxRecipients"`
+	MaxDeliveryAge        time.Duration `yaml:"maxDeliveryAge"`
+	RequestTimeout        time.Duration `yaml:"requestTimeout"`
+	MaxConcurrentRequests int           `yaml:"maxConcurrentRequests"`
+	RequestsPerMinute     int           `yaml:"requestsPerMinute"`
+	RecipientDailyLimit   int           `yaml:"recipientDailyLimit"`
+	PreferenceMaxLag      time.Duration `yaml:"preferenceMaxLag"`
+	// 仅在脱敏样例确认后填写白名单并开启，不预设学校待确认枚举。
+	ContractVerified      bool  `yaml:"contractVerified"`
+	PendingMemberStatuses []int `yaml:"pendingMemberStatuses"`
+	KnownMemberStatuses   []int `yaml:"knownMemberStatuses"`
+}
+
 type NotificationTypesConf struct {
+	TeamInvitation        bool `yaml:"teamInvitation"`
 	ReservationDiscovered bool `yaml:"reservationDiscovered"`
 	Start30               bool `yaml:"start30"`
 	End10                 bool `yaml:"end10"`
@@ -75,6 +92,10 @@ type NotificationTypesConf struct {
 // 使旧部署配置无需增加 Feed 依赖或学校侧流量也能继续启动。
 func (c *ServerConf) Reminder() LibraryReminderConf {
 	result := LibraryReminderConf{
+		TeamInvitation: &TeamInvitationConf{
+			MaxRecipients: 20, MaxDeliveryAge: 15 * time.Minute, RequestTimeout: 15 * time.Second,
+			MaxConcurrentRequests: 4, RequestsPerMinute: 10, RecipientDailyLimit: 20, PreferenceMaxLag: 30 * time.Second,
+		},
 		PreferenceSyncInterval: 15 * time.Second,
 		PreferenceFullSyncCron: "15 3 * * *",
 		FullRefreshCron:        "*/30 * * * *",
@@ -114,6 +135,33 @@ func (c *ServerConf) Reminder() LibraryReminderConf {
 	}
 	configured := *c.LibraryReminder
 	result.Enabled = configured.Enabled
+	if v := configured.TeamInvitation; v != nil {
+		dst := result.TeamInvitation
+		dst.ContractVerified = v.ContractVerified
+		dst.PendingMemberStatuses = append([]int(nil), v.PendingMemberStatuses...)
+		dst.KnownMemberStatuses = append([]int(nil), v.KnownMemberStatuses...)
+		if v.MaxRecipients != 0 {
+			dst.MaxRecipients = v.MaxRecipients
+		}
+		if v.MaxDeliveryAge != 0 {
+			dst.MaxDeliveryAge = v.MaxDeliveryAge
+		}
+		if v.RequestTimeout != 0 {
+			dst.RequestTimeout = v.RequestTimeout
+		}
+		if v.MaxConcurrentRequests != 0 {
+			dst.MaxConcurrentRequests = v.MaxConcurrentRequests
+		}
+		if v.RequestsPerMinute != 0 {
+			dst.RequestsPerMinute = v.RequestsPerMinute
+		}
+		if v.RecipientDailyLimit != 0 {
+			dst.RecipientDailyLimit = v.RecipientDailyLimit
+		}
+		if v.PreferenceMaxLag != 0 {
+			dst.PreferenceMaxLag = v.PreferenceMaxLag
+		}
+	}
 	result.DryRun = configured.DryRun
 	result.BaselineOnEnable = configured.BaselineOnEnable
 	if configured.NotificationTypes != nil {
@@ -213,4 +261,45 @@ func InitServerConf() *ServerConf {
 
 func InitInfraConfig() *InfraConf {
 	return &InfraConf{conf.InitInfraConfig()}
+}
+
+// ValidateInvitation 防止错误配置绕过时效、频控和学校契约门槛；零值使用保守默认值。
+func (c LibraryReminderConf) ValidateInvitation() error {
+	v := c.TeamInvitation
+	if v == nil || v.MaxRecipients < 1 || v.MaxRecipients > 20 ||
+		v.MaxDeliveryAge < time.Second || v.MaxDeliveryAge > 15*time.Minute ||
+		v.RequestTimeout < time.Second || v.RequestTimeout > 15*time.Second ||
+		v.MaxConcurrentRequests < 1 || v.MaxConcurrentRequests > 20 ||
+		v.RequestsPerMinute < 1 || v.RequestsPerMinute > 100 ||
+		v.RecipientDailyLimit < 1 || v.RecipientDailyLimit > 100 ||
+		v.PreferenceMaxLag < time.Second || v.PreferenceMaxLag > time.Minute {
+		return fmt.Errorf("invalid library team invitation limits")
+	}
+	enabled := c.NotificationTypes != nil && c.NotificationTypes.TeamInvitation
+	if enabled && !c.Enabled {
+		return fmt.Errorf("team invitation requires libraryReminder.enabled")
+	}
+	if enabled && !v.ContractVerified {
+		return fmt.Errorf("team invitation school contract is not verified")
+	}
+	if v.ContractVerified {
+		known := map[int]bool{}
+		for _, value := range v.KnownMemberStatuses {
+			if known[value] {
+				return fmt.Errorf("duplicate known member status")
+			}
+			known[value] = true
+		}
+		if !known[1] || len(v.PendingMemberStatuses) == 0 {
+			return fmt.Errorf("incomplete invitation member status whitelist")
+		}
+		pending := map[int]bool{}
+		for _, value := range v.PendingMemberStatuses {
+			if value == 1 || !known[value] || pending[value] {
+				return fmt.Errorf("invalid pending member status whitelist")
+			}
+			pending[value] = true
+		}
+	}
+	return nil
 }

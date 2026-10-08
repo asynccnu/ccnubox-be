@@ -164,3 +164,20 @@ type NotificationOutbox struct {
 }
 
 func (NotificationOutbox) TableName() string { return "notification_outbox" }
+
+// 邀请事实独立保留，不随 Outbox 终态清理，避免开关变化或响应丢失后补发。
+type LibraryTeamInvitation struct {
+	ID                 int64     `gorm:"primaryKey;autoIncrement"`
+	TeamID             string    `gorm:"type:varchar(128);not null;uniqueIndex:uidx_team_invitation,priority:1"`
+	RecipientStudentID string    `gorm:"type:varchar(64);not null;uniqueIndex:uidx_team_invitation,priority:2;index:idx_invitation_daily,priority:1"`
+	OperatorStudentID  string    `gorm:"type:varchar(64);not null"`
+	DedupeKey          string    `gorm:"type:varchar(255);not null;uniqueIndex"`
+	ObservedAt         time.Time `gorm:"not null"`
+	ExpiresAt          time.Time `gorm:"not null"`
+	Disposition        string    `gorm:"type:varchar(16);not null;index:idx_invitation_daily,priority:2"`
+	SuppressedReason   string    `gorm:"type:varchar(32)"`
+	CreatedAt          time.Time `gorm:"index:idx_invitation_daily,priority:3"`
+	UpdatedAt          time.Time
+}
+
+func (LibraryTeamInvitation) TableName() string { return "library_team_invitations" }

@@ -5,6 +5,8 @@ import "github.com/prometheus/client_golang/prometheus"
 // LibraryReminderMetrics 包含持久化图书馆提醒流水线所需的运维指标。
 // 标签仅使用有限枚举，学号、预约 ID 和去重键不得作为指标标签。
 type LibraryReminderMetrics struct {
+	InvitationRequestsTotal       *prometheus.CounterVec
+	PreferenceCaughtUpAt          prometheus.Gauge
 	PreferenceSyncTotal           *prometheus.CounterVec
 	PreferenceSyncLagSeconds      prometheus.Gauge
 	RefreshUsersTotal             *prometheus.CounterVec
@@ -22,6 +24,8 @@ type LibraryReminderMetrics struct {
 
 func newLibraryReminderMetrics(namespace string) *LibraryReminderMetrics {
 	return &LibraryReminderMetrics{
+		InvitationRequestsTotal:       prometheus.NewCounterVec(prometheus.CounterOpts{Namespace: namespace, Name: "library_invitation_requests_total", Help: "Library invitation requests by fixed result."}, []string{"result"}),
+		PreferenceCaughtUpAt:          prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "library_preference_caught_up_timestamp_seconds", Help: "Last successful preference catch-up in this process; zero before readiness."}),
 		PreferenceSyncTotal:           prometheus.NewCounterVec(prometheus.CounterOpts{Namespace: namespace, Name: "library_preference_sync_total", Help: "Library preference synchronization runs by result."}, []string{"result"}),
 		PreferenceSyncLagSeconds:      prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "library_preference_sync_lag_seconds", Help: "Age of the newest applied Feed preference revision."}),
 		RefreshUsersTotal:             prometheus.NewCounterVec(prometheus.CounterOpts{Namespace: namespace, Name: "library_refresh_users_total", Help: "Library user refreshes by result."}, []string{"result"}),

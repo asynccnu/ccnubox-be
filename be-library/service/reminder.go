@@ -39,6 +39,7 @@ const (
 	NotificationBreach                = "BREACH"
 	NotificationBlacklisted           = "BLACKLISTED"
 	NotificationTeamSuccess           = "TEAM_SUCCESS"
+	NotificationTeamInvitation        = "TEAM_INVITATION"
 
 	reservationStatusMaxBytes   = 32
 	notificationMessageMaxBytes = 8 << 10
@@ -50,18 +51,19 @@ const (
 )
 
 type notificationPayload struct {
-	NotificationType string `json:"notification_type"`
-	ReservationID    string `json:"reservation_id,omitempty"`
-	SeatID           string `json:"seat_id,omitempty"`
-	SeatLabel        string `json:"seat_label,omitempty"`
-	Location         string `json:"location,omitempty"`
-	StartAt          int64  `json:"start_at,omitempty"`
-	EndAt            int64  `json:"end_at,omitempty"`
-	TargetAt         int64  `json:"target_at,omitempty"`
-	EpisodeVersion   int    `json:"episode_version,omitempty"`
-	Message          string `json:"message,omitempty"`
-	TeamID           string `json:"team_id,omitempty"`
-	OnDate           string `json:"on_date,omitempty"`
+	NotificationType    string `json:"notification_type"`
+	InvitationExpiresAt int64  `json:"invitation_expires_at,omitempty"`
+	ReservationID       string `json:"reservation_id,omitempty"`
+	SeatID              string `json:"seat_id,omitempty"`
+	SeatLabel           string `json:"seat_label,omitempty"`
+	Location            string `json:"location,omitempty"`
+	StartAt             int64  `json:"start_at,omitempty"`
+	EndAt               int64  `json:"end_at,omitempty"`
+	TargetAt            int64  `json:"target_at,omitempty"`
+	EpisodeVersion      int    `json:"episode_version,omitempty"`
+	Message             string `json:"message,omitempty"`
+	TeamID              string `json:"team_id,omitempty"`
+	OnDate              string `json:"on_date,omitempty"`
 }
 
 type userTaskKey struct {
@@ -133,6 +135,7 @@ func (g *userTaskGate) start(studentID, taskType string, preferenceVersion int64
 }
 
 type ReminderService struct {
+	invitation     *invitationState
 	dao            *dao.ReminderDAO
 	crawler        crawler.ReminderCrawler
 	user           userv1.UserServiceClient
@@ -150,7 +153,11 @@ func NewReminderService(repo *dao.ReminderDAO, reminderCrawler crawler.ReminderC
 	if metricSet != nil {
 		reminderMetrics = metricSet.Library
 	}
-	return &ReminderService{dao: repo, crawler: reminderCrawler, user: user, feed: feed, config: serverConf.Reminder(), logger: l, metrics: reminderMetrics, now: time.Now, preferenceLock: semaphore.NewWeighted(1), userTaskGate: newUserTaskGate()}
+	cfg := serverConf.Reminder()
+	if err := cfg.ValidateInvitation(); err != nil {
+		panic(err)
+	}
+	return &ReminderService{invitation: newInvitationState(cfg.TeamInvitation.MaxConcurrentRequests), dao: repo, crawler: reminderCrawler, user: user, feed: feed, config: cfg, logger: l, metrics: reminderMetrics, now: time.Now, preferenceLock: semaphore.NewWeighted(1), userTaskGate: newUserTaskGate()}
 }
 
 func (s *ReminderService) Enabled() bool { return s.config.Enabled }
@@ -193,7 +200,7 @@ func (s *ReminderService) syncPreferences(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if cursor < 0 {
+	if cursor < 0 || (s.notificationEnabled(NotificationTeamInvitation) && s.invitation.preferenceCaughtUp.Load() == 0) {
 		if err := s.rebuildPreferences(ctx); err != nil {
 			return err
 		}
@@ -210,6 +217,15 @@ func (s *ReminderService) syncPreferences(ctx context.Context) error {
 			return err
 		}
 		if len(changes) == 0 {
+			if s.invitation != nil {
+				s.invitation.preferenceCaughtUp.Store(s.now().UnixNano())
+				if s.metrics != nil {
+					s.metrics.PreferenceCaughtUpAt.Set(float64(s.now().Unix()))
+				}
+			}
+			if s.notificationEnabled(NotificationTeamInvitation) {
+				return nil
+			}
 			return s.refreshPendingBaselines(ctx)
 		}
 		daoChanges := make([]dao.PreferenceChange, 0, len(changes))
@@ -240,7 +256,7 @@ func (s *ReminderService) syncPreferences(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if s.config.ShouldBaselineOnEnable() {
+		if s.config.ShouldBaselineOnEnable() && !s.notificationEnabled(NotificationTeamInvitation) {
 			if err := s.forEachSubscription(ctx, enabled, s.RefreshUser); err != nil {
 				return fmt.Errorf("enable baseline batch: %w", err)
 			}
@@ -258,7 +274,7 @@ func (s *ReminderService) rebuildPreferences(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if s.config.ShouldBaselineOnEnable() {
+	if s.config.ShouldBaselineOnEnable() && !s.notificationEnabled(NotificationTeamInvitation) {
 		if err := s.forEachSubscription(ctx, enabled, s.RefreshUser); err != nil {
 			return fmt.Errorf("rebuild baseline batch: %w", err)
 		}
@@ -298,7 +314,7 @@ func (s *ReminderService) CalibratePreferences(ctx context.Context) error {
 		return err
 	}
 	var baselineErr error
-	if s.config.ShouldBaselineOnEnable() {
+	if s.config.ShouldBaselineOnEnable() && !s.notificationEnabled(NotificationTeamInvitation) {
 		if err := s.forEachSubscription(ctx, enabled, s.RefreshUser); err != nil {
 			baselineErr = fmt.Errorf("calibrate baseline batch: %w", err)
 		}
@@ -1098,6 +1114,9 @@ func (s *ReminderService) sendOutboxRow(ctx context.Context, row dao.Notificatio
 	if row.Type == NotificationTeamSuccess && (payload.NotificationType != row.Type || strings.TrimSpace(payload.TeamID) == "" || payload.TargetAt <= 0 || row.ExternalReservationID != "") {
 		return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "invalid team payload", nil)
 	}
+	if row.Type == NotificationTeamInvitation && (payload.NotificationType != row.Type || !commontool.IsValidLibraryTeamID(payload.TeamID) || payload.TargetAt <= 0 || payload.InvitationExpiresAt <= payload.TargetAt || row.ExpiresAt == nil || !row.ExpiresAt.Equal(time.Unix(payload.InvitationExpiresAt, 0)) || row.ExternalReservationID != "" || payload.ReservationID != "") {
+		return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "invalid invitation payload", nil)
+	}
 	canSend, err := s.dao.CanSendOutbox(ctx, row)
 	if err != nil {
 		return err
@@ -1208,6 +1227,9 @@ func (s *ReminderService) sendOutboxRow(ctx context.Context, row dao.Notificatio
 		if payload.EndAt <= s.now().Unix() || (row.ExpiresAt != nil && !row.ExpiresAt.After(s.now())) {
 			return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "notification expired", nil)
 		}
+	}
+	if row.Type == NotificationTeamInvitation && payload.InvitationExpiresAt <= s.now().Unix() {
+		return s.dao.FinishOutbox(ctx, row, dao.OutboxSuppressed, "notification expired", nil)
 	}
 	event := payloadFeedEvent(row.DedupeKey, payload)
 	callCtx, cancel := s.remoteCallContext(ctx)
@@ -1329,6 +1351,8 @@ func (s *ReminderService) notificationEnabled(notificationType string) bool {
 		return types.Blacklisted
 	case NotificationTeamSuccess:
 		return types.TeamSuccess
+	case NotificationTeamInvitation:
+		return types.TeamInvitation
 	default:
 		return false
 	}
@@ -1678,6 +1702,9 @@ func payloadFeedEvent(dedupeKey string, payload notificationPayload) *feedv1.Fee
 		content = "你已暂离约 80 分钟，请尽快返回。"
 	case NotificationBreach:
 		content = "检测到新的图书馆违约记录，请查看图书馆规则。"
+	case NotificationTeamInvitation:
+		title = "研讨室组队邀请"
+		content = "你收到了一条研讨室组队邀请，请前往学校预约系统查看并确认，当前状态以学校系统为准。"
 	case NotificationTeamSuccess:
 		title = "研讨间组队成功"
 		content = "检测到你参与的研讨间队伍已组队成功。"
@@ -1708,7 +1735,10 @@ func payloadFeedEvent(dedupeKey string, payload notificationPayload) *feedv1.Fee
 	if payload.EndAt != 0 {
 		extend["end_at"] = strconvFormat(payload.EndAt)
 	}
-	if payload.TargetAt != 0 && payload.NotificationType != NotificationTeamSuccess {
+	if payload.InvitationExpiresAt != 0 {
+		extend["expires_at"] = strconvFormat(payload.InvitationExpiresAt)
+	}
+	if payload.TargetAt != 0 && payload.NotificationType != NotificationTeamSuccess && payload.NotificationType != NotificationTeamInvitation {
 		extend["target_at"] = strconvFormat(payload.TargetAt)
 	}
 	if payload.EpisodeVersion != 0 {

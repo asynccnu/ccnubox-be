@@ -51,6 +51,8 @@ func NewWithRegisterer(reg prometheus.Registerer, namespace string) *Metrics {
 	m.Client.StartupDuration = registerVec(reg, m.Client.StartupDuration)
 	m.Client.IngestedEventsTotal = registerVec(reg, m.Client.IngestedEventsTotal)
 	m.Client.RejectedBatches = registerVec(reg, m.Client.RejectedBatches)
+	m.Library.InvitationRequestsTotal = registerVec(reg, m.Library.InvitationRequestsTotal)
+	m.Library.PreferenceCaughtUpAt = registerVec(reg, m.Library.PreferenceCaughtUpAt)
 	m.Library.PreferenceSyncTotal = registerVec(reg, m.Library.PreferenceSyncTotal)
 	m.Library.PreferenceSyncLagSeconds = registerVec(reg, m.Library.PreferenceSyncLagSeconds)
 	m.Library.RefreshUsersTotal = registerVec(reg, m.Library.RefreshUsersTotal)

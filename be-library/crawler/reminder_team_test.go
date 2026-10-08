@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -112,5 +113,50 @@ func TestGetCurrentTeamResponseMetrics(t *testing.T) {
 				t.Fatalf("requests=%v durations=%d", requests, durations)
 			}
 		})
+	}
+}
+
+func TestDecodeInvitationTeamStrict(t *testing.T) {
+	// 状态 7 仅用于结构校验，真正白名单由服务配置经契约核验后提供。
+	valid := `{"id":2102744440918429696,"status":0,"username":"operator","isMasterUser":true,"expirationTime":"2026-09-23 23:58:36","userInfoList":[{"username":"A","status":7}]}`
+	team, err := decodeInvitationTeam([]byte(valid))
+	if err != nil || team.ID != "2102744440918429696" || team.Members["A"] != 7 || team.ExpirationTime.Hour() != 23 {
+		t.Fatalf("team=%+v err=%v", team, err)
+	}
+	for _, raw := range []string{
+		`null`, `{}`, `[]`,
+		strings.Replace(valid, `"isMasterUser":true,`, "", 1),
+		strings.Replace(valid, `"isMasterUser":true`, `"isMasterUser":null`, 1),
+		strings.Replace(valid, `"username":"operator"`, `"username":123`, 1),
+		strings.Replace(valid, `"expirationTime":"2026-09-23 23:58:36"`, `"expirationTime":""`, 1),
+		strings.Replace(valid, `"status":7`, `"status":null`, 1),
+		strings.Replace(valid, `"status":7`, `"status":"7"`, 1),
+		strings.Replace(valid, `[{"username":"A","status":7}]`, `null`, 1),
+		strings.Replace(valid, `[{"username":"A","status":7}]`, `[{"username":"A","status":7},{"username":"A","status":1}]`, 1),
+	} {
+		if _, err := decodeInvitationTeam([]byte(raw)); err == nil {
+			t.Errorf("accepted %s", raw)
+		}
+	}
+	if team, err := decodeInvitationTeam([]byte(`""`)); err != nil || team != nil {
+		t.Fatalf("empty=%v err=%v", team, err)
+	}
+}
+
+func TestInvitationUsesStrictBusinessSuccessAndRawToken(t *testing.T) {
+	for _, body := range []string{`{"status":true,"code":200,"data":""}`, `{"status":true,"code":0,"data":""}`, `{"status":false,"code":200,"data":""}`, `{"status":true,"code":200,"data":null}`} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("Authorization") != "raw-jwt" || r.URL.Path != reminderTeamPath {
+				t.Errorf("request=%v", r)
+			}
+			fmt.Fprint(w, body)
+		}))
+		c := NewReminderCrawler(server.Client(), time.Second, 20, 3, 100)
+		c.baseURL = server.URL
+		_, err := c.GetCurrentTeamForInvitation(context.Background(), "raw-jwt")
+		if (err == nil) != (body == `{"status":true,"code":200,"data":""}`) {
+			t.Errorf("body=%s err=%v", body, err)
+		}
+		server.Close()
 	}
 }

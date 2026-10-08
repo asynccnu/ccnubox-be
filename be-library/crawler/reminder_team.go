@@ -25,24 +25,29 @@ type ReminderTeam struct {
 
 // GetCurrentTeam 使用讨论间裸 Token，不进入座位签名/HMAC 路径。
 func (c *ReminderHTTPClient) GetCurrentTeam(parent context.Context, token string) (*ReminderTeam, error) {
+	var team *ReminderTeam
+	err := c.getCurrentTeamResponse(parent, token, func(raw json.RawMessage) error {
+		var err error
+		team, err = decodeReminderTeam(raw)
+		return err
+	})
+	return team, err
+}
+
+func (c *ReminderHTTPClient) getCurrentTeamResponse(parent context.Context, token string, decode func(json.RawMessage) error) error {
 	if strings.TrimSpace(token) == "" {
-		return nil, fmt.Errorf("%w: empty token", ErrUpstreamStateUnknown)
+		return fmt.Errorf("%w: empty token", ErrUpstreamStateUnknown)
 	}
 	ctx, cancel := context.WithTimeout(parent, c.requestTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+reminderTeamPath, nil)
 	if err != nil {
-		return nil, fmt.Errorf("%w: create team request", ErrUpstreamStateUnknown)
+		return fmt.Errorf("%w: create team request", ErrUpstreamStateUnknown)
 	}
 	req.Header.Set("Authorization", token)
 	req.Header.Set("Accept", "application/json")
-	var team *ReminderTeam
-	_, err = c.doResponse(req, true, func(raw json.RawMessage) error {
-		var decodeErr error
-		team, decodeErr = decodeReminderTeam(raw)
-		return decodeErr
-	})
-	return team, err
+	_, err = c.doResponse(req, true, decode)
+	return err
 }
 
 func decodeReminderTeam(raw json.RawMessage) (*ReminderTeam, error) {

@@ -97,6 +97,26 @@ func IsOldStudent(id string) bool {
 }
 ```
 
+### 图书馆组队邀请参数校验
+队伍 ID 必须是 1～128 字节的 ASCII 十进制数字字符串；收件人校验沿用学号存储边界，拒绝自通知，并在去重前检查原始人数。
+
+```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/asynccnu/ccnubox-be/common/tool"
+)
+
+func main() {
+    teamID := "2102744440918429696"
+    fmt.Println(tool.IsValidLibraryTeamID(teamID)) // 输出 true
+    recipients, err := tool.NormalizeTeamInvitation("20260001", teamID, []string{"20260003", "20260002", "20260003"}, 20)
+    fmt.Println(recipients, err) // 输出 [20260002 20260003] <nil>
+}
+```
+
 ## 最佳实践
 1. **模块化引用**：对业务层暴露接口时，优先返回 `common/pkg/errorx` 中的错误，以便统一日志/告警串联。
 2. **观测一致性**：所有长生命周期任务、gRPC Server 请同时注入 [`common/pkg/otelx`](common/pkg/otelx/otel.go:1) 和 [`common/pkg/logger`](common/pkg/logger/types.go:1) 产出的实例，保证 Trace/Log 关联。

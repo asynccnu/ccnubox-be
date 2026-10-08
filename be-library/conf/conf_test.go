@@ -44,3 +44,41 @@ func TestTeamReminderDefaults(t *testing.T) {
 		t.Fatal("显式配置未开启组队提醒")
 	}
 }
+
+func TestInvitationConfigurationGate(t *testing.T) {
+	defaults := (*ServerConf)(nil).Reminder()
+	if defaults.NotificationTypes.TeamInvitation || defaults.TeamInvitation.ContractVerified || defaults.TeamInvitation.MaxRecipients != 20 || defaults.TeamInvitation.MaxDeliveryAge != 15*time.Minute {
+		t.Fatalf("defaults=%+v", defaults)
+	}
+	if err := defaults.ValidateInvitation(); err != nil {
+		t.Fatal(err)
+	}
+	for _, mutate := range []func(*LibraryReminderConf){
+		func(c *LibraryReminderConf) { c.NotificationTypes.TeamInvitation = true },
+		func(c *LibraryReminderConf) { c.Enabled = true; c.NotificationTypes.TeamInvitation = true },
+		func(c *LibraryReminderConf) { c.TeamInvitation.MaxRecipients = -1 },
+		func(c *LibraryReminderConf) { c.TeamInvitation.MaxRecipients = 21 },
+		func(c *LibraryReminderConf) { c.TeamInvitation.MaxDeliveryAge = time.Hour },
+		func(c *LibraryReminderConf) { c.TeamInvitation.RequestTimeout = time.Minute },
+		func(c *LibraryReminderConf) {
+			c.TeamInvitation.ContractVerified = true
+			c.TeamInvitation.KnownMemberStatuses = []int{1, 7}
+			c.TeamInvitation.PendingMemberStatuses = []int{1}
+		},
+	} {
+		c := (*ServerConf)(nil).Reminder()
+		mutate(&c)
+		if err := c.ValidateInvitation(); err == nil {
+			t.Fatalf("accepted=%+v", c)
+		}
+	}
+	c := (*ServerConf)(nil).Reminder()
+	c.Enabled = true
+	c.NotificationTypes.TeamInvitation = true
+	c.TeamInvitation.ContractVerified = true
+	c.TeamInvitation.KnownMemberStatuses = []int{1, 7, 8}
+	c.TeamInvitation.PendingMemberStatuses = []int{7}
+	if err := c.ValidateInvitation(); err != nil {
+		t.Fatal(err)
+	}
+}

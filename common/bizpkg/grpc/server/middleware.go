@@ -3,8 +3,11 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
+	libraryv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/go-kratos/kratos/v2/middleware"
@@ -43,7 +46,7 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 					logger.Error(err),
 					logger.String("operationName", operationName),
 					logger.String("endPointName", endPointName),
-					logger.String("request", fmt.Sprintf("%v", req)),
+					logger.String("request", requestLogValue(req)),
 					logger.String("reqHeader", fmt.Sprintf("%v", reqHeader)),
 					logger.String("duration", duration.String()),
 				)
@@ -57,7 +60,7 @@ func LoggingMiddleware(l logger.Logger) middleware.Middleware {
 				l.WithContext(ctx).Info("请求成功",
 					logger.String("operationName", operationName),
 					logger.String("endPointName", endPointName),
-					logger.String("request", fmt.Sprintf("%v", req)),
+					logger.String("request", requestLogValue(req)),
 					logger.String("reqHeader", fmt.Sprintf("%v", reqHeader)),
 					logger.String("duration", duration.String()),
 				)
@@ -83,4 +86,17 @@ func HealthMiddleware(hs *health.Server) middleware.Middleware {
 			return reply, err
 		}
 	}
+}
+
+// 邀请请求含收件人列表，成功和失败均不能将其写入通用 RPC 日志。
+func requestLogValue(req any) string {
+	switch value := req.(type) {
+	case *libraryv1.NotifyTeamInvitationRequest:
+		return "[REDACTED: team invitation]"
+	case *feedv1.PublicFeedEventReq:
+		if value.GetEvent().GetType() == feedv1.FeedEventType_LIBRARY && strings.EqualFold(strings.TrimSpace(value.GetEvent().GetExtendFields()["notification_type"]), "TEAM_INVITATION") {
+			return "[REDACTED: team invitation feed]"
+		}
+	}
+	return fmt.Sprintf("%v", req)
 }

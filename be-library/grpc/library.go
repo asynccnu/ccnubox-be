@@ -64,6 +64,18 @@ func (l *LibraryServiceServer) ConfirmReservation(ctx context.Context, req *v1.C
 	return l.seat.ConfirmReservation(ctx, req)
 }
 
+func (l *LibraryServiceServer) GetSmartSeatPlans(ctx context.Context, req *v1.GetSmartSeatPlansRequest) (*v1.GetSmartSeatPlansResponse, error) {
+	return l.seat.GetSmartSeatPlans(ctx, req)
+}
+
+func (l *LibraryServiceServer) ReserveSmartSeatPlan(ctx context.Context, req *v1.ReserveSmartSeatPlanRequest) (*v1.ReserveSmartSeatPlanResponse, error) {
+	return l.seat.ReserveSmartSeatPlan(ctx, req)
+}
+
+func (l *LibraryServiceServer) CancelSmartSeatPlan(ctx context.Context, req *v1.CancelSmartSeatPlanRequest) (*v1.CancelSmartSeatPlanResponse, error) {
+	return l.seat.CancelSmartSeatPlan(ctx, req)
+}
+
 func (l *LibraryServiceServer) CreateComment(ctx context.Context, req *v1.CreateCommentReq) (*v1.Resp, error) {
 	return l.comment.CreateComment(ctx, req)
 }

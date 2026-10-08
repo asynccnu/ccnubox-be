@@ -12,6 +12,7 @@ import (
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -28,18 +29,23 @@ type SeatService interface {
 	ReserveSeatRandomly(ctx context.Context, req *v1.ReserveSeatRandomlyRequest) (*v1.ReserveSeatRandomlyResponse, error)
 	GetRandomSeat(ctx context.Context, req *v1.GetRandomSeatRequest) (*v1.GetRandomSeatResponse, error)
 	ConfirmReservation(ctx context.Context, req *v1.ConfirmReservationRequest) (*v1.ConfirmReservationResponse, error)
+	GetSmartSeatPlans(ctx context.Context, req *v1.GetSmartSeatPlansRequest) (*v1.GetSmartSeatPlansResponse, error)
+	ReserveSmartSeatPlan(ctx context.Context, req *v1.ReserveSmartSeatPlanRequest) (*v1.ReserveSmartSeatPlanResponse, error)
+	CancelSmartSeatPlan(ctx context.Context, req *v1.CancelSmartSeatPlanRequest) (*v1.CancelSmartSeatPlanResponse, error)
 }
 
 type seatService struct {
 	crawler    *crawler.Crawler
 	userClient userv1.UserServiceClient
+	rdb        *redis.Client
 	l          logger.Logger
 }
 
-func NewSeatService(userClient userv1.UserServiceClient, libCrawler *crawler.Crawler, l logger.Logger) SeatService {
+func NewSeatService(userClient userv1.UserServiceClient, libCrawler *crawler.Crawler, rdb *redis.Client, l logger.Logger) SeatService {
 	return &seatService{
 		crawler:    libCrawler,
 		userClient: userClient,
+		rdb:        rdb,
 		l:          l,
 	}
 }

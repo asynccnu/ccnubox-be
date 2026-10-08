@@ -2865,6 +2865,107 @@ const docTemplate = `{
                 }
             }
         },
+        "/library/notify_team_invitation": {
+            "post": {
+                "description": "仅队长上报学校已邀请且待确认的成员；同队同人最多一次。受理不表示已送达，不返回收件人订阅或设备情况。默认关闭，临时失败最多自动重试三次。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "library"
+                ],
+                "summary": "提交研讨室组队邀请通知",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "队伍ID为数字字符串；原始学号数组1～20项，请求体最多8KiB",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/library.NotifyTeamInvitationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "通知请求已受理",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/web.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/library.NotifyTeamInvitationResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "非法参数、未知字段、自通知或尾随JSON",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或Token失效",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "学校身份或队长不匹配",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "队伍或邀请关系已失效",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "413": {
+                        "description": "请求体超过8KiB",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "频率超限，按Retry-After退避",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "事务失败，使用相同参数重试",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "功能关闭、订阅未就绪或学校依赖暂不可用",
+                        "schema": {
+                            "$ref": "#/definitions/web.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/library/reserve_randomly": {
             "post": {
                 "description": "全校随机选座（可指定楼层）",
@@ -5388,6 +5489,34 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/library.Room"
                     }
+                }
+            }
+        },
+        "library.NotifyTeamInvitationRequest": {
+            "type": "object",
+            "required": [
+                "student_ids",
+                "team_id"
+            ],
+            "properties": {
+                "student_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "team_id": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 1
+                }
+            }
+        },
+        "library.NotifyTeamInvitationResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
                 }
             }
         },

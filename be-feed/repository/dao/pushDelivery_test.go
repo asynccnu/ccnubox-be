@@ -142,6 +142,74 @@ func TestPushDeliveryRecoversSendingOnlyAtStartup(t *testing.T) {
 	}
 }
 
+func TestTeamSuccessStoredWithPushDelivery(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedUserConfig{}, &model.FeedPushDelivery{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.FeedUserConfig{StudentId: "20260001", PushConfig: model.DefaultPushConfig}).Error; err != nil {
+		t.Fatal(err)
+	}
+	repo := NewFeedEventDAO(db)
+	team := model.FeedEvent{StudentId: "20260001", Type: "library", DedupeKey: "team-1", ExtendFields: model.ExtendFields{"notification_type": "TEAM_SUCCESS", "team_id": "1"}}
+	normal := model.FeedEvent{StudentId: "20260001", Type: "library", DedupeKey: "normal-1", ExtendFields: model.ExtendFields{"notification_type": "START_30"}}
+	inserted, suppressed, err := repo.StoreFeedEvents(context.Background(), []model.FeedEvent{team, normal, team})
+	if err != nil || suppressed != 0 || len(inserted) != 2 {
+		t.Fatalf("inserted=%+v suppressed=%d err=%v", inserted, suppressed, err)
+	}
+	var count int64
+	if err := db.Model(&model.FeedPushDelivery{}).Count(&count).Error; err != nil || count != 2 {
+		t.Fatalf("deliveries=%d err=%v", count, err)
+	}
+	for _, event := range inserted {
+		if err := db.Model(&model.FeedPushDelivery{}).Where("feed_event_id = ? AND status = ?", event.ID, model.PushDeliveryPending).Count(&count).Error; err != nil || count != 1 {
+			t.Fatalf("event %d push delivery count=%d err=%v", event.ID, count, err)
+		}
+	}
+	if err := db.Model(&model.FeedEvent{}).Count(&count).Error; err != nil || count != 2 {
+		t.Fatalf("events=%d err=%v", count, err)
+	}
+}
+
+func TestInvitationStoreIsAtomicAndDeduplicated(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqlDB, _ := db.DB()
+	defer sqlDB.Close()
+	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedPushDelivery{}, &model.FeedUserConfig{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.FeedUserConfig{StudentId: "A", PushConfig: 1 << model.LibraryPos}).Error; err != nil {
+		t.Fatal(err)
+	}
+	event := model.FeedEvent{StudentId: "A", Type: "library", DedupeKey: "invitation", Source: "library", OccurredAt: 1, ExtendFields: model.ExtendFields{"notification_type": "TEAM_INVITATION", "team_id": "1", "expires_at": "2"}}
+	repo := NewFeedEventDAO(db)
+	// 过期只影响推送，不能阻止已被接受的事实落库。
+	inserted, suppressed, err := repo.StoreFeedEvents(context.Background(), []model.FeedEvent{event, event})
+	if err != nil || len(inserted) != 1 || suppressed != 0 {
+		t.Fatalf("inserted=%v suppressed=%d err=%v", inserted, suppressed, err)
+	}
+	for _, m := range []any{&model.FeedEvent{}, &model.FeedPushDelivery{}} {
+		var count int64
+		if err := db.Model(m).Count(&count).Error; err != nil || count != 1 {
+			t.Fatalf("model=%T count=%d err=%v", m, count, err)
+		}
+	}
+	if priority := pushDeliveryPriority(event); priority != 0 {
+		t.Fatalf("priority=%d", priority)
+	}
+	event.StudentId = "not-subscribed"
+	inserted, suppressed, err = repo.StoreFeedEvents(context.Background(), []model.FeedEvent{event})
+	if err != nil || len(inserted) != 0 || suppressed != 1 {
+		t.Fatalf("inserted=%v suppressed=%d err=%v", inserted, suppressed, err)
+	}
+}
+
 func TestPushTargetReadOnlyAndBounded(t *testing.T) {
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})

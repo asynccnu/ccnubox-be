@@ -116,6 +116,9 @@ func (d *ReminderDAO) ApplyPreferenceChanges(ctx context.Context, changes []Pref
 				updates["enabled"] = change.Enabled
 				updates["preference_version"] = gorm.Expr("preference_version + 1")
 				updates["baseline_completed"] = false
+				updates["team_baseline_completed"] = false
+				updates["last_team_scan_at"] = nil
+				updates["last_team_scan_attempt_at"] = nil
 			}
 			if err := tx.Model(&sub).Updates(updates).Error; err != nil {
 				return err
@@ -182,6 +185,9 @@ func (d *ReminderDAO) reconcilePreferences(ctx context.Context, users []Preferen
 					if resetBaseline {
 						updates["enabled"] = true
 						updates["baseline_completed"] = false
+						updates["team_baseline_completed"] = false
+						updates["last_team_scan_at"] = nil
+						updates["last_team_scan_attempt_at"] = nil
 						updates["preference_version"] = gorm.Expr("preference_version + 1")
 					}
 					if len(updates) > 0 {
@@ -203,7 +209,7 @@ func (d *ReminderDAO) reconcilePreferences(ctx context.Context, users []Preferen
 				if !sub.Enabled {
 					continue
 				}
-				if err := tx.Model(&sub).Updates(map[string]any{"enabled": false, "baseline_completed": false, "preference_version": gorm.Expr("preference_version + 1")}).Error; err != nil {
+				if err := tx.Model(&sub).Updates(map[string]any{"enabled": false, "baseline_completed": false, "team_baseline_completed": false, "last_team_scan_at": nil, "last_team_scan_attempt_at": nil, "preference_version": gorm.Expr("preference_version + 1")}).Error; err != nil {
 					return err
 				}
 				if err := suppressStudentWorkTx(tx, sub.StudentID); err != nil {
@@ -271,6 +277,42 @@ func (d *ReminderDAO) EnabledSubscriptions(ctx context.Context, limit int) ([]Li
 	err := d.db.WithContext(ctx).Where("enabled = ?", true).
 		Order("last_full_refresh_at IS NULL DESC, last_full_refresh_at ASC, id ASC").Limit(limit).Find(&rows).Error
 	return rows, err
+}
+
+// TeamSubscriptions 使用固定轮次截止时间与尝试时间、主键复合游标遍历。
+// 老的失败用户不会反复占据首批位置，未尝试用户优先被扫描。
+func (d *ReminderDAO) TeamSubscriptions(ctx context.Context, cutoff time.Time, afterAttempt *time.Time, afterID int64, limit int) ([]LibraryReminderSubscription, error) {
+	var rows []LibraryReminderSubscription
+	query := d.db.WithContext(ctx).Where("enabled = ? AND (last_team_scan_attempt_at IS NULL OR last_team_scan_attempt_at <= ?)", true, cutoff)
+	if afterAttempt == nil {
+		query = query.Where("(last_team_scan_attempt_at IS NULL AND id > ?) OR last_team_scan_attempt_at IS NOT NULL", afterID)
+	} else {
+		query = query.Where("last_team_scan_attempt_at > ? OR (last_team_scan_attempt_at = ? AND id > ?)", *afterAttempt, *afterAttempt, afterID)
+	}
+	err := query.Order("last_team_scan_attempt_at ASC, id ASC").Limit(limit).Find(&rows).Error
+	return rows, err
+}
+
+func (d *ReminderDAO) MarkTeamAttempt(ctx context.Context, studentID string, version int64, at time.Time) (bool, error) {
+	result := d.db.WithContext(ctx).Model(&LibraryReminderSubscription{}).
+		Where("student_id = ? AND enabled = ? AND preference_version = ?", studentID, true, version).
+		Update("last_team_scan_attempt_at", at)
+	return result.RowsAffected == 1, result.Error
+}
+
+func (d *ReminderDAO) Team(ctx context.Context, studentID, teamID string) (*LibraryTeamSnapshot, error) {
+	var row LibraryTeamSnapshot
+	err := d.db.WithContext(ctx).Where("student_id = ? AND team_id = ?", studentID, teamID).First(&row).Error
+	return &row, err
+}
+
+func (d *ReminderDAO) SaveTeam(ctx context.Context, row *LibraryTeamSnapshot) error {
+	return d.db.WithContext(ctx).Save(row).Error
+}
+
+func (d *ReminderDAO) MarkTeamScan(ctx context.Context, studentID string, at time.Time) error {
+	return d.db.WithContext(ctx).Model(&LibraryReminderSubscription{}).Where("student_id = ? AND enabled = ?", studentID, true).
+		Updates(map[string]any{"team_baseline_completed": true, "last_team_scan_at": at}).Error
 }
 
 func (d *ReminderDAO) PendingBaselineSubscriptions(ctx context.Context, limit int) ([]LibraryReminderSubscription, error) {

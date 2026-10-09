@@ -8,6 +8,8 @@ func InitTables(db *gorm.DB) error {
 		&LibraryReminderSubscription{},
 		&LibraryPreferenceSyncCursor{},
 		&ReservationSnapshot{},
+		&LibraryTeamSnapshot{},
+		&LibraryTeamInvitation{},
 		&LibraryUserStateSnapshot{},
 		&AwayEpisode{},
 		&NotificationJob{},

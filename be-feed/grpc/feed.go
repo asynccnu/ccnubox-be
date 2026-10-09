@@ -281,11 +281,17 @@ func validatePublicFeedEventRequest(req *feedv1.PublicFeedEventReq) error {
 		}
 	}
 	if event.GetType() == feedv1.FeedEventType_LIBRARY {
+		if err := domain.ValidateLibraryTeamInvitation(domain.FeedEvent{Type: "library", Source: event.GetSource(), Url: event.GetUrl(), OccurredAt: event.GetOccurredAt(), ExtendFields: event.GetExtendFields()}); err != nil {
+			return status.Error(codes.InvalidArgument, "invalid team invitation metadata")
+		}
 		if req.GetIsAll() || event.GetDedupeKey() == "" || event.GetSource() != "library" || event.GetOccurredAt() <= 0 {
 			return status.Error(codes.InvalidArgument, "library event requires dedupe_key, source=library and occurred_at")
 		}
 		allowedFields := map[string]struct{}{
 			"notification_type": {},
+			"team_id":           {},
+			"expires_at":        {},
+			"on_date":           {},
 			"reservation_id":    {},
 			"seat_id":           {},
 			"seat_label":        {},
@@ -295,6 +301,9 @@ func validatePublicFeedEventRequest(req *feedv1.PublicFeedEventReq) error {
 			"target_at":         {},
 			"episode_version":   {},
 			"deep_link":         {},
+		}
+		if strings.EqualFold(strings.TrimSpace(event.GetExtendFields()["notification_type"]), "TEAM_SUCCESS") && strings.TrimSpace(event.GetExtendFields()["team_id"]) == "" {
+			return status.Error(codes.InvalidArgument, "team_success requires team_id")
 		}
 		for key := range event.GetExtendFields() {
 			if _, allowed := allowedFields[key]; !allowed {

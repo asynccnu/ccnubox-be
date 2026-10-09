@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/asynccnu/ccnubox-be/be-feed/pkg/jpush"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
@@ -227,6 +228,12 @@ func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.Fe
 			if err == nil {
 				// 持久化 JPush 签发的 CID，让重试保持幂等。
 				err = s.push.PushPreparedMSGWithCID(ctx, &domainEvent, prepared, cid)
+				if errors.Is(err, jpush.ErrPushExpired) {
+					err = s.markExpired(ctx, delivery.ID)
+					if err == nil {
+						return nil
+					}
+				}
 			}
 		}
 	}
@@ -276,6 +283,8 @@ func libraryPushExpired(event *model.FeedEvent, now time.Time) bool {
 	}
 	var field string
 	switch strings.ToUpper(strings.TrimSpace(event.ExtendFields["notification_type"])) {
+	case "TEAM_INVITATION":
+		field = "expires_at"
 	case "START_30":
 		field = "start_at"
 	case "END_10", "AWAY_60", "AWAY_80":

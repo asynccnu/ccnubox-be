@@ -2095,6 +2095,86 @@ paths:
       summary: 智能选座方案
       tags:
         - library
+  /library/notify_team_invitation:
+    post:
+      description: 仅队长上报学校已邀请且待确认的成员；同队同人最多一次。受理不表示已送达，不返回收件人订阅或设备情况。默认关闭，临时失败最多自动重试三次。
+      parameters:
+        - description: Bearer Token
+          in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/library.NotifyTeamInvitationRequest"
+        description: 队伍ID为数字字符串；原始学号数组1～20项，请求体最多8KiB
+        required: true
+      responses:
+        "200":
+          description: 通知请求已受理
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/web.Response"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/library.NotifyTeamInvitationResponse"
+                    type: object
+        "400":
+          description: 非法参数、未知字段、自通知或尾随JSON
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "401":
+          description: 未登录或Token失效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "403":
+          description: 学校身份或队长不匹配
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "409":
+          description: 队伍或邀请关系已失效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "413":
+          description: 请求体超过8KiB
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "429":
+          description: 频率超限，按Retry-After退避
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: 事务失败，使用相同参数重试
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "503":
+          description: 功能关闭、订阅未就绪或学校依赖暂不可用
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+      summary: 提交研讨室组队邀请通知
+      tags:
+        - library
   /library/reserve_randomly:
     post:
       description: 全校随机选座（可指定楼层）
@@ -3924,6 +4004,25 @@ components:
           items:
             $ref: "#/components/schemas/library.SmartSeatPlan"
           type: array
+      type: object
+    library.NotifyTeamInvitationRequest:
+      properties:
+        student_ids:
+          items:
+            type: string
+          type: array
+        team_id:
+          maxLength: 128
+          minLength: 1
+          type: string
+      required:
+        - student_ids
+        - team_id
+      type: object
+    library.NotifyTeamInvitationResponse:
+      properties:
+        status:
+          type: string
       type: object
     library.Record:
       properties:

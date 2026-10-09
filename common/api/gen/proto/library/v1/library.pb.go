@@ -2670,6 +2670,103 @@ func (x *Resp) GetMessage() string {
 	return ""
 }
 
+// 仅受理已由学校邀请且尚待确认的成员通知。
+type NotifyTeamInvitationRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	OperatorStudentId string                 `protobuf:"bytes,1,opt,name=operator_student_id,json=operatorStudentId,proto3" json:"operator_student_id,omitempty"`
+	TeamId            string                 `protobuf:"bytes,2,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
+	StudentIds        []string               `protobuf:"bytes,3,rep,name=student_ids,json=studentIds,proto3" json:"student_ids,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *NotifyTeamInvitationRequest) Reset() {
+	*x = NotifyTeamInvitationRequest{}
+	mi := &file_library_v1_library_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotifyTeamInvitationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotifyTeamInvitationRequest) ProtoMessage() {}
+
+func (x *NotifyTeamInvitationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_library_v1_library_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotifyTeamInvitationRequest.ProtoReflect.Descriptor instead.
+func (*NotifyTeamInvitationRequest) Descriptor() ([]byte, []int) {
+	return file_library_v1_library_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *NotifyTeamInvitationRequest) GetOperatorStudentId() string {
+	if x != nil {
+		return x.OperatorStudentId
+	}
+	return ""
+}
+
+func (x *NotifyTeamInvitationRequest) GetTeamId() string {
+	if x != nil {
+		return x.TeamId
+	}
+	return ""
+}
+
+func (x *NotifyTeamInvitationRequest) GetStudentIds() []string {
+	if x != nil {
+		return x.StudentIds
+	}
+	return nil
+}
+
+type NotifyTeamInvitationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotifyTeamInvitationResponse) Reset() {
+	*x = NotifyTeamInvitationResponse{}
+	mi := &file_library_v1_library_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotifyTeamInvitationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotifyTeamInvitationResponse) ProtoMessage() {}
+
+func (x *NotifyTeamInvitationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_library_v1_library_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotifyTeamInvitationResponse.ProtoReflect.Descriptor instead.
+func (*NotifyTeamInvitationResponse) Descriptor() ([]byte, []int) {
+	return file_library_v1_library_proto_rawDescGZIP(), []int{45}
+}
+
 var File_library_v1_library_proto protoreflect.FileDescriptor
 
 const file_library_v1_library_proto_rawDesc = "" +
@@ -2860,8 +2957,15 @@ const file_library_v1_library_proto_rawDesc = "" +
 	"\x02ID\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\" \n" +
 	"\x04Resp\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\xb5\v\n" +
-	"\x0eLibraryService\x12B\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\x87\x01\n" +
+	"\x1bNotifyTeamInvitationRequest\x12.\n" +
+	"\x13operator_student_id\x18\x01 \x01(\tR\x11operatorStudentId\x12\x17\n" +
+	"\ateam_id\x18\x02 \x01(\tR\x06teamId\x12\x1f\n" +
+	"\vstudent_ids\x18\x03 \x03(\tR\n" +
+	"studentIds\"\x1e\n" +
+	"\x1cNotifyTeamInvitationResponse2\xa0\f\n" +
+	"\x0eLibraryService\x12i\n" +
+	"\x14NotifyTeamInvitation\x12'.library.v1.NotifyTeamInvitationRequest\x1a(.library.v1.NotifyTeamInvitationResponse\x12B\n" +
 	"\aGetSeat\x12\x1a.library.v1.GetSeatRequest\x1a\x1b.library.v1.GetSeatResponse\x12N\n" +
 	"\vReserveSeat\x12\x1e.library.v1.ReserveSeatRequest\x1a\x1f.library.v1.ReserveSeatResponse\x12T\n" +
 	"\rGetSeatRecord\x12 .library.v1.GetSeatRecordRequest\x1a!.library.v1.GetSeatRecordResponse\x12W\n" +
@@ -2893,7 +2997,7 @@ func file_library_v1_library_proto_rawDescGZIP() []byte {
 	return file_library_v1_library_proto_rawDescData
 }
 
-var file_library_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_library_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_library_v1_library_proto_goTypes = []any{
 	(*GetSeatRequest)(nil),               // 0: library.v1.GetSeatRequest
 	(*GetSeatResponse)(nil),              // 1: library.v1.GetSeatResponse
@@ -2939,6 +3043,8 @@ var file_library_v1_library_proto_goTypes = []any{
 	(*GetCommentResp)(nil),               // 41: library.v1.GetCommentResp
 	(*ID)(nil),                           // 42: library.v1.ID
 	(*Resp)(nil),                         // 43: library.v1.Resp
+	(*NotifyTeamInvitationRequest)(nil),  // 44: library.v1.NotifyTeamInvitationRequest
+	(*NotifyTeamInvitationResponse)(nil), // 45: library.v1.NotifyTeamInvitationResponse
 }
 var file_library_v1_library_proto_depIdxs = []int32{
 	2,  // 0: library.v1.GetSeatResponse.room_seats:type_name -> library.v1.RoomSeat
@@ -2954,42 +3060,44 @@ var file_library_v1_library_proto_depIdxs = []int32{
 	33, // 10: library.v1.GetSmartSeatPlansResponse.plans:type_name -> library.v1.SmartSeatPlan
 	32, // 11: library.v1.ReserveSmartSeatPlanRequest.segments:type_name -> library.v1.SmartSeatSegment
 	39, // 12: library.v1.GetCommentResp.Comment:type_name -> library.v1.Comment
-	0,  // 13: library.v1.LibraryService.GetSeat:input_type -> library.v1.GetSeatRequest
-	6,  // 14: library.v1.LibraryService.ReserveSeat:input_type -> library.v1.ReserveSeatRequest
-	8,  // 15: library.v1.LibraryService.GetSeatRecord:input_type -> library.v1.GetSeatRecordRequest
-	11, // 16: library.v1.LibraryService.GetCreditPoint:input_type -> library.v1.GetCreditPointRequest
-	15, // 17: library.v1.LibraryService.GetDiscussion:input_type -> library.v1.GetDiscussionRequest
-	19, // 18: library.v1.LibraryService.SearchUser:input_type -> library.v1.SearchUserRequest
-	21, // 19: library.v1.LibraryService.ReserveDiscussion:input_type -> library.v1.ReserveDiscussionRequest
-	23, // 20: library.v1.LibraryService.CancelReserve:input_type -> library.v1.CancelReserveRequest
-	25, // 21: library.v1.LibraryService.ReserveSeatRandomly:input_type -> library.v1.ReserveSeatRandomlyRequest
-	27, // 22: library.v1.LibraryService.GetRandomSeat:input_type -> library.v1.GetRandomSeatRequest
-	29, // 23: library.v1.LibraryService.ConfirmReservation:input_type -> library.v1.ConfirmReservationRequest
-	31, // 24: library.v1.LibraryService.GetSmartSeatPlans:input_type -> library.v1.GetSmartSeatPlansRequest
-	35, // 25: library.v1.LibraryService.ReserveSmartSeatPlan:input_type -> library.v1.ReserveSmartSeatPlanRequest
-	37, // 26: library.v1.LibraryService.CancelSmartSeatPlan:input_type -> library.v1.CancelSmartSeatPlanRequest
-	40, // 27: library.v1.LibraryService.CreateComment:input_type -> library.v1.CreateCommentReq
-	42, // 28: library.v1.LibraryService.GetComments:input_type -> library.v1.ID
-	42, // 29: library.v1.LibraryService.DeleteComment:input_type -> library.v1.ID
-	1,  // 30: library.v1.LibraryService.GetSeat:output_type -> library.v1.GetSeatResponse
-	7,  // 31: library.v1.LibraryService.ReserveSeat:output_type -> library.v1.ReserveSeatResponse
-	9,  // 32: library.v1.LibraryService.GetSeatRecord:output_type -> library.v1.GetSeatRecordResponse
-	12, // 33: library.v1.LibraryService.GetCreditPoint:output_type -> library.v1.GetCreditPointResponse
-	16, // 34: library.v1.LibraryService.GetDiscussion:output_type -> library.v1.GetDiscussionResponse
-	20, // 35: library.v1.LibraryService.SearchUser:output_type -> library.v1.SearchUserResponse
-	22, // 36: library.v1.LibraryService.ReserveDiscussion:output_type -> library.v1.ReserveDiscussionResponse
-	24, // 37: library.v1.LibraryService.CancelReserve:output_type -> library.v1.CancelReserveResponse
-	26, // 38: library.v1.LibraryService.ReserveSeatRandomly:output_type -> library.v1.ReserveSeatRandomlyResponse
-	28, // 39: library.v1.LibraryService.GetRandomSeat:output_type -> library.v1.GetRandomSeatResponse
-	30, // 40: library.v1.LibraryService.ConfirmReservation:output_type -> library.v1.ConfirmReservationResponse
-	34, // 41: library.v1.LibraryService.GetSmartSeatPlans:output_type -> library.v1.GetSmartSeatPlansResponse
-	36, // 42: library.v1.LibraryService.ReserveSmartSeatPlan:output_type -> library.v1.ReserveSmartSeatPlanResponse
-	38, // 43: library.v1.LibraryService.CancelSmartSeatPlan:output_type -> library.v1.CancelSmartSeatPlanResponse
-	43, // 44: library.v1.LibraryService.CreateComment:output_type -> library.v1.Resp
-	41, // 45: library.v1.LibraryService.GetComments:output_type -> library.v1.GetCommentResp
-	43, // 46: library.v1.LibraryService.DeleteComment:output_type -> library.v1.Resp
-	30, // [30:47] is the sub-list for method output_type
-	13, // [13:30] is the sub-list for method input_type
+	44, // 13: library.v1.LibraryService.NotifyTeamInvitation:input_type -> library.v1.NotifyTeamInvitationRequest
+	0,  // 14: library.v1.LibraryService.GetSeat:input_type -> library.v1.GetSeatRequest
+	6,  // 15: library.v1.LibraryService.ReserveSeat:input_type -> library.v1.ReserveSeatRequest
+	8,  // 16: library.v1.LibraryService.GetSeatRecord:input_type -> library.v1.GetSeatRecordRequest
+	11, // 17: library.v1.LibraryService.GetCreditPoint:input_type -> library.v1.GetCreditPointRequest
+	15, // 18: library.v1.LibraryService.GetDiscussion:input_type -> library.v1.GetDiscussionRequest
+	19, // 19: library.v1.LibraryService.SearchUser:input_type -> library.v1.SearchUserRequest
+	21, // 20: library.v1.LibraryService.ReserveDiscussion:input_type -> library.v1.ReserveDiscussionRequest
+	23, // 21: library.v1.LibraryService.CancelReserve:input_type -> library.v1.CancelReserveRequest
+	25, // 22: library.v1.LibraryService.ReserveSeatRandomly:input_type -> library.v1.ReserveSeatRandomlyRequest
+	27, // 23: library.v1.LibraryService.GetRandomSeat:input_type -> library.v1.GetRandomSeatRequest
+	29, // 24: library.v1.LibraryService.ConfirmReservation:input_type -> library.v1.ConfirmReservationRequest
+	31, // 25: library.v1.LibraryService.GetSmartSeatPlans:input_type -> library.v1.GetSmartSeatPlansRequest
+	35, // 26: library.v1.LibraryService.ReserveSmartSeatPlan:input_type -> library.v1.ReserveSmartSeatPlanRequest
+	37, // 27: library.v1.LibraryService.CancelSmartSeatPlan:input_type -> library.v1.CancelSmartSeatPlanRequest
+	40, // 28: library.v1.LibraryService.CreateComment:input_type -> library.v1.CreateCommentReq
+	42, // 29: library.v1.LibraryService.GetComments:input_type -> library.v1.ID
+	42, // 30: library.v1.LibraryService.DeleteComment:input_type -> library.v1.ID
+	45, // 31: library.v1.LibraryService.NotifyTeamInvitation:output_type -> library.v1.NotifyTeamInvitationResponse
+	1,  // 32: library.v1.LibraryService.GetSeat:output_type -> library.v1.GetSeatResponse
+	7,  // 33: library.v1.LibraryService.ReserveSeat:output_type -> library.v1.ReserveSeatResponse
+	9,  // 34: library.v1.LibraryService.GetSeatRecord:output_type -> library.v1.GetSeatRecordResponse
+	12, // 35: library.v1.LibraryService.GetCreditPoint:output_type -> library.v1.GetCreditPointResponse
+	16, // 36: library.v1.LibraryService.GetDiscussion:output_type -> library.v1.GetDiscussionResponse
+	20, // 37: library.v1.LibraryService.SearchUser:output_type -> library.v1.SearchUserResponse
+	22, // 38: library.v1.LibraryService.ReserveDiscussion:output_type -> library.v1.ReserveDiscussionResponse
+	24, // 39: library.v1.LibraryService.CancelReserve:output_type -> library.v1.CancelReserveResponse
+	26, // 40: library.v1.LibraryService.ReserveSeatRandomly:output_type -> library.v1.ReserveSeatRandomlyResponse
+	28, // 41: library.v1.LibraryService.GetRandomSeat:output_type -> library.v1.GetRandomSeatResponse
+	30, // 42: library.v1.LibraryService.ConfirmReservation:output_type -> library.v1.ConfirmReservationResponse
+	34, // 43: library.v1.LibraryService.GetSmartSeatPlans:output_type -> library.v1.GetSmartSeatPlansResponse
+	36, // 44: library.v1.LibraryService.ReserveSmartSeatPlan:output_type -> library.v1.ReserveSmartSeatPlanResponse
+	38, // 45: library.v1.LibraryService.CancelSmartSeatPlan:output_type -> library.v1.CancelSmartSeatPlanResponse
+	43, // 46: library.v1.LibraryService.CreateComment:output_type -> library.v1.Resp
+	41, // 47: library.v1.LibraryService.GetComments:output_type -> library.v1.GetCommentResp
+	43, // 48: library.v1.LibraryService.DeleteComment:output_type -> library.v1.Resp
+	31, // [31:49] is the sub-list for method output_type
+	13, // [13:31] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
 	13, // [13:13] is the sub-list for extension extendee
 	0,  // [0:13] is the sub-list for field type_name
@@ -3006,7 +3114,7 @@ func file_library_v1_library_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_library_v1_library_proto_rawDesc), len(file_library_v1_library_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   44,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

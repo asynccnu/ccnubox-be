@@ -2,11 +2,13 @@ package jpush
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 	"unicode/utf8"
@@ -107,5 +109,67 @@ func TestBoundedResponseKeepsValidUTF8(t *testing.T) {
 	}
 	if !utf8.ValidString(text) {
 		t.Fatalf("boundedResponse() produced invalid UTF-8: %q", text)
+	}
+}
+
+func TestInvitationTTLIsPerMessageAndBounded(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload struct {
+			Options struct {
+				TTL      *int           `json:"time_to_live"`
+				APNS     bool           `json:"apns_production"`
+				Channels map[string]any `json:"third_party_channel"`
+			} `json:"options"`
+			CID string `json:"cid"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Error(err)
+		}
+		if !payload.Options.APNS || len(payload.Options.Channels) != 3 {
+			t.Errorf("options lost: %+v", payload)
+		}
+		if payload.CID == "invitation" {
+			if payload.Options.TTL == nil || *payload.Options.TTL < 1 || *payload.Options.TTL > 30 {
+				t.Errorf("TTL=%v", payload.Options.TTL)
+			}
+		} else if payload.Options.TTL != nil {
+			t.Error("normal notification inherited invitation TTL")
+		}
+		w.Write([]byte(`{"msg_id":"1"}`))
+	}))
+	defer server.Close()
+	c := NewJPushClient(&JPushConfig{}).(*client)
+	c.pushURL = server.URL
+	deadline := time.Now().Add(30 * time.Second)
+	var wg sync.WaitGroup
+	for range 10 {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			if err := c.Push(context.Background(), []string{"device"}, PushData{Cid: "invitation", ExpiresAt: &deadline}); err != nil {
+				t.Error(err)
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			if err := c.Push(context.Background(), []string{"device"}, PushData{Cid: "normal"}); err != nil {
+				t.Error(err)
+			}
+		}()
+	}
+	wg.Wait()
+	if c.o.TimeToLive != 0 {
+		t.Fatal("shared options mutated")
+	}
+}
+
+func TestInvitationSubsecondTTLDoesNotSend(t *testing.T) {
+	c := NewJPushClient(&JPushConfig{}).(*client)
+	c.pushURL = "http://invalid.invalid"
+	for _, offset := range []time.Duration{-time.Second, 0, 500 * time.Millisecond} {
+		deadline := time.Now().Add(offset)
+		if err := c.Push(context.Background(), []string{"device"}, PushData{ExpiresAt: &deadline}); !errors.Is(err, ErrPushExpired) {
+			t.Fatalf("offset=%v err=%v", offset, err)
+		}
 	}
 }

@@ -218,3 +218,12 @@ type CreateCommentReq struct {
 type IDreq struct {
 	ID int `json:"id" form:"id"`
 }
+
+type NotifyTeamInvitationRequest struct {
+	TeamID     string   `json:"team_id" binding:"required" minLength:"1" maxLength:"128"`
+	StudentIDs []string `json:"student_ids" binding:"required"`
+}
+
+type NotifyTeamInvitationResponse struct {
+	Status string `json:"status"`
+}

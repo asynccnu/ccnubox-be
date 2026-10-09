@@ -38,7 +38,10 @@ type PushClient interface {
 	Push(context.Context, []string, PushData) error
 }
 
+var ErrPushExpired = errors.New("jpush: notification expired")
+
 type PushData struct {
+	ExpiresAt   *time.Time        `json:"-"`
 	ContentType string            `json:"content_type"`
 	Extras      map[string]string `json:"extras"`
 	MsgContent  string            `json:"msg_content"`
@@ -152,7 +155,21 @@ func (c *client) Push(ctx context.Context, ids []string, pushData PushData) erro
 	//加载推送
 	payload := jpush.NewPayLoad()
 	payload.Cid = pushData.Cid
-	payload.SetOptions(c.o)
+	// 每条消息复制独立 options，不能污染普通通知或并发推送。
+	options := *c.o
+	options.ThirdPartyChannel = make(jpush.ThirdPartyChannel, len(c.o.ThirdPartyChannel))
+	for key, value := range c.o.ThirdPartyChannel {
+		options.ThirdPartyChannel[key] = value
+	}
+	if pushData.ExpiresAt != nil {
+		remaining := int(time.Until(*pushData.ExpiresAt) / time.Second)
+		if remaining < 1 {
+			return ErrPushExpired
+		}
+		// JPush time_to_live 单位为秒，普通账户上限 3 天（VIP 10 天）；0 表示不保留离线消息。
+		options.SetTimeToLive(min(remaining, 3*24*60*60))
+	}
+	payload.SetOptions(&options)
 	payload.SetPlatform(c.pf)
 	payload.SetAudience(&at)
 	payload.SetNotification(&n)

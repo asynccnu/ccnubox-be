@@ -14,13 +14,15 @@ type LibraryServiceServer struct {
 	seat       service.SeatService
 	discussion service.DiscussionService
 	comment    service.CommentService
+	reminder   *service.ReminderService
 }
 
-func NewLibraryGrpcService(ss service.SeatService, ds service.DiscussionService, cs service.CommentService) *LibraryServiceServer {
+func NewLibraryGrpcService(ss service.SeatService, ds service.DiscussionService, cs service.CommentService, reminder *service.ReminderService) *LibraryServiceServer {
 	return &LibraryServiceServer{
 		seat:       ss,
 		discussion: ds,
 		comment:    cs,
+		reminder:   reminder,
 	}
 }
 
@@ -86,4 +88,11 @@ func (l *LibraryServiceServer) GetComments(ctx context.Context, req *v1.ID) (*v1
 
 func (l *LibraryServiceServer) DeleteComment(ctx context.Context, req *v1.ID) (*v1.Resp, error) {
 	return l.comment.DeleteComment(ctx, req)
+}
+
+func (l *LibraryServiceServer) NotifyTeamInvitation(ctx context.Context, req *v1.NotifyTeamInvitationRequest) (*v1.NotifyTeamInvitationResponse, error) {
+	if err := l.reminder.NotifyTeamInvitation(ctx, req.GetOperatorStudentId(), req.GetTeamId(), req.GetStudentIds()); err != nil {
+		return nil, err
+	}
+	return &v1.NotifyTeamInvitationResponse{}, nil
 }

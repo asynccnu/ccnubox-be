@@ -1,13 +1,27 @@
 package library
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"time"
+	"unicode/utf8"
+
 	"github.com/asynccnu/ccnubox-be/bff/errs"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	libraryv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
+	commontool "github.com/asynccnu/ccnubox-be/common/tool"
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+var errInvitationRejected = errors.New("invitation request rejected")
 
 type LibraryHandler struct {
 	LibraryClient  libraryv1.LibraryServiceClient // 注入 grpc 服务
@@ -23,6 +37,7 @@ func NewLibraryHandler(client libraryv1.LibraryServiceClient, admins map[string]
 
 func (h *LibraryHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	sg := s.Group("/library")
+	sg.POST("/notify_team_invitation", authMiddleware, ginx.WrapClaims(h.NotifyTeamInvitation))
 	sg.POST("/get_seat", authMiddleware, ginx.WrapClaimsAndReq(h.GetSeatInfos))
 	sg.POST("/reserve_seat", authMiddleware, ginx.WrapClaimsAndReq(h.ReserveSeat))
 	sg.POST("/get_seat_records", authMiddleware, ginx.WrapClaimsAndReq(h.GetSeatRecord))
@@ -469,6 +484,74 @@ func (h *LibraryHandler) ReserveSeatRandomly(ctx *gin.Context, req ReserveSeatRa
 	return web.Response{
 		Msg: msg.Message,
 	}, nil
+}
+
+// NotifyTeamInvitation 提交学校已成功发出的组队邀请通知
+// @Summary 提交研讨室组队邀请通知
+// @Description 仅队长上报学校已邀请且待确认的成员；同队同人最多一次。受理不表示已送达，不返回收件人订阅或设备情况。默认关闭，临时失败最多自动重试三次。
+// @Tags library
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer Token"
+// @Param request body NotifyTeamInvitationRequest true "队伍ID为数字字符串；原始学号数组1～20项，请求体最多8KiB"
+// @Success 200 {object} web.Response{data=NotifyTeamInvitationResponse} "通知请求已受理"
+// @Failure 400 {object} web.Response "非法参数、未知字段、自通知或尾随JSON"
+// @Failure 401 {object} web.Response "未登录或Token失效"
+// @Failure 403 {object} web.Response "学校身份或队长不匹配"
+// @Failure 409 {object} web.Response "队伍或邀请关系已失效"
+// @Failure 413 {object} web.Response "请求体超过8KiB"
+// @Failure 429 {object} web.Response "频率超限，按Retry-After退避"
+// @Failure 503 {object} web.Response "功能关闭、订阅未就绪或学校依赖暂不可用"
+// @Failure 500 {object} web.Response "事务失败，使用相同参数重试"
+// @Router /library/notify_team_invitation [post]
+func (h *LibraryHandler) NotifyTeamInvitation(ctx *gin.Context, uc ijwt.UserClaims) (web.Response, error) {
+	// 只收紧本路由，不修改其他接口的宽松绑定行为。
+	ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, 8<<10)
+	raw, err := io.ReadAll(ctx.Request.Body)
+	if err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			return web.Response{}, errs.TEAM_INVITATION_TOO_LARGE_ERROR(errInvitationRejected)
+		}
+		return web.Response{}, errs.TEAM_INVITATION_INVALID_ERROR(errInvitationRejected)
+	}
+	if !utf8.Valid(raw) {
+		return web.Response{}, errs.TEAM_INVITATION_INVALID_ERROR(errInvitationRejected)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	var req NotifyTeamInvitationRequest
+	if err := decoder.Decode(&req); err != nil {
+		return web.Response{}, errs.TEAM_INVITATION_INVALID_ERROR(errInvitationRejected)
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		return web.Response{}, errs.TEAM_INVITATION_INVALID_ERROR(errInvitationRejected)
+	}
+	// Library 再按配置检查原始数组上限，不能在这里先去重。
+	if _, err := commontool.NormalizeTeamInvitation(uc.StudentId, req.TeamID, req.StudentIDs, 20); err != nil {
+		return web.Response{}, errs.TEAM_INVITATION_INVALID_ERROR(errInvitationRejected)
+	}
+	callCtx, cancel := context.WithTimeout(ctx.Request.Context(), 20*time.Second)
+	defer cancel()
+	_, err = h.LibraryClient.NotifyTeamInvitation(callCtx, &libraryv1.NotifyTeamInvitationRequest{OperatorStudentId: uc.StudentId, TeamId: req.TeamID, StudentIds: req.StudentIDs})
+	if err != nil {
+		switch status.Code(err) {
+		case codes.InvalidArgument:
+			return web.Response{}, errs.TEAM_INVITATION_INVALID_ERROR(errInvitationRejected)
+		case codes.PermissionDenied:
+			return web.Response{}, errs.TEAM_INVITATION_FORBIDDEN_ERROR(errInvitationRejected)
+		case codes.FailedPrecondition:
+			return web.Response{}, errs.TEAM_INVITATION_CONFLICT_ERROR(errInvitationRejected)
+		case codes.ResourceExhausted:
+			ctx.Header("Retry-After", "60")
+			return web.Response{}, errs.TEAM_INVITATION_LIMITED_ERROR(errInvitationRejected)
+		case codes.Unavailable, codes.DeadlineExceeded, codes.Canceled, codes.Unauthenticated:
+			return web.Response{}, errs.TEAM_INVITATION_UNAVAILABLE_ERROR(errInvitationRejected)
+		default:
+			return web.Response{}, errs.TEAM_INVITATION_INTERNAL_ERROR(errInvitationRejected)
+		}
+	}
+	return web.Response{Msg: "通知请求已受理，实际送达以接收方设置及设备状态为准", Data: NotifyTeamInvitationResponse{Status: "accepted"}}, nil
 }
 
 // GetRandomSeat 随机选座（返回候选座位，不直接预约）

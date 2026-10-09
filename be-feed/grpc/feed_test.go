@@ -59,6 +59,16 @@ func TestValidatePublicFeedEventRequest(t *testing.T) {
 			code: codes.OK,
 		},
 		{
+			name: "valid team success",
+			req:  &feedv1.PublicFeedEventReq{StudentId: "u", Event: &feedv1.FeedEvent{Type: feedv1.FeedEventType_LIBRARY, DedupeKey: "d", Source: "library", OccurredAt: 1, ExtendFields: map[string]string{"notification_type": "TEAM_SUCCESS", "team_id": "2102744440918429696", "on_date": "2026-09-23"}}},
+			code: codes.OK,
+		},
+		{
+			name: "team success requires team id",
+			req:  &feedv1.PublicFeedEventReq{StudentId: "u", Event: &feedv1.FeedEvent{Type: feedv1.FeedEventType_LIBRARY, DedupeKey: "d", Source: "library", OccurredAt: 1, ExtendFields: map[string]string{"notification_type": "TEAM_SUCCESS"}}},
+			code: codes.InvalidArgument,
+		},
+		{
 			name: "url at storage limit",
 			req: &feedv1.PublicFeedEventReq{StudentId: "u", Event: &feedv1.FeedEvent{
 				Type: feedv1.FeedEventType_GRADE, Url: strings.Repeat("a", 2047),
@@ -123,5 +133,16 @@ func TestPublicFeedEventWaitsForBrokerAck(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("publish did not return after acknowledgement")
+	}
+}
+
+func TestInvitationRPCValidationMatchesStorage(t *testing.T) {
+	for _, expiry := range []string{"2", "", "1", "-1", "bad", "9223372036854775808"} {
+		event := &feedv1.FeedEvent{Type: feedv1.FeedEventType_LIBRARY, Source: "library", DedupeKey: "key", OccurredAt: 1, ExtendFields: map[string]string{"notification_type": "TEAM_INVITATION", "team_id": "123", "expires_at": expiry}}
+		rpcErr := validatePublicFeedEventRequest(&feedv1.PublicFeedEventReq{StudentId: "A", Event: event})
+		storageErr := domain.ValidateFeedEventForStorage(domain.FeedEvent{StudentId: "A", Type: "library", Source: event.Source, DedupeKey: event.DedupeKey, OccurredAt: event.OccurredAt, ExtendFields: event.ExtendFields})
+		if (rpcErr == nil) != (storageErr == nil) || (rpcErr == nil) != (expiry == "2") {
+			t.Fatalf("expiry=%q rpc=%v storage=%v", expiry, rpcErr, storageErr)
+		}
 	}
 }

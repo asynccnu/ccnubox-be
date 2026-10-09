@@ -62,6 +62,11 @@ func NewReminderScheduler(service *ReminderService, l logger.Logger) *ReminderSc
 			panic(fmt.Sprintf("invalid library reminder cron %q: %v", entry.spec, err))
 		}
 	}
+	if service.notificationEnabled(NotificationTeamSuccess) {
+		if _, err := c.AddFunc(service.config.TeamScanCron, func() { scheduler.run("cron", "team_scan", service.ScanTeams) }); err != nil {
+			panic(fmt.Sprintf("invalid library reminder cron %q: %v", service.config.TeamScanCron, err))
+		}
+	}
 	return scheduler
 }
 
@@ -89,6 +94,11 @@ func (s *ReminderScheduler) Start() error {
 	s.mu.Unlock()
 	s.cron.Start()
 	s.startLoop(ctx, "preference_sync", s.service.config.PreferenceSyncInterval, s.service.SyncPreferences, true)
+	if s.service.notificationEnabled(NotificationTeamInvitation) && s.service.config.ShouldBaselineOnEnable() {
+		// 座位登录/基线可能耗时较长，邀请启用时独立执行既有基线工作，不能拖住偏好追平。
+		// 仍按持久化 baseline_completed 及用户任务门控恢复，不新增学校邀请轮询。
+		s.startLoop(ctx, "preference_baselines", s.service.config.PreferenceSyncInterval, s.service.refreshPendingBaselines, false)
+	}
 	s.startLoop(ctx, "outbox", s.service.config.OutboxInterval, s.service.SendOutbox, false)
 	// 瞬时数据库故障导致释放失败时，无需等待服务重启即可恢复超时 claim。
 	s.startLoop(ctx, "claim_recovery", s.service.config.ClaimRecoveryInterval, s.service.RecoverStaleWork, false)

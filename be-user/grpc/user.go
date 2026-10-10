@@ -34,16 +34,7 @@ func (s *UserServiceServer) DeleteUser(ctx context.Context,
 }
 
 func (s *UserServiceServer) GetCookie(ctx context.Context, request *userv1.GetCookieRequest) (*userv1.GetCookieResponse, error) {
-	var (
-		u   string
-		err error
-	)
-	if request.Type == "" {
-		u, err = s.svc.GetCookie(ctx, request.GetStudentId())
-	} else {
-		u, err = s.svc.GetCookie(ctx, request.GetStudentId(), request.Type)
-
-	}
+	u, err := s.svc.GetCookie(ctx, request.GetStudentId())
 	return &userv1.GetCookieResponse{Cookie: u}, err
 }
 

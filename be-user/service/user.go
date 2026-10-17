@@ -5,7 +5,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
-	"net/http"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-user/pkg/crypto"
 	"github.com/asynccnu/ccnubox-be/be-user/repository/cache"
@@ -13,7 +13,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-user/repository/model"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
-	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/tool"
@@ -35,7 +34,7 @@ var (
 type UserService interface {
 	Save(ctx context.Context, studentId string, password string) error
 	Delete(ctx context.Context, studentId string, password string) error
-	GetCookie(ctx context.Context, studentId string, tpe ...string) (string, error)
+	GetCookie(ctx context.Context, studentId string, system tool.XKSystem) (string, error)
 	GetLibrarySeatToken(ctx context.Context, studentId string) (string, error)
 	GetLibraryDiscussionToken(ctx context.Context, studentId string) (string, error)
 	Check(ctx context.Context, studentId string, password string) (bool, error)
@@ -48,12 +47,10 @@ type userService struct {
 	ccnu         ccnuv1.CCNUServiceClient
 	sfGroup      singleflight.Group
 	l            logger.Logger
-	pClient      proxy.Client
 }
 
-func NewUserService(dao dao.UserDAO, cache cache.UserCache, cryptoClient *crypto.Crypto, ccnu ccnuv1.CCNUServiceClient, l logger.Logger,
-	pClient proxy.Client) UserService {
-	return &userService{dao: dao, cache: cache, cryptoClient: cryptoClient, ccnu: ccnu, l: l, pClient: pClient}
+func NewUserService(dao dao.UserDAO, cache cache.UserCache, cryptoClient *crypto.Crypto, ccnu ccnuv1.CCNUServiceClient, l logger.Logger) UserService {
+	return &userService{dao: dao, cache: cache, cryptoClient: cryptoClient, ccnu: ccnu, l: l}
 }
 
 func (s *userService) Delete(ctx context.Context, studentId string, password string) error {
@@ -158,51 +155,64 @@ func (s *userService) Check(ctx context.Context, studentId string, password stri
 	return false, InCorrectPassword(errorx.New("password does not match local record"))
 }
 
-func (s *userService) GetCookie(ctx context.Context, studentId string, tpe ...string) (string, error) {
+func (s *userService) GetCookie(ctx context.Context, studentId string, system tool.XKSystem) (string, error) {
+	if err := tool.ValidateXKSystem(studentId, system); err != nil {
+		return "", err
+	}
 	tlog := s.l.WithContext(ctx)
-	// 使用 Singleflight 防止热点学号瞬间击穿缓存请求教务
-	result, err, _ := s.sfGroup.Do(studentId, func() (interface{}, error) {
-		cookie, err := s.cache.GetCookie(ctx, studentId)
-		// 缓存命中且校验有效，直接返回
-		if err == nil && s.checkCookie(ctx, cookie) {
-			return cookie, nil
+	// 系统类型在兼容入口归一化，缓存与请求合并使用同一份明确类型。
+	key := fmt.Sprintf("xk:%s:%s", system, studentId)
+	result, err, _ := s.sfGroup.Do(key, func() (interface{}, error) {
+		cookie, err := s.cache.GetCookie(ctx, studentId, system)
+		if err == nil {
+			resp, checkErr := s.ccnu.CheckXKCookie(ctx, &ccnuv1.CheckXKCookieRequest{Cookie: cookie, Type: string(system)})
+			if checkErr != nil {
+				// 暂时不可验证不代表过期，保留缓存并由调用方重试，避免无意义登录。
+				return "", checkErr
+			}
+			if resp == nil {
+				return "", errorx.New("rpc CheckXKCookie returned empty response")
+			}
+			if resp.GetValid() {
+				return cookie, nil
+			}
+		} else if !errors.Is(err, cache.ErrKeyNotFound) {
+			tlog.Warn("cookie cache read failed", logger.String("system", string(system)), logger.Error(err))
 		}
 
-		if err != nil && !errors.Is(err, cache.ErrKeyNotFound) {
-			tlog.Warn("cache error", logger.Error(err))
-		}
-
-		// 缓存失效或 Cookie 过期，获取新 Cookie
-		newCookie, err := s.getNewCookie(ctx, studentId, tpe...)
+		newCookie, err := s.getNewCookie(ctx, studentId, system)
 		if err != nil {
 			return "", err
 		}
-
-		// 异步回填缓存，不阻塞主流程
-		go func(sid, cky string) {
-			// 使用 Background 防止主请求 ctx 取消导致写入失败
-			if err := s.cache.SetCookie(context.Background(), sid, cky); err != nil {
-				s.l.Error("async fill cache failed", logger.String("sid", sid), logger.Error(err))
-			}
-		}(studentId, newCookie)
-
+		// 在请求合并结束前回填，避免异步窗口导致重复登录；脱离请求取消但写入时间有界。
+		cacheCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
+		defer cancel()
+		if err := s.cache.SetCookie(cacheCtx, studentId, newCookie, system); err != nil {
+			tlog.Warn("cookie cache write failed", logger.String("system", string(system)), logger.Error(err))
+		}
 		return newCookie, nil
 	})
 
 	if err != nil {
-		// 保留账号错误分类，详情消费者才能区分需要用户介入与临时依赖故障。
 		if ccnuv1.IsInvalidSidOrPwd(err) {
 			return "", InCorrectPassword(err)
+		}
+		if ccnuv1.IsInvalidXkSystem(err) || userv1.IsUserNotFoundError(err) ||
+			userv1.IsDefaultDaoError(err) || userv1.IsDecryptError(err) {
+			return "", err
 		}
 		return "", CCNU_GETCOOKIE_ERROR(err)
 	}
 	return result.(string), nil
 }
 
-func (s *userService) getNewCookie(ctx context.Context, studentId string, tpe ...string) (string, error) {
+func (s *userService) getNewCookie(ctx context.Context, studentId string, system tool.XKSystem) (string, error) {
 	user, err := s.dao.FindByStudentId(ctx, studentId)
 	if err != nil {
-		return "", USER_NOT_FOUND_ERROR(errorx.Errorf("sid: %s, err: %w", studentId, err))
+		if errors.Is(err, dao.UserNotFound) {
+			return "", USER_NOT_FOUND_ERROR(errorx.Errorf("sid: %s, err: %w", studentId, err))
+		}
+		return "", DEFAULT_DAO_ERROR(errorx.Errorf("sid: %s, err: %w", studentId, err))
 	}
 
 	decryptPassword, err := s.cryptoClient.Decrypt(user.Password)
@@ -210,18 +220,36 @@ func (s *userService) getNewCookie(ctx context.Context, studentId string, tpe ..
 		return "", DECRYPT_ERROR(errorx.Errorf("sid: %s, err: %w", studentId, err))
 	}
 
+	// 保留暂时故障的有限重试，永久性账号错误和请求取消则立即停止。
+	var terminalErr error
 	resp, err := tool.Retry(func() (*ccnuv1.GetXKCookieResponse, error) {
-		req := &ccnuv1.GetXKCookieRequest{StudentId: user.StudentId, Password: decryptPassword}
-		if len(tpe) > 0 {
-			req.Type = tpe[0]
+		if ctx.Err() != nil {
+			terminalErr = ctx.Err()
+			return nil, nil
 		}
-		return s.ccnu.GetXKCookie(ctx, req)
+		resp, err := s.ccnu.GetXKCookie(ctx, &ccnuv1.GetXKCookieRequest{
+			StudentId: user.StudentId, Password: decryptPassword, Type: string(system),
+		})
+		if err != nil && (ccnuv1.IsInvalidSidOrPwd(err) || ccnuv1.IsInvalidXkSystem(err) ||
+			tool.IsCCNUAccountInitializationRequired(err) || ctx.Err() != nil) {
+			terminalErr = err
+			if ctx.Err() != nil {
+				terminalErr = ctx.Err()
+			}
+			return nil, nil
+		}
+		return resp, err
 	})
-
-	if err != nil {
-		return "", errorx.Errorf("rpc GetXKCookie failed, sid: %s, err: %w", studentId, err)
+	if terminalErr != nil {
+		err = terminalErr
 	}
-	return resp.Cookie, nil
+	if err != nil {
+		return "", errorx.Errorf("rpc GetXKCookie failed, system: %s, err: %w", system, err)
+	}
+	if resp == nil || resp.GetCookie() == "" {
+		return "", errorx.New("rpc GetXKCookie returned empty cookie")
+	}
+	return resp.GetCookie(), nil
 }
 
 func (s *userService) GetLibrarySeatToken(ctx context.Context, studentId string) (string, error) {
@@ -294,23 +322,6 @@ func (s *userService) getNewLibraryToken(ctx context.Context, studentId string, 
 		return "", errorx.Errorf("rpc GetLibraryCookie failed, err: %w", err)
 	}
 	return resp.GetToken(), nil
-}
-
-// TODO 目前只有新版本教务系统的本科生院部分做了如下的检验，同时应该放到ccnu服务里面而不是在这里
-// TODO 未来整个cookie系统应该逐步重构保证整个的完整性和高可用性，例如对cookie获取方式进行抽象，提供GetCookie方法并通过参数+策略工厂的方式实现获取cookie高度解耦，对于具体决定是爬取哪个系统应当由上游决定，下游无感化，只作为函数调用。
-// 辅助检测函数：试探性请求教务系统，验证 Cookie 存活
-func (s *userService) checkCookie(ctx context.Context, cookie string) bool {
-	req, _ := http.NewRequestWithContext(ctx, "GET", "https://bkzhjw.ccnu.edu.cn/jsxsd/framework/xsMainV.htmlx", nil)
-	req.Header.Set("Cookie", cookie)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0")
-
-	client := s.pClient.NewProxyClient(proxy.WithProxyTransport())
-	resp, err := client.Do(req)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK
 }
 
 func (s *userService) checkLibraryToken(ctx context.Context, token string, serviceType ccnuv1.LIBRARY_TYPE) (bool, error) {

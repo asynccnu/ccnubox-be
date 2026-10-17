@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -15,8 +16,8 @@ var (
 )
 
 type UserCache interface {
-	GetCookie(ctx context.Context, sid string) (string, error)
-	SetCookie(ctx context.Context, sid string, cookie string) error
+	GetCookie(ctx context.Context, sid string, system tool.XKSystem) (string, error)
+	SetCookie(ctx context.Context, sid string, cookie string, system tool.XKSystem) error
 	GetLibraryToken(ctx context.Context, sid string, serviceType string) (string, error)
 	SetLibraryToken(ctx context.Context, sid string, cookie string, serviceType string) error
 	DeleteUserData(ctx context.Context, sid string) error
@@ -32,8 +33,8 @@ func NewRedisUserCache(cmd redis.Cmdable) UserCache {
 }
 
 // GetCookie 从 Redis 获取指定 sid 对应的教务系统 cookie
-func (cache *RedisUserCache) GetCookie(ctx context.Context, sid string) (string, error) {
-	key := cache.key(sid)
+func (cache *RedisUserCache) GetCookie(ctx context.Context, sid string, system tool.XKSystem) (string, error) {
+	key := cache.cookieKey(sid, system)
 	val, err := cache.cmd.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -45,8 +46,8 @@ func (cache *RedisUserCache) GetCookie(ctx context.Context, sid string) (string,
 }
 
 // SetCookie 将 sid 和对应的 cookie 存入 Redis，过期时间 5 分钟
-func (cache *RedisUserCache) SetCookie(ctx context.Context, sid string, cookie string) error {
-	key := cache.key(sid)
+func (cache *RedisUserCache) SetCookie(ctx context.Context, sid string, cookie string, system tool.XKSystem) error {
+	key := cache.cookieKey(sid, system)
 	// 过期时间设为 5 分钟，教务系统 Session 较短，不宜设置过长
 	err := cache.cmd.Set(ctx, key, cookie, 5*time.Minute).Err()
 	if err != nil {
@@ -80,7 +81,9 @@ func (cache *RedisUserCache) SetLibraryToken(ctx context.Context, sid string, co
 
 func (cache *RedisUserCache) DeleteUserData(ctx context.Context, sid string) error {
 	keys := []string{
-		cache.key(sid),
+		cache.legacyCookieKey(sid), // 迁移期兼容删除旧 key，正常读写仅使用带系统类型的新 key。
+		cache.cookieKey(sid, tool.XKUndergraduate),
+		cache.cookieKey(sid, tool.XKPostgraduate),
 		cache.libraryKey(sid, "LIBRARY_SEAT"),
 		cache.libraryKey(sid, "LIBRARY_DISCUSSION"),
 	}
@@ -90,8 +93,12 @@ func (cache *RedisUserCache) DeleteUserData(ctx context.Context, sid string) err
 	return nil
 }
 
-func (cache *RedisUserCache) key(sid string) string {
-	return fmt.Sprintf("ccnubox:users:xk:%s", sid) // 增加 xk 标识区分业务
+func (cache *RedisUserCache) legacyCookieKey(sid string) string {
+	return fmt.Sprintf("ccnubox:users:xk:%s", sid)
+}
+
+func (cache *RedisUserCache) cookieKey(sid string, system tool.XKSystem) string {
+	return fmt.Sprintf("ccnubox:users:xk:v2:%s:%s", system, sid)
 }
 
 func (cache *RedisUserCache) libraryKey(sid string, service string) string {

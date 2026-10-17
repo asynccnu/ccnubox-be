@@ -12,4 +12,5 @@ enum CCNUErrorReason {
   INVALID_SID_OR_PWD = 0 [(errors.code) = 401];
   CCNUSERVER_ERROR = 1 [(errors.code) = 501];
   SYSTEM_ERROR = 2 [(errors.code) = 502];
+  INVALID_XK_SYSTEM = 3 [(errors.code) = 400];
 }

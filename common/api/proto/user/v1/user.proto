@@ -30,7 +30,7 @@ message  CheckUserResp {
 
 message GetCookieRequest {
   string studentId = 1;
-  string type = 2;
+  string type = 2; // undergraduate 或 postgraduate；空值按学号兼容解析，new 仅兼容本科系统
 }
 
 message GetCookieResponse {

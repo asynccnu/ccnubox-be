@@ -10,6 +10,7 @@ enum LIBRARY_TYPE{
 
 service CCNUService {
   rpc GetXKCookie(GetXKCookieRequest)returns(GetXKCookieResponse);
+  rpc CheckXKCookie(CheckXKCookieRequest) returns (CheckXKCookieResponse);
   rpc LoginCCNU(LoginCCNURequest)returns(LoginCCNUResponse);
   rpc GetLibraryToken(GetLibraryTokenRequest) returns (GetLibraryTokenResponse);
   rpc CheckLibraryToken(CheckLibraryTokenRequest) returns (CheckLibraryTokenResponse);
@@ -19,7 +20,7 @@ service CCNUService {
 message GetXKCookieRequest{
   string student_id = 1;
   string password = 2;
-  string type = 3; // 新教务或者老教务
+  string type = 3; // undergraduate 或 postgraduate；空值按学号兼容解析，new 仅兼容本科系统
 }
 
 message GetXKCookieResponse{
@@ -52,4 +53,13 @@ message CheckLibraryTokenRequest{
 
 message CheckLibraryTokenResponse{
   bool valid=1;
+}
+
+message CheckXKCookieRequest {
+  string cookie = 1;
+  string type = 2; // 必填：undergraduate 或 postgraduate，不接受缺省或历史别名
+}
+
+message CheckXKCookieResponse {
+  bool valid = 1; // 仅明确认证失效时为 false；暂时不可验证通过 RPC 错误返回
 }

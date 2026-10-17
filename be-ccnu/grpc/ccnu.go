@@ -5,6 +5,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-ccnu/service"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"google.golang.org/grpc"
 )
 
@@ -22,16 +23,17 @@ func (s *CCNUServiceServer) Register(server grpc.ServiceRegistrar) {
 }
 
 func (s *CCNUServiceServer) GetXKCookie(ctx context.Context, request *ccnuv1.GetXKCookieRequest) (*ccnuv1.GetXKCookieResponse, error) {
-	var (
-		cookie string
-		err    error
-	)
-	if request.Type == "" {
-		cookie, err = s.ccnu.GetXKCookie(ctx, request.GetStudentId(), request.GetPassword())
-	} else {
-		cookie, err = s.ccnu.GetXKCookie(ctx, request.GetStudentId(), request.GetPassword(), request.Type) // 这里传入了type, 判断用哪一个系统的cookie
+	system, err := tool.ResolveXKSystem(request.GetStudentId(), request.GetType())
+	if err != nil {
+		return nil, err
 	}
+	cookie, err := s.ccnu.GetXKCookie(ctx, request.GetStudentId(), request.GetPassword(), system)
 	return &ccnuv1.GetXKCookieResponse{Cookie: cookie}, err
+}
+
+func (s *CCNUServiceServer) CheckXKCookie(ctx context.Context, request *ccnuv1.CheckXKCookieRequest) (*ccnuv1.CheckXKCookieResponse, error) {
+	valid, err := s.ccnu.CheckXKCookie(ctx, request.GetCookie(), tool.XKSystem(request.GetType()))
+	return &ccnuv1.CheckXKCookieResponse{Valid: valid}, err
 }
 
 func (s *CCNUServiceServer) LoginCCNU(ctx context.Context, request *ccnuv1.LoginCCNURequest) (*ccnuv1.LoginCCNUResponse, error) {

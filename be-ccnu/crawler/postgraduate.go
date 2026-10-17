@@ -105,6 +105,9 @@ func (c *PostGraduate) LoginPostgraduateSystem(
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return errorx.Errorf("postgraduate: unexpected login status %d", resp.StatusCode)
+	}
 	body, err := httpx.ReadResponse(resp)
 	if err != nil {
 		return errorx.Errorf("postgraduate: read login response failed: %w", err)
@@ -125,40 +128,8 @@ func (c *PostGraduate) GetCookie(
 	pubKey *rsa.PublicKey,
 ) (string, error) {
 
-	encPwd, err := encryptPasswordJSStyle(password, pubKey)
-	if err != nil {
-		return "", errorx.Errorf("postgraduate: encrypt password failed: %w", err)
-	}
-
-	form := url.Values{}
-	form.Set("csrftoken", "")
-	form.Set("yhm", stuId)
-	form.Set("mm", encPwd)
-
-	req, err := http.NewRequestWithContext(
-		ctx,
-		"POST",
-		loginPostgraduateURL,
-		bytes.NewBufferString(form.Encode()),
-	)
-	if err != nil {
-		return "", errorx.Errorf("postgraduate: create cookie request failed: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-	req.Header.Set("Referer", postgraduateURL+"/yjsxt/")
-	req.Header.Set("Origin", postgraduateURL)
-	req.Header.Set("Host", "grd.ccnu.edu.cn")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return "", errorx.Errorf("postgraduate: send cookie request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", errorx.Errorf("postgraduate: unexpected status code %d", resp.StatusCode)
+	if err := c.LoginPostgraduateSystem(ctx, stuId, password, pubKey); err != nil {
+		return "", err
 	}
 
 	var JSESSIONID, route string

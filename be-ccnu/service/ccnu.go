@@ -5,13 +5,11 @@ import (
 	"crypto/rsa"
 	"net/http"
 
-	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
-
-	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
-	"github.com/asynccnu/ccnubox-be/common/tool"
-
 	"github.com/asynccnu/ccnubox-be/be-ccnu/crawler"
 	ccnuv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/ccnu/v1"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
+	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 )
 
 var (
@@ -22,24 +20,40 @@ var (
 )
 
 // 这里的err之所以在GetXKCookie和LoginCCNU两个方法里面不进行包装是因为如果进行封装了会导致error类型无法对应上kratos的error导致无法断言
-func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, password string, tpe ...string) (string, error) {
-	stuType := tool.ParseStudentType(studentId)
-	switch stuType {
-	case tool.UnderGraduate:
-		cookie, err := c.getUnderGradCookie(ctx, studentId, password, tpe...)
-		if err != nil {
-			return "", err
-		}
-		return cookie, nil
-	case tool.PostGraduate:
-		cookie, err := c.getGradCookie(ctx, studentId, password)
-		if err != nil {
-			return "", err
-		}
-		return cookie, nil
-	default:
-		return "", Invalid_SidOrPwd_ERROR(errorx.New("studentId format invalid"))
+func (c *ccnuService) GetXKCookie(ctx context.Context, studentId string, password string, system tool.XKSystem) (string, error) {
+	if err := tool.ValidateXKSystem(studentId, system); err != nil {
+		return "", err
 	}
+	switch system {
+	case tool.XKUndergraduate:
+		return c.getUnderGradCookie(ctx, studentId, password)
+	case tool.XKPostgraduate:
+		return c.getGradCookie(ctx, studentId, password)
+	default:
+		return "", ccnuv1.ErrorInvalidXkSystem("不支持的教务系统类型")
+	}
+}
+
+func (c *ccnuService) CheckXKCookie(ctx context.Context, cookie string, system tool.XKSystem) (bool, error) {
+	if err := tool.CheckXKSystem(system); err != nil {
+		return false, err
+	}
+	client := crawler.NewCrawlerClient(c.p, c.timeout)
+	var valid bool
+	var err error
+	switch system {
+	case tool.XKUndergraduate:
+		valid, err = crawler.NewUnderGrad(client).CheckCookie(ctx, cookie)
+	case tool.XKPostgraduate:
+		valid, err = crawler.NewPostGraduate(client).CheckCookie(ctx, cookie)
+	}
+	if err != nil {
+		if ctx.Err() != nil {
+			return false, ctx.Err()
+		}
+		return false, CCNUSERVER_ERROR(errorx.Errorf("CheckXKCookie system: %s: %w", system, err))
+	}
+	return valid, nil
 }
 
 func (c *ccnuService) LoginCCNU(ctx context.Context, studentId string, password string) (bool, error) {
@@ -114,7 +128,7 @@ func wrapUnderGradLoginError(err error) error {
 	}
 }
 
-func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password string, tpe ...string) (string, error) {
+func (c *ccnuService) getUnderGradCookie(ctx context.Context, stuId, password string) (string, error) {
 	ug := crawler.NewUnderGrad(crawler.NewCrawlerClient(c.p, c.timeout))
 	client, ok, err := c.loginUnderGrad(ctx, stuId, password)
 	if err != nil {
@@ -158,6 +172,9 @@ func (c *ccnuService) getGradCookie(ctx context.Context, stuId, password string)
 	}
 
 	cookie, err := pg.GetCookie(ctx, stuId, password, pubkey)
+	if errorx.Is(err, crawler.INCorrectPASSWORD) {
+		return "", Invalid_SidOrPwd_ERROR(err)
+	}
 	if err != nil {
 		return "", CCNUSERVER_ERROR(errorx.Errorf("getGradCookie GetCookie error: %w", err))
 	}

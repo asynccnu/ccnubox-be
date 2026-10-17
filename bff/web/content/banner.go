@@ -12,6 +12,7 @@ import (
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
 	counterv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/counter/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
@@ -37,7 +38,9 @@ func (h *ContentHandler) GetBanners(ctx *gin.Context, uc ijwt.UserClaims) (web.R
 		// 此处做一个cookie预热和一个成绩预加载
 		// 为什么在这里做呢? 好问题
 		// 因为用户打开匣子必然会发送这个请求,如果短时间(5分钟)内要获取课表或者是成绩会体验感好很多
-		_, _ = h.userClient.GetCookie(reqCtx, &userv1.GetCookieRequest{StudentId: uc.StudentId})
+		if system, err := tool.XKSystemForStudent(uc.StudentId); err == nil {
+			_, _ = h.userClient.GetCookie(reqCtx, &userv1.GetCookieRequest{StudentId: uc.StudentId, Type: string(system)})
+		}
 		_, _ = h.counterClient.AddCounter(reqCtx, &counterv1.AddCounterReq{StudentId: uc.StudentId})
 	}()
 

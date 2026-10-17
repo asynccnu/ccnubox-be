@@ -20,6 +20,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"github.com/asynccnu/ccnubox-be/common/pkg/httpx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 )
 
 const (
@@ -51,7 +52,7 @@ type ClassData interface {
 }
 
 type CookieClient interface {
-	GetCookie(ctx context.Context, stuID string, tpe ...string) (string, error)
+	GetCookie(ctx context.Context, stuID string, system tool.XKSystem) (string, error)
 }
 
 type FreeClassroomBiz struct {
@@ -565,7 +566,7 @@ func (f *FreeClassroomBiz) getFreeClassrooms(ctx context.Context, year, semester
 	// 预定就是先提前缓存，所以一般都是命中缓存
 	// 当然如果缓存重启什么的，就会触发后面的流程
 
-	cookie, err := f.cookieCli.GetCookie(ctx, stuID)
+	cookie, err := f.cookieCli.GetCookie(ctx, stuID, tool.XKUndergraduate)
 	if err != nil {
 		return nil, err
 	}
@@ -886,7 +887,7 @@ func (f *FreeClassroomBiz) LoadOneWeekFreeClassRoom(ctx context.Context, stuID, 
 	}
 	defer mu.Unlock()
 
-	cookie, err := f.cookieCli.GetCookie(ctx, stuID)
+	cookie, err := f.cookieCli.GetCookie(ctx, stuID, tool.XKUndergraduate)
 	if err != nil {
 		f.logger.Errorf("failed to get cookie for stuId=%v: %v", stuID, err)
 		return

@@ -18,8 +18,12 @@ func NewCCNUService(user userv1.UserServiceClient) biz.CCNUService {
 }
 
 func (c *CCNUService) GetCookie(ctx context.Context, stuID string) (string, error) {
+	system, err := tool.XKSystemForStudent(stuID)
+	if err != nil {
+		return "", mapGetCookieError(err)
+	}
 	resp, err := c.user.GetCookie(ctx, &userv1.GetCookieRequest{
-		StudentId: stuID,
+		StudentId: stuID, Type: string(system),
 	})
 	if err != nil {
 		return "", mapGetCookieError(err)

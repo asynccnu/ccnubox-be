@@ -94,7 +94,7 @@ func (s *rankService) LoadRank(ctx context.Context, req *domain.LoadRankReq) {
 
 func (s *rankService) UpdateRank(ctx context.Context, studentId string, t *dao.Period) (*domain.GetRankByTermResp, error) {
 	l := s.l.WithContext(ctx)
-	cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
+	cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId, Type: string(tool.XKUndergraduate)})
 	if err != nil {
 		return nil, errorx.Errorf("service: rpc get cookie failed, sid: %s, err: %w", studentId, err)
 	}

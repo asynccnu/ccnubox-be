@@ -7,6 +7,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-class/biz"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 )
 
 type UserService struct {
@@ -18,11 +19,8 @@ func NewUserService(client userv1.UserServiceClient, l logger.Logger) *UserServi
 	return &UserService{client: client, logger: l}
 }
 
-func (c *UserService) GetCookie(ctx context.Context, studentID string, cookieType ...string) (string, error) {
-	req := &userv1.GetCookieRequest{StudentId: studentID}
-	if len(cookieType) > 0 {
-		req.Type = cookieType[0]
-	}
+func (c *UserService) GetCookie(ctx context.Context, studentID string, system tool.XKSystem) (string, error) {
+	req := &userv1.GetCookieRequest{StudentId: studentID, Type: string(system)}
 	resp, err := c.client.GetCookie(ctx, req)
 	if err != nil {
 		c.logger.WithContext(ctx).Warn("get cookie failed", logger.String("studentID", studentID), logger.Error(err))

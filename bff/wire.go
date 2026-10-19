@@ -50,6 +50,7 @@ func InitApp() *App {
 		ioc.InitUserHandler,
 		ioc.InitContentHandler,
 		ioc.InitFeedHandler,
+		ioc.InitFeedWhiteListService,
 		ioc.InitElecpriceHandler,
 		ioc.InitClassHandler,
 		ioc.InitGradeHandler,

@@ -2,8 +2,10 @@ package ioc
 
 import (
 	"context"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/cron"
+	"github.com/asynccnu/ccnubox-be/bff/service/activity"
 	"github.com/asynccnu/ccnubox-be/common/pkg/cronx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
@@ -19,6 +21,20 @@ func InitCronxManager(
 ) *cronx.Manager {
 	manager := cronx.NewManager(l)
 	registerActiveUsers24hRefreshTask(manager, m, redisClient, l)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := activity.EnsureDay(ctx, redisClient, time.Now()); err != nil {
+		l.Warn("daily activity initialization failed", logger.Error(err))
+	}
+	if err := manager.AddTask("daily_activity_heartbeat", "* * * * *", func(ctx context.Context, log logger.Logger) {
+		ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		if err := activity.EnsureDay(ctx, redisClient, time.Now()); err != nil {
+			log.Warn("daily activity heartbeat failed", logger.Error(err))
+		}
+	}); err != nil {
+		panic(err)
+	}
 	return manager
 }
 

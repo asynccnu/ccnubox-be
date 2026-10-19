@@ -86,6 +86,8 @@ func convMuxiMessageFromCacheToDomain(feeds []cache.MuxiOfficialMSG) []domain.Mu
 	result := make([]domain.MuxiOfficialMSG, len(feeds))
 	for i := range feeds {
 		result[i] = domain.MuxiOfficialMSG{
+			Targeted:     feeds[i].Targeted,
+			StudentIDs:   append([]string(nil), feeds[i].StudentIDs...),
 			Id:           feeds[i].MuxiMSGId,
 			Title:        feeds[i].Title,
 			Content:      feeds[i].Content,

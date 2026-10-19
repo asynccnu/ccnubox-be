@@ -138,6 +138,14 @@ func (g *FeedServiceServer) RemoveFeedToken(ctx context.Context, req *feedv1.Rem
 	return &feedv1.RemoveFeedTokenResp{}, nil
 }
 
+func (g *FeedServiceServer) SetOfficialWhiteList(ctx context.Context, req *feedv1.SetOfficialWhiteListReq) (*feedv1.SetOfficialWhiteListResp, error) {
+	list := domain.OfficialWhiteList{Strategy: req.GetStrategy(), StudentIDs: req.GetStudentIds(), All: req.GetAll(), ExpiresAt: req.GetExpiresAt()}
+	if err := g.muxiOfficialMSGService.SetOfficialWhiteList(ctx, list); err != nil {
+		return nil, err
+	}
+	return &feedv1.SetOfficialWhiteListResp{Strategy: list.Strategy, UserCount: int32(len(list.StudentIDs)), ExpiresAt: list.ExpiresAt}, nil
+}
+
 func (g *FeedServiceServer) PublicMuxiOfficialMSG(ctx context.Context, req *feedv1.PublicMuxiOfficialMSGReq) (*feedv1.PublicMuxiOfficialMSGResp, error) {
 
 	err := g.muxiOfficialMSGService.PublicMuxiOfficialMSG(ctx, convMuxiMSGFromGRPCTODomain(req.MuxiOfficialMSG))

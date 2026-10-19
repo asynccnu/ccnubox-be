@@ -7,6 +7,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/bff/cron"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
+	"github.com/asynccnu/ccnubox-be/bff/service/activity"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/gin-gonic/gin"
@@ -45,11 +46,11 @@ func (m *PrometheusMiddleware) MiddlewareFunc() gin.HandlerFunc {
 			if studentID != "" {
 				go func(studentID string) {
 					// Collection is best-effort. Redis failures are observable through
-					// ccnubox_redis_errors_total{operation="PFADD"|"EXPIRE"}.
+					// ccnubox_redis_errors_total (TXPIPELINE / PFADD / EXPIRE).
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 					defer cancel()
 
-					_ = m.recordActiveUser(ctx, studentID, time.Now())
+					_ = m.recordActiveUser(ctx, studentID, start)
 				}(studentID)
 			}
 
@@ -69,8 +70,14 @@ func (m *PrometheusMiddleware) recordActiveUser(ctx context.Context, studentID s
 	}
 
 	bucketKey := cron.ActiveUsersBucketKey(now)
+	// Keep exact daily membership alongside the approximate DAU metric. Either
+	// collection path may succeed independently during a transient Redis error.
+	dailyErr := activity.Record(ctx, m.redisClient, studentID, now)
 	if err := m.redisClient.PFAdd(ctx, bucketKey, studentID).Err(); err != nil {
 		return err
 	}
-	return m.redisClient.Expire(ctx, bucketKey, cron.ActiveUsersBucketTTL()).Err()
+	if err := m.redisClient.Expire(ctx, bucketKey, cron.ActiveUsersBucketTTL()).Err(); err != nil {
+		return err
+	}
+	return dailyErr
 }

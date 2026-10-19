@@ -866,6 +866,29 @@ definitions:
     required:
     - token
     type: object
+  feed.SetWhiteListReq:
+    properties:
+      strategy:
+        enum:
+        - high_activity
+        - script
+        - all
+        example: high_activity
+        type: string
+    required:
+    - strategy
+    type: object
+  feed.SetWhiteListResp:
+    properties:
+      all:
+        type: boolean
+      expires_at:
+        type: integer
+      strategy:
+        type: string
+      user_count:
+        type: integer
+    type: object
   feed.StopMuxiOfficialMSGReq:
     properties:
       id:
@@ -2683,7 +2706,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: 发布木犀官方消息，仅限管理员操作
+      description: Admin only. Uses the current backend white list selected by setWhiteList.
+        No recipient IDs are needed. Set extend_fields.url to the questionnaire HTTPS
+        link. Missing or expired lists are rejected.
       parameters:
       - description: Bearer Token
         in: header
@@ -2712,11 +2737,15 @@ paths:
           description: 没有访问权限
           schema:
             $ref: '#/definitions/web.Response'
+        "409":
+          description: Set a valid white list first
+          schema:
+            $ref: '#/definitions/web.Response'
         "500":
           description: 系统异常
           schema:
             $ref: '#/definitions/web.Response'
-      summary: 发布木犀官方消息
+      summary: Publish official message
       tags:
       - feed
   /feed/readFeedEvent:
@@ -2810,6 +2839,65 @@ paths:
           schema:
             $ref: '#/definitions/web.Response'
       summary: 保存feed订阅Token
+      tags:
+      - feed
+  /feed/setWhiteList:
+    post:
+      consumes:
+      - application/json
+      description: Admin only. high_activity uses backend activity rules; script runs
+        the configured backend command; all explicitly selects every user. No student
+        IDs are accepted. The list is valid for 7 days and applies to subsequent publicMuxiOfficialMSG
+        calls.
+      parameters:
+      - description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Backend selection strategy
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feed.SetWhiteListReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/web.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/feed.SetWhiteListResp'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/web.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/web.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/web.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/web.Response'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/web.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/web.Response'
+      summary: Set official message white list
       tags:
       - feed
   /feed/stopMuxiOfficialMSG:

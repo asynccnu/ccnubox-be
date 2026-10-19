@@ -62,3 +62,14 @@ tiered:
   high: 15  #单位是分钟
   middle: 30 #单位是分钟
   low: 60 #单位是分钟
+
+# Backend recipient selection. Apifox only sends {"strategy":"high_activity"}.
+# high_activity counts authenticated requests on complete Asia/Shanghai days.
+# First deployment needs 7 complete days; the partial first day is excluded.
+# script runs a trusted command and reads a JSON array of student IDs from stdout.
+# Configure the command on the server; no command or student IDs enter the HTTP API.
+# Use strategy "all" explicitly for broadcast. Lists expire after 7 days.
+feedWhiteList:
+  windowDays: 7
+  minActiveDays: 7
+  scriptCommand: [] # e.g. ["python3", "/app/scripts/select_survey_users.py"]

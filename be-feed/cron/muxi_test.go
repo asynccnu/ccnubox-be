@@ -16,9 +16,13 @@ import (
 type scheduledMuxi struct {
 	service.MuxiOfficialMSGService
 	removed int
+	msgs    []domain.MuxiOfficialMSG
 }
 
 func (s *scheduledMuxi) GetToBePublicOfficialMSG(context.Context, bool) ([]domain.MuxiOfficialMSG, error) {
+	if s.msgs != nil {
+		return s.msgs, nil
+	}
 	return []domain.MuxiOfficialMSG{{Id: "scheduled-id", Title: "标题", Content: "正文"}}, nil
 }
 func (s *scheduledMuxi) StopMuxiOfficialMSG(context.Context, string) error { s.removed++; return nil }
@@ -34,12 +38,18 @@ func (s *invalidMuxi) GetToBePublicOfficialMSG(context.Context, bool) ([]domain.
 
 type scheduledFeed struct {
 	service.FeedEventService
-	err  error
-	keys []string
+	err        error
+	keys       []string
+	users      []string
+	broadcasts []bool
+	urls       []string
 }
 
-func (s *scheduledFeed) PublicFeedEvent(_ context.Context, _ bool, event domain.FeedEvent) (feedv1.PublishStatus, error) {
+func (s *scheduledFeed) PublicFeedEvent(_ context.Context, all bool, event domain.FeedEvent) (feedv1.PublishStatus, error) {
 	s.keys = append(s.keys, event.DedupeKey)
+	s.users = append(s.users, event.StudentId)
+	s.broadcasts = append(s.broadcasts, all)
+	s.urls = append(s.urls, event.Url)
 	return feedv1.PublishStatus_ACCEPTED, s.err
 }
 
@@ -65,5 +75,34 @@ func TestMuxiDropsUnpublishableSchedule(t *testing.T) {
 	c.publicMuxiFeed()
 	if msgs.removed != 1 || len(feed.keys) != 0 {
 		t.Fatalf("removed=%d keys=%v", msgs.removed, feed.keys)
+	}
+}
+
+func TestMuxiUsesOnlyFrozenRecipientsAndRetainsPlanOnFailure(t *testing.T) {
+	msgs := &scheduledMuxi{msgs: []domain.MuxiOfficialMSG{{Id: "targeted", Title: "survey", Targeted: true, StudentIDs: []string{"a", "b"}, ExtendFields: domain.ExtendFields{"url": "https://example.com/survey"}}}}
+	feed := &scheduledFeed{err: errors.New("Kafka unavailable")}
+	c := &MuxiController{ctx: context.Background(), muxi: msgs, feed: feed, l: zapx.NewZapLogger(zap.NewNop())}
+	c.publicMuxiFeed()
+	if msgs.removed != 0 || len(feed.users) != 1 || feed.broadcasts[0] {
+		t.Fatalf("failure must retain targeted schedule: %+v", feed)
+	}
+	feed.err = nil
+	c.publicMuxiFeed()
+	if msgs.removed != 1 || strings.Join(feed.users, ",") != "a,a,b" {
+		t.Fatalf("recipients=%v removed=%d", feed.users, msgs.removed)
+	}
+	for i, key := range feed.keys {
+		if key != "muxi:targeted" || feed.broadcasts[i] || feed.urls[i] != "https://example.com/survey" {
+			t.Fatalf("wrong event: %+v", feed)
+		}
+	}
+}
+func TestMuxiEmptyTargetedPlanNeverBroadcasts(t *testing.T) {
+	msgs := &scheduledMuxi{msgs: []domain.MuxiOfficialMSG{{Id: "empty", Targeted: true, Title: "empty"}}}
+	feed := &scheduledFeed{}
+	c := &MuxiController{ctx: context.Background(), muxi: msgs, feed: feed, l: zapx.NewZapLogger(zap.NewNop())}
+	c.publicMuxiFeed()
+	if len(feed.keys) != 0 || msgs.removed != 1 {
+		t.Fatalf("empty targeted plan: calls=%d removed=%d", len(feed.keys), msgs.removed)
 	}
 }

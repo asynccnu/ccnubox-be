@@ -1292,7 +1292,9 @@ paths:
         - feed
   /feed/publicMuxiOfficialMSG:
     post:
-      description: 发布木犀官方消息，仅限管理员操作
+      description: Admin only. Uses the current backend white list selected by
+        setWhiteList. No recipient IDs are needed. Set extend_fields.url to the
+        questionnaire HTTPS link. Missing or expired lists are rejected.
       parameters:
         - description: Bearer Token
           in: header
@@ -1325,13 +1327,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/web.Response"
+        "409":
+          description: Set a valid white list first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
         "500":
           description: 系统异常
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/web.Response"
-      summary: 发布木犀官方消息
+      summary: Publish official message
       tags:
         - feed
   /feed/readFeedEvent:
@@ -1431,6 +1439,77 @@ paths:
               schema:
                 $ref: "#/components/schemas/web.Response"
       summary: 保存feed订阅Token
+      tags:
+        - feed
+  /feed/setWhiteList:
+    post:
+      description: Admin only. high_activity uses backend activity rules; script runs
+        the configured backend command; all explicitly selects every user. No
+        student IDs are accepted. The list is valid for 7 days and applies to
+        subsequent publicMuxiOfficialMSG calls.
+      parameters:
+        - description: Bearer Token
+          in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/feed.SetWhiteListReq"
+        description: Backend selection strategy
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/web.Response"
+                  - properties:
+                      data:
+                        $ref: "#/components/schemas/feed.SetWhiteListResp"
+                    type: object
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/web.Response"
+      summary: Set official message white list
       tags:
         - feed
   /feed/stopMuxiOfficialMSG:
@@ -3627,6 +3706,29 @@ components:
           type: string
       required:
         - token
+      type: object
+    feed.SetWhiteListReq:
+      properties:
+        strategy:
+          enum:
+            - high_activity
+            - script
+            - all
+          example: high_activity
+          type: string
+      required:
+        - strategy
+      type: object
+    feed.SetWhiteListResp:
+      properties:
+        all:
+          type: boolean
+        expires_at:
+          type: integer
+        strategy:
+          type: string
+        user_count:
+          type: integer
       type: object
     feed.StopMuxiOfficialMSGReq:
       properties:

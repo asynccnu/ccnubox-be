@@ -155,11 +155,20 @@ type LibraryReminderUser struct {
 }
 
 type MuxiOfficialMSG struct {
+	Targeted     bool
+	StudentIDs   []string
 	Title        string
 	Content      string
 	ExtendFields       // 拓展字段如果要发额外的东西的话
 	PublicTime   int64 // 正式发布的时间
 	Id           string
+}
+
+type OfficialWhiteList struct {
+	Strategy   string   `json:"strategy"`
+	StudentIDs []string `json:"student_ids"`
+	All        bool     `json:"all"`
+	ExpiresAt  int64    `json:"expires_at"`
 }
 
 // ValidateLibraryTeamInvitation 由 RPC 和 Kafka 存储入口共用；合法过期事实仍可展示。

@@ -2,6 +2,7 @@ package ioc
 
 import (
 	"github.com/asynccnu/ccnubox-be/bff/conf"
+	feedservice "github.com/asynccnu/ccnubox-be/bff/service/feed"
 	"github.com/asynccnu/ccnubox-be/bff/web/class"
 	"github.com/asynccnu/ccnubox-be/bff/web/classroom"
 	"github.com/asynccnu/ccnubox-be/bff/web/content"
@@ -28,8 +29,19 @@ import (
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
+	"github.com/redis/go-redis/v9"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
+
+func InitFeedWhiteListService(cfg *conf.ServerConf, r redis.Cmdable, f feedv1.FeedServiceClient) *feedservice.WhiteListService {
+	options := feedservice.WhiteListOptions{}
+	if cfg.FeedWhiteList != nil {
+		options.WindowDays = cfg.FeedWhiteList.WindowDays
+		options.MinActiveDays = cfg.FeedWhiteList.MinActiveDays
+		options.ScriptCommand = cfg.FeedWhiteList.ScriptCommand
+	}
+	return feedservice.NewWhiteListService(r, f, options)
+}
 
 // InitContentHandler 初始化 ContentHandler
 func InitContentHandler(
@@ -49,11 +61,11 @@ func InitContentHandler(
 
 func InitFeedHandler(
 	cfg *conf.ServerConf,
-	feedServiceClient feedv1.FeedServiceClient) *feed.FeedHandler {
+	feedServiceClient feedv1.FeedServiceClient, whiteList *feedservice.WhiteListService) *feed.FeedHandler {
 	return feed.NewFeedHandler(feedServiceClient,
 		slice.ToMapV(cfg.Administrators, func(element string) (string, struct{}) {
 			return element, struct{}{}
-		}))
+		}), whiteList)
 }
 
 func InitElecpriceHandler(cfg *conf.ServerConf, client elecpricev1.ElecpriceServiceClient) *elecprice.ElecPriceHandler {

@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
-
 	"github.com/asynccnu/ccnubox-be/be-grade/crawler"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
@@ -17,6 +15,7 @@ import (
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
@@ -235,12 +234,12 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 
-		studentType := tool.ParseStudentType(studentId)
-		if studentType != tool.UnderGraduate && studentType != tool.PostGraduate {
-			return nil, errorx.New("service: invalid student type")
+		system, err := tool.XKSystemForStudent(studentId)
+		if err != nil {
+			return nil, err
 		}
 
-		cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
+		cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId, Type: string(system)})
 		if err != nil {
 			return nil, errorx.Errorf("service: rpc get cookie failed, sid: %s, err: %w", studentId, err)
 		}
@@ -251,7 +250,7 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 
 		remote, err := stu.GetGrades(ctx, cookieResp.Cookie, 0, 0, 300)
 		if errors.Is(err, crawler.ErrCookieTimeout) {
-			cookieResp, err = s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
+			cookieResp, err = s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId, Type: string(system)})
 			if err != nil {
 				return nil, errorx.Errorf("service: retry rpc get cookie failed, sid: %s, err: %w", studentId, err)
 			}
@@ -372,7 +371,7 @@ func (s *gradeService) newStudent(studentId, cookie string) (Student, error) {
 }
 
 func (s *gradeService) newUGWithCookie(ctx context.Context, studentId string) (*crawler.UnderGrad, error) {
-	cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId})
+	cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId, Type: string(tool.XKUndergraduate)})
 	if err != nil {
 		return nil, errorx.Errorf("service: newUG rpc cookie failed, sid: %s, err: %w", studentId, err)
 	}

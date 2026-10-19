@@ -46,3 +46,15 @@ func IsSystemError(err error) bool {
 func ErrorSystemError(format string, args ...interface{}) *errors.Error {
 	return errors.New(502, CCNUErrorReason_SYSTEM_ERROR.String(), fmt.Sprintf(format, args...))
 }
+
+func IsInvalidXkSystem(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == CCNUErrorReason_INVALID_XK_SYSTEM.String() && e.Code == 400
+}
+
+func ErrorInvalidXkSystem(format string, args ...interface{}) *errors.Error {
+	return errors.New(400, CCNUErrorReason_INVALID_XK_SYSTEM.String(), fmt.Sprintf(format, args...))
+}

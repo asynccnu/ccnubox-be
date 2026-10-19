@@ -5,6 +5,7 @@ import (
 
 	"github.com/asynccnu/ccnubox-be/be-user/service"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/tool"
 	"google.golang.org/grpc"
 )
 
@@ -34,17 +35,12 @@ func (s *UserServiceServer) DeleteUser(ctx context.Context,
 }
 
 func (s *UserServiceServer) GetCookie(ctx context.Context, request *userv1.GetCookieRequest) (*userv1.GetCookieResponse, error) {
-	var (
-		u   string
-		err error
-	)
-	if request.Type == "" {
-		u, err = s.svc.GetCookie(ctx, request.GetStudentId())
-	} else {
-		u, err = s.svc.GetCookie(ctx, request.GetStudentId(), request.Type)
-
+	system, err := tool.ResolveXKSystem(request.GetStudentId(), request.GetType())
+	if err != nil {
+		return nil, err
 	}
-	return &userv1.GetCookieResponse{Cookie: u}, err
+	cookie, err := s.svc.GetCookie(ctx, request.GetStudentId(), system)
+	return &userv1.GetCookieResponse{Cookie: cookie}, err
 }
 
 func (s *UserServiceServer) GetLibrarySeatToken(ctx context.Context, request *userv1.GetLibraryTokenRequest) (*userv1.GetLibraryTokenResponse, error) {

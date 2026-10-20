@@ -39,7 +39,7 @@ func NewWhiteListService(r redis.Cmdable, f feedv1.FeedServiceClient, options Wh
 		options.WindowDays = 7
 	}
 	if options.MinActiveDays == 0 {
-		options.MinActiveDays = options.WindowDays
+		options.MinActiveDays = 5
 	}
 	s := &WhiteListService{redis: r, feed: f, options: options, now: time.Now}
 	s.selectors = map[string]func(context.Context) ([]string, error){"high_activity": s.highActivity, "script": s.fromScript}

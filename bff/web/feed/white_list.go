@@ -29,7 +29,7 @@ type SetWhiteListResp struct {
 
 // SetWhiteList selects recipients using a backend strategy.
 // @Summary 设置木犀官方消息发送名单
-// @Description 仅限管理员。high_activity 按后端配置的活跃天数筛选；script 执行后端配置的名单脚本；all 筛选系统内全部在校用户，无需等待活跃明细积累。在校用户按学号前四位的入学年份和四年学制判断，每年北京时间 6 月 30 日起排除毕业批次；不接收学号参数。名单有效期为 7 天，后续通过 publicMuxiOfficialMSG 发布。
+// @Description 仅限管理员。high_activity 默认筛选最近 7 个完整自然日中至少活跃 5 天的用户（北京时间，不含当天，阈值可由后端配置）；script 执行后端配置的名单脚本；all 筛选系统内全部在校用户，无需等待活跃明细积累。在校用户按学号前四位的入学年份和四年学制判断，每年北京时间 6 月 30 日起排除毕业批次；不接收学号参数。名单有效期为 7 天，后续通过 publicMuxiOfficialMSG 发布。
 // @Tags feed
 // @Accept json
 // @Produce json

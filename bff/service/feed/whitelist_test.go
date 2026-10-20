@@ -51,18 +51,36 @@ func TestHighActivityStrategyUsesBackendRules(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
+		if day <= 5 {
+			if err := activity.Record(ctx, r, "five_days", now.AddDate(0, 0, -day)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if day <= 4 {
+			if err := activity.Record(ctx, r, "four_days", now.AddDate(0, 0, -day)); err != nil {
+				t.Fatal(err)
+			}
+		}
 	}
 	if err := activity.Record(ctx, r, "today", now); err != nil {
 		t.Fatal(err)
 	}
+	if err := activity.Record(ctx, r, "four_days", now); err != nil {
+		t.Fatal(err)
+	}
 	result, err := s.Set(ctx, "high_activity")
-	if err != nil || result.UserCount != 1 || f.req.StudentIds[0] != "daily" || f.req.All {
+	if err != nil || result.UserCount != 3 || strings.Join(f.req.StudentIds, ",") != "daily,five_days,six_days" || f.req.All {
 		t.Fatalf("result=%+v request=%+v err=%v", result, f.req, err)
 	}
 	s.options.MinActiveDays = 6
 	result, err = s.Set(ctx, "high_activity")
 	if err != nil || result.UserCount != 2 {
 		t.Fatalf("configured threshold: %+v %v", result, err)
+	}
+	s.options.MinActiveDays = 7
+	result, err = s.Set(ctx, "high_activity")
+	if err != nil || result.UserCount != 1 || f.req.StudentIds[0] != "daily" {
+		t.Fatalf("configured strict threshold: %+v %v", result, err)
 	}
 	if _, err = s.Set(ctx, "manual"); !errors.Is(err, ErrInvalidStrategy) {
 		t.Fatalf("manual must not accept recipients: %v", err)

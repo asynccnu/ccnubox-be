@@ -15,6 +15,7 @@ import (
 )
 
 type MuxiController struct {
+	now          func() time.Time
 	muxi         service.MuxiOfficialMSGService
 	feed         service.FeedEventService
 	durationTime time.Duration
@@ -118,6 +119,13 @@ func (c *MuxiController) publicMuxiFeed() {
 				continue
 			}
 			for _, studentID := range msg.StudentIDs {
+				now := time.Now()
+				if c.now != nil {
+					now = c.now()
+				}
+				if msg.WhiteListStrategy == "all" && !domain.IsCurrentStudent(studentID, now) {
+					continue
+				}
 				event.StudentId = studentID
 				if _, err = c.feed.PublicFeedEvent(ctx, false, event); err != nil {
 					break

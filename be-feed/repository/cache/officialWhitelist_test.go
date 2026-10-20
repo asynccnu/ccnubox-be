@@ -27,12 +27,12 @@ func TestOfficialWhiteListAndScheduledRecipientsRoundTrip(t *testing.T) {
 	if _, err := c.GetOfficialWhiteList(ctx); err != nil {
 		t.Fatal("expired marker disappeared")
 	}
-	msg := MuxiOfficialMSG{MuxiMSGId: "scheduled", Title: "survey", Targeted: true, StudentIDs: []string{"a", "b"}}
+	msg := MuxiOfficialMSG{MuxiMSGId: "scheduled", Title: "survey", WhiteListStrategy: "all", Targeted: true, StudentIDs: []string{"a", "b"}}
 	if err := c.SetMuxiFeeds(ctx, msg, time.Now().Add(-time.Hour).Unix()); err != nil {
 		t.Fatal(err)
 	}
 	plans, err := c.GetMuxiToBePublicFeeds(ctx, true)
-	if err != nil || len(plans) != 1 || !plans[0].Targeted || len(plans[0].StudentIDs) != 2 {
+	if err != nil || len(plans) != 1 || !plans[0].Targeted || plans[0].WhiteListStrategy != "all" || len(plans[0].StudentIDs) != 2 {
 		t.Fatalf("plans=%+v error=%v", plans, err)
 	}
 }

@@ -30,11 +30,20 @@ type officialClientStub struct {
 	selected   *feedv1.SetOfficialWhiteListReq
 	published  *feedv1.PublicMuxiOfficialMSGReq
 	publishErr error
+	selectErr  error
+	allCount   int32
 }
 
 func (s *officialClientStub) SetOfficialWhiteList(_ context.Context, r *feedv1.SetOfficialWhiteListReq, _ ...grpc.CallOption) (*feedv1.SetOfficialWhiteListResp, error) {
 	s.selected = r
-	return &feedv1.SetOfficialWhiteListResp{Strategy: r.Strategy, UserCount: int32(len(r.StudentIds)), ExpiresAt: r.ExpiresAt}, nil
+	if s.selectErr != nil {
+		return nil, s.selectErr
+	}
+	count := int32(len(r.StudentIds))
+	if r.All {
+		count = s.allCount
+	}
+	return &feedv1.SetOfficialWhiteListResp{Strategy: r.Strategy, UserCount: count, ExpiresAt: r.ExpiresAt}, nil
 }
 func (s *officialClientStub) PublicMuxiOfficialMSG(_ context.Context, r *feedv1.PublicMuxiOfficialMSGReq, _ ...grpc.CallOption) (*feedv1.PublicMuxiOfficialMSGResp, error) {
 	s.published = r
@@ -138,5 +147,35 @@ func TestWhiteListHTTPExplainsUnavailableUserHistory(t *testing.T) {
 	earliest := activity.Day(since).AddDate(0, 0, 8).Format("2006-01-02")
 	if w.Code != 409 || response.Code != 40804 || !strings.Contains(response.Msg, earliest) || f.selected != nil {
 		t.Fatalf("warmup: %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestAllWhiteListReportsCountAndBackendConditions(t *testing.T) {
+	f := &officialClientStub{allCount: 12000}
+	g := officialRouter(f)
+	w := officialRequest(g, "setWhiteList", `{"strategy":"all"}`, "admin")
+	var response struct {
+		Code int              `json:"code"`
+		Msg  string           `json:"msg"`
+		Data SetWhiteListResp `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != 200 || response.Data.UserCount != 12000 || !response.Data.All {
+		t.Fatalf("all response: %d %s", w.Code, w.Body.String())
+	}
+	f.selectErr = status.Error(codes.FailedPrecondition, "当前没有符合在校规则的用户")
+	w = officialRequest(g, "setWhiteList", `{"strategy":"all"}`, "admin")
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != 409 || response.Code != 40801 || response.Msg != "当前没有符合在校规则的用户" {
+		t.Fatalf("backend precondition: %d %s", w.Code, w.Body.String())
+	}
+	f.selectErr = status.Error(codes.InvalidArgument, "名单参数错误")
+	w = officialRequest(g, "setWhiteList", `{"strategy":"all"}`, "admin")
+	if w.Code != 400 {
+		t.Fatalf("backend parameter error: %d %s", w.Code, w.Body.String())
 	}
 }

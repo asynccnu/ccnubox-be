@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"strings"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/producer"
@@ -169,6 +170,7 @@ func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, even
 
 	if isAll {
 		const batchSize = 50
+		broadcastAt := time.Now()
 		var lastId int64 = 0
 
 		for {
@@ -188,6 +190,10 @@ func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, even
 				return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(err)
 			}
 			for i := range studentIds {
+				// Older queued official broadcasts must also exclude graduated users.
+				if strings.EqualFold(event.Type, "muxi") && !domain.IsCurrentStudent(studentIds[i], broadcastAt) {
+					continue
+				}
 				if err := ctx.Err(); err != nil {
 					return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(err)
 				}

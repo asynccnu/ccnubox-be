@@ -184,11 +184,12 @@ func (cache *RedisFeedEventCache) GetUniqueKey() string {
 }
 
 type MuxiOfficialMSG struct {
-	Targeted   bool     `json:"targeted,omitempty"`
-	StudentIDs []string `json:"student_ids,omitempty"`
-	MuxiMSGId  string   `json:"muxi_msg_id"`
-	Title      string   `json:"title"`
-	Content    string   `json:"content"`
-	Url        string   `json:"url"`
+	WhiteListStrategy string   `json:"white_list_strategy,omitempty"`
+	Targeted          bool     `json:"targeted,omitempty"`
+	StudentIDs        []string `json:"student_ids,omitempty"`
+	MuxiMSGId         string   `json:"muxi_msg_id"`
+	Title             string   `json:"title"`
+	Content           string   `json:"content"`
+	Url               string   `json:"url"`
 	model.ExtendFields
 }

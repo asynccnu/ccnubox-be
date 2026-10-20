@@ -155,13 +155,14 @@ type LibraryReminderUser struct {
 }
 
 type MuxiOfficialMSG struct {
-	Targeted     bool
-	StudentIDs   []string
-	Title        string
-	Content      string
-	ExtendFields       // 拓展字段如果要发额外的东西的话
-	PublicTime   int64 // 正式发布的时间
-	Id           string
+	WhiteListStrategy string
+	Targeted          bool
+	StudentIDs        []string
+	Title             string
+	Content           string
+	ExtendFields            // 拓展字段如果要发额外的东西的话
+	PublicTime        int64 // 正式发布的时间
+	Id                string
 }
 
 type OfficialWhiteList struct {

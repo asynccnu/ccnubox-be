@@ -1940,7 +1940,7 @@ const docTemplate = `{
         },
         "/feed/publicMuxiOfficialMSG": {
             "post": {
-                "description": "Admin only. Uses the current backend white list selected by setWhiteList. No recipient IDs are needed. Set extend_fields.url to the questionnaire HTTPS link. Missing or expired lists are rejected.",
+                "description": "仅限管理员。使用 setWhiteList 已设置的名单发布，无需传入收件人学号。向全部在校用户发送时，先使用 all 策略设置名单；extend_fields.url 可填写问卷的 HTTPS 链接。名单未设置、已过期或不可用时拒绝发布。",
                 "consumes": [
                     "application/json"
                 ],
@@ -1950,11 +1950,11 @@ const docTemplate = `{
                 "tags": [
                     "feed"
                 ],
-                "summary": "Publish official message",
+                "summary": "发布木犀官方消息",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "管理员访问令牌（Bearer Token）",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -1995,7 +1995,7 @@ const docTemplate = `{
                         }
                     },
                     "409": {
-                        "description": "Set a valid white list first",
+                        "description": "请先设置有效的发送名单",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -2152,7 +2152,7 @@ const docTemplate = `{
         },
         "/feed/setWhiteList": {
             "post": {
-                "description": "Admin only. high_activity uses backend activity rules; script runs the configured backend command; all explicitly selects every user. No student IDs are accepted. The list is valid for 7 days and applies to subsequent publicMuxiOfficialMSG calls.",
+                "description": "仅限管理员。high_activity 按后端配置的活跃天数筛选；script 执行后端配置的名单脚本；all 筛选系统内全部在校用户，无需等待活跃明细积累。在校用户按学号前四位的入学年份和四年学制判断，每年北京时间 6 月 30 日起排除毕业批次；不接收学号参数。名单有效期为 7 天，后续通过 publicMuxiOfficialMSG 发布。",
                 "consumes": [
                     "application/json"
                 ],
@@ -2162,17 +2162,17 @@ const docTemplate = `{
                 "tags": [
                     "feed"
                 ],
-                "summary": "Set official message white list",
+                "summary": "设置木犀官方消息发送名单",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer Token",
+                        "description": "管理员访问令牌（Bearer Token）",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
                     },
                     {
-                        "description": "Backend selection strategy",
+                        "description": "后端名单筛选策略",
                         "name": "data",
                         "in": "body",
                         "required": true,
@@ -2183,7 +2183,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "设置成功，返回实际名单人数",
                         "schema": {
                             "allOf": [
                                 {
@@ -2201,37 +2201,37 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "参数错误或名单为空",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "未登录或令牌失效",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
                     },
                     "403": {
-                        "description": "Forbidden",
+                        "description": "没有访问权限",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
                     },
                     "409": {
-                        "description": "40804: message explains collection start, earliest usable date, or missing dates",
+                        "description": "活跃明细未就绪或名单不可用，错误信息包含具体原因",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
                     },
                     "422": {
-                        "description": "Unprocessable Entity",
+                        "description": "请求体不合法",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "系统异常",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }
@@ -5485,6 +5485,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "all": {
+                    "description": "All 表示使用全量在校用户策略，不表示向历史全部账号广播。",
                     "type": "boolean"
                 },
                 "expires_at": {

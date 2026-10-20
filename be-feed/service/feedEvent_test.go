@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/producer"
@@ -30,7 +32,8 @@ type broadcastUsers struct{ dao.FeedUserConfigDAO }
 
 func (broadcastUsers) GetStudentIdsByCursor(_ context.Context, lastID int64, _ int) ([]string, int64, error) {
 	if lastID == 0 {
-		return []string{"a", "b", "c"}, 3, nil
+		prefix := fmt.Sprintf("%d", time.Now().Year()-1)
+		return []string{prefix + "0001", prefix + "0002", prefix + "0003"}, 3, nil
 	}
 	return nil, 3, nil
 }
@@ -59,16 +62,16 @@ func TestBroadcastStopsOnFailureAndReusesDedupeKey(t *testing.T) {
 	if _, err := s.PublicFeedEvent(context.Background(), true, event); err == nil {
 		t.Fatal("broadcast hid partial failure")
 	}
-	if len(p.calls) != 2 || p.calls[1].StudentId != "b" {
+	if len(p.calls) != 2 || p.calls[1].StudentId != fmt.Sprintf("%d0002", time.Now().Year()-1) {
 		t.Fatalf("continued after failure: %+v", p.calls)
 	}
-	stored["a:announcement"] = true
+	stored[fmt.Sprintf("%d0001:announcement", time.Now().Year()-1)] = true
 	p.calls = nil
 	p.failAt = 0
 	if _, err := s.PublicFeedEvent(context.Background(), true, event); err != nil {
 		t.Fatal(err)
 	}
-	if len(p.calls) != 2 || p.calls[0].StudentId != "b" || p.calls[1].StudentId != "c" {
+	if len(p.calls) != 2 || p.calls[0].StudentId != fmt.Sprintf("%d0002", time.Now().Year()-1) || p.calls[1].StudentId != fmt.Sprintf("%d0003", time.Now().Year()-1) {
 		t.Fatalf("resent completed prefix: %+v", p.calls)
 	}
 	for _, sent := range p.calls {
@@ -86,5 +89,18 @@ func TestBroadcastRejectsMissingKeyBeforeSending(t *testing.T) {
 	}
 	if len(p.calls) != 0 {
 		t.Fatal("sent invalid broadcast")
+	}
+}
+
+func TestLegacyOfficialBroadcastSkipsGraduatedAndMalformedIDs(t *testing.T) {
+	p := &broadcastProducer{}
+	current := fmt.Sprintf("%d0001", time.Now().Year()-1)
+	users := &officialUsersStub{batches: [][]string{{"19990001", "bad"}, {current, "20990001"}}}
+	s := &feedEventService{feedProducer: p, feedUserConfigDAO: users, feedEventDAO: broadcastEvents{stored: map[string]bool{}}, l: zapx.NewZapLogger(zap.NewNop())}
+	if _, err := s.PublicFeedEvent(context.Background(), true, domain.FeedEvent{Type: "muxi", DedupeKey: "legacy"}); err != nil {
+		t.Fatal(err)
+	}
+	if len(p.calls) != 1 || p.calls[0].StudentId != current || len(users.cursors) != 3 {
+		t.Fatalf("events=%+v cursors=%v", p.calls, users.cursors)
 	}
 }

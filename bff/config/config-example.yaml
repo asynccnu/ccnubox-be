@@ -68,7 +68,8 @@ tiered:
 # First deployment needs 7 complete days; the partial first day is excluded.
 # script runs a trusted command and reads a JSON array of student IDs from stdout.
 # Configure the command on the server; no command or student IDs enter the HTTP API.
-# Use strategy "all" explicitly for broadcast. Lists expire after 7 days.
+# all 策略筛选已注册的在校用户，按四年学制和北京时间 6 月 30 日毕业判断。
+# 全量名单无需活跃历史；名单有效期为 7 天。
 feedWhiteList:
   windowDays: 7
   minActiveDays: 7

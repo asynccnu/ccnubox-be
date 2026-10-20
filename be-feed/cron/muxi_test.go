@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
@@ -104,5 +105,16 @@ func TestMuxiEmptyTargetedPlanNeverBroadcasts(t *testing.T) {
 	c.publicMuxiFeed()
 	if len(feed.keys) != 0 || msgs.removed != 1 {
 		t.Fatalf("empty targeted plan: calls=%d removed=%d", len(feed.keys), msgs.removed)
+	}
+}
+
+func TestAllCurrentStudentsScheduleExcludesNewlyGraduatedUsers(t *testing.T) {
+	msgs := &scheduledMuxi{msgs: []domain.MuxiOfficialMSG{{Id: "current-students", Title: "announcement", Targeted: true, WhiteListStrategy: "all", StudentIDs: []string{"20220001", "20230001"}}}}
+	feed := &scheduledFeed{}
+	now := time.Date(2026, 6, 30, 0, 0, 0, 0, time.FixedZone("Asia/Shanghai", 8*60*60))
+	c := &MuxiController{ctx: context.Background(), muxi: msgs, feed: feed, l: zapx.NewZapLogger(zap.NewNop()), now: func() time.Time { return now }}
+	c.publicMuxiFeed()
+	if msgs.removed != 1 || len(feed.users) != 1 || feed.users[0] != "20230001" || feed.broadcasts[0] {
+		t.Fatalf("removed=%d users=%v broadcasts=%v", msgs.removed, feed.users, feed.broadcasts)
 	}
 }

@@ -245,16 +245,16 @@ func (h *FeedHandler) RemoveFeedToken(ctx *gin.Context, req RemoveFeedTokenReq, 
 }
 
 // PublicMuxiOfficialMSG
-// @Summary Publish official message
-// @Description Admin only. Uses the current backend white list selected by setWhiteList. No recipient IDs are needed. Set extend_fields.url to the questionnaire HTTPS link. Missing or expired lists are rejected.
+// @Summary 发布木犀官方消息
+// @Description 仅限管理员。使用 setWhiteList 已设置的名单发布，无需传入收件人学号。向全部在校用户发送时，先使用 all 策略设置名单；extend_fields.url 可填写问卷的 HTTPS 链接。名单未设置、已过期或不可用时拒绝发布。
 // @Tags feed
 // @Accept  json
 // @Produce  json
-// @Param Authorization header string true "Bearer Token"
+// @Param Authorization header string true "管理员访问令牌（Bearer Token）"
 // @Param data body PublicMuxiOfficialMSGReq true "木犀官方消息"
 // @Success 200 {object} web.Response{data=PublicMuxiOfficialMSGResp} "成功"
 // @Failure 403 {object} web.Response "没有访问权限"
-// @Failure 409 {object} web.Response "Set a valid white list first"
+// @Failure 409 {object} web.Response "请先设置有效的发送名单"
 // @Failure 500 {object} web.Response "系统异常"
 // @Router /feed/publicMuxiOfficialMSG [post]
 func (h *FeedHandler) PublicMuxiOfficialMSG(ctx *gin.Context, req PublicMuxiOfficialMSGReq, uc ijwt.UserClaims) (web.Response, error) {
@@ -272,7 +272,7 @@ func (h *FeedHandler) PublicMuxiOfficialMSG(ctx *gin.Context, req PublicMuxiOffi
 	})
 	if err != nil {
 		if status.Code(err) == codes.FailedPrecondition {
-			return web.Response{}, b_errorx.New(http.StatusConflict, errs.WHITE_LIST_NOT_READY_ERROR_CODE, "Please set a valid white list first")
+			return web.Response{}, b_errorx.New(http.StatusConflict, errs.WHITE_LIST_NOT_READY_ERROR_CODE, "请先设置有效的发送名单")
 		}
 		return web.Response{
 			Code: errs.INTERNAL_SERVER_ERROR_CODE,

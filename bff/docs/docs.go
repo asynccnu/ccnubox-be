@@ -2219,7 +2219,7 @@ const docTemplate = `{
                         }
                     },
                     "409": {
-                        "description": "Conflict",
+                        "description": "40804: message explains collection start, earliest usable date, or missing dates",
                         "schema": {
                             "$ref": "#/definitions/web.Response"
                         }

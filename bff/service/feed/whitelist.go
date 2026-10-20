@@ -141,7 +141,7 @@ func (s *WhiteListService) activeUsers(ctx context.Context, start time.Time, day
 			return nil, err
 		}
 		if n == 0 {
-			return nil, activity.ErrNotReady
+			return nil, activity.MissingDay(start, days, start.AddDate(0, 0, i))
 		}
 		if n > 100001 {
 			return nil, errors.New("单日活跃候选人数超过 100000")
@@ -151,7 +151,7 @@ func (s *WhiteListService) activeUsers(ctx context.Context, start time.Time, day
 			return nil, err
 		}
 		if len(ids) == 0 {
-			return nil, activity.ErrNotReady
+			return nil, activity.MissingDay(start, days, start.AddDate(0, 0, i))
 		}
 		for _, id := range ids {
 			if id != "" {

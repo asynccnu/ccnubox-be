@@ -36,7 +36,7 @@ type SetWhiteListResp struct {
 // @Failure 400 {object} web.Response
 // @Failure 401 {object} web.Response
 // @Failure 403 {object} web.Response
-// @Failure 409 {object} web.Response
+// @Failure 409 {object} web.Response "40804: message explains collection start, earliest usable date, or missing dates"
 // @Failure 422 {object} web.Response
 // @Failure 500 {object} web.Response
 // @Router /feed/setWhiteList [post]

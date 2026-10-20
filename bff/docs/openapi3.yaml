@@ -1492,7 +1492,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/web.Response"
         "409":
-          description: Conflict
+          description: "40804: message explains collection start, earliest usable date, or
+            missing dates"
           content:
             application/json:
               schema:

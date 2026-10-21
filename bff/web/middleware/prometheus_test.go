@@ -43,45 +43,10 @@ func TestPrometheusMiddlewareRecordsCurrentBucket(t *testing.T) {
 	if count != 2 {
 		t.Fatalf("bucket count got %d, want 2", count)
 	}
-	if n := client.SCard(context.Background(), activity.Key(now)).Val(); n != 3 {
-		t.Fatalf("daily set size got %d, want two users and an empty-day marker", n)
+	if n := client.Exists(context.Background(), activity.Key(now)).Val(); n != 0 {
+		t.Fatal("best-effort metric path must not collect exact activity")
 	}
 	if ttl := mr.TTL(bucketKey); ttl <= 24*time.Hour || ttl > cron.ActiveUsersBucketTTL() {
 		t.Fatalf("bucket TTL got %s, want in (24h, %s]", ttl, cron.ActiveUsersBucketTTL())
-	}
-}
-
-func TestActiveUserCollectionKeepsCountsAndMembershipIndependent(t *testing.T) {
-	for _, failure := range []string{"daily", "hll"} {
-		t.Run(failure, func(t *testing.T) {
-			mr := miniredis.RunT(t)
-			r := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-			defer r.Close()
-			ctx := context.Background()
-			now := time.Date(2026, 10, 20, 12, 0, 0, 0, activity.China)
-			mr.SetTime(now)
-			broken := activity.Key(now)
-			if failure == "hll" {
-				broken = cron.ActiveUsersBucketKey(now)
-			}
-			if err := r.Set(ctx, broken, "wrong-type", 0).Err(); err != nil {
-				t.Fatal(err)
-			}
-			m := NewPrometheusMiddleware(nil, r)
-			if err := m.recordActiveUser(ctx, "a", now); err == nil {
-				t.Fatal("expected collection error")
-			}
-			if failure == "hll" {
-				present, err := r.SIsMember(ctx, activity.Key(now), "a").Result()
-				if err != nil || !present {
-					t.Fatalf("metric error prevented exact membership collection: %v", err)
-				}
-			} else {
-				count, err := r.PFCount(ctx, cron.ActiveUsersBucketKey(now)).Result()
-				if err != nil || count != 1 {
-					t.Fatalf("membership error prevented metric collection: %d %v", count, err)
-				}
-			}
-		})
 	}
 }

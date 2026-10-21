@@ -134,19 +134,9 @@ func (s *WhiteListService) activeUsers(ctx context.Context, start time.Time, day
 	}
 	counts := make(map[string]int)
 	for i := 0; i < days; i++ {
-		key := activity.Key(start.AddDate(0, 0, i))
-		// Bound memory while reading daily sets and the union of all candidates.
-		n, err := s.redis.SCard(ctx, key).Result()
-		if err != nil {
-			return nil, err
-		}
-		if n == 0 {
-			return nil, activity.MissingDay(start, days, start.AddDate(0, 0, i))
-		}
-		if n > 100001 {
-			return nil, errors.New("单日活跃候选人数超过 100000")
-		}
-		ids, err := s.redis.SMembers(ctx, key).Result()
+		// Check completion and read its bounded snapshot atomically, including
+		// when a subset of the set was lost after the window readiness check.
+		ids, err := activity.ReadDay(ctx, s.redis, start.AddDate(0, 0, i))
 		if err != nil {
 			return nil, err
 		}

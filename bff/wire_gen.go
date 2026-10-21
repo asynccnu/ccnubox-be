@@ -24,7 +24,7 @@ func InitApp() *App {
 	metrics := ioc.InitMetrics(serverConf)
 	cmdable := ioc.RedisCmdable(client, metrics)
 	handler := ioc.InitJwtHandler(cmdable, serverConf)
-	loginMiddleware := middleware.NewLoginMiddleWare(handler)
+	loginMiddleware := middleware.NewLoginMiddleWare(handler, cmdable)
 	corsMiddleware := middleware.NewCorsMiddleware()
 	basicAuthMiddleware := middleware.NewBasicAuthMiddleware(serverConf)
 	prometheusMiddleware := middleware.NewPrometheusMiddleware(metrics, cmdable)

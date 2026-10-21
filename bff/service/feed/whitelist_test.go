@@ -68,6 +68,12 @@ func TestHighActivityStrategyUsesBackendRules(t *testing.T) {
 	if err := activity.Record(ctx, r, "four_days", now); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := s.Set(ctx, "high_activity"); !errors.Is(err, activity.ErrNotReady) || f.req != nil {
+		t.Fatalf("unsealed history froze a recipient list: request=%+v err=%v", f.req, err)
+	}
+	if err := activity.EnsureDay(ctx, r, now); err != nil {
+		t.Fatal(err)
+	}
 	result, err := s.Set(ctx, "high_activity")
 	if err != nil || result.UserCount != 3 || strings.Join(f.req.StudentIds, ",") != "daily,five_days,six_days" || f.req.All {
 		t.Fatalf("result=%+v request=%+v err=%v", result, f.req, err)

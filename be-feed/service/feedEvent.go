@@ -159,13 +159,6 @@ func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, even
 		if !enabled {
 			return feedv1.PublishStatus_SUPPRESSED_BY_ALLOW_LIST, nil
 		}
-		duplicate, err := s.feedEventDAO.DedupeKeyExists(ctx, event.StudentId, event.DedupeKey)
-		if err != nil {
-			return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(err)
-		}
-		if duplicate {
-			return feedv1.PublishStatus_DUPLICATE, nil
-		}
 	}
 
 	if isAll {
@@ -213,7 +206,15 @@ func (s *feedEventService) PublicFeedEvent(ctx context.Context, isAll bool, even
 		}
 	}
 
-	err := s.feedProducer.SendMessage(ctx, topic.FeedEvent, event)
+	duplicate, err := s.feedEventDAO.DedupeKeyExists(ctx, event.StudentId, event.DedupeKey)
+	if err != nil {
+		return feedv1.PublishStatus_ACCEPTED, PUBLIC_FEED_EVENT_ERROR(err)
+	}
+	if duplicate {
+		return feedv1.PublishStatus_DUPLICATE, nil
+	}
+
+	err = s.feedProducer.SendMessage(ctx, topic.FeedEvent, event)
 	if err != nil {
 		s.l.WithContext(ctx).Error(saramax.LogKeySendFailed+" 单条推送失败，消息未进入 Kafka",
 			logger.String("studentId", event.StudentId), logger.String("dedupe_key", event.DedupeKey), logger.Error(err))

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/redis/go-redis/v9"
@@ -22,6 +23,8 @@ var getPublicFeedLua string
 var delFeedLua string
 
 type FeedEventCache interface {
+	SetOfficialWhiteList(ctx context.Context, list domain.OfficialWhiteList) error
+	GetOfficialWhiteList(ctx context.Context) (domain.OfficialWhiteList, error)
 	GetFeedEvent(ctx context.Context, feedType string, key string) (*model.FeedEvent, error)
 	SetFeedEvent(ctx context.Context, durationTime time.Duration, key string, feedType string, feedEvent *model.FeedEvent) error
 	SetMuxiFeeds(ctx context.Context, feedEvent MuxiOfficialMSG, publicTime int64) error
@@ -29,6 +32,25 @@ type FeedEventCache interface {
 	DelMuxiFeeds(ctx context.Context, id string) error
 	ClearCache(ctx context.Context, feedType string, key string) error
 	GetUniqueKey() string
+}
+
+func (cache *RedisFeedEventCache) SetOfficialWhiteList(ctx context.Context, list domain.OfficialWhiteList) error {
+	raw, err := json.Marshal(list)
+	if err != nil {
+		return err
+	}
+	// Keep the expired marker: expiry or missing data must never enable broadcast.
+	return cache.cmd.Set(ctx, "ccnubox:feed:officialWhiteList", raw, 0).Err()
+}
+
+func (cache *RedisFeedEventCache) GetOfficialWhiteList(ctx context.Context) (domain.OfficialWhiteList, error) {
+	var list domain.OfficialWhiteList
+	raw, err := cache.cmd.Get(ctx, "ccnubox:feed:officialWhiteList").Bytes()
+	if err != nil {
+		return list, err
+	}
+	err = json.Unmarshal(raw, &list)
+	return list, err
 }
 
 type RedisFeedEventCache struct {
@@ -162,9 +184,12 @@ func (cache *RedisFeedEventCache) GetUniqueKey() string {
 }
 
 type MuxiOfficialMSG struct {
-	MuxiMSGId string `json:"muxi_msg_id"`
-	Title     string `json:"title"`
-	Content   string `json:"content"`
-	Url       string `json:"url"`
+	WhiteListStrategy string   `json:"white_list_strategy,omitempty"`
+	Targeted          bool     `json:"targeted,omitempty"`
+	StudentIDs        []string `json:"student_ids,omitempty"`
+	MuxiMSGId         string   `json:"muxi_msg_id"`
+	Title             string   `json:"title"`
+	Content           string   `json:"content"`
+	Url               string   `json:"url"`
 	model.ExtendFields
 }

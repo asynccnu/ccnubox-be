@@ -4,16 +4,21 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	b_errorx "github.com/asynccnu/ccnubox-be/bff/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
+	feedservice "github.com/asynccnu/ccnubox-be/bff/service/feed"
 	"github.com/asynccnu/ccnubox-be/bff/web"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func getFeedbackUrl(recordID string) string {
@@ -28,18 +33,21 @@ func feedbackDedupeKey(studentID, recordID string) string {
 }
 
 type FeedHandler struct {
+	whiteList      *feedservice.WhiteListService
 	feedClient     feedv1.FeedServiceClient
 	Administrators map[string]struct{}
 }
 
 func NewFeedHandler(feedClient feedv1.FeedServiceClient,
 	administrators map[string]struct{},
+	whiteList *feedservice.WhiteListService,
 ) *FeedHandler {
-	return &FeedHandler{feedClient: feedClient, Administrators: administrators}
+	return &FeedHandler{feedClient: feedClient, Administrators: administrators, whiteList: whiteList}
 }
 
 func (h *FeedHandler) RegisterRoutes(s *gin.RouterGroup, authMiddleware gin.HandlerFunc, basicMiddleware gin.HandlerFunc) {
 	sg := s.Group("/feed")
+	sg.POST("/setWhiteList", authMiddleware, ginx.WrapClaims(h.SetWhiteList))
 	sg.GET("/getFeedEvents", authMiddleware, ginx.WrapClaims(h.GetFeedEvents))
 	sg.POST("/clearFeedEvent", authMiddleware, ginx.WrapClaimsAndReq(h.ClearFeedEvent))
 	sg.POST("/changeFeedAllowList", authMiddleware, ginx.WrapClaimsAndReq(h.ChangeFeedAllowList))
@@ -238,14 +246,15 @@ func (h *FeedHandler) RemoveFeedToken(ctx *gin.Context, req RemoveFeedTokenReq, 
 
 // PublicMuxiOfficialMSG
 // @Summary 发布木犀官方消息
-// @Description 发布木犀官方消息，仅限管理员操作
+// @Description 仅限管理员。使用 setWhiteList 已设置的名单发布，无需传入收件人学号。向全部在校用户发送时，先使用 all 策略设置名单；extend_fields.url 可填写问卷的 HTTPS 链接。名单未设置、已过期或不可用时拒绝发布。
 // @Tags feed
 // @Accept  json
 // @Produce  json
-// @Param Authorization header string true "Bearer Token"
+// @Param Authorization header string true "管理员访问令牌（Bearer Token）"
 // @Param data body PublicMuxiOfficialMSGReq true "木犀官方消息"
 // @Success 200 {object} web.Response{data=PublicMuxiOfficialMSGResp} "成功"
 // @Failure 403 {object} web.Response "没有访问权限"
+// @Failure 409 {object} web.Response "请先设置有效的发送名单"
 // @Failure 500 {object} web.Response "系统异常"
 // @Router /feed/publicMuxiOfficialMSG [post]
 func (h *FeedHandler) PublicMuxiOfficialMSG(ctx *gin.Context, req PublicMuxiOfficialMSGReq, uc ijwt.UserClaims) (web.Response, error) {
@@ -262,6 +271,9 @@ func (h *FeedHandler) PublicMuxiOfficialMSG(ctx *gin.Context, req PublicMuxiOffi
 		},
 	})
 	if err != nil {
+		if status.Code(err) == codes.FailedPrecondition {
+			return web.Response{}, b_errorx.New(http.StatusConflict, errs.WHITE_LIST_NOT_READY_ERROR_CODE, "请先设置有效的发送名单")
+		}
 		return web.Response{
 			Code: errs.INTERNAL_SERVER_ERROR_CODE,
 			Msg:  "系统异常",

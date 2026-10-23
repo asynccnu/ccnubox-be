@@ -64,7 +64,7 @@ func fullAllowListRequest(library *bool) ChangeFeedAllowListReq {
 
 func TestChangeFeedAllowListPreservesAbsentLibrary(t *testing.T) {
 	client := &feedClientStub{}
-	handler := NewFeedHandler(client, nil)
+	handler := NewFeedHandler(client, nil, nil)
 
 	_, err := handler.ChangeFeedAllowList(
 		&gin.Context{},
@@ -88,7 +88,7 @@ func TestChangeFeedAllowListPreservesAbsentLibrary(t *testing.T) {
 func TestChangeFeedAllowListBindingAcceptsOldClientBody(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	client := &feedClientStub{}
-	handler := NewFeedHandler(client, nil)
+	handler := NewFeedHandler(client, nil, nil)
 	engine := gin.New()
 	engine.POST("/allow-list", func(ctx *gin.Context) {
 		ginx.SetClaims(ctx, ijwt.UserClaims{StudentId: "20260001"})
@@ -113,7 +113,7 @@ func TestChangeFeedAllowListBindingAcceptsOldClientBody(t *testing.T) {
 
 func TestChangeFeedAllowListForwardsExplicitLibraryFalse(t *testing.T) {
 	client := &feedClientStub{}
-	handler := NewFeedHandler(client, nil)
+	handler := NewFeedHandler(client, nil, nil)
 
 	_, err := handler.ChangeFeedAllowList(
 		&gin.Context{},
@@ -133,7 +133,7 @@ func TestChangeFeedAllowListForwardsExplicitLibraryFalse(t *testing.T) {
 
 func TestGetFeedAllowListIncludesLibrary(t *testing.T) {
 	client := &feedClientStub{allowList: &feedv1.AllowList{Library: boolPointer(true)}}
-	handler := NewFeedHandler(client, nil)
+	handler := NewFeedHandler(client, nil, nil)
 
 	response, err := handler.GetFeedAllowList(
 		&gin.Context{},
@@ -153,7 +153,7 @@ func TestGetFeedAllowListIncludesLibrary(t *testing.T) {
 
 func TestReadFeedEventInjectsStudentIDFromClaims(t *testing.T) {
 	client := &feedClientStub{}
-	handler := NewFeedHandler(client, nil)
+	handler := NewFeedHandler(client, nil, nil)
 
 	_, err := handler.ReadFeedEvent(
 		&gin.Context{},

@@ -19,6 +19,7 @@ enum PublishStatus {
 }
 
 service FeedService {
+  rpc SetOfficialWhiteList(SetOfficialWhiteListReq) returns (SetOfficialWhiteListResp);
   rpc GetFeedEvents (GetFeedEventsReq) returns (GetFeedEventsResp);//获取所有的消息,包括已读和未读两部分
   rpc ReadFeedEvent(ReadFeedEventReq)returns(ReadFeedEventResp);//用来更新信息的已读取状态
   rpc ClearFeedEvent (ClearFeedEventReq) returns (ClearFeedEventResp);//清除当前的消息,如果包括已读和未读两部分
@@ -32,6 +33,20 @@ service FeedService {
   rpc PublicFeedEvent(PublicFeedEventReq)returns(PublicFeedEventResp);//用于发布feed消息
   rpc ListLibraryPreferenceChanges(ListLibraryPreferenceChangesReq)returns(ListLibraryPreferenceChangesResp);
   rpc ListLibraryReminderUsers(ListLibraryReminderUsersReq)returns(ListLibraryReminderUsersResp);
+}
+
+// Recipient IDs are resolved by backend strategies, never accepted by the HTTP API.
+message SetOfficialWhiteListReq {
+  string strategy = 1;
+  repeated string student_ids = 2;
+  bool all = 3;
+  int64 expires_at = 4;
+}
+
+message SetOfficialWhiteListResp {
+  string strategy = 1;
+  int32 user_count = 2;
+  int64 expires_at = 3;
 }
 
 message PublicFeedEventReq {

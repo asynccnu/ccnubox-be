@@ -146,3 +146,21 @@ func TestInvitationRPCValidationMatchesStorage(t *testing.T) {
 		}
 	}
 }
+
+type officialListCountStub struct {
+	service.MuxiOfficialMSGService
+	received domain.OfficialWhiteList
+}
+
+func (s *officialListCountStub) SetOfficialWhiteList(_ context.Context, list domain.OfficialWhiteList) (int, error) {
+	s.received = list
+	return 17, nil
+}
+func TestSetOfficialWhiteListReturnsResolvedRecipientCount(t *testing.T) {
+	svc := &officialListCountStub{}
+	server := &FeedServiceServer{muxiOfficialMSGService: svc}
+	resp, err := server.SetOfficialWhiteList(context.Background(), &feedv1.SetOfficialWhiteListReq{Strategy: "all", All: true, ExpiresAt: 12345})
+	if err != nil || resp.UserCount != 17 || resp.Strategy != "all" || !svc.received.All {
+		t.Fatalf("response=%+v received=%+v error=%v", resp, svc.received, err)
+	}
+}

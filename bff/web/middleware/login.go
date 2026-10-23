@@ -1,23 +1,32 @@
 package middleware
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 
-	"strings"
-
 	"github.com/asynccnu/ccnubox-be/bff/errs"
+	b_errorx "github.com/asynccnu/ccnubox-be/bff/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/bff/pkg/ginx"
+	"github.com/asynccnu/ccnubox-be/bff/service/activity"
 	"github.com/asynccnu/ccnubox-be/bff/web/ijwt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 )
 
 type LoginMiddleware struct {
 	handler ijwt.Handler
+	redis   redis.Cmdable
+	now     func() time.Time
 }
 
-func NewLoginMiddleWare(hdl ijwt.Handler) *LoginMiddleware {
-	return &LoginMiddleware{handler: hdl}
+func NewLoginMiddleWare(hdl ijwt.Handler, r redis.Cmdable) *LoginMiddleware {
+	return &LoginMiddleware{handler: hdl, redis: r, now: time.Now}
 }
 
 func (m *LoginMiddleware) MiddlewareFunc() gin.HandlerFunc {
@@ -26,6 +35,19 @@ func (m *LoginMiddleware) MiddlewareFunc() gin.HandlerFunc {
 		if err != nil {
 			ctx.Error(errs.UNAUTHORIZED_ERROR(errorx.Errorf("身份验证失败: %w", err)))
 			return
+		}
+		// Persist the activity intent before exposing authenticated claims or
+		// running handlers. A failed admission must not become untracked traffic.
+		if uc.StudentId != "" {
+			recordCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			err := activity.Record(recordCtx, m.redis, uc.StudentId, m.now())
+			cancel()
+			if err != nil {
+				const message = "活跃明细登记暂时不可用，请稍后重试"
+				ctx.Error(errors.Join(b_errorx.New(http.StatusServiceUnavailable, errs.INTERNAL_SERVER_ERROR_CODE, message), err))
+				ctx.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"code": errs.INTERNAL_SERVER_ERROR_CODE, "msg": message, "data": nil})
+				return
+			}
 		}
 		// 设置claims并执行下一个
 		ginx.SetClaims[ijwt.UserClaims](ctx, uc)

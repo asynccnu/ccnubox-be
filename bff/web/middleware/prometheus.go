@@ -44,12 +44,12 @@ func (m *PrometheusMiddleware) MiddlewareFunc() gin.HandlerFunc {
 			studentID := uc.StudentId
 			if studentID != "" {
 				go func(studentID string) {
-					// Collection is best-effort. Redis failures are observable through
-					// ccnubox_redis_errors_total{operation="PFADD"|"EXPIRE"}.
+					// Only the approximate metric is best-effort. Exact activity
+					// intents have already been persisted by LoginMiddleware.
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 					defer cancel()
 
-					_ = m.recordActiveUser(ctx, studentID, time.Now())
+					_ = m.recordActiveUser(ctx, studentID, start)
 				}(studentID)
 			}
 
@@ -72,5 +72,8 @@ func (m *PrometheusMiddleware) recordActiveUser(ctx context.Context, studentID s
 	if err := m.redisClient.PFAdd(ctx, bucketKey, studentID).Err(); err != nil {
 		return err
 	}
-	return m.redisClient.Expire(ctx, bucketKey, cron.ActiveUsersBucketTTL()).Err()
+	if err := m.redisClient.Expire(ctx, bucketKey, cron.ActiveUsersBucketTTL()).Err(); err != nil {
+		return err
+	}
+	return nil
 }

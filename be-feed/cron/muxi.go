@@ -15,6 +15,7 @@ import (
 )
 
 type MuxiController struct {
+	now          func() time.Time
 	muxi         service.MuxiOfficialMSGService
 	feed         service.FeedEventService
 	durationTime time.Duration
@@ -91,6 +92,7 @@ func (c *MuxiController) publicMuxiFeed() {
 			Title:        msg.Title,
 			Content:      msg.Content,
 			ExtendFields: msg.ExtendFields,
+			Url:          msg.ExtendFields["url"],
 		}
 		// 管理端录入的内容可能永远无法入库（校验失败）且重试无法修复，
 		// 一直留在队列里会让后续所有木犀消息都发不出去，只能记录后删除该计划。
@@ -106,8 +108,32 @@ func (c *MuxiController) publicMuxiFeed() {
 			continue
 		}
 
-		//发布消息给全体成员
-		_, err = c.feed.PublicFeedEvent(ctx, true, event)
+		if msg.Targeted {
+			// Freeze recipients at scheduling time. An empty targeted list is a
+			// broken plan and must never fall back to broadcasting.
+			if len(msg.StudentIDs) == 0 {
+				c.l.Error(saramax.LogKeyMessageDropped+" empty targeted official message", logger.String("msg_id", msg.Id))
+				if err := c.muxi.StopMuxiOfficialMSG(ctx, msg.Id); err != nil {
+					return
+				}
+				continue
+			}
+			for _, studentID := range msg.StudentIDs {
+				now := time.Now()
+				if c.now != nil {
+					now = c.now()
+				}
+				if msg.WhiteListStrategy == "all" && !domain.IsCurrentStudent(studentID, now) {
+					continue
+				}
+				event.StudentId = studentID
+				if _, err = c.feed.PublicFeedEvent(ctx, false, event); err != nil {
+					break
+				}
+			}
+		} else {
+			_, err = c.feed.PublicFeedEvent(ctx, true, event)
+		}
 		if err != nil {
 			c.l.Warn(saramax.LogKeySendFailed+" 消息推送失败!", logger.String("msg_id", msg.Id), logger.Error(err))
 			return

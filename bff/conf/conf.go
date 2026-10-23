@@ -15,6 +15,7 @@ type InfraConf struct {
 
 // ServerConf 服务配置
 type ServerConf struct {
+	FeedWhiteList       *FeedWhiteListConf `yaml:"feedWhiteList"`
 	conf.BaseServerConf `mapstructure:",squash"`
 	ServiceName         string         `yaml:"serviceName"`
 	ElecpriceController *ElecPriceConf `yaml:"elecpriceController"`
@@ -27,6 +28,12 @@ type ServerConf struct {
 	ClientMetrics *ClientMetricsConf `yaml:"clientMetrics"`
 	Tiered        *TieredConf        `yaml:"tiered"`
 }
+type FeedWhiteListConf struct {
+	WindowDays    int      `yaml:"windowDays"`
+	MinActiveDays int      `yaml:"minActiveDays"`
+	ScriptCommand []string `yaml:"scriptCommand"`
+}
+
 type HttpConf struct {
 	Addr string `yaml:"addr"`
 }

@@ -62,3 +62,19 @@ tiered:
   high: 15  #单位是分钟
   middle: 30 #单位是分钟
   low: 60 #单位是分钟
+
+# Backend recipient selection. Apifox only sends {"strategy":"high_activity"}.
+# high_activity counts authenticated requests on complete Asia/Shanghai days.
+# Users active on at least 5 of the last 7 complete days are selected.
+# First deployment needs 7 complete days; the partial first day is excluded.
+# v2 history starts fresh; legacy best-effort sets cannot be certified.
+# Authentication queues exact IDs synchronously (503 if Redis admission fails).
+# The daily heartbeat replays pending IDs and seals closed days before selection.
+# script runs a trusted command and reads a JSON array of student IDs from stdout.
+# Configure the command on the server; no command or student IDs enter the HTTP API.
+# all 策略筛选已注册的在校用户，按四年学制和北京时间 6 月 30 日毕业判断。
+# 全量名单无需活跃历史；名单有效期为 7 天。
+feedWhiteList:
+  windowDays: 7
+  minActiveDays: 5
+  scriptCommand: [] # e.g. ["python3", "/app/scripts/select_survey_users.py"]

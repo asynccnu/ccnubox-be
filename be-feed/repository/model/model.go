@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-feed/domain"
+
 	"gorm.io/gorm"
 )
 
@@ -91,17 +93,16 @@ func (f *FeedFailEvent) BeforeUpdate(_ *gorm.DB) error {
 	return nil
 }
 
-// 定义权限开关的关键位
+// 保留原有导出名称，权限位及默认规则统一由 domain 定义。
 const (
-	EnergyPos = iota
-	GradePos
-	HolidayPos
-	MuxiPos
-	FeedBackPos
-	LibraryPos
+	EnergyPos         = domain.EnergyPos
+	GradePos          = domain.GradePos
+	HolidayPos        = domain.HolidayPos
+	MuxiPos           = domain.MuxiPos
+	FeedBackPos       = domain.FeedBackPos
+	LibraryPos        = domain.LibraryPos
+	DefaultPushConfig = domain.DefaultPushConfig
 )
-
-const DefaultPushConfig uint16 = (1 << (LibraryPos + 1)) - 1
 
 // FeedUserConfig 表示用户的 Feed 配置
 type FeedUserConfig struct {

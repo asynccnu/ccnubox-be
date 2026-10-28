@@ -241,7 +241,7 @@ func domainFeedEventFromRequest(req *feedv1.PublicFeedEventReq) domain.FeedEvent
 	return domain.FeedEvent{
 		ID:           event.GetId(),
 		StudentId:    req.GetStudentId(),
-		Type:         strings.ToLower(event.GetType().String()),
+		Type:         domain.NormalizeFeedType(event.GetType().String()),
 		Title:        event.GetTitle(),
 		Content:      event.GetContent(),
 		Url:          event.GetUrl(),

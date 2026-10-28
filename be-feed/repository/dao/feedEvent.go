@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"gorm.io/gorm"
@@ -57,10 +58,10 @@ func (dao *feedEventDAO) GetFeedEventById(ctx context.Context, Id int64) (*model
 
 func (dao *feedEventDAO) GetFeedEventsByStudentId(ctx context.Context, studentId string) ([]model.FeedEvent, error) {
 	var resp []model.FeedEvent
-	err := dao.gorm.WithContext(ctx).
-		Model(&model.FeedEvent{}).
-		Where("student_id = ?", studentId).
-		Order("created_at DESC, id DESC").
+	err := withFeedSubscription(dao.gorm.WithContext(ctx).Model(&model.FeedEvent{}), "feed_events").
+		Select("feed_events.*").
+		Where("feed_events.student_id = ?", studentId).
+		Order("feed_events.created_at DESC, feed_events.id DESC").
 		Limit(20).
 		Find(&resp).Error
 	if err != nil {
@@ -134,6 +135,7 @@ func (dao *feedEventDAO) StoreFeedEvents(ctx context.Context, events []model.Fee
 	err = dao.gorm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for i := range events {
 			event := events[i]
+			event.Type = domain.NormalizeFeedType(event.Type)
 			if strings.EqualFold(event.Type, "library") {
 				var config model.FeedUserConfig
 				findErr := tx.Clauses(clause.Locking{Strength: "UPDATE"}).

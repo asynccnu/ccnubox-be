@@ -3,6 +3,7 @@ package feed
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,9 +17,12 @@ import (
 
 type feedClientStub struct {
 	feedv1.FeedServiceClient
-	changeReq *feedv1.ChangeFeedAllowListReq
-	readReq   *feedv1.ReadFeedEventReq
-	allowList *feedv1.AllowList
+	changeReq        *feedv1.ChangeFeedAllowListReq
+	readReq          *feedv1.ReadFeedEventReq
+	allowList        *feedv1.AllowList
+	changeErr        error
+	readErr          error
+	configStudentIDs []string
 }
 
 func (s *feedClientStub) ChangeFeedAllowList(
@@ -27,15 +31,16 @@ func (s *feedClientStub) ChangeFeedAllowList(
 	_ ...grpc.CallOption,
 ) (*feedv1.ChangeFeedAllowListResp, error) {
 	s.changeReq = req
-	return &feedv1.ChangeFeedAllowListResp{}, nil
+	return &feedv1.ChangeFeedAllowListResp{}, s.changeErr
 }
 
 func (s *feedClientStub) FindOrCreateAllowList(
 	_ context.Context,
-	_ *feedv1.FindOrCreateAllowListReq,
+	req *feedv1.FindOrCreateAllowListReq,
 	_ ...grpc.CallOption,
 ) (*feedv1.FindOrCreateAllowListResp, error) {
-	return &feedv1.FindOrCreateAllowListResp{AllowList: s.allowList}, nil
+	s.configStudentIDs = append(s.configStudentIDs, req.StudentId)
+	return &feedv1.FindOrCreateAllowListResp{AllowList: s.allowList}, s.readErr
 }
 
 func (s *feedClientStub) ReadFeedEvent(
@@ -171,5 +176,54 @@ func TestReadFeedEventInjectsStudentIDFromClaims(t *testing.T) {
 	}
 	if client.readReq.StudentId != "20260001" {
 		t.Fatalf("student ID = %q, want %q", client.readReq.StudentId, "20260001")
+	}
+}
+
+func TestAllSubscriptionsCanBeExplicitlyDisabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	client := &feedClientStub{}
+	handler := NewFeedHandler(client, nil, nil)
+	engine := gin.New()
+	engine.POST("/allow-list", func(ctx *gin.Context) {
+		ginx.SetClaims(ctx, ijwt.UserClaims{StudentId: "20260001"})
+	}, ginx.WrapClaimsAndReq(handler.ChangeFeedAllowList))
+	request := httptest.NewRequest(http.MethodPost, "/allow-list", bytes.NewBufferString(`{"grade":false,"muxi":false,"holiday":false,"energy":false,"feedback":false,"library":false}`))
+	request.Header.Set("Content-Type", "application/json")
+	engine.ServeHTTP(httptest.NewRecorder(), request)
+	if client.changeReq == nil {
+		t.Fatal("explicit all-false body rejected")
+	}
+	config := client.changeReq.AllowList
+	if config.Grade || config.Muxi || config.Holiday || config.Energy || config.FeedBack || config.Library == nil || *config.Library {
+		t.Fatalf("all-false request changed: %+v", config)
+	}
+}
+
+func TestSubscriptionFailuresAreNotReportedAsSuccess(t *testing.T) {
+	client := &feedClientStub{changeErr: errors.New("transaction rolled back"), readErr: errors.New("read failed")}
+	handler := NewFeedHandler(client, nil, nil)
+	if _, err := handler.ChangeFeedAllowList(&gin.Context{}, fullAllowListRequest(nil), ijwt.UserClaims{StudentId: "20260001"}); err == nil {
+		t.Fatal("save error ignored")
+	}
+	if _, err := handler.GetFeedAllowList(&gin.Context{}, ijwt.UserClaims{StudentId: "20260001"}); err == nil {
+		t.Fatal("readback error ignored")
+	}
+}
+
+func TestSubscriptionReadUsesCurrentAccount(t *testing.T) {
+	client := &feedClientStub{allowList: &feedv1.AllowList{FeedBack: true, Library: boolPointer(true)}}
+	handler := NewFeedHandler(client, nil, nil)
+	for _, sid := range []string{"20260001", "20260002"} {
+		response, err := handler.GetFeedAllowList(&gin.Context{}, ijwt.UserClaims{StudentId: sid})
+		if err != nil {
+			t.Fatal(err)
+		}
+		config := response.Data.(GetFeedAllowListResp)
+		if !config.FeedBack || !config.Library || config.Grade || config.Energy || config.Muxi || config.Holiday {
+			t.Fatalf("six server switches not preserved: %+v", config)
+		}
+	}
+	if len(client.configStudentIDs) != 2 || client.configStudentIDs[0] != "20260001" || client.configStudentIDs[1] != "20260002" {
+		t.Fatalf("account not refreshed: %v", client.configStudentIDs)
 	}
 }

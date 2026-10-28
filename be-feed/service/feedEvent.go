@@ -74,7 +74,8 @@ func (s *feedEventService) GetFeedEvents(ctx context.Context, studentId string) 
 	// 转换 Model 为 VO
 	feedEvents = convFeedEventFromModelToDomainVO(events)
 
-	// 取出失败消息 (此处错误非致命，记录日志并跳过)
+	// 历史失败消息仍会触发 RPC 层重推，DAO 查询与消费软删除同样按当前订阅过滤。
+	// 此处错误非致命，记录日志并跳过。
 	failEvents, err := s.feedFailEventDAO.GetFeedFailEventsByStudentId(ctx, studentId)
 	if err != nil {
 		l.Warn("service: get feed fail events ignored", logger.String("studentId", studentId), logger.Error(err))
@@ -82,7 +83,12 @@ func (s *feedEventService) GetFeedEvents(ctx context.Context, studentId string) 
 	}
 
 	if len(failEvents) > 0 {
-		err = s.feedFailEventDAO.DelFeedFailEventsByStudentId(ctx, studentId)
+		// 按本次读取的 ID 消费，避免并发开启订阅或新增记录后误删未读取的消息。
+		ids := make([]int64, len(failEvents))
+		for i := range failEvents {
+			ids[i] = failEvents[i].ID
+		}
+		err = s.feedFailEventDAO.DelFeedFailEventsByStudentId(ctx, studentId, ids)
 		if err != nil {
 			l.Warn("service: delete feed fail events ignored", logger.String("studentId", studentId), logger.Error(err))
 			return feedEvents, []domain.FeedEvent{}, nil

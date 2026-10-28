@@ -12,7 +12,7 @@ func convFeedEventsFromModelToDomain(feedEvents []model.FeedEvent) []domain.Feed
 		result[i] = domain.FeedEvent{ // 通过索引直接赋值
 			ID:           feedEvents[i].ID,
 			StudentId:    feedEvents[i].StudentId,
-			Type:         feedEvents[i].Type,
+			Type:         domain.NormalizeFeedType(feedEvents[i].Type),
 			Title:        feedEvents[i].Title,
 			Content:      feedEvents[i].Content,
 			Url:          feedEvents[i].Url,
@@ -29,7 +29,7 @@ func convFeedEventsFromModelToDomain(feedEvents []model.FeedEvent) []domain.Feed
 func convFeedEventFromDomainToModel(feedEvent *domain.FeedEvent) *model.FeedEvent {
 	return &model.FeedEvent{ // 通过索引直接赋值
 		StudentId:    feedEvent.StudentId,
-		Type:         feedEvent.Type,
+		Type:         domain.NormalizeFeedType(feedEvent.Type),
 		Title:        feedEvent.Title,
 		Content:      feedEvent.Content,
 		Url:          feedEvent.Url,
@@ -54,7 +54,7 @@ func convFeedEventFromModelToDomainVO(feedEvents []model.FeedEvent) []domain.Fee
 		result[i] = domain.FeedEventVO{ // 通过索引直接赋值
 			ID:           feedEvents[i].ID,
 			StudentId:    feedEvents[i].StudentId,
-			Type:         feedEvents[i].Type,
+			Type:         domain.NormalizeFeedType(feedEvents[i].Type),
 			Title:        feedEvents[i].Title,
 			Content:      feedEvents[i].Content,
 			Url:          feedEvents[i].Url,
@@ -71,7 +71,7 @@ func convFeedFailEventFromModelToDomain(feedEvents []model.FeedFailEvent) []doma
 		result[i] = domain.FeedEvent{ // 通过索引直接赋值
 			ID:           feedEvents[i].ID,
 			StudentId:    feedEvents[i].StudentId,
-			Type:         feedEvents[i].Type,
+			Type:         domain.NormalizeFeedType(feedEvents[i].Type),
 			Title:        feedEvents[i].Title,
 			Content:      feedEvents[i].Content,
 			Url:          feedEvents[i].Url,

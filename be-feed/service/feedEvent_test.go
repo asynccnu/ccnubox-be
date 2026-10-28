@@ -10,9 +10,12 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/events/producer"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
+	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
 	"go.uber.org/zap"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 type broadcastProducer struct {
@@ -227,5 +230,197 @@ func TestLegacyOfficialBroadcastSkipsGraduatedAndMalformedIDs(t *testing.T) {
 	}
 	if len(p.calls) != 1 || p.calls[0].StudentId != current || len(users.cursors) != 3 {
 		t.Fatalf("events=%+v cursors=%v", p.calls, users.cursors)
+	}
+}
+
+func TestGetFeedEventsHidesHistoryAndLegacyFailuresUntilEnabled(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqlDB, _ := db.DB()
+	defer sqlDB.Close()
+	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedFailEvent{}, &model.FeedUserConfig{}, &model.FeedPushDelivery{}); err != nil {
+		t.Fatal(err)
+	}
+	const sid = "20260001"
+	config := model.FeedUserConfig{StudentId: sid, PushConfig: 0}
+	if err := db.Create(&config).Error; err != nil {
+		t.Fatal(err)
+	}
+	event := model.FeedEvent{StudentId: sid, Type: "GrAdE", DedupeKey: "old", ExtendFields: model.ExtendFields{}}
+	failed := model.FeedFailEvent{StudentId: sid, Type: "GrAdE", ExtendFields: model.ExtendFields{}}
+	if err := db.Create(&event).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&failed).Error; err != nil {
+		t.Fatal(err)
+	}
+	delivery := model.FeedPushDelivery{FeedEventID: event.ID, StudentId: sid, Status: model.PushDeliverySuppressed}
+	if err := db.Create(&delivery).Error; err != nil {
+		t.Fatal(err)
+	}
+	svc := NewFeedEventService(dao.NewFeedEventDAO(db), nil, dao.NewFeedUserConfigDAO(db), dao.NewFeedFailEventDAO(db), nil, zapx.NewZapLogger(zap.NewNop()))
+	ctx := context.Background()
+	consumed := false
+	for _, enabled := range []bool{false, true, false, true} {
+		bits := uint16(0)
+		if enabled {
+			bits = 1 << model.GradePos
+		}
+		if err := db.Model(&config).Update("push_config", bits).Error; err != nil {
+			t.Fatal(err)
+		}
+		events, fail, err := svc.GetFeedEvents(ctx, sid)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !enabled && (len(events) != 0 || len(fail) != 0) {
+			t.Fatalf("disabled leaked events=%v fail=%v", events, fail)
+		}
+		if enabled && (len(events) != 1 || events[0].Type != "grade") {
+			t.Fatalf("history not restored: %v", events)
+		}
+		wantFail := 0
+		if enabled && !consumed {
+			wantFail = 1
+			consumed = true
+		}
+		if len(fail) != wantFail {
+			t.Fatalf("legacy failures=%d, want=%d", len(fail), wantFail)
+		}
+		for _, event := range fail {
+			if event.Type != "grade" {
+				t.Fatalf("failure type=%s", event.Type)
+			}
+		}
+	}
+	var count int64
+	if err := db.Unscoped().Model(&model.FeedFailEvent{}).Where("deleted_at IS NOT NULL").Count(&count).Error; err != nil || count != 1 {
+		t.Fatalf("legacy failure not consumed: %d %v", count, err)
+	}
+	if err := db.First(&delivery, delivery.ID).Error; err != nil || delivery.Status != model.PushDeliverySuppressed {
+		t.Fatalf("cancelled delivery restored: %+v err=%v", delivery, err)
+	}
+}
+
+type failEventsAfterReadDAO struct {
+	dao.FeedFailEventDAO
+	afterRead func() error
+}
+
+func (d *failEventsAfterReadDAO) GetFeedFailEventsByStudentId(ctx context.Context, studentId string) ([]model.FeedFailEvent, error) {
+	events, err := d.FeedFailEventDAO.GetFeedFailEventsByStudentId(ctx, studentId)
+	if err != nil {
+		return nil, err
+	}
+	if d.afterRead != nil {
+		if err := d.afterRead(); err != nil {
+			return nil, err
+		}
+	}
+	return events, nil
+}
+
+func TestGetFeedEventsOnlyConsumesReadFailures(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqlDB, _ := db.DB()
+	defer sqlDB.Close()
+	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedFailEvent{}, &model.FeedUserConfig{}, &model.FeedPushDelivery{}); err != nil {
+		t.Fatal(err)
+	}
+	const sid = "20260001"
+	config := model.FeedUserConfig{StudentId: sid, PushConfig: 1 << model.GradePos}
+	if err := db.Create(&config).Error; err != nil {
+		t.Fatal(err)
+	}
+	failures := []model.FeedFailEvent{
+		{StudentId: sid, Type: "grade"},
+		{StudentId: sid, Type: "muxi"},
+		{StudentId: "20260002", Type: "grade"},
+	}
+	if err := db.Create(&failures).Error; err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	configDAO := dao.NewFeedUserConfigDAO(db)
+	failDAO := &failEventsAfterReadDAO{FeedFailEventDAO: dao.NewFeedFailEventDAO(db)}
+	newFailure := model.FeedFailEvent{StudentId: sid, Type: "grade"}
+	// 固定交错顺序：读取 grade 后开启 muxi，并插入一条同类型新记录，再执行消费删除。
+	failDAO.afterRead = func() error {
+		if _, err := configDAO.ChangeConfigBits(ctx, sid, map[int]bool{model.MuxiPos: true}, nil); err != nil {
+			return err
+		}
+		return db.Create(&newFailure).Error
+	}
+	svc := NewFeedEventService(dao.NewFeedEventDAO(db), nil, configDAO, failDAO, nil, zapx.NewZapLogger(zap.NewNop()))
+	_, failed, err := svc.GetFeedEvents(ctx, sid)
+	if err != nil || len(failed) != 1 || failed[0].ID != failures[0].ID {
+		t.Fatalf("consumed failures=%v err=%v", failed, err)
+	}
+	var remaining []model.FeedFailEvent
+	if err := db.Order("id ASC").Find(&remaining).Error; err != nil {
+		t.Fatal(err)
+	}
+	wantIDs := []int64{failures[1].ID, failures[2].ID, newFailure.ID}
+	if len(remaining) != len(wantIDs) {
+		t.Fatalf("unread failures=%v wantIDs=%v", remaining, wantIDs)
+	}
+	for i := range wantIDs {
+		if remaining[i].ID != wantIDs[i] {
+			t.Fatalf("remaining[%d]=%d want=%d", i, remaining[i].ID, wantIDs[i])
+		}
+	}
+	failDAO.afterRead = nil
+	_, failed, err = svc.GetFeedEvents(ctx, sid)
+	if err != nil || len(failed) != 2 {
+		t.Fatalf("next read failures=%v err=%v", failed, err)
+	}
+	var count int64
+	if err := db.Model(&model.FeedFailEvent{}).Where("student_id = ?", sid).Count(&count).Error; err != nil || count != 0 {
+		t.Fatalf("unconsumed failures=%d err=%v", count, err)
+	}
+}
+
+func TestAllowListReadRespectsZeroPartialAndSoftDeletedConfig(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		bits    uint16
+		deleted bool
+	}{
+		{name: "zero"}, {name: "partial", bits: 48}, {name: "deleted", bits: model.DefaultPushConfig, deleted: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			sqlDB, _ := db.DB()
+			defer sqlDB.Close()
+			if err := db.AutoMigrate(&model.FeedUserConfig{}); err != nil {
+				t.Fatal(err)
+			}
+			config := model.FeedUserConfig{StudentId: "20260001", PushConfig: tc.bits}
+			if err := db.Create(&config).Error; err != nil {
+				t.Fatal(err)
+			}
+			if tc.deleted {
+				if err := db.Delete(&config).Error; err != nil {
+					t.Fatal(err)
+				}
+			}
+			svc := NewFeedUserConfigService(nil, dao.NewFeedUserConfigDAO(db), nil)
+			got, err := svc.FindOrCreateAllowList(context.Background(), config.StudentId)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantFeedbackAndLibrary := !tc.deleted && tc.bits == 48
+			if got.Grade || got.Energy || got.Holiday || got.Muxi || got.FeedBack != wantFeedbackAndLibrary || got.Library == nil || *got.Library != wantFeedbackAndLibrary {
+				t.Fatalf("config=%+v", got)
+			}
+		})
 	}
 }

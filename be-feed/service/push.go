@@ -10,7 +10,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/pkg/jpush"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
-	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 )
@@ -62,7 +61,7 @@ func (targets *PushTargets) prepare(pushData *domain.FeedEvent) (*PreparedPush, 
 
 func preparePushTarget(label string, target pushTarget) (*PreparedPush, string) {
 	if !pushAllowed(label, target.config) {
-		return nil, suppressionReason(label)
+		return nil, "suppressed_by_allow_list"
 	}
 	if len(target.tokens) == 0 {
 		return nil, "suppressed_no_target_or_disabled"
@@ -182,7 +181,7 @@ func (s *pushService) PreparePushForDelivery(ctx context.Context, pushData *doma
 		return nil, "", errorx.Errorf("service: get push config failed, sid: %s, err: %w", pushData.StudentId, err)
 	}
 	if !pushAllowed(pushData.Type, config) {
-		return nil, suppressionReason(pushData.Type), nil
+		return nil, "suppressed_by_allow_list", nil
 	}
 	tokens, err := s.feedTokenDAO.GetTokens(ctx, pushData.StudentId)
 	if err != nil {
@@ -192,25 +191,8 @@ func (s *pushService) PreparePushForDelivery(ctx context.Context, pushData *doma
 	return prepared, reason, nil
 }
 
-func suppressionReason(label string) string {
-	if strings.EqualFold(label, "library") {
-		return "suppressed_by_allow_list"
-	}
-	return "suppressed_no_target_or_disabled"
-}
-
 func pushAllowed(label string, config dao.PushConfigSnapshot) bool {
-	pos, exists := configMap[label]
-	if !exists || config.Deleted {
-		return false
-	}
-	if !config.Exists {
-		if strings.EqualFold(label, "library") {
-			return false
-		}
-		config.Config = model.DefaultPushConfig
-	}
-	return config.Config&(1<<pos) != 0
+	return config.Allows(label)
 }
 
 func (s *pushService) PushPreparedMSGWithCID(ctx context.Context, pushData *domain.FeedEvent, prepared *PreparedPush, cid string) error {
@@ -231,7 +213,7 @@ func (s *pushService) PushPreparedMSGWithCID(ctx context.Context, pushData *doma
 	}
 	err := s.pushClient.Push(ctx, prepared.tokens, jpush.PushData{
 		ExpiresAt:   expires,
-		ContentType: pushData.Type,
+		ContentType: domain.NormalizeFeedType(pushData.Type),
 		Extras:      pushData.ExtendFields,
 		MsgContent:  pushData.Content,
 		Title:       pushData.Title,

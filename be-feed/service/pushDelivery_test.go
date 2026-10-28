@@ -138,8 +138,8 @@ type invitationDeliveryDAO struct {
 }
 
 func (d *invitationDeliveryDAO) Claim(context.Context, int64) (bool, error) { return true, nil }
-func (d *invitationDeliveryDAO) IsLibraryEnabled(context.Context, string) (bool, error) {
-	return true, nil
+func (d *invitationDeliveryDAO) GetPushConfig(context.Context, string) (dao.PushConfigSnapshot, error) {
+	return dao.PushConfigSnapshot{Exists: true, Config: model.DefaultPushConfig}, nil
 }
 func (d *invitationDeliveryDAO) GetFeedEvent(context.Context, int64) (*model.FeedEvent, error) {
 	return d.event, nil
@@ -166,6 +166,7 @@ type invitationDeliveryPush struct {
 	cidCalls, pushCalls int
 	targetCalls         int
 	seenCID             string
+	onCID               func()
 }
 
 func (p *invitationDeliveryPush) LoadPushTargets(_ context.Context, studentIDs []string) (*PushTargets, error) {
@@ -178,6 +179,9 @@ func (p *invitationDeliveryPush) LoadPushTargets(_ context.Context, studentIDs [
 }
 func (p *invitationDeliveryPush) GetPushCID(context.Context) (string, error) {
 	p.cidCalls++
+	if p.onCID != nil {
+		p.onCID()
+	}
 	if p.expireDuringCID {
 		p.repo.event.ExtendFields["expires_at"] = "1"
 	}
@@ -246,11 +250,12 @@ func (c *invitationPushClient) Push(_ context.Context, _ []string, data jpush.Pu
 func TestInvitationPushCarriesFixedDeadline(t *testing.T) {
 	client := &invitationPushClient{}
 	svc := &pushService{pushClient: client}
-	event := &domain.FeedEvent{Type: "library", Source: "library", OccurredAt: 1, ExtendFields: map[string]string{"notification_type": "TEAM_INVITATION", "team_id": "1", "expires_at": "123"}}
+	event := &domain.FeedEvent{Type: "LIBRARY", Source: "library", OccurredAt: 1, ExtendFields: map[string]string{"notification_type": "TEAM_INVITATION", "team_id": "1", "expires_at": "123"}}
 	if err := svc.PushPreparedMSGWithCID(context.Background(), event, &PreparedPush{tokens: []string{"device"}}, "cid"); err != nil {
 		t.Fatal(err)
 	}
-	if client.data.ExpiresAt == nil || client.data.ExpiresAt.Unix() != 123 || client.data.Cid != "cid" {
+	// 历史消息的类型大小写不一致，下发给极光的 content_type 统一取小写规范形式。
+	if client.data.ExpiresAt == nil || client.data.ExpiresAt.Unix() != 123 || client.data.Cid != "cid" || client.data.ContentType != "library" {
 		t.Fatalf("data=%+v", client.data)
 	}
 }
@@ -283,8 +288,8 @@ func (c *deliveryPushClient) Push(_ context.Context, tokens []string, data jpush
 
 type failingLibraryGate struct{ dao.FeedUserConfigDAO }
 
-func (g *failingLibraryGate) IsLibraryEnabled(context.Context, string) (bool, error) {
-	return false, errors.New("library gate unavailable")
+func (g *failingLibraryGate) GetPushConfig(context.Context, string) (dao.PushConfigSnapshot, error) {
+	return dao.PushConfigSnapshot{}, errors.New("subscription gate unavailable")
 }
 
 type deliveryFaultDAO struct {
@@ -325,7 +330,7 @@ func TestPushAllowedSnapshot(t *testing.T) {
 		{"deleted", "muxi", dao.PushConfigSnapshot{Exists: true, Deleted: true, Config: model.DefaultPushConfig}, false},
 		{"enabled", "library", dao.PushConfigSnapshot{Exists: true, Config: model.DefaultPushConfig}, true},
 		{"unknown", "OTHER", dao.PushConfigSnapshot{}, false},
-		{"case_sensitive", "LIBRARY", dao.PushConfigSnapshot{Exists: true, Config: model.DefaultPushConfig}, false},
+		{"case_insensitive", "LIBRARY", dao.PushConfigSnapshot{Exists: true, Config: model.DefaultPushConfig}, true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := pushAllowed(tt.label, tt.config); got != tt.want {
@@ -568,19 +573,7 @@ func TestPushDeliveryBatchTargetReads(t *testing.T) {
 			counter.tokens.Store(0)
 			client := &deliveryPushClient{}
 			wantSent := count
-			if count == 21 {
-				// 首组发送时关闭开关：本组沿用快照，后续组必须重新读取并抑制。
-				wantSent = pushDeliveryMaxConcurrency
-				var once sync.Once
-				client.onPush = func() {
-					once.Do(func() {
-						configs := []model.FeedUserConfig{{StudentId: "one"}, {StudentId: "two"}, {StudentId: "three"}}
-						if err := db.Create(&configs).Error; err != nil {
-							t.Errorf("close push config: %v", err)
-						}
-					})
-				}
-			}
+
 			configDAO := dao.NewFeedUserConfigDAO(db)
 			push := NewPushService(client, configDAO, dao.NewUserFeedTokenDAO(db))
 			svc := NewPushDeliveryService(dao.NewPushDeliveryDAO(db), configDAO, push, nil, zapx.NewZapLogger(zap.NewNop())).(*pushDeliveryService)
@@ -588,8 +581,13 @@ func TestPushDeliveryBatchTargetReads(t *testing.T) {
 				t.Fatal(err)
 			}
 			groups := int64((count + pushDeliveryMaxConcurrency - 1) / pushDeliveryMaxConcurrency)
-			if counter.configs.Load() != groups || counter.tokens.Load() != groups {
-				t.Fatalf("config reads=%d, token reads=%d, want %d each", counter.configs.Load(), counter.tokens.Load(), groups)
+			wantConfigs := groups + int64(count)
+			wantTokens := int64(0)
+			for start := 0; start < count; start += pushDeliveryMaxConcurrency {
+				wantTokens += int64(min(3, count-start))
+			}
+			if counter.configs.Load() != wantConfigs || counter.tokens.Load() != wantTokens {
+				t.Fatalf("config reads=%d, token reads=%d, want %d/%d", counter.configs.Load(), counter.tokens.Load(), wantConfigs, wantTokens)
 			}
 			var sent int64
 			if err = db.Model(&model.FeedPushDelivery{}).Where("status = ?", model.PushDeliverySent).Count(&sent).Error; err != nil {
@@ -718,5 +716,69 @@ func TestPushTargetsSnapshotMatchesSinglePreparation(t *testing.T) {
 	}
 	if empty, err := push.LoadPushTargets(ctx, []string{"", " invalid "}); err != nil || len(empty.users) != 0 {
 		t.Fatalf("invalid users triggered reads: %v, %v", empty, err)
+	}
+}
+
+type finalConfigGate struct {
+	dao.FeedUserConfigDAO
+	config dao.PushConfigSnapshot
+	err    error
+	reads  int
+}
+
+func (g *finalConfigGate) GetPushConfig(context.Context, string) (dao.PushConfigSnapshot, error) {
+	g.reads++
+	return g.config, g.err
+}
+
+func TestEveryTypeRequiresLatestConfigBeforeSend(t *testing.T) {
+	for _, label := range domain.FeedTypes() {
+		for _, scenario := range []string{"closed_after_prefetch", "closed_during_cid", "deleted", "query_error", "missing", "feedback_library_only", "enabled"} {
+			t.Run(label+"/"+scenario, func(t *testing.T) {
+				const sid = "20260001"
+				repo := &invitationDeliveryDAO{event: &model.FeedEvent{StudentId: sid, Type: strings.ToUpper(label)}}
+				gate := &finalConfigGate{config: dao.PushConfigSnapshot{Exists: true, Config: model.DefaultPushConfig}}
+				push := &invitationDeliveryPush{repo: repo}
+				want := "suppressed"
+				switch scenario {
+				case "closed_after_prefetch":
+					gate.config.Config = 0
+				case "closed_during_cid":
+					push.onCID = func() { gate.config.Config = 0 }
+				case "deleted":
+					gate.config.Deleted = true
+				case "query_error":
+					gate.err = errors.New("latest config unavailable")
+					want = "retry"
+				case "missing":
+					gate.config = dao.PushConfigSnapshot{}
+					if label != "library" {
+						want = "sent"
+					}
+				case "feedback_library_only":
+					gate.config.Config = 48
+					if label == "feedback" || label == "library" {
+						want = "sent"
+					}
+				case "enabled":
+					want = "sent"
+				}
+				// 预取快照始终允许，只有最终配置检查才能阻止过时快照发送。
+				targets := &PushTargets{users: map[string]pushTarget{sid: {config: dao.PushConfigSnapshot{Exists: true, Config: model.DefaultPushConfig}, tokens: []string{"device"}}}}
+				svc := &pushDeliveryService{dao: repo, gate: gate, push: push, log: zapx.NewZapLogger(zap.NewNop())}
+				delivery := model.FeedPushDelivery{FeedEventID: 1, StudentId: sid}
+				delivery.ID = 1
+				if err := svc.dispatchOne(context.Background(), delivery, targets); err != nil {
+					t.Fatal(err)
+				}
+				wantPush := 0
+				if want == "sent" {
+					wantPush = 1
+				}
+				if repo.state != want || push.pushCalls != wantPush || gate.reads != 1 || push.cidCalls != 1 || repo.cid != "fixed-cid" {
+					t.Fatalf("state=%s want=%s pushes=%d reads=%d cidCalls=%d cid=%s", repo.state, want, push.pushCalls, gate.reads, push.cidCalls, repo.cid)
+				}
+			})
+		}
 	}
 }

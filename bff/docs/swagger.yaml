@@ -706,6 +706,7 @@ definitions:
       energy:
         type: boolean
       feedback:
+        description: 反馈订阅，同时控制站内可见性与系统推送；HTTP字段名为feedback。
         type: boolean
       grade:
         type: boolean
@@ -759,6 +760,7 @@ definitions:
       energy:
         type: boolean
       feedback:
+        description: 反馈消息遵守自己的订阅开关。
         type: boolean
       grade:
         type: boolean
@@ -2521,7 +2523,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 修改已登录用户的feed订阅白名单设置
+      description: 六类订阅同时控制站内消息可见性与系统推送，反馈无例外。关闭不删除记录，重新开启可查看历史消息，但已取消推送不恢复、不补发；已提交极光的在途通知不保证撤回。grade、muxi、holiday、energy、feedback为必填，library未传时保留原状态。全部关闭需显式提交六项false。保存成功后客户端须回读getFeedAllowList并刷新消息列表。
       parameters:
       - description: Bearer Token
         in: header
@@ -2583,7 +2585,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: 获取已登录用户的feed订阅白名单设置
+      description: 返回grade、muxi、holiday、energy、feedback、library六项服务端订阅状态。全部关闭须由六项共同判断；保存设置后应回读本接口，切换账号后重新读取，不沿用前一账号缓存。
       parameters:
       - description: Bearer Token
         in: header
@@ -2611,7 +2613,7 @@ paths:
       - feed
   /feed/getFeedEvents:
     get:
-      description: 获取已登录用户的所有feed订阅事件（包括已读和未读）
+      description: 按当前六类订阅过滤后返回最新20条未删除消息（包括已读和未读，按创建时间和ID倒序）。关闭类型不返回，重新开启后可查看历史消息。
       parameters:
       - description: Bearer Token
         in: header
@@ -2845,8 +2847,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: 仅限管理员。high_activity 默认筛选最近 7 个完整自然日中至少活跃 5 天的用户（北京时间，不含当天，阈值可由后端配置）；script 执行后端配置的名单脚本；all 筛选系统内全部在校用户，无需等待活跃明细积累。在校用户按学号前四位的入学年份和四年学制判断，每年北京时间
-        6 月 30 日起排除毕业批次；不接收学号参数。名单有效期为 7 天，后续通过 publicMuxiOfficialMSG 发布。
+      description: 仅限管理员。high_activity 默认筛选最近 7 个完整自然日中至少活跃 5 天的用户（北京时间，不含当天，阈值可由后端配置）；script
+        执行后端配置的名单脚本；all 筛选系统内全部在校用户，无需等待活跃明细积累。在校用户按学号前四位的入学年份和四年学制判断，每年北京时间 6 月 30
+        日起排除毕业批次；不接收学号参数。名单有效期为 7 天，后续通过 publicMuxiOfficialMSG 发布。
       parameters:
       - description: 管理员访问令牌（Bearer Token）
         in: header

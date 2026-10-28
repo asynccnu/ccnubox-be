@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/asynccnu/ccnubox-be/be-feed/domain"
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/asynccnu/ccnubox-be/common/tool"
@@ -29,11 +30,7 @@ type FeedUserConfigDAO interface {
 }
 
 // PushConfigSnapshot 区分不存在、有效及软删除；不存在不写回数据库。
-type PushConfigSnapshot struct {
-	Config  uint16
-	Exists  bool
-	Deleted bool
-}
+type PushConfigSnapshot = domain.PushConfigSnapshot
 
 type feedUserConfigDAO struct {
 	gorm *gorm.DB
@@ -51,7 +48,7 @@ func (dao *feedUserConfigDAO) FindOrCreateUserFeedConfig(ctx context.Context, st
 	}
 	var allowList model.FeedUserConfig
 	err := dao.gorm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		err := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("student_id = ?", studentId).
 			First(&allowList).Error
 		if err == nil {
@@ -184,12 +181,19 @@ func (dao *feedUserConfigDAO) ChangeConfigBits(
 	}
 	var config model.FeedUserConfig
 	err := dao.gorm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		err := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("student_id = ?", studentID).
 			First(&config).Error
 		isNew := errors.Is(err, gorm.ErrRecordNotFound)
 		if err != nil && !isNew {
 			return err
+		}
+		// 软删除的配置按全关解释；用户重新保存设置时恢复该行，避免配置入口永久不可用。
+		previous := domain.PushConfigSnapshot{Config: config.PushConfig, Exists: !isNew, Deleted: config.DeletedAt.Valid}.EffectiveConfig()
+		if config.DeletedAt.Valid {
+			// 从有效全关状态恢复，不能让未传入的 library 复活原始位图中的开启位。
+			config.PushConfig = previous
+			config.DeletedAt = gorm.DeletedAt{}
 		}
 		if isNew {
 			config = model.FeedUserConfig{
@@ -208,7 +212,7 @@ func (dao *feedUserConfigDAO) ChangeConfigBits(
 
 		libraryChanged := false
 		if library != nil {
-			wasEnabled := config.PushConfig&(1<<model.LibraryPos) != 0
+			wasEnabled := previous&(1<<model.LibraryPos) != 0
 			libraryChanged = wasEnabled != *library
 			if *library {
 				config.PushConfig |= 1 << model.LibraryPos
@@ -218,9 +222,10 @@ func (dao *feedUserConfigDAO) ChangeConfigBits(
 		}
 
 		if isNew {
-			return createUserFeedConfig(tx, &config)
-		}
-		if libraryChanged {
+			if err := createUserFeedConfig(tx, &config); err != nil {
+				return err
+			}
+		} else if libraryChanged {
 			revision, err := allocateLibraryPreferenceRevision(tx)
 			if err != nil {
 				return err
@@ -235,7 +240,23 @@ func (dao *feedUserConfigDAO) ChangeConfigBits(
 			}
 			config.LibraryRevision = revision
 		}
-		return tx.Save(&config).Error
+		if !isNew {
+			// 恢复软删除行必须 Unscoped，默认作用域会把它更新成 0 行且不报错。
+			if err := tx.Unscoped().Save(&config).Error; err != nil {
+				return err
+			}
+		}
+		closedConfig := previous &^ config.PushConfig & domain.DefaultPushConfig
+		if closedConfig == 0 {
+			return nil
+		}
+		// 锁顺序：用户配置 → 偏好版本分配器（如需）→ pending 投递。
+		// 子查询只读消息，使用投递的学号索引缩小更新范围；不抢改 sending。
+		events := tx.Unscoped().Model(&model.FeedEvent{}).Select("id").
+			Where("student_id = ? AND (("+feedTypeMaskSQL("type")+") & ?) <> 0", studentID, closedConfig)
+		return tx.Model(&model.FeedPushDelivery{}).
+			Where("student_id = ? AND status = ? AND feed_event_id IN (?)", studentID, model.PushDeliveryPending, events).
+			Updates(map[string]any{"status": model.PushDeliverySuppressed, "last_error": "suppressed_by_allow_list"}).Error
 	})
 	if err != nil {
 		return nil, errorx.Errorf("dao: change feed config transaction failed, sid: %s, err: %w", studentID, err)

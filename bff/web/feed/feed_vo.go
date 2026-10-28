@@ -45,7 +45,7 @@ type ChangeFeedAllowListReq struct {
 	Muxi     *bool `json:"muxi" binding:"required"`
 	Holiday  *bool `json:"holiday" binding:"required"`
 	Energy   *bool `json:"energy" binding:"required"`
-	FeedBack *bool `json:"feedback" binding:"required"`
+	FeedBack *bool `json:"feedback" binding:"required"` // 反馈订阅，同时控制站内可见性与系统推送；HTTP字段名为feedback。
 	// Library 为可选字段，使已部署客户端的请求能够保留用户现有的图书馆提醒偏好。
 	Library *bool `json:"library"`
 }
@@ -55,7 +55,7 @@ type GetFeedAllowListResp struct {
 	Muxi     bool `json:"muxi"`
 	Holiday  bool `json:"holiday"`
 	Energy   bool `json:"energy"`
-	FeedBack bool `json:"feedback"`
+	FeedBack bool `json:"feedback"` // 反馈消息遵守自己的订阅开关。
 	Library  bool `json:"library"`
 }
 

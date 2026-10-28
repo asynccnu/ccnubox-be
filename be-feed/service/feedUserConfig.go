@@ -24,16 +24,6 @@ type FeedUserConfigService interface {
 	RemoveFeedToken(ctx context.Context, studentId string, token string) error
 }
 
-// 使用封装好的 map 获取对应位的位置信息
-var configMap = map[string]int{
-	"muxi":     model.MuxiPos,
-	"grade":    model.GradePos,
-	"energy":   model.EnergyPos,
-	"holiday":  model.HolidayPos,
-	"feedback": model.FeedBackPos,
-	"library":  model.LibraryPos,
-}
-
 type feedUserConfigService struct {
 	feedEventCache    cache.FeedEventCache
 	userFeedConfigDAO dao.FeedUserConfigDAO
@@ -86,14 +76,15 @@ func (s *feedUserConfigService) FindOrCreateAllowList(ctx context.Context, stude
 	if err != nil {
 		return domain.AllowList{}, FIND_CONFIG_OR_TOKEN_ERROR(errorx.Errorf("service: find or create allow list failed, sid: %s, err: %w", studentId, err))
 	}
-	library := s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.LibraryPos)
+	config := domain.PushConfigSnapshot{Config: list.PushConfig, Exists: true, Deleted: list.DeletedAt.Valid}.EffectiveConfig()
+	library := s.userFeedConfigDAO.GetConfigBit(config, model.LibraryPos)
 	return domain.AllowList{
 		StudentId: list.StudentId,
-		Grade:     s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.GradePos),
-		Muxi:      s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.MuxiPos),
-		Holiday:   s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.HolidayPos),
-		Energy:    s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.EnergyPos),
-		FeedBack:  s.userFeedConfigDAO.GetConfigBit(list.PushConfig, model.FeedBackPos),
+		Grade:     s.userFeedConfigDAO.GetConfigBit(config, model.GradePos),
+		Muxi:      s.userFeedConfigDAO.GetConfigBit(config, model.MuxiPos),
+		Holiday:   s.userFeedConfigDAO.GetConfigBit(config, model.HolidayPos),
+		Energy:    s.userFeedConfigDAO.GetConfigBit(config, model.EnergyPos),
+		FeedBack:  s.userFeedConfigDAO.GetConfigBit(config, model.FeedBackPos),
 		Library:   &library,
 	}, nil
 }

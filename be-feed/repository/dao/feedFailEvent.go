@@ -10,7 +10,7 @@ import (
 // FeedFailEventDAO 接口定义
 type FeedFailEventDAO interface {
 	GetFeedFailEventsByStudentId(ctx context.Context, studentId string) ([]model.FeedFailEvent, error)
-	DelFeedFailEventsByStudentId(ctx context.Context, studentId string) error
+	DelFeedFailEventsByStudentId(ctx context.Context, studentId string, ids []int64) error
 	InsertFeedFailEventList(ctx context.Context, events []model.FeedFailEvent) error
 }
 
@@ -25,8 +25,9 @@ func NewFeedFailEventDAO(db *gorm.DB) FeedFailEventDAO {
 // GetFeedFailEventsByStudentId 获取指定 StudentId 的失败 FeedEvent 列表
 func (dao *feedFailEventDAO) GetFeedFailEventsByStudentId(ctx context.Context, studentId string) ([]model.FeedFailEvent, error) {
 	var resp []model.FeedFailEvent
-	err := dao.gorm.WithContext(ctx).
-		Where("student_id = ?", studentId).
+	err := withFeedSubscription(dao.gorm.WithContext(ctx).Model(&model.FeedFailEvent{}), "feed_fail_events").
+		Select("feed_fail_events.*").
+		Where("feed_fail_events.student_id = ?", studentId).
 		Find(&resp).Error
 	if err != nil {
 		return nil, errorx.Errorf("dao: get feed fail events failed, sid: %s, err: %w", studentId, err)
@@ -34,10 +35,13 @@ func (dao *feedFailEventDAO) GetFeedFailEventsByStudentId(ctx context.Context, s
 	return resp, nil
 }
 
-// DelFeedFailEventsByStudentId 删除指定 StudentId 的失败 FeedEvent
-func (dao *feedFailEventDAO) DelFeedFailEventsByStudentId(ctx context.Context, studentId string) error {
-	err := dao.gorm.WithContext(ctx).
-		Where("student_id = ?", studentId).
+// DelFeedFailEventsByStudentId 只消费本次读取的失败消息，仍保留当前订阅关闭的类型。
+func (dao *feedFailEventDAO) DelFeedFailEventsByStudentId(ctx context.Context, studentId string, ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	err := withFailFeedSubscription(dao.gorm.WithContext(ctx).Model(&model.FeedFailEvent{}), studentId).
+		Where("student_id = ? AND id IN ?", studentId, ids).
 		Delete(&model.FeedFailEvent{}).
 		Error
 	if err != nil {

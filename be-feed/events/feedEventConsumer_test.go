@@ -3,6 +3,11 @@ package events
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/asynccnu/ccnubox-be/be-feed/repository/dao"
+	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	"testing"
 
 	"github.com/IBM/sarama"
@@ -103,5 +108,46 @@ func TestFeedInvalidPayloadSkippedAfterThreshold(t *testing.T) {
 	// 达到阈值：跳过坏消息，后续正常消息照常确认。
 	if err := consume(); err != nil || session.marked != 2 || svc.calls != 1 {
 		t.Fatalf("second round: err=%v marked=%d calls=%d", err, session.marked, svc.calls)
+	}
+}
+
+func TestClosedOrdinarySubscriptionStillStoresRedeliveryIdempotently(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqlDB, _ := db.DB()
+	defer sqlDB.Close()
+	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedPushDelivery{}, &model.FeedUserConfig{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.FeedUserConfig{StudentId: "student", PushConfig: 0}).Error; err != nil {
+		t.Fatal(err)
+	}
+	l := zapx.NewZapLogger(zap.NewNop())
+	eventDAO := dao.NewFeedEventDAO(db)
+	svc := service.NewFeedEventService(eventDAO, nil, dao.NewFeedUserConfigDAO(db), nil, nil, l)
+	h := &feedEventKafkaHandler{consumer: &FeedEventConsumerHandler{feedService: svc, l: l}}
+	message := &sarama.ConsumerMessage{Topic: "feed_event", Partition: 1, Offset: 42, Value: []byte(`{"student_id":"student","type":"GRADE"}`)}
+	for i := 0; i < 2; i++ {
+		ack, err := h.consumeMessage(context.Background(), message)
+		if err != nil || !ack {
+			t.Fatalf("redelivery ack=%v err=%v", ack, err)
+		}
+	}
+	var events []model.FeedEvent
+	if err := db.Find(&events).Error; err != nil || len(events) != 1 {
+		t.Fatalf("events=%v err=%v", events, err)
+	}
+	if events[0].Type != "grade" || events[0].DedupeKey != domain.KafkaFeedEventDedupeKey("feed_event", 1, 42, "student") {
+		t.Fatalf("event=%+v", events[0])
+	}
+	var count int64
+	if err := db.Model(&model.FeedPushDelivery{}).Count(&count).Error; err != nil || count != 1 {
+		t.Fatalf("deliveries=%d err=%v", count, err)
+	}
+	visible, err := eventDAO.GetFeedEventsByStudentId(context.Background(), "student")
+	if err != nil || len(visible) != 0 {
+		t.Fatalf("closed type visible=%v err=%v", visible, err)
 	}
 }

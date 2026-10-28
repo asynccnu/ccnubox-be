@@ -46,9 +46,7 @@ func ValidateFeedEventForStorage(event FeedEvent) error {
 	if err := validateRequiredChars("type", event.Type, MaxFeedEventTypeChars); err != nil {
 		return err
 	}
-	switch strings.ToLower(event.Type) {
-	case "grade", "holiday", "muxi", "energy", "feedback", "library":
-	default:
+	if _, known := FeedTypePosition(event.Type); !known {
 		return &FeedEventValidationError{Field: "type", Reason: "unsupported value"}
 	}
 	if err := validateText("title", event.Title); err != nil {

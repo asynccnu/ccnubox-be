@@ -204,11 +204,11 @@ func (s *pushDeliveryService) dispatchOne(ctx context.Context, delivery model.Fe
 					err = s.saveCID(ctx, delivery.ID, cid)
 				}
 			}
-			if err == nil && strings.EqualFold(event.Type, "library") {
-				// 准备后的偏好变更应尽量在实际发送前生效；查询失败必须走重试。
-				var enabled bool
-				enabled, err = s.gate.IsLibraryEnabled(ctx, event.StudentId)
-				if err == nil && !enabled {
+			if err == nil {
+				// 所有类型在发送前读取最新配置；查询失败必须走重试，不能当作关闭。
+				var config dao.PushConfigSnapshot
+				config, err = s.gate.GetPushConfig(ctx, event.StudentId)
+				if err == nil && !config.Allows(event.Type) {
 					err = s.markSuppressed(ctx, delivery.ID)
 					if err == nil {
 						if s.metrics != nil {

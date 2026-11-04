@@ -130,10 +130,10 @@ func (s *gradeService) GetUpdateScore(ctx context.Context, studentId string) ([]
 	if err != nil {
 		return nil, ErrGetGrade(errorx.Errorf("service: get update score failed, sid: %s, err: %w", studentId, err))
 	}
-	if len(grades.update) == 0 {
+	if len(grades.notify) == 0 {
 		return nil, nil
 	}
-	return modelConvDomain(grades.update), nil
+	return modelConvDomain(grades.notify), nil
 }
 
 func (s *gradeService) UpdateDetailScore(ctx context.Context, need domain.NeedDetailGrade) error {
@@ -265,7 +265,7 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 			return nil, errorx.Errorf("service: crawler fetch failed, sid: %s, err: %w", studentId, err)
 		}
 
-		update, err := s.gradeDAO.BatchInsertOrUpdate(ctx, remote, false)
+		syncResult, err := s.gradeDAO.BatchInsertOrUpdate(ctx, remote, false)
 		if err != nil {
 			return nil, errorx.Errorf("service: dao batch sync failed, sid: %s, err: %w", studentId, err)
 		}
@@ -297,7 +297,7 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 			}
 		}
 
-		return FetchGrades{update: update, final: final}, nil
+		return FetchGrades{notify: syncResult.Notify, final: final}, nil
 	})
 
 	fetchGrades, ok := result.(FetchGrades)

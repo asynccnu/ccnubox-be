@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"errors"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -18,8 +19,19 @@ import (
 type GradeDAO interface {
 	FirstOrCreate(ctx context.Context, grade *model.Grade) error
 	FindGrades(ctx context.Context, studentId string, Xnm int64, Xqm int64) ([]model.Grade, error)
-	BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) (updateGrade []model.Grade, err error)
+	BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) (GradeSyncResult, error)
 	GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error)
+}
+
+// GradeSyncResult 将实际写入与总成绩通知候选分开，详情和元数据变化不触发通知。
+type GradeSyncResult struct {
+	Changed []model.Grade
+	Notify  []model.Grade
+}
+
+type gradeKey struct {
+	StudentID string
+	JxbID     string
 }
 
 type gradeDAO struct {
@@ -68,24 +80,21 @@ const maxGradeTransactionAttempts = 5
 var ErrGradeVersionChanged = errors.New("grade changed while fetching details")
 
 // BatchInsertOrUpdate 批量处理成绩同步逻辑
-func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) ([]model.Grade, error) {
-	if len(grades) == 0 {
-		return nil, nil
+func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) (GradeSyncResult, error) {
+	grades, err := prepareGradeBatch(grades, ifDetail)
+	if err != nil || len(grades) == 0 {
+		return GradeSyncResult{}, err
 	}
 
 	values := make([][]interface{}, 0, len(grades))
-	// 构造联合键并规格化 ID
-	for i := range grades {
-		grades[i].JxbId = normalizeJxbId(&grades[i])
-		values = append(values, []interface{}{grades[i].StudentId, grades[i].JxbId})
+	for _, grade := range grades {
+		values = append(values, []interface{}{grade.StudentId, grade.JxbId})
 	}
 
-	var (
-		affectedGrades []model.Grade
-		err            error
-	)
+	var result GradeSyncResult
 	for attempt := 1; attempt <= maxGradeTransactionAttempts; attempt++ {
-		affectedGrades = nil
+		// 事务失败时不能把上一轮未提交的结果带入重试。
+		result = GradeSyncResult{}
 		err = d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			// 行锁持有到事务提交，确保同一成绩的版本读取和递增不会交错。
 			var existingGrades []model.Grade
@@ -95,17 +104,15 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 				return errorx.Errorf("find existing records failed: %w", err)
 			}
 
-			existingMap := make(map[string]model.Grade, len(existingGrades))
+			existingMap := make(map[gradeKey]model.Grade, len(existingGrades))
 			for _, grade := range existingGrades {
-				key := grade.StudentId + grade.JxbId
-				existingMap[key] = grade
+				existingMap[gradeKey{StudentID: grade.StudentId, JxbID: grade.JxbId}] = grade
 			}
 
 			toInsert := make([]model.Grade, 0, len(grades))
 			toUpdate := make([]model.Grade, 0, len(grades))
 			for _, grade := range grades {
-				key := grade.StudentId + grade.JxbId
-				existing, exists := existingMap[key]
+				existing, exists := existingMap[gradeKey{StudentID: grade.StudentId, JxbID: grade.JxbId}]
 				if ifDetail {
 					// 详情任务不能重建已删除的成绩，也不能覆盖更新后的基础成绩。
 					if !exists || gradeDetailsEqual(existing, grade) {
@@ -114,18 +121,34 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 					if existing.ChangeVersion != grade.ChangeVersion {
 						return ErrGradeVersionChanged
 					}
-					grade.ChangeVersion = existing.ChangeVersion + 1
-					toUpdate = append(toUpdate, grade)
+					existing.RegularGradePercent = grade.RegularGradePercent
+					existing.RegularGrade = grade.RegularGrade
+					existing.FinalGradePercent = grade.FinalGradePercent
+					existing.FinalGrade = grade.FinalGrade
+					existing.ChangeVersion++
+					toUpdate = append(toUpdate, existing)
+					continue
+				}
+
+				storageChanged := !exists || !isGradeEqual(existing, grade, false)
+				scoreChanged := !exists || existing.Cj != grade.Cj
+				if !storageChanged {
 					continue
 				}
 				if !exists {
 					grade.ChangeVersion = 1
 					toInsert = append(toInsert, grade)
-					continue
-				}
-				if !isGradeEqual(existing, grade, ifDetail) {
+				} else {
+					// 列表同步只更新基础字段，返回值也应保留已经补全的详情。
+					grade.RegularGradePercent = existing.RegularGradePercent
+					grade.RegularGrade = existing.RegularGrade
+					grade.FinalGradePercent = existing.FinalGradePercent
+					grade.FinalGrade = existing.FinalGrade
 					grade.ChangeVersion = existing.ChangeVersion + 1
 					toUpdate = append(toUpdate, grade)
+				}
+				if scoreChanged {
+					result.Notify = append(result.Notify, grade)
 				}
 			}
 
@@ -144,13 +167,13 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 				}
 			}
 
-			affectedGrades = make([]model.Grade, 0, len(toInsert)+len(toUpdate))
-			affectedGrades = append(affectedGrades, toInsert...)
-			affectedGrades = append(affectedGrades, toUpdate...)
+			result.Changed = make([]model.Grade, 0, len(toInsert)+len(toUpdate))
+			result.Changed = append(result.Changed, toInsert...)
+			result.Changed = append(result.Changed, toUpdate...)
 			return nil
 		})
 		if err == nil {
-			return affectedGrades, nil
+			return result, nil
 		}
 		if ctx.Err() != nil || !isRetryableGradeTransactionError(err) || attempt == maxGradeTransactionAttempts {
 			break
@@ -158,7 +181,31 @@ func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade
 		time.Sleep(time.Duration(attempt) * 10 * time.Millisecond)
 	}
 
-	return nil, errorx.Errorf("dao: BatchInsertOrUpdate transaction failed, count: %d, err: %w", len(grades), err)
+	return GradeSyncResult{}, errorx.Errorf("dao: BatchInsertOrUpdate transaction failed, count: %d, err: %w", len(grades), err)
+}
+
+func prepareGradeBatch(grades []model.Grade, ifDetail bool) ([]model.Grade, error) {
+	result := make([]model.Grade, 0, len(grades))
+	seen := make(map[gradeKey]model.Grade, len(grades))
+	for _, grade := range grades {
+		grade.JxbId = normalizeJxbId(&grade)
+		if strings.TrimSpace(grade.StudentId) == "" || strings.TrimSpace(grade.JxbId) == "" {
+			return nil, errorx.New("dao: grade identity is empty")
+		}
+		if math.IsNaN(float64(grade.Cj)) || math.IsInf(float64(grade.Cj), 0) {
+			return nil, errorx.Errorf("dao: invalid total score, sid: %s, jxb: %s", grade.StudentId, grade.JxbId)
+		}
+		key := gradeKey{StudentID: grade.StudentId, JxbID: grade.JxbId}
+		if previous, ok := seen[key]; ok {
+			if !isGradeEqual(previous, grade, true) || (ifDetail && previous.ChangeVersion != grade.ChangeVersion) {
+				return nil, errorx.Errorf("dao: conflicting grades in batch, sid: %s, jxb: %s", grade.StudentId, grade.JxbId)
+			}
+			continue
+		}
+		seen[key] = grade
+		result = append(result, grade)
+	}
+	return result, nil
 }
 
 func isRetryableGradeTransactionError(err error) bool {

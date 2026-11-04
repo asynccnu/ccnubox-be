@@ -234,7 +234,7 @@ func calcJd(score float32) float32 {
 }
 
 type FetchGrades struct {
-	update []model.Grade
+	notify []model.Grade
 	final  []model.Grade
 }
 

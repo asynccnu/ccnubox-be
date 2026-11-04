@@ -15,10 +15,12 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	gradev1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/grade/v1"
 	userv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/user/v1"
+	"github.com/asynccnu/ccnubox-be/common/bizpkg/proxy"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
 	"github.com/asynccnu/ccnubox-be/common/tool"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -61,8 +63,8 @@ func (d *cachedGradeDAO) FindGrades(context.Context, string, int64, int64) ([]mo
 	return []model.Grade{{StudentId: "cached"}}, nil
 }
 
-func (d *cachedGradeDAO) BatchInsertOrUpdate(context.Context, []model.Grade, bool) ([]model.Grade, error) {
-	return nil, nil
+func (d *cachedGradeDAO) BatchInsertOrUpdate(context.Context, []model.Grade, bool) (dao.GradeSyncResult, error) {
+	return dao.GradeSyncResult{}, nil
 }
 
 func (d *cachedGradeDAO) GetDistinctGradeType(context.Context, string) ([]string, error) {
@@ -118,7 +120,7 @@ func TestUndergraduateStudentFetchesOnlyGradeList(t *testing.T) {
 			StatusCode: http.StatusOK,
 			Header:     make(http.Header),
 			Body: io.NopCloser(strings.NewReader(
-				`{"code":0,"msg":"success","data":[{"cj0708id":"grade-id","xs0101id":"student-id","jx0404id":"class-id","xqmc":"2025-2026-1"}]}`,
+				`{"code":0,"msg":"success","data":[{"cj0708id":"grade-id","xs0101id":"student-id","jx0404id":"class-id","xqmc":"2025-2026-1","zcj":80}]}`,
 			)),
 			Request: req,
 		}, nil
@@ -152,7 +154,7 @@ type detailGradeDAO struct {
 func (d *detailGradeDAO) FindGrades(context.Context, string, int64, int64) ([]model.Grade, error) {
 	return append([]model.Grade(nil), d.grades...), nil
 }
-func (d *detailGradeDAO) BatchInsertOrUpdate(_ context.Context, grades []model.Grade, _ bool) ([]model.Grade, error) {
+func (d *detailGradeDAO) BatchInsertOrUpdate(_ context.Context, grades []model.Grade, _ bool) (dao.GradeSyncResult, error) {
 	for _, grade := range grades {
 		d.writes = append(d.writes, grade)
 		for i := range d.grades {
@@ -161,7 +163,7 @@ func (d *detailGradeDAO) BatchInsertOrUpdate(_ context.Context, grades []model.G
 			}
 		}
 	}
-	return grades, nil
+	return dao.GradeSyncResult{Changed: grades}, nil
 }
 
 func TestUpdateDetailScorePropagatesPartialFailureAndResumes(t *testing.T) {
@@ -233,5 +235,152 @@ func TestDetailFailuresAreClassifiedWithoutDroppingTransientCourses(t *testing.T
 	})
 	if saramax.IsPermanent(err) || !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("mixed course failures must remain retryable: %v", err)
+	}
+}
+
+type gradeSyncDAO struct {
+	dao.GradeDAO
+	result     dao.GradeSyncResult
+	final      []model.Grade
+	synced     []model.Grade
+	syncCalls  int
+	findCalls  int
+	cacheEmpty bool
+}
+
+func (d *gradeSyncDAO) BatchInsertOrUpdate(_ context.Context, grades []model.Grade, detail bool) (dao.GradeSyncResult, error) {
+	if detail {
+		return dao.GradeSyncResult{}, errors.New("unexpected detail sync")
+	}
+	d.syncCalls++
+	d.synced = append([]model.Grade(nil), grades...)
+	return d.result, nil
+}
+
+func (d *gradeSyncDAO) FindGrades(context.Context, string, int64, int64) ([]model.Grade, error) {
+	d.findCalls++
+	if d.cacheEmpty && d.findCalls == 1 {
+		return nil, nil
+	}
+	return d.final, nil
+}
+
+type gradeCookieClient struct{ userv1.UserServiceClient }
+
+func (gradeCookieClient) GetCookie(context.Context, *userv1.GetCookieRequest, ...grpc.CallOption) (*userv1.GetCookieResponse, error) {
+	return &userv1.GetCookieResponse{Cookie: "test-cookie"}, nil
+}
+
+type gradeProxyClient struct{ body string }
+
+func (c gradeProxyClient) NewProxyClient(...proxy.Option) *proxy.HttpClient {
+	return &proxy.HttpClient{Client: &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(c.body)), Request: req}, nil
+	})}}
+}
+
+type failingDetailProducer struct {
+	calls int
+}
+
+func (p *failingDetailProducer) SendMessage(context.Context, string, domain.NeedDetailGrade) error {
+	p.calls++
+	return errors.New("detail queue unavailable")
+}
+func (*failingDetailProducer) Close() error { return nil }
+
+func TestGradeRefreshKeepsNotificationCandidatesSeparateFromQueries(t *testing.T) {
+	const student = "2023212345"
+	metadata := model.Grade{StudentId: student, JxbId: "metadata", Kcmc: "改名课程", Cj: 80, Xf: 2, Kcxzmc: "必修", ChangeVersion: 7}
+	notification := model.Grade{StudentId: student, JxbId: "old-term-new-score", Kcmc: "旧学期新成绩", Xnm: 2020, Xqm: 1, Cj: 90, Xf: 3, Kcxzmc: "必修", ChangeVersion: 1, RegularGradePercent: RegularGradePercentMSG}
+	unchanged := model.Grade{StudentId: student, JxbId: "unchanged", Kcmc: "未变课程", Cj: 70, Xf: 1, Kcxzmc: "必修", ChangeVersion: 2}
+	for _, name := range []string{"notification candidates", "metadata only", "full grades", "full credit scores"} {
+		t.Run(name, func(t *testing.T) {
+			d := &gradeSyncDAO{
+				result: dao.GradeSyncResult{Changed: []model.Grade{metadata, notification}, Notify: []model.Grade{notification}},
+				final:  []model.Grade{metadata, notification, unchanged},
+			}
+			producer := &failingDetailProducer{}
+			s := &gradeService{
+				gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop()), userClient: gradeCookieClient{}, producer: producer,
+				proxyClient: gradeProxyClient{body: `{"code":0,"data":[{"xs0101id":"2023212345","jx0404id":"class","xqmc":"2020-2021-1","zcj":0}]}`},
+			}
+			switch name {
+			case "notification candidates":
+				grades, err := s.GetUpdateScore(context.Background(), student)
+				if err != nil || len(grades) != 1 || grades[0].JxbId != notification.JxbId || grades[0].Xnm != 2020 {
+					t.Fatalf("GetUpdateScore() = %+v, %v", grades, err)
+				}
+			case "metadata only":
+				d.result.Notify = nil
+				grades, err := s.GetUpdateScore(context.Background(), student)
+				if err != nil || len(grades) != 0 {
+					t.Fatalf("metadata returned as notification: %+v, %v", grades, err)
+				}
+			case "full grades":
+				grades, err := s.GetGradeByTerm(context.Background(), &domain.GetGradeByTermReq{StudentID: student, Refresh: true})
+				if err != nil || len(grades) != 3 {
+					t.Fatalf("GetGradeByTerm() = %+v, %v", grades, err)
+				}
+			case "full credit scores":
+				d.cacheEmpty = true
+				scores, err := s.GetGradeScore(context.Background(), student)
+				if err != nil || len(scores) != 1 || len(scores[0].GradeScoreList) != 3 {
+					t.Fatalf("GetGradeScore() = %+v, %v", scores, err)
+				}
+			}
+			if d.syncCalls != 1 || len(d.synced) != 1 || d.synced[0].Cj != 0 || producer.calls != 1 {
+				t.Fatalf("sync calls=%d grades=%+v producer calls=%d", d.syncCalls, d.synced, producer.calls)
+			}
+		})
+	}
+}
+
+func TestInvalidNumericTotalScoreNeverReachesGradeDAO(t *testing.T) {
+	for _, item := range []string{`{"zcj":"优秀"}`, `{"zcj":1e40}`} {
+		d := &gradeSyncDAO{}
+		s := &gradeService{
+			gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop()), userClient: gradeCookieClient{},
+			proxyClient: gradeProxyClient{body: `{"code":0,"data":[{"zcj":80},` + item + `]}`},
+		}
+		if grades, err := s.GetUpdateScore(context.Background(), "2023212345"); err == nil || len(grades) != 0 || d.syncCalls != 0 {
+			t.Fatalf("invalid snapshot reached DAO: grades=%+v err=%v sync calls=%d", grades, err, d.syncCalls)
+		}
+	}
+}
+
+func TestGradeRefreshPreservesExistingScoreDecoding(t *testing.T) {
+	for _, tc := range []struct {
+		fields string
+		want   float32
+	}{
+		{"", 0},
+		{`,"zcj":null`, 0},
+		{`,"zcj":0,"zcjstr":"缓考"`, 0},
+		{`,"zcj":90,"zcjstr":"优秀"`, 90},
+		{`,"zcj":89.25,"zcjstr":"89"`, 89.25},
+	} {
+		d := &gradeSyncDAO{}
+		s := &gradeService{
+			gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop()), userClient: gradeCookieClient{},
+			proxyClient: gradeProxyClient{body: `{"code":0,"data":[{"xs0101id":"2023212345","jx0404id":"class"` + tc.fields + `}]}`},
+		}
+		if _, err := s.GetUpdateScore(context.Background(), "2023212345"); err != nil || d.syncCalls != 1 || len(d.synced) != 1 || d.synced[0].Cj != tc.want {
+			t.Fatalf("fields=%s err=%v sync calls=%d grades=%+v", tc.fields, err, d.syncCalls, d.synced)
+		}
+	}
+}
+
+func TestConvertGraduateGradePreservesExistingScoreFallback(t *testing.T) {
+	// 保留既有转换失败回退为零分的行为，不因单条文本成绩拒绝整批数据。
+	for _, score := range []string{"", "优秀", "未发布", "1e40"} {
+		grades := ConvertGraduateGrade([]crawler.GraduatePoints{{Cj: "80"}, {Cj: score}})
+		if len(grades) != 2 || grades[0].Cj != 80 || grades[1].Cj != 0 {
+			t.Fatalf("score %q converted to grades=%+v", score, grades)
+		}
+	}
+	grades := ConvertGraduateGrade([]crawler.GraduatePoints{{Cj: "0", Xnm: "2020", Xqm: "3"}, {Cj: "89.25", Xnm: "2021", Xqm: "12"}})
+	if len(grades) != 2 || grades[0].Cj != 0 || grades[0].Xqm != 1 || grades[1].Cj != 89.25 || grades[1].Xqm != 2 {
+		t.Fatalf("valid graduate scores: grades=%+v", grades)
 	}
 }

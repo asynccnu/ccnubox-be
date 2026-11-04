@@ -113,6 +113,10 @@ func (g *Graduate) GetGraduateGrades(ctx context.Context, cookie string, xnm, xq
 		return nil, errorx.Errorf("crawler: read graduate response failed, err: %w", err)
 	}
 
+	return parseGraduateResponse(body)
+}
+
+func parseGraduateResponse(body []byte) ([]GraduatePoints, error) {
 	var response GraduateResp
 	if err := json.Unmarshal(body, &response); err != nil {
 		// 当教务系统返回 HTML（如登录页）而非 JSON 时，捕获前 100 字符用于排查
@@ -122,6 +126,5 @@ func (g *Graduate) GetGraduateGrades(ctx context.Context, cookie string, xnm, xq
 		}
 		return nil, errorx.Errorf("crawler: unmarshal graduate json failed, body: %s, err: %w", bodySample, err)
 	}
-
 	return response.Items, nil
 }

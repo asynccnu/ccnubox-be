@@ -18,7 +18,7 @@ func TestParseGradeResponse(t *testing.T) {
 	}{
 		{
 			name:      "valid response",
-			body:      `{"code":0,"msg":"success","data":[{"cj0708id":"grade-id"}]}`,
+			body:      `{"code":0,"msg":"success","data":[{"cj0708id":"grade-id","zcj":80}]}`,
 			wantCount: 1,
 		},
 		{
@@ -91,5 +91,63 @@ func TestGetDetailDistinguishesContentAndDependencyFailures(t *testing.T) {
 				t.Fatalf("dependency failure classified as permanent content failure: %v", err)
 			}
 		})
+	}
+}
+
+func TestParseGradeResponsePreservesExistingScoreDecoding(t *testing.T) {
+	// 沿用数值字段的 JSON 解码行为，不额外校验展示文本或推测等级制映射。
+	for _, tc := range []struct {
+		name string
+		item string
+		want float32
+		ok   bool
+	}{
+		{"zero", `{"zcj":0}`, 0, true},
+		{"fraction", `{"zcj":89.25,"zcjstr":"89.25"}`, 89.25, true},
+		{"missing", `{}`, 0, true},
+		{"null", `{"zcj":null}`, 0, true},
+		{"text", `{"zcj":"优秀"}`, 0, false},
+		{"publication text", `{"zcj":0,"zcjstr":"缓考"}`, 0, true},
+		{"grade scale text", `{"zcj":90,"zcjstr":"优秀"}`, 90, true},
+		{"different display", `{"zcj":89.25,"zcjstr":"89"}`, 89.25, true},
+		{"float32 overflow", `{"zcj":1e40}`, 0, false},
+		{"object", `{"zcj":{}}`, 0, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			grades, err := parseGradeResponse([]byte(`{"code":0,"data":[` + tc.item + `]}`))
+			if (err == nil) != tc.ok {
+				t.Fatalf("grades=%+v err=%v want success=%v", grades, err, tc.ok)
+			}
+			if tc.ok && (len(grades) != 1 || grades[0].ZCJ != tc.want) {
+				t.Fatalf("grades=%+v want score=%v", grades, tc.want)
+			}
+		})
+	}
+	if grades, err := parseGradeResponse([]byte(`{"code":0,"data":[{"zcj":80},{}]}`)); err != nil || len(grades) != 2 || grades[0].ZCJ != 80 || grades[1].ZCJ != 0 {
+		t.Fatalf("existing missing-score behavior changed: grades=%+v err=%v", grades, err)
+	}
+}
+
+func TestParseGraduateResponsePreservesExistingScoreDecoding(t *testing.T) {
+	for _, tc := range []struct {
+		body      string
+		wantCount int
+		ok        bool
+	}{
+		{`{"items":[{"cj":"0"}]}`, 1, true},
+		{`{"items":[{"cj":"89.25"}]}`, 1, true},
+		{`{"items":[]}`, 0, true},
+		{`{"items":null}`, 0, true},
+		{`{}`, 0, true},
+		{`{"items":[{}]}`, 1, true},
+		{`{"items":[{"cj":"优秀"}]}`, 1, true},
+		{`{"items":[{"cj":"80"},{"cj":"未发布"}]}`, 2, true},
+		{`{"items":[{"cj":80}]}`, 0, false},
+		{`<html>login</html>`, 0, false},
+	} {
+		grades, err := parseGraduateResponse([]byte(tc.body))
+		if (err == nil) != tc.ok || (tc.ok && len(grades) != tc.wantCount) {
+			t.Fatalf("body=%s grades=%+v err=%v want success=%v count=%d", tc.body, grades, err, tc.ok, tc.wantCount)
+		}
 	}
 }

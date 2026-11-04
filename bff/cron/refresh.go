@@ -4,9 +4,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	classlistv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/classlist/v1"
 	contentv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/content/v1"
@@ -32,7 +34,8 @@ func NewTieredHandler(classList classlistv1.ClasserClient,
 	feedClient feedv1.FeedServiceClient,
 	content contentv1.ContentServiceClient,
 	counter counterv1.CounterServiceClient,
-	l logger.Logger) tieredx.RefreshHandler {
+	l logger.Logger,
+) tieredx.RefreshHandler {
 	return &TieredHandler{
 		classList:   classList,
 		gradeClient: gradeClient,
@@ -83,61 +86,98 @@ func gradeDedupeKey(studentID, jxbId string, score float32, changeVersion int64)
 }
 
 func (p *TieredHandler) gradeRefresh(ctx context.Context, studentId string) error {
-	//获取学生最新成绩
+	// 获取学生最新成绩
 	resp, err := p.gradeClient.GetUpdateScore(ctx, &gradev1.GetUpdateScoreReq{StudentId: studentId})
 	if err != nil {
 		return err
 	}
 
+	// 本人通知优先且逐条发布，同班查询和boost不应阻止任何一条通知。
+	var failures []error
 	for _, g := range resp.GetGrades() {
-		//找出相同教学班的同学
-		res, err := p.classList.GetStuIdByJxbId(ctx, &classlistv1.GetStuIdByJxbIdRequest{JxbId: g.JxbId})
-		if err != nil {
-			p.l.Error("获取学生ID失败", logger.Error(err), logger.String("JxbId", g.JxbId))
-			continue
-		}
-
-		//把等级提到最高
-		_, err = p.counter.BoostScores(ctx, &counterv1.BoostScoresReq{
-			StudentIds: res.StuId,
-		})
-		if err != nil {
-			p.l.Error("更改优先级发生错误", logger.Error(err))
-			continue
-		}
-
-		semester := formatSemester(g.Xnm, g.Xqm)
-		url := getGradeEventUrl(semester, g.Kcxzmc)
-		//成绩更新消息推送
-		_, err = p.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
-			StudentId: studentId,
-			IsAll:     false,
-			Event: &feedv1.FeedEvent{
-				Type:         feedv1.FeedEventType_GRADE,
-				Title:        "成绩更新提醒",
-				Content:      fmt.Sprintf("您的课程:%s分数更新了,请及时查看", g.Kcmc),
-				Url:          url,
-				ExtendFields: map[string]string{"url": url},
-				DedupeKey:    gradeDedupeKey(studentId, g.JxbId, g.Cj, g.ChangeVersion),
-			},
-		})
-		if err != nil {
-			p.l.Error("推送错误", logger.Error(err))
+		if err := p.publishGradeEvent(ctx, studentId, g); err != nil {
+			failures = append(failures, err)
 		}
 	}
+	p.boostGradeClassmates(ctx, resp.GetGrades())
+	return errors.Join(failures...)
+}
 
+func (p *TieredHandler) publishGradeEvent(ctx context.Context, studentId string, g *gradev1.Grade) error {
+	if g == nil {
+		err := errorx.New("成绩通知缺少成绩数据")
+		p.l.WithContext(ctx).Error("成绩通知发布失败", logger.String("sid", studentId), logger.Error(err))
+		return err
+	}
+	semester := formatSemester(g.Xnm, g.Xqm)
+	url := getGradeEventUrl(semester, g.Kcxzmc)
+	resp, err := p.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
+		StudentId: studentId,
+		IsAll:     false,
+		Event: &feedv1.FeedEvent{
+			Type:         feedv1.FeedEventType_GRADE,
+			Title:        "成绩更新提醒",
+			Content:      fmt.Sprintf("您的课程:%s分数更新了,请及时查看", g.Kcmc),
+			Url:          url,
+			ExtendFields: map[string]string{"url": url},
+			DedupeKey:    gradeDedupeKey(studentId, g.JxbId, g.Cj, g.ChangeVersion),
+		},
+	})
+	if err == nil {
+		if resp == nil {
+			err = errorx.New("成绩通知发布返回空响应")
+		} else if resp.Status != feedv1.PublishStatus_ACCEPTED && resp.Status != feedv1.PublishStatus_DUPLICATE {
+			err = errorx.Errorf("成绩通知发布返回异常状态: %s", resp.Status.String())
+		}
+	}
+	if err != nil {
+		p.l.WithContext(ctx).Error("成绩通知发布失败", logger.String("sid", studentId), logger.String("jxb_id", g.JxbId), logger.Error(err))
+		return errorx.Errorf("publish grade event failed, sid: %s, jxb: %s, err: %w", studentId, g.JxbId, err)
+	}
+	p.l.WithContext(ctx).Info("成绩通知发布结果", logger.String("sid", studentId), logger.String("jxb_id", g.JxbId), logger.String("status", resp.Status.String()))
 	return nil
+}
 
+func (p *TieredHandler) boostGradeClassmates(ctx context.Context, grades []*gradev1.Grade) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	seen := make(map[string]struct{}, len(grades))
+	for _, g := range grades {
+		if g == nil || strings.TrimSpace(g.JxbId) == "" || g.JxbId == fmt.Sprintf("%s%d%d", g.Kcmc, g.Xnm, g.Xqm) {
+			// 兼容 Grade DAO 的课程名+学年学期兜底 ID，这类 ID 不能用于查同班成员。
+			continue
+		}
+		if _, ok := seen[g.JxbId]; ok {
+			continue
+		}
+		seen[g.JxbId] = struct{}{}
+		if ctx.Err() != nil {
+			p.l.WithContext(ctx).Warn("成绩同班提速已取消或超时", logger.Error(ctx.Err()))
+			return
+		}
+		res, err := p.classList.GetStuIdByJxbId(ctx, &classlistv1.GetStuIdByJxbIdRequest{JxbId: g.JxbId})
+		if err != nil {
+			p.l.WithContext(ctx).Error("获取学生ID失败", logger.Error(err), logger.String("JxbId", g.JxbId))
+			continue
+		}
+		if len(res.GetStuId()) == 0 {
+			continue
+		}
+		if _, err = p.counter.BoostScores(ctx, &counterv1.BoostScoresReq{StudentIds: res.GetStuId()}); err != nil {
+			p.l.WithContext(ctx).Error("更改优先级发生错误", logger.String("JxbId", g.JxbId), logger.Error(err))
+		}
+	}
 }
 
 func (p *TieredHandler) classListRefresh(ctx context.Context, studentId string) error {
-	//判断当前学期
+	// 判断当前学期
 	res, err := p.content.GetSemester(ctx, &contentv1.GetSemesterRequest{})
 	if err != nil {
 		p.l.Errorf("student:%s get current semester error：%v", studentId, err)
 		return err
 	}
-	//把学期字符串解析成year和semester
+	// 把学期字符串解析成year和semester
 	strs := strings.Split(res.Semester.Semester, "-")
 	if len(strs) < 2 {
 		p.l.Errorf("semester string is not valid")
@@ -152,7 +192,6 @@ func (p *TieredHandler) classListRefresh(ctx context.Context, studentId string) 
 		Year:     year,
 		Refresh:  true,
 	})
-
 	if err != nil {
 		p.l.Errorf("student:%s refresh classlist err：%v", studentId, err)
 		return err

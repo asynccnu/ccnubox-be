@@ -193,7 +193,10 @@ func aggregateGradeSnapshot(grades []crawler.Grade, details map[string]crawler.S
 			continue
 		}
 		if err != nil {
-			return gradeSnapshot{}, err
+			// 已评分但学期异常的课程单独保留，不能按未发布处理或写入零值学期。
+			result.invalid = append(result.invalid, model.Grade{StudentId: grade.XS0101ID, JxbId: grade.JX0404ID,
+				KcId: grade.CJ0708ID, Kcmc: grade.KCMC, Cj: grade.ZCJ, Xnm: xnm, Xqm: xqm})
+			continue
 		}
 
 		// 计算绩点
@@ -260,6 +263,7 @@ func calcJd(score float32) float32 {
 type gradeSnapshot struct {
 	grades   []model.Grade
 	unscored []model.Grade
+	invalid  []model.Grade
 	complete bool
 }
 
@@ -287,7 +291,9 @@ func convertGraduateSnapshot(graduateGrade []crawler.GraduatePoints) (gradeSnaps
 			continue
 		}
 		if termErr != nil {
-			return gradeSnapshot{}, termErr
+			result.invalid = append(result.invalid, model.Grade{StudentId: p.Xh, JxbId: p.JxbID,
+				Kcmc: p.Kcmc, Cj: score, Xnm: xnm, Xqm: xqm})
+			continue
 		}
 		result.grades = append(result.grades, model.Grade{
 			StudentId: p.Xh,

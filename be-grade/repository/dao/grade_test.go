@@ -794,6 +794,86 @@ func TestLegacyPseudoIdentityIsNotRecreatedAsNewCourse(t *testing.T) {
 	}
 }
 
+func TestUnmatchedLegacyPseudoCourseDoesNotBlockOtherTerms(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	old := model.Grade{StudentId: "legacy", JxbId: "课程20201", Kcmc: "课程", Xnm: 2020, Xqm: 1, Cj: 80, ChangeVersion: 3}
+	if err := db.Create(&old).Error; err != nil {
+		t.Fatal(err)
+	}
+	candidate := old
+	candidate.JxbId, candidate.Kcmc = "possible-old-course", "课程也改名"
+	fresh := []model.Grade{
+		{StudentId: "legacy", JxbId: "new-year", Kcmc: "新课程", Xnm: 2026, Xqm: 1, Cj: 90},
+		{StudentId: "legacy", JxbId: "new-term", Kcmc: "课程", Xnm: 2020, Xqm: 2, Cj: 85},
+	}
+	grades := append([]model.Grade{candidate}, fresh...)
+	for i := range 2 {
+		got := syncGrades(t, d, "legacy", grades...)
+		want := 2
+		if i > 0 {
+			want = 0
+		}
+		if len(got.Skipped) != 1 || got.Skipped[0].JxbId != candidate.JxbId || len(got.Notify) != want || len(got.Changed) != want {
+			t.Fatalf("attempt=%d result=%+v", i, got)
+		}
+	}
+	var stored model.Grade
+	if err := db.First(&stored, "student_id = ? AND jxb_id = ?", old.StudentId, old.JxbId).Error; err != nil || !reflect.DeepEqual(stored, old) {
+		t.Fatal("legacy course was merged or changed", stored, err)
+	}
+	countRows(t, db, &model.Grade{}, 3)
+	countRows(t, db, &model.GradeIdentityAlias{}, 2)
+	countRows(t, db, &model.GradeNotificationOutbox{}, 2)
+	countRows(t, db, &model.GradeSyncIssue{}, 1)
+}
+
+func TestInvalidMetadataDoesNotConfirmLegacyIdentity(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	id, _ := model.NewNotificationID()
+	old := model.Grade{StudentId: "legacy", JxbId: "课程20201", Kcmc: "课程", Xnm: 2020, Xqm: 1,
+		Cj: 80, ChangeVersion: 3, NotificationID: &id, ScoreVersion: 1}
+	if err := db.Create(&old).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.GradeIdentityAlias{StudentID: "legacy", SourceSystem: "undergraduate",
+		AliasKind: "jxb_id", AliasValue: "invalid", NotificationID: id}).Error; err != nil {
+		t.Fatal(err)
+	}
+	candidate := old
+	candidate.JxbId = "possible-old-course"
+	fresh := model.Grade{StudentId: "legacy", JxbId: "new-year", Kcmc: "新课程", Xnm: 2026, Xqm: 1, Cj: 90}
+	s := snapshot("legacy", candidate, fresh)
+	s.Invalid = []model.Grade{{StudentId: "legacy", JxbId: "invalid", Kcmc: "课程", Cj: 95}}
+	got, err := d.SyncGrades(context.Background(), s)
+	if err != nil || len(got.Skipped) != 2 || len(got.Notify) != 1 || got.Notify[0].JxbId != fresh.JxbId {
+		t.Fatal("invalid metadata confirmed a legacy identity", got, err)
+	}
+	countRows(t, db, &model.Grade{}, 2)
+	countRows(t, db, &model.GradeNotificationOutbox{}, 1)
+	s.Invalid[0].StudentId = "other-student"
+	if _, err := d.SyncGrades(context.Background(), s); err == nil {
+		t.Fatal("cross-student invalid grade accepted")
+	}
+}
+
+func TestInvalidMetadataDoesNotInitializeBaseline(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	fresh := model.Grade{StudentId: "student", JxbId: "valid", Cj: 90}
+	s := snapshot("student", fresh)
+	s.Invalid = []model.Grade{{StudentId: "student", JxbId: "invalid", Cj: 80}}
+	got, err := d.SyncGrades(context.Background(), s)
+	if err != nil || len(got.Changed) != 1 || len(got.Skipped) != 1 || len(got.Notify) != 0 {
+		t.Fatal(got, err)
+	}
+	var state model.GradeSyncState
+	if err := db.First(&state).Error; err != nil || state.InitializedAt != 0 {
+		t.Fatal("invalid metadata initialized baseline despite Complete=true", state, err)
+	}
+	countRows(t, db, &model.Grade{}, 1)
+	countRows(t, db, &model.GradeSyncIssue{}, 1)
+	countRows(t, db, &model.GradeNotificationOutbox{}, 0)
+}
+
 func TestInvalidNotificationStateIsQuarantinedOnTouch(t *testing.T) {
 	for _, item := range []struct {
 		id      *string

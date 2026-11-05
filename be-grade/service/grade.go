@@ -269,14 +269,14 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 
 		syncResult, err := s.gradeDAO.SyncGrades(ctx, dao.GradeSnapshot{
 			StudentID: studentId, SourceSystem: string(system), Grades: remote.grades, Unscored: remote.unscored,
-			Complete: remote.complete, SuppressNotifications: !s.snapshotVerified, ObservedAt: time.Now(),
+			Invalid: remote.invalid, Complete: remote.complete, SuppressNotifications: !s.snapshotVerified, ObservedAt: time.Now(),
 		})
 		if err != nil {
 			return nil, errorx.Errorf("service: dao batch sync failed, sid: %s, err: %w", studentId, err)
 		}
 
 		if len(syncResult.Skipped) > 0 {
-			s.l.WithContext(ctx).Warn("部分成绩身份不明，已保留待核验，其余课程正常同步",
+			s.l.WithContext(ctx).Warn("部分成绩身份或元数据异常，已保留待核验，其余课程正常同步",
 				logger.String("sid", studentId), logger.Int("count", len(syncResult.Skipped)))
 		}
 
@@ -451,7 +451,7 @@ func (u *UndergraduateStudent) GetGrades(ctx context.Context, cookie string, xnm
 
 	// 详情页逐科抓取耗时且部分课程没有详情数据。列表先入库，详情由 GradeDetailEvent 异步补全。
 	result, err := aggregateGradeSnapshot(snapshot.Grades, make(map[string]crawler.Score))
-	result.complete = snapshot.Complete
+	result.complete = snapshot.Complete && len(result.invalid) == 0
 	return result, err
 }
 
@@ -466,6 +466,6 @@ func (g *GraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm
 	}
 
 	result, err := convertGraduateSnapshot(snapshot.Grades)
-	result.complete = snapshot.Complete
+	result.complete = snapshot.Complete && len(result.invalid) == 0
 	return result, err
 }

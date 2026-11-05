@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -638,6 +639,126 @@ func TestUnscoredLegacyPseudoCourseDoesNotBlockNewGrade(t *testing.T) {
 				if grade.JxbId == old.JxbId && (grade.Cj != 80 || grade.ChangeVersion != 3 || grade.NotificationID != nil) {
 					t.Fatal("unavailable score changed the legacy cache", grade)
 				}
+			}
+		})
+	}
+}
+
+func TestInvalidGradeTermDoesNotBlockOtherCourses(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		student string
+		body    string
+	}{
+		{"undergraduate", "2023212345", `{"code":0,"total":2,"data":[
+		{"xs0101id":"2023212345","jx0404id":"bad","kc_mc":"异常课程","xqmc":"invalid","zcj":95},
+		{"xs0101id":"2023212345","jx0404id":"good","kc_mc":"正常课程","xqmc":"2025-2026-1","zcj":90}]}`},
+		{"postgraduate", "2023112345", `{"totalCount":2,"items":[
+		{"xh":"2023112345","jxb_id":"bad","kcmc":"异常课程","xnm":"2025","xqm":"unknown","cj":"95"},
+		{"xh":"2023112345","jxb_id":"good","kcmc":"正常课程","xnm":"2025","xqm":"3","cj":"90"}]}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := newGradeServiceTestDB(t)
+			if err := dao.InitTables(db); err != nil {
+				t.Fatal(err)
+			}
+			d := dao.NewGradeDAO(db)
+			base := []model.Grade{
+				{StudentId: tc.student, JxbId: "bad", Kcmc: "异常课程", Xnm: 2025, Xqm: 1, Cj: 80},
+				{StudentId: tc.student, JxbId: "good", Kcmc: "正常课程", Xnm: 2025, Xqm: 1, Cj: 80},
+			}
+			if _, err := d.SyncGrades(context.Background(), dao.GradeSnapshot{StudentID: tc.student, SourceSystem: "test", Grades: base, Complete: true, ObservedAt: time.Now()}); err != nil {
+				t.Fatal(err)
+			}
+			var before model.Grade
+			if err := db.First(&before, "student_id = ? AND jxb_id = ?", tc.student, "bad").Error; err != nil {
+				t.Fatal(err)
+			}
+			s := NewGradeService(d, zapx.NewZapLogger(zap.NewNop()), gradeCookieClient{}, nil, gradeProxyClient{body: tc.body}, &failingDetailProducer{}, nil)
+			got, err := s.GetUpdateScore(context.Background(), tc.student)
+			if err != nil || len(got) != 1 || got[0].JxbId != "good" || got[0].Cj != 90 {
+				t.Fatal("invalid term blocked valid score", got, err)
+			}
+			stored, err := d.FindGrades(context.Background(), tc.student, 0, 0)
+			if err != nil || len(stored) != 2 {
+				t.Fatal(stored, err)
+			}
+			for _, grade := range stored {
+				if grade.JxbId == "bad" && (grade.Cj != 80 || grade.Xnm != 2025 || grade.Xqm != 1 || grade.ScoreVersion != 1 || grade.ChangeVersion != 1 || grade.NotificationIdentity() != before.NotificationIdentity()) {
+					t.Fatal("invalid course overwrote the cache", grade)
+				}
+			}
+			var issue model.GradeSyncIssue
+			if err := db.First(&issue).Error; err != nil || !strings.Contains(issue.LastError, "metadata") {
+				t.Fatal("invalid course was not retained for verification", issue, err)
+			}
+			var saved dao.GradeSnapshot
+			if err := json.Unmarshal([]byte(issue.Payload), &saved); err != nil || len(saved.Invalid) != 1 || saved.Invalid[0].JxbId != "bad" || saved.Invalid[0].Cj != 95 || len(saved.Unscored) != 0 || saved.Complete {
+				t.Fatal("invalid course was treated as unscored or complete", saved, err)
+			}
+			var count int64
+			if err := db.Model(&model.GradeNotificationOutbox{}).Count(&count).Error; err != nil || count != 1 {
+				t.Fatal(count, err)
+			}
+		})
+	}
+}
+
+func TestInvalidGradeTermDoesNotInitializeNotificationBaseline(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		student    string
+		body       string
+		invalid    string
+		valid      string
+		scoreField string
+	}{
+		{"undergraduate", "2023212345", `{"code":0,"total":2,"data":[
+		{"xs0101id":"2023212345","jx0404id":"bad","xqmc":"invalid","zcj":80},
+		{"xs0101id":"2023212345","jx0404id":"good","xqmc":"2025-2026-1","zcj":90}]}`, `"xqmc":"invalid"`, `"xqmc":"2025-2026-1"`, `"zcj":90`},
+		{"postgraduate", "2023112345", `{"totalCount":2,"items":[
+		{"xh":"2023112345","jxb_id":"bad","xnm":"2025","xqm":"unknown","cj":"80"},
+		{"xh":"2023112345","jxb_id":"good","xnm":"2025","xqm":"3","cj":"90"}]}`, `"xqm":"unknown"`, `"xqm":"3"`, `"cj":"90"`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := newGradeServiceTestDB(t)
+			if err := dao.InitTables(db); err != nil {
+				t.Fatal(err)
+			}
+			d := dao.NewGradeDAO(db)
+			refresh := func(body string) []domain.Grade {
+				t.Helper()
+				s := NewGradeService(d, zapx.NewZapLogger(zap.NewNop()), gradeCookieClient{}, nil, gradeProxyClient{body: body}, &failingDetailProducer{}, nil)
+				got, err := s.GetUpdateScore(context.Background(), tc.student)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return got
+			}
+			for range 2 {
+				if got := refresh(tc.body); len(got) != 0 {
+					t.Fatal("partial initial import generated notifications", got)
+				}
+				var state model.GradeSyncState
+				if err := db.First(&state).Error; err != nil || state.InitializedAt != 0 {
+					t.Fatal("invalid term initialized baseline", state, err)
+				}
+			}
+			stored, err := d.FindGrades(context.Background(), tc.student, 0, 0)
+			if err != nil || len(stored) != 1 || stored[0].JxbId != "good" {
+				t.Fatal(stored, err)
+			}
+			repaired := strings.ReplaceAll(tc.body, tc.invalid, tc.valid)
+			if got := refresh(repaired); len(got) != 0 {
+				t.Fatal("repaired initial import generated historical notifications", got)
+			}
+			var state model.GradeSyncState
+			if err := db.First(&state).Error; err != nil || state.InitializedAt == 0 {
+				t.Fatal("complete import did not initialize baseline", state, err)
+			}
+			updated := strings.ReplaceAll(repaired, tc.scoreField, strings.ReplaceAll(tc.scoreField, "90", "95"))
+			if got := refresh(updated); len(got) != 1 || got[0].JxbId != "good" || got[0].ScoreVersion != 2 {
+				t.Fatal("normal notifications did not resume", got)
 			}
 		})
 	}

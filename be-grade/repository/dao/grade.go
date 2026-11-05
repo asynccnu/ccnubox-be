@@ -28,6 +28,7 @@ type GradeSnapshot struct {
 	SourceSystem          string
 	Grades                []model.Grade
 	Unscored              []model.Grade // 只表示课程仍在上游，不能写入成绩或通知
+	Invalid               []model.Grade // 学期等元数据异常，单独隔离，不参与旧身份确认
 	Complete              bool
 	ObservedAt            time.Time
 	SuppressNotifications bool
@@ -37,7 +38,7 @@ type GradeSnapshot struct {
 type GradeSyncResult struct {
 	Changed []model.Grade
 	Notify  []model.Grade
-	Skipped []model.Grade // 身份不明的课程单独保留待核验，不阻断其他课程
+	Skipped []model.Grade // 身份或元数据异常的课程单独保留待核验，不阻断其他课程
 }
 
 type gradeKey struct {
@@ -79,7 +80,9 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 	if snapshot.ObservedAt.Unix() <= 0 || strings.TrimSpace(snapshot.StudentID) == "" || snapshot.SourceSystem == "" {
 		return GradeSyncResult{}, errorx.New("dao: invalid grade snapshot")
 	}
-	for _, batch := range [][]model.Grade{snapshot.Grades, snapshot.Unscored} {
+	// 分页完整不代表转换后的成绩完整，异常课程恢复前不能建立首次通知基线。
+	snapshot.Complete = snapshot.Complete && len(snapshot.Invalid) == 0
+	for _, batch := range [][]model.Grade{snapshot.Grades, snapshot.Unscored, snapshot.Invalid} {
 		for _, grade := range batch {
 			if grade.StudentId != snapshot.StudentID {
 				return GradeSyncResult{}, errorx.New("dao: snapshot student mismatch")
@@ -93,6 +96,7 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 	var result GradeSyncResult
 	err = d.gradeTransaction(ctx, func(tx *gorm.DB) error {
 		result = GradeSyncResult{Skipped: append([]model.Grade(nil), skipped...)}
+		result.Skipped = append(result.Skipped, snapshot.Invalid...)
 		state, created, err := lockGradeSyncState(tx, snapshot.StudentID)
 		if err != nil {
 			return err
@@ -120,7 +124,7 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 		for _, alias := range aliases {
 			byAlias[alias.AliasValue] = alias.NotificationID
 		}
-		unmatchedLegacy := hasUnconfirmedLegacyGrade(existing, grades, skipped, snapshot.Unscored, byAlias)
+		unmatchedLegacy := unconfirmedLegacyGrades(existing, grades, skipped, snapshot.Unscored, byAlias)
 		seen := map[string]bool{}
 		for _, grade := range grades {
 			old, exists := byClass[grade.JxbId]
@@ -143,8 +147,8 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 				result.Skipped = append(result.Skipped, grade)
 				continue
 			}
-			if !exists && !confirmed && unmatchedLegacy {
-				// 不能把未对应的旧伪 ID 重建成新课；仅隔离这门课，已确认课程继续同步。
+			if !exists && !confirmed && couldMatchLegacyGrade(grade, unmatchedLegacy) {
+				// 只隔离可能对应旧伪 ID 的课程，不能阻断其他学期的新课。
 				result.Skipped = append(result.Skipped, grade)
 				continue
 			}
@@ -216,7 +220,7 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 			}
 		}
 		if len(result.Skipped) > 0 {
-			if err := saveGradeSyncIssue(tx, snapshot, ErrGradeIdentity); err != nil {
+			if err := saveGradeSyncIssue(tx, snapshot, errorx.New("grade identity or metadata requires verification")); err != nil {
 				return err
 			}
 		}
@@ -244,7 +248,7 @@ func lockGradeSyncState(tx *gorm.DB, studentID string) (model.GradeSyncState, bo
 	return state, true, tx.Create(&state).Error
 }
 
-func hasUnconfirmedLegacyGrade(existing []storedGrade, grades, skipped, unscored []model.Grade, aliases map[string]string) bool {
+func unconfirmedLegacyGrades(existing []storedGrade, grades, skipped, unscored []model.Grade, aliases map[string]string) []model.Grade {
 	present := map[string]bool{}
 	matched := map[string]bool{}
 	// 冲突或暂未发布成绩的旧课仍在快照中，不能因单独跳过它而阻断其他新课。
@@ -260,6 +264,7 @@ func hasUnconfirmedLegacyGrade(existing []storedGrade, grades, skipped, unscored
 			}
 		}
 	}
+	var unmatched []model.Grade
 	for _, old := range existing {
 		if !isPseudoGradeID(old.Grade) || present[old.JxbId] {
 			continue
@@ -267,6 +272,23 @@ func hasUnconfirmedLegacyGrade(existing []storedGrade, grades, skipped, unscored
 		if id := old.NotificationIdentity(); old.NotificationID != nil && old.ValidNotificationState() && (matched[id] || aliases[old.JxbId] == id) {
 			continue
 		}
+		unmatched = append(unmatched, old.Grade)
+	}
+	return unmatched
+}
+
+func couldMatchLegacyGrade(grade model.Grade, legacy []model.Grade) bool {
+	for _, old := range legacy {
+		if grade.KcId != "" && grade.KcId == old.KcId {
+			return true
+		}
+		if grade.Xnm > 0 && old.Xnm > 0 && grade.Xnm != old.Xnm {
+			continue
+		}
+		if grade.Xqm >= 1 && grade.Xqm <= 3 && old.Xqm >= 1 && old.Xqm <= 3 && grade.Xqm != old.Xqm {
+			continue
+		}
+		// 学期只用于缩小隔离范围，不确认身份；同学期改名或学期缺失时仍需核验。
 		return true
 	}
 	return false

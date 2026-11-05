@@ -13,6 +13,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	feedv1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/feed/v1"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
+	"github.com/asynccnu/ccnubox-be/common/pkg/testx"
 	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -233,13 +234,25 @@ func TestLegacyOfficialBroadcastSkipsGraduatedAndMalformedIDs(t *testing.T) {
 	}
 }
 
-func TestGetFeedEventsHidesHistoryAndLegacyFailuresUntilEnabled(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
+func newFeedServiceTestDB(t *testing.T, config *gorm.Config) *gorm.DB {
+	t.Helper()
+	if db := testx.MySQL(t); db != nil {
+		if config.Logger != nil {
+			db = db.Session(&gorm.Session{Logger: config.Logger})
+		}
+		return db
+	}
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())), config)
 	if err != nil {
 		t.Fatal(err)
 	}
 	sqlDB, _ := db.DB()
-	defer sqlDB.Close()
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	return db
+}
+
+func TestGetFeedEventsHidesHistoryAndLegacyFailuresUntilEnabled(t *testing.T) {
+	db := newFeedServiceTestDB(t, &gorm.Config{})
 	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedFailEvent{}, &model.FeedUserConfig{}, &model.FeedPushDelivery{}); err != nil {
 		t.Fatal(err)
 	}
@@ -323,12 +336,7 @@ func (d *failEventsAfterReadDAO) GetFeedFailEventsByStudentId(ctx context.Contex
 }
 
 func TestGetFeedEventsOnlyConsumesReadFailures(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, _ := db.DB()
-	defer sqlDB.Close()
+	db := newFeedServiceTestDB(t, &gorm.Config{})
 	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedFailEvent{}, &model.FeedUserConfig{}, &model.FeedPushDelivery{}); err != nil {
 		t.Fatal(err)
 	}
@@ -394,12 +402,7 @@ func TestAllowListReadRespectsZeroPartialAndSoftDeletedConfig(t *testing.T) {
 		{name: "zero"}, {name: "partial", bits: 48}, {name: "deleted", bits: model.DefaultPushConfig, deleted: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
-			if err != nil {
-				t.Fatal(err)
-			}
-			sqlDB, _ := db.DB()
-			defer sqlDB.Close()
+			db := newFeedServiceTestDB(t, &gorm.Config{})
 			if err := db.AutoMigrate(&model.FeedUserConfig{}); err != nil {
 				t.Fatal(err)
 			}

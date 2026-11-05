@@ -14,16 +14,14 @@ import (
 	"time"
 
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
+	"github.com/asynccnu/ccnubox-be/common/pkg/testx"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func TestGetPushFeedEventTreatsSoftDeletedEventAsNotFound(t *testing.T) {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
+	db := newFeedTestDB(t)
+	var err error
 	if err = db.AutoMigrate(&model.FeedEvent{}); err != nil {
 		t.Fatalf("migrate feed event: %v", err)
 	}
@@ -55,11 +53,8 @@ func TestPushDeliveryPriority(t *testing.T) {
 }
 
 func TestPushDeliveryListDuePrioritizesTimeSensitiveRows(t *testing.T) {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
+	db := newFeedTestDB(t)
+	var err error
 	if err = db.AutoMigrate(&model.FeedPushDelivery{}); err != nil {
 		t.Fatalf("migrate push delivery: %v", err)
 	}
@@ -89,11 +84,8 @@ func TestPushDeliveryListDuePrioritizesTimeSensitiveRows(t *testing.T) {
 }
 
 func TestPushDeliveryRecoversSendingOnlyAtStartup(t *testing.T) {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
+	db := newFeedTestDB(t)
+	var err error
 	if err = db.AutoMigrate(&model.FeedPushDelivery{}); err != nil {
 		t.Fatalf("migrate push delivery: %v", err)
 	}
@@ -149,10 +141,8 @@ func TestPushDeliveryRecoversSendingOnlyAtStartup(t *testing.T) {
 }
 
 func TestTeamSuccessStoredWithPushDelivery(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := newFeedTestDB(t)
+	var err error
 	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedUserConfig{}, &model.FeedPushDelivery{}); err != nil {
 		t.Fatal(err)
 	}
@@ -181,12 +171,8 @@ func TestTeamSuccessStoredWithPushDelivery(t *testing.T) {
 }
 
 func TestInvitationStoreIsAtomicAndDeduplicated(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, _ := db.DB()
-	defer sqlDB.Close()
+	db := newFeedTestDB(t)
+	var err error
 	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedPushDelivery{}, &model.FeedUserConfig{}); err != nil {
 		t.Fatal(err)
 	}
@@ -217,11 +203,8 @@ func TestInvitationStoreIsAtomicAndDeduplicated(t *testing.T) {
 }
 
 func TestPushTargetReadOnlyAndBounded(t *testing.T) {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := newFeedTestDB(t)
+	var err error
 	if err = db.AutoMigrate(&model.FeedUserConfig{}, &model.FeedUserToken{}); err != nil {
 		t.Fatal(err)
 	}
@@ -269,11 +252,8 @@ func TestPushTargetReadOnlyAndBounded(t *testing.T) {
 }
 
 func TestPushTargetsBatchReads(t *testing.T) {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := newFeedTestDB(t)
+	var err error
 	if err = db.AutoMigrate(&model.FeedUserConfig{}, &model.FeedUserToken{}); err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +337,22 @@ func TestPushTargetsBatchReads(t *testing.T) {
 	}
 }
 
-// 设置 MYSQL57_TEST_DSN 后使用独立临时数据库，禁止复用或清空已有业务库。
+// 普通测试默认用 SQLite；显式配置 CCNUBOX_TEST_MYSQL_DSN 后使用独立 MySQL 数据库。
+func newFeedTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	if db := testx.MySQL(t); db != nil {
+		return db
+	}
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqlDB, _ := db.DB()
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	return db
+}
+
+// MYSQL57_TEST_DSN 仍专用于 5.7 执行计划和锁测试，不能用 MySQL 8 的通过代替 5.7 验收。
 func subscriptionTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	var db *gorm.DB
@@ -386,7 +381,7 @@ func subscriptionTestDB(t *testing.T) *gorm.DB {
 		cfg.DBName = name
 		db, err = gorm.Open(mysql.Open(cfg.FormatDSN()), &gorm.Config{})
 	} else {
-		db, err = gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())), &gorm.Config{})
+		db = newFeedTestDB(t)
 	}
 	if err != nil {
 		t.Fatal(err)

@@ -1,5 +1,10 @@
 package model
 
+import (
+	"strconv"
+	"strings"
+)
+
 // Grade 定义与数据库映射的结构体
 type Grade struct {
 	StudentId           string  `gorm:"column:student_id;type:varchar(100);not null;primaryKey"` // 学生号
@@ -21,6 +26,26 @@ type Grade struct {
 	NotificationID      *string `gorm:"type:varchar(32);uniqueIndex:uidx_grades_notification_id"` // 稳定身份，历史未激活时为 NULL
 	ScoreVersion        int64   `gorm:"not null;default:0"`                                       // 总成绩业务版本，0 表示未激活
 	ChangeVersion       int64   `gorm:"column:change_version;not null;default:1"`                 // 成绩变更版本
+}
+
+// LegacyJxbID 只用于兼容本地历史记录，不能据此认定通知身份。
+func (g Grade) LegacyJxbID() string {
+	return g.Kcmc + strconv.FormatInt(g.Xnm, 10) + strconv.FormatInt(g.Xqm, 10)
+}
+
+// LocalJxbID 保留旧查询使用的本地键；元数据不足时不构造伪键。
+func (g Grade) LocalJxbID() string {
+	if strings.TrimSpace(g.JxbId) != "" {
+		return g.JxbId
+	}
+	if strings.TrimSpace(g.Kcmc) == "" || g.Xnm <= 0 || g.Xqm < 1 || g.Xqm > 3 {
+		return ""
+	}
+	return g.LegacyJxbID()
+}
+
+func (g Grade) HasRealJxbID() bool {
+	return strings.TrimSpace(g.JxbId) != "" && g.JxbId != g.LegacyJxbID()
 }
 
 func (g Grade) NotificationIdentity() string {

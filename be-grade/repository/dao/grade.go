@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,17 +24,20 @@ type GradeDAO interface {
 }
 
 type GradeSnapshot struct {
-	StudentID    string
-	SourceSystem string
-	Grades       []model.Grade
-	Complete     bool
-	ObservedAt   time.Time
+	StudentID             string
+	SourceSystem          string
+	Grades                []model.Grade
+	Unscored              []model.Grade // 只表示课程仍在上游，不能写入成绩或通知
+	Complete              bool
+	ObservedAt            time.Time
+	SuppressNotifications bool
 }
 
 // Notify 仅供本轮变更反馈和同班提速，通知发布只能读取 Outbox。
 type GradeSyncResult struct {
 	Changed []model.Grade
 	Notify  []model.Grade
+	Skipped []model.Grade // 身份不明的课程单独保留待核验，不阻断其他课程
 }
 
 type gradeKey struct {
@@ -74,21 +76,23 @@ func (d *gradeDAO) FindGrades(ctx context.Context, studentID string, xnm, xqm in
 }
 
 func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (GradeSyncResult, error) {
-	if !snapshot.Complete || snapshot.ObservedAt.Unix() <= 0 || strings.TrimSpace(snapshot.StudentID) == "" || snapshot.SourceSystem == "" {
-		return GradeSyncResult{}, errorx.New("dao: incomplete or invalid grade snapshot")
+	if snapshot.ObservedAt.Unix() <= 0 || strings.TrimSpace(snapshot.StudentID) == "" || snapshot.SourceSystem == "" {
+		return GradeSyncResult{}, errorx.New("dao: invalid grade snapshot")
 	}
-	grades, err := prepareGradeBatch(snapshot.Grades)
+	for _, batch := range [][]model.Grade{snapshot.Grades, snapshot.Unscored} {
+		for _, grade := range batch {
+			if grade.StudentId != snapshot.StudentID {
+				return GradeSyncResult{}, errorx.New("dao: snapshot student mismatch")
+			}
+		}
+	}
+	grades, skipped, err := prepareGradeSnapshot(snapshot.Grades)
 	if err != nil {
 		return GradeSyncResult{}, d.gradeSyncError(ctx, snapshot, err)
 	}
-	for _, grade := range grades {
-		if grade.StudentId != snapshot.StudentID {
-			return GradeSyncResult{}, errorx.New("dao: snapshot student mismatch")
-		}
-	}
 	var result GradeSyncResult
 	err = d.gradeTransaction(ctx, func(tx *gorm.DB) error {
-		result = GradeSyncResult{}
+		result = GradeSyncResult{Skipped: append([]model.Grade(nil), skipped...)}
 		state, created, err := lockGradeSyncState(tx, snapshot.StudentID)
 		if err != nil {
 			return err
@@ -99,7 +103,8 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 			return err
 		}
 		// 只在本事务新建状态时继承旧基线，不能把首次导入后留下的未初始化状态误认成老用户。
-		notifyEnabled := state.InitializedAt != 0 || (created && len(existing) > 0)
+		inheritedBaseline := created && len(existing) > 0
+		notifyEnabled := !snapshot.SuppressNotifications && (state.InitializedAt != 0 || inheritedBaseline)
 		byClass, byIdentity := map[string]storedGrade{}, map[string]storedGrade{}
 		for _, grade := range existing {
 			byClass[grade.JxbId] = grade
@@ -115,7 +120,7 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 		for _, alias := range aliases {
 			byAlias[alias.AliasValue] = alias.NotificationID
 		}
-		unmatchedLegacy := hasUnconfirmedLegacyGrade(existing, grades, byAlias)
+		unmatchedLegacy := hasUnconfirmedLegacyGrade(existing, grades, skipped, snapshot.Unscored, byAlias)
 		seen := map[string]bool{}
 		for _, grade := range grades {
 			old, exists := byClass[grade.JxbId]
@@ -132,15 +137,16 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 			}
 			scoreChanged := !exists || !old.HasTotalScore || old.Cj != grade.Cj
 			storageChanged := !exists || !old.HasTotalScore || old.JxbId != grade.JxbId || !isGradeEqual(old.Grade, grade)
-			if !confirmed && isPseudoGradeID(grade) && (!exists || scoreChanged || old.JxbId != grade.JxbId) {
-				return ErrGradeIdentity
-			}
-			if !confirmed && exists && isPseudoGradeID(old.Grade) && (old.Kcmc != grade.Kcmc || old.Xnm != grade.Xnm || old.Xqm != grade.Xqm) {
-				return ErrGradeIdentity
+			trackScore := confirmed || !isPseudoGradeID(grade)
+			if !confirmed && exists && isPseudoGradeID(old.Grade) &&
+				(old.NotificationID != nil || old.Kcmc != grade.Kcmc || old.Xnm != grade.Xnm || old.Xqm != grade.Xqm) {
+				result.Skipped = append(result.Skipped, grade)
+				continue
 			}
 			if !exists && !confirmed && unmatchedLegacy {
-				// 未对应的旧伪 ID 可能就是新标识的前身，即使改名也不能直接当作新课。
-				return ErrGradeIdentity
+				// 不能把未对应的旧伪 ID 重建成新课；仅隔离这门课，已确认课程继续同步。
+				result.Skipped = append(result.Skipped, grade)
+				continue
 			}
 			reason := "first_published"
 			if exists {
@@ -151,17 +157,17 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 				if storageChanged {
 					grade.ChangeVersion++
 				}
-				if scoreChanged {
+				if scoreChanged && trackScore {
 					grade.ScoreVersion++
 					if old.HasTotalScore {
 						reason = "score_changed"
 					}
 				}
 			} else {
-				grade.ChangeVersion, grade.ScoreVersion = 1, 1
+				grade.ChangeVersion, grade.ScoreVersion = 1, 0
 				grade.NotificationID = nil
 			}
-			if (!exists || scoreChanged) && grade.NotificationID == nil {
+			if trackScore && (!exists || scoreChanged) && grade.NotificationID == nil {
 				id, err := model.NewNotificationID()
 				if err != nil {
 					return err
@@ -190,13 +196,15 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 				result.Changed = append(result.Changed, grade)
 			}
 			if grade.NotificationID != nil && !confirmed && storageChanged && !isPseudoGradeID(grade) {
-				alias := model.GradeIdentityAlias{StudentID: snapshot.StudentID, SourceSystem: snapshot.SourceSystem,
-					AliasKind: "jxb_id", AliasValue: grade.JxbId, NotificationID: grade.NotificationIdentity()}
+				alias := model.GradeIdentityAlias{
+					StudentID: snapshot.StudentID, SourceSystem: snapshot.SourceSystem,
+					AliasKind: "jxb_id", AliasValue: grade.JxbId, NotificationID: grade.NotificationIdentity(),
+				}
 				if err := tx.Create(&alias).Error; err != nil {
 					return err
 				}
 			}
-			if notifyEnabled && scoreChanged {
+			if notifyEnabled && trackScore && scoreChanged {
 				event, err := domain.NewGradeNotification(grade, reason, snapshot.ObservedAt.Unix())
 				if err != nil {
 					return err
@@ -207,7 +215,13 @@ func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (Grad
 				result.Notify = append(result.Notify, grade)
 			}
 		}
-		if state.InitializedAt == 0 {
+		if len(result.Skipped) > 0 {
+			if err := saveGradeSyncIssue(tx, snapshot, ErrGradeIdentity); err != nil {
+				return err
+			}
+		}
+		// 部分导入先留下未初始化状态，后续完整同步不能把它误认成历史基线。
+		if !snapshot.SuppressNotifications && state.InitializedAt == 0 && (inheritedBaseline || snapshot.Complete) {
 			state.InitializedAt = snapshot.ObservedAt.Unix()
 		}
 		state.LastSuccessAt = snapshot.ObservedAt.Unix()
@@ -230,13 +244,20 @@ func lockGradeSyncState(tx *gorm.DB, studentID string) (model.GradeSyncState, bo
 	return state, true, tx.Create(&state).Error
 }
 
-func hasUnconfirmedLegacyGrade(existing []storedGrade, grades []model.Grade, aliases map[string]string) bool {
+func hasUnconfirmedLegacyGrade(existing []storedGrade, grades, skipped, unscored []model.Grade, aliases map[string]string) bool {
 	present := map[string]bool{}
 	matched := map[string]bool{}
-	for _, grade := range grades {
-		present[grade.JxbId] = true
-		if id, ok := aliases[grade.JxbId]; ok {
-			matched[id] = true
+	// 冲突或暂未发布成绩的旧课仍在快照中，不能因单独跳过它而阻断其他新课。
+	for _, batch := range [][]model.Grade{grades, skipped, unscored} {
+		for _, grade := range batch {
+			key := grade.LocalJxbID()
+			if key == "" {
+				continue
+			}
+			present[key] = true
+			if id, ok := aliases[key]; ok {
+				matched[id] = true
+			}
 		}
 	}
 	for _, old := range existing {
@@ -255,16 +276,20 @@ func (d *gradeDAO) gradeSyncError(ctx context.Context, snapshot GradeSnapshot, e
 	if !errors.Is(err, ErrGradeIdentity) {
 		return err
 	}
-	// 原始快照只包含结构化成绩，不含 Cookie、Token 或教务原始响应。
-	payload, marshalErr := json.Marshal(snapshot)
-	if marshalErr != nil {
-		return errors.Join(err, marshalErr)
-	}
-	issue := model.GradeSyncIssue{StudentID: snapshot.StudentID, Payload: string(payload), LastError: err.Error()}
-	if saveErr := d.db.WithContext(ctx).Clauses(clause.OnConflict{UpdateAll: true}).Create(&issue).Error; saveErr != nil {
+	if saveErr := saveGradeSyncIssue(d.db.WithContext(ctx), snapshot, err); saveErr != nil {
 		return errors.Join(err, saveErr)
 	}
 	return err
+}
+
+func saveGradeSyncIssue(db *gorm.DB, snapshot GradeSnapshot, cause error) error {
+	// 原始快照只包含结构化成绩，不含 Cookie、Token 或教务原始响应。
+	payload, err := json.Marshal(snapshot)
+	if err != nil {
+		return err
+	}
+	issue := model.GradeSyncIssue{StudentID: snapshot.StudentID, Payload: string(payload), LastError: cause.Error()}
+	return db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&issue).Error
 }
 
 func (d *gradeDAO) UpdateGradeDetails(ctx context.Context, grades []model.Grade) error {
@@ -316,6 +341,41 @@ func (d *gradeDAO) gradeTransaction(ctx context.Context, fn func(*gorm.DB) error
 	return err
 }
 
+// 空教学班沿用旧本地键，但不赋予通知身份；同名同学期的冲突记录必须整组隔离。
+func prepareGradeSnapshot(grades []model.Grade) ([]model.Grade, []model.Grade, error) {
+	normalized := make([]model.Grade, 0, len(grades))
+	var skipped []model.Grade
+	seen := map[gradeKey]model.Grade{}
+	ambiguous := map[gradeKey]bool{}
+	for _, grade := range grades {
+		if strings.TrimSpace(grade.StudentId) == "" || math.IsNaN(float64(grade.Cj)) || math.IsInf(float64(grade.Cj), 0) {
+			return nil, nil, errorx.New("dao: invalid grade student or total score")
+		}
+		grade.JxbId = grade.LocalJxbID()
+		if grade.JxbId == "" {
+			skipped = append(skipped, grade)
+			continue
+		}
+		key := gradeKey{StudentID: grade.StudentId, JxbID: grade.JxbId}
+		if previous, ok := seen[key]; ok && isPseudoGradeID(grade) &&
+			(!isGradeEqual(previous, grade) || !gradeDetailsEqual(previous, grade) || previous.ChangeVersion != grade.ChangeVersion) {
+			ambiguous[key] = true
+		}
+		seen[key] = grade
+		normalized = append(normalized, grade)
+	}
+	candidates := make([]model.Grade, 0, len(normalized))
+	for _, grade := range normalized {
+		if ambiguous[gradeKey{StudentID: grade.StudentId, JxbID: grade.JxbId}] {
+			skipped = append(skipped, grade)
+			continue
+		}
+		candidates = append(candidates, grade)
+	}
+	prepared, err := prepareGradeBatch(candidates)
+	return prepared, skipped, err
+}
+
 func prepareGradeBatch(grades []model.Grade) ([]model.Grade, error) {
 	result := make([]model.Grade, 0, len(grades))
 	seen := map[gradeKey]model.Grade{}
@@ -362,7 +422,7 @@ func gradeUpdateColumns(detail bool) []string {
 }
 
 func isPseudoGradeID(g model.Grade) bool {
-	return strings.TrimSpace(g.JxbId) == "" || g.JxbId == g.Kcmc+strconv.FormatInt(g.Xnm, 10)+strconv.FormatInt(g.Xqm, 10)
+	return !g.HasRealJxbID()
 }
 
 func gradeDetailsEqual(a, b model.Grade) bool {

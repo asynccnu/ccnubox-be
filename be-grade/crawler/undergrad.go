@@ -69,6 +69,29 @@ type Grade struct {
 	RowNum   int     `json:"rownum_"`
 }
 
+func (g *Grade) UnmarshalJSON(data []byte) error {
+	type rawGrade Grade
+	var raw struct {
+		rawGrade
+		Score json.RawMessage `json:"zcj"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	score, err := ParseTotalScore(string(raw.Score))
+	if err != nil {
+		return err
+	}
+	if raw.ZCJStr != "" {
+		if _, err := ParseTotalScore(raw.ZCJStr); err != nil {
+			return err
+		}
+	}
+	*g = Grade(raw.rawGrade)
+	g.ZCJ = score
+	return nil
+}
+
 // GetGrade 获取本科生成绩列表
 func (c *UnderGrad) GetGrade(ctx context.Context, xnm, xqm int64, showCount int) ([]Grade, error) {
 	var kksj string
@@ -116,10 +139,10 @@ func (c *UnderGrad) GetGrade(ctx context.Context, xnm, xqm int64, showCount int)
 func parseGradeResponse(body []byte) ([]Grade, error) {
 	var gradeResp GradeResponse
 	if err := json.Unmarshal(body, &gradeResp); err != nil {
-		return nil, errorx.Errorf("crawler: unmarshal undergrad grade failed, body_sample: %.100s, err: %w", string(body), err)
+		return nil, errorx.New("crawler: unmarshal undergrad grade failed")
 	}
 	if gradeResp.Code != 0 {
-		return nil, errorx.Errorf("crawler: undergrad system returned error, code: %d, msg: %s", gradeResp.Code, gradeResp.Msg)
+		return nil, errorx.Errorf("crawler: undergrad system returned error, code: %d", gradeResp.Code)
 	}
 	if gradeResp.Data == nil {
 		return nil, errorx.New("crawler: undergrad system returned null grade data")

@@ -94,8 +94,8 @@ func TestGetDetailDistinguishesContentAndDependencyFailures(t *testing.T) {
 	}
 }
 
-func TestParseGradeResponsePreservesExistingScoreDecoding(t *testing.T) {
-	// 沿用数值字段的 JSON 解码行为，不额外校验展示文本或推测等级制映射。
+func TestParseGradeResponseRejectsMissingOrAmbiguousScores(t *testing.T) {
+	// 缺失、null 和文本状态不能当作有效零分；不推测等级制映射。
 	for _, tc := range []struct {
 		name string
 		item string
@@ -104,11 +104,11 @@ func TestParseGradeResponsePreservesExistingScoreDecoding(t *testing.T) {
 	}{
 		{"zero", `{"zcj":0}`, 0, true},
 		{"fraction", `{"zcj":89.25,"zcjstr":"89.25"}`, 89.25, true},
-		{"missing", `{}`, 0, true},
-		{"null", `{"zcj":null}`, 0, true},
+		{"missing", `{}`, 0, false},
+		{"null", `{"zcj":null}`, 0, false},
 		{"text", `{"zcj":"优秀"}`, 0, false},
-		{"publication text", `{"zcj":0,"zcjstr":"缓考"}`, 0, true},
-		{"grade scale text", `{"zcj":90,"zcjstr":"优秀"}`, 90, true},
+		{"publication text", `{"zcj":0,"zcjstr":"缓考"}`, 0, false},
+		{"grade scale text", `{"zcj":90,"zcjstr":"优秀"}`, 90, false},
 		{"different display", `{"zcj":89.25,"zcjstr":"89"}`, 89.25, true},
 		{"float32 overflow", `{"zcj":1e40}`, 0, false},
 		{"object", `{"zcj":{}}`, 0, false},
@@ -123,12 +123,12 @@ func TestParseGradeResponsePreservesExistingScoreDecoding(t *testing.T) {
 			}
 		})
 	}
-	if grades, err := parseGradeResponse([]byte(`{"code":0,"data":[{"zcj":80},{}]}`)); err != nil || len(grades) != 2 || grades[0].ZCJ != 80 || grades[1].ZCJ != 0 {
-		t.Fatalf("existing missing-score behavior changed: grades=%+v err=%v", grades, err)
+	if grades, err := parseGradeResponse([]byte(`{"code":0,"data":[{"zcj":80},{}]}`)); err == nil || len(grades) != 0 {
+		t.Fatalf("partial invalid snapshot accepted: grades=%+v err=%v", grades, err)
 	}
 }
 
-func TestParseGraduateResponsePreservesExistingScoreDecoding(t *testing.T) {
+func TestParseGraduateResponseRejectsInvalidSnapshots(t *testing.T) {
 	for _, tc := range []struct {
 		body      string
 		wantCount int
@@ -137,11 +137,12 @@ func TestParseGraduateResponsePreservesExistingScoreDecoding(t *testing.T) {
 		{`{"items":[{"cj":"0"}]}`, 1, true},
 		{`{"items":[{"cj":"89.25"}]}`, 1, true},
 		{`{"items":[]}`, 0, true},
-		{`{"items":null}`, 0, true},
-		{`{}`, 0, true},
-		{`{"items":[{}]}`, 1, true},
-		{`{"items":[{"cj":"优秀"}]}`, 1, true},
-		{`{"items":[{"cj":"80"},{"cj":"未发布"}]}`, 2, true},
+		{`{"items":null}`, 0, false},
+		{`{}`, 0, false},
+		{`{"items":[{}]}`, 0, false},
+		{`{"items":[{"cj":"优秀"}]}`, 0, false},
+		{`{"items":[{"cj":"NaN"}]}`, 0, false},
+		{`{"items":[{"cj":"80"},{"cj":"未发布"}]}`, 0, false},
 		{`{"items":[{"cj":80}]}`, 0, false},
 		{`<html>login</html>`, 0, false},
 	} {

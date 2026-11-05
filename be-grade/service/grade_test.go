@@ -349,24 +349,15 @@ func TestInvalidNumericTotalScoreNeverReachesGradeDAO(t *testing.T) {
 	}
 }
 
-func TestGradeRefreshPreservesExistingScoreDecoding(t *testing.T) {
-	for _, tc := range []struct {
-		fields string
-		want   float32
-	}{
-		{"", 0},
-		{`,"zcj":null`, 0},
-		{`,"zcj":0,"zcjstr":"缓考"`, 0},
-		{`,"zcj":90,"zcjstr":"优秀"`, 90},
-		{`,"zcj":89.25,"zcjstr":"89"`, 89.25},
-	} {
+func TestGradeRefreshRejectsMissingOrAmbiguousScores(t *testing.T) {
+	for _, fields := range []string{"", `,"zcj":null`, `,"zcj":0,"zcjstr":"缓考"`, `,"zcj":90,"zcjstr":"优秀"`} {
 		d := &gradeSyncDAO{}
 		s := &gradeService{
 			gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop()), userClient: gradeCookieClient{},
-			proxyClient: gradeProxyClient{body: `{"code":0,"data":[{"xs0101id":"2023212345","jx0404id":"class"` + tc.fields + `}]}`},
+			proxyClient: gradeProxyClient{body: `{"code":0,"data":[{"xs0101id":"2023212345","jx0404id":"class"` + fields + `}]}`},
 		}
-		if _, err := s.GetUpdateScore(context.Background(), "2023212345"); err != nil || d.syncCalls != 1 || len(d.synced) != 1 || d.synced[0].Cj != tc.want {
-			t.Fatalf("fields=%s err=%v sync calls=%d grades=%+v", tc.fields, err, d.syncCalls, d.synced)
+		if _, err := s.GetUpdateScore(context.Background(), "2023212345"); err == nil || d.syncCalls != 0 {
+			t.Fatalf("fields=%s err=%v sync calls=%d", fields, err, d.syncCalls)
 		}
 	}
 }

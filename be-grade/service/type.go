@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"strconv"
@@ -40,6 +41,7 @@ func modelConvDomain(grades []model.Grade) []domain.Grade {
 			FinalGradePercent:   grade.FinalGradePercent,   // 期末成绩占比
 			FinalGrade:          grade.FinalGrade,          // 期末成绩
 			ChangeVersion:       grade.ChangeVersion,       // 成绩变更版本
+			ScoreVersion:        grade.ScoreVersion,        // 总成绩业务版本
 		}
 
 		// 将转换后的 domainGrade 加入切片
@@ -174,16 +176,19 @@ func aggregateGradeScore(grades []model.Grade) []domain.TypeOfGradeScore {
 	return result
 }
 
-func aggregateGrade(grades []crawler.Grade, details map[string]crawler.Score) []model.Grade {
+func aggregateGrade(grades []crawler.Grade, details map[string]crawler.Score) ([]model.Grade, error) {
 	var result = make([]model.Grade, len(grades))
 	for i, grade := range grades {
 		// 解析学年和学期
-		var xnm int
-		var xqm int
 		parts := strings.Split(grade.XQMC, "-")
-		if len(parts) == 3 {
-			xnm, _ = strconv.Atoi(parts[0])
-			xqm, _ = strconv.Atoi(parts[2])
+		if len(parts) != 3 {
+			return nil, fmt.Errorf("invalid undergraduate grade term")
+		}
+		xnm, yearErr := strconv.ParseInt(parts[0], 10, 64)
+		nextYear, nextErr := strconv.ParseInt(parts[1], 10, 64)
+		xqm, termErr := strconv.ParseInt(parts[2], 10, 64)
+		if yearErr != nil || nextErr != nil || termErr != nil || xnm <= 0 || nextYear != xnm+1 || xqm < 1 || xqm > 3 {
+			return nil, fmt.Errorf("invalid undergraduate grade term")
 		}
 
 		// 计算绩点
@@ -203,8 +208,8 @@ func aggregateGrade(grades []crawler.Grade, details map[string]crawler.Score) []
 			KcId:                grade.CJ0708ID,
 			JxbId:               grade.JX0404ID,
 			Kcmc:                grade.KCMC,
-			Xnm:                 int64(xnm),
-			Xqm:                 int64(xqm),
+			Xnm:                 xnm,
+			Xqm:                 xqm,
 			Xf:                  grade.XF,
 			Kcxzmc:              grade.KCXZMC,
 			Kclbmc:              grade.KCSX,
@@ -217,7 +222,7 @@ func aggregateGrade(grades []crawler.Grade, details map[string]crawler.Score) []
 			Cj:                  grade.ZCJ,
 		}
 	}
-	return result
+	return result, nil
 }
 
 // 根据成绩计算绩点
@@ -238,9 +243,17 @@ type FetchGrades struct {
 	final  []model.Grade
 }
 
-func ConvertGraduateGrade(graduateGrade []crawler.GraduatePoints) []model.Grade {
+func ConvertGraduateGrade(graduateGrade []crawler.GraduatePoints) ([]model.Grade, error) {
 	var grades []model.Grade
 	for _, p := range graduateGrade {
+		score, err := crawler.ParseTotalScore(p.Cj)
+		if err != nil {
+			return nil, err
+		}
+		xnm, err := strconv.ParseInt(p.Xnm, 10, 64)
+		if err != nil || xnm <= 0 {
+			return nil, fmt.Errorf("invalid graduate grade year")
+		}
 		var xqm int64
 		switch p.Xqm {
 		case "3":
@@ -249,30 +262,24 @@ func ConvertGraduateGrade(graduateGrade []crawler.GraduatePoints) []model.Grade 
 			xqm = 2
 		case "16":
 			xqm = 3
+		default:
+			return nil, fmt.Errorf("invalid graduate grade term")
 		}
 		grades = append(grades, model.Grade{
 			StudentId: p.Xh,
 			JxbId:     p.JxbID,
 			Kcmc:      p.Kcmc,
-			Xnm:       parseInt64(p.Xnm),
+			Xnm:       xnm,
 			Xqm:       xqm,
 			Xf:        parseFloat32(p.Xf),
 			Kcxzmc:    p.Kclbmc,
 			Kclbmc:    p.Kcxzmc,
 			Kcbj:      p.Kcbj,
 			Jd:        parseFloat32(p.Jd),
-			Cj:        parseFloat32(p.Cj),
+			Cj:        score,
 		})
 	}
-	return grades
-}
-
-// parseInt64 辅助函数，将字符串转换为 int64
-func parseInt64(value string) int64 {
-	if i, err := strconv.Atoi(value); err == nil {
-		return int64(i)
-	}
-	return 0
+	return grades, nil
 }
 
 // parseFloat32 辅助函数，将字符串转换为 float32

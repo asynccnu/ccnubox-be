@@ -32,6 +32,12 @@ gradeConf:
   middle: 30    # 中优先级刷新间隔(分钟)
   low: 60       # 低优先级刷新间隔(分钟)
 
+notificationConf:
+  snapshotVerified: false # 核验本科/研究生真实分页总数、跨学期参数及成绩状态后才能开启
+  pollSeconds: 5  # 持久化成绩通知轮询间隔
+  batchSize: 50   # 每批发布上限
+  rpcSeconds: 3   # 单次 Feed RPC 和数据库操作超时
+
 consumeConf:
   consumeTime: 1   # 强制插入的时间(分钟)
   consumeNum: 100  # 批量存入条数上限

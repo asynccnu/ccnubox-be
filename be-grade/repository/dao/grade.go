@@ -2,12 +2,14 @@ package dao
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/errorx"
 	"github.com/go-sql-driver/mysql"
@@ -15,15 +17,22 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// GradeDAO 数据库操作的集合
 type GradeDAO interface {
-	FirstOrCreate(ctx context.Context, grade *model.Grade) error
-	FindGrades(ctx context.Context, studentId string, Xnm int64, Xqm int64) ([]model.Grade, error)
-	BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) (GradeSyncResult, error)
-	GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error)
+	FindGrades(ctx context.Context, studentID string, xnm, xqm int64) ([]model.Grade, error)
+	SyncGrades(ctx context.Context, snapshot GradeSnapshot) (GradeSyncResult, error)
+	UpdateGradeDetails(ctx context.Context, grades []model.Grade) error
+	GetDistinctGradeType(ctx context.Context, studentID string) ([]string, error)
 }
 
-// GradeSyncResult 将实际写入与总成绩通知候选分开，详情和元数据变化不触发通知。
+type GradeSnapshot struct {
+	StudentID    string
+	SourceSystem string
+	Grades       []model.Grade
+	Complete     bool
+	ObservedAt   time.Time
+}
+
+// Notify 仅供本轮变更反馈和同班提速，通知发布只能读取 Outbox。
 type GradeSyncResult struct {
 	Changed []model.Grade
 	Notify  []model.Grade
@@ -34,171 +43,296 @@ type gradeKey struct {
 	JxbID     string
 }
 
-type gradeDAO struct {
-	db *gorm.DB
+// 单独保留旧总分的 NULL 信息，不能把历史缺失成绩读成有效零分。
+type storedGrade struct {
+	model.Grade
+	HasTotalScore bool
 }
 
-// NewGradeDAO 构建数据库操作实例
-func NewGradeDAO(db *gorm.DB) GradeDAO {
-	return &gradeDAO{db: db}
-}
+type gradeDAO struct{ db *gorm.DB }
 
-// FirstOrCreate 会自动查找是否存在记录,如果不存在则会存储
-func (d *gradeDAO) FirstOrCreate(ctx context.Context, grade *model.Grade) error {
-	err := d.db.WithContext(ctx).
-		Where("student_id = ? AND jxb_id = ?", grade.StudentId, grade.JxbId).
-		FirstOrCreate(grade).Error
-	if err != nil {
-		return errorx.Errorf("dao: FirstOrCreate failed, sid: %s, jxb: %s, err: %w", grade.StudentId, grade.JxbId, err)
-	}
-	return nil
-}
-
-// FindGrades 搜索成绩,xnm(学年名),xqm(学期名)条件为可选
-func (d *gradeDAO) FindGrades(ctx context.Context, studentId string, Xnm int64, Xqm int64) ([]model.Grade, error) {
-	var grades []model.Grade
-
-	query := d.db.WithContext(ctx).Model(&model.Grade{}).Where("student_id = ?", studentId)
-	if Xnm != 0 {
-		query = query.Where("xnm = ?", Xnm)
-	}
-	if Xqm != 0 {
-		query = query.Where("xqm = ?", Xqm)
-	}
-
-	err := query.Find(&grades).Error
-	if err != nil {
-		return nil, errorx.Errorf("dao: FindGrades failed, sid: %s, xnm: %d, xqm: %d, err: %w", studentId, Xnm, Xqm, err)
-	}
-
-	return grades, nil
-}
+func NewGradeDAO(db *gorm.DB) GradeDAO { return &gradeDAO{db: db} }
 
 const maxGradeTransactionAttempts = 5
 
-// ErrGradeVersionChanged 让消费端重新读取当前版本后再抓取详情。
-var ErrGradeVersionChanged = errors.New("grade changed while fetching details")
+var (
+	ErrGradeVersionChanged = errors.New("grade changed while fetching details")
+	ErrGradeIdentity       = errors.New("grade identity requires verification")
+)
 
-// BatchInsertOrUpdate 批量处理成绩同步逻辑
-func (d *gradeDAO) BatchInsertOrUpdate(ctx context.Context, grades []model.Grade, ifDetail bool) (GradeSyncResult, error) {
-	grades, err := prepareGradeBatch(grades, ifDetail)
-	if err != nil || len(grades) == 0 {
-		return GradeSyncResult{}, err
+func (d *gradeDAO) FindGrades(ctx context.Context, studentID string, xnm, xqm int64) ([]model.Grade, error) {
+	var grades []model.Grade
+	query := d.db.WithContext(ctx).Where("student_id = ?", studentID)
+	if xnm != 0 {
+		query = query.Where("xnm = ?", xnm)
 	}
-
-	values := make([][]interface{}, 0, len(grades))
-	for _, grade := range grades {
-		values = append(values, []interface{}{grade.StudentId, grade.JxbId})
+	if xqm != 0 {
+		query = query.Where("xqm = ?", xqm)
 	}
-
-	var result GradeSyncResult
-	for attempt := 1; attempt <= maxGradeTransactionAttempts; attempt++ {
-		// 事务失败时不能把上一轮未提交的结果带入重试。
-		result = GradeSyncResult{}
-		err = d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			// 行锁持有到事务提交，确保同一成绩的版本读取和递增不会交错。
-			var existingGrades []model.Grade
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				Where("(student_id, jxb_id) IN ?", values).
-				Find(&existingGrades).Error; err != nil {
-				return errorx.Errorf("find existing records failed: %w", err)
-			}
-
-			existingMap := make(map[gradeKey]model.Grade, len(existingGrades))
-			for _, grade := range existingGrades {
-				existingMap[gradeKey{StudentID: grade.StudentId, JxbID: grade.JxbId}] = grade
-			}
-
-			toInsert := make([]model.Grade, 0, len(grades))
-			toUpdate := make([]model.Grade, 0, len(grades))
-			for _, grade := range grades {
-				existing, exists := existingMap[gradeKey{StudentID: grade.StudentId, JxbID: grade.JxbId}]
-				if ifDetail {
-					// 详情任务不能重建已删除的成绩，也不能覆盖更新后的基础成绩。
-					if !exists || gradeDetailsEqual(existing, grade) {
-						continue
-					}
-					if existing.ChangeVersion != grade.ChangeVersion {
-						return ErrGradeVersionChanged
-					}
-					existing.RegularGradePercent = grade.RegularGradePercent
-					existing.RegularGrade = grade.RegularGrade
-					existing.FinalGradePercent = grade.FinalGradePercent
-					existing.FinalGrade = grade.FinalGrade
-					existing.ChangeVersion++
-					toUpdate = append(toUpdate, existing)
-					continue
-				}
-
-				storageChanged := !exists || !isGradeEqual(existing, grade, false)
-				scoreChanged := !exists || existing.Cj != grade.Cj
-				if !storageChanged {
-					continue
-				}
-				if !exists {
-					grade.ChangeVersion = 1
-					toInsert = append(toInsert, grade)
-				} else {
-					// 列表同步只更新基础字段，返回值也应保留已经补全的详情。
-					grade.RegularGradePercent = existing.RegularGradePercent
-					grade.RegularGrade = existing.RegularGrade
-					grade.FinalGradePercent = existing.FinalGradePercent
-					grade.FinalGrade = existing.FinalGrade
-					grade.ChangeVersion = existing.ChangeVersion + 1
-					toUpdate = append(toUpdate, grade)
-				}
-				if scoreChanged {
-					result.Notify = append(result.Notify, grade)
-				}
-			}
-
-			// 不对新增行执行覆盖式 upsert。并发插入冲突会回滚并重试，重新读取已提交行后再分配版本。
-			if len(toInsert) > 0 {
-				if err := tx.Create(&toInsert).Error; err != nil {
-					return errorx.Errorf("bulk insert failed, count: %d: %w", len(toInsert), err)
-				}
-			}
-			if len(toUpdate) > 0 {
-				if err := tx.Clauses(clause.OnConflict{
-					Columns:   []clause.Column{{Name: "student_id"}, {Name: "jxb_id"}},
-					DoUpdates: clause.AssignmentColumns(gradeUpdateColumns(ifDetail)),
-				}).Create(&toUpdate).Error; err != nil {
-					return errorx.Errorf("bulk upsert failed, count: %d: %w", len(toUpdate), err)
-				}
-			}
-
-			result.Changed = make([]model.Grade, 0, len(toInsert)+len(toUpdate))
-			result.Changed = append(result.Changed, toInsert...)
-			result.Changed = append(result.Changed, toUpdate...)
-			return nil
-		})
-		if err == nil {
-			return result, nil
-		}
-		if ctx.Err() != nil || !isRetryableGradeTransactionError(err) || attempt == maxGradeTransactionAttempts {
-			break
-		}
-		time.Sleep(time.Duration(attempt) * 10 * time.Millisecond)
-	}
-
-	return GradeSyncResult{}, errorx.Errorf("dao: BatchInsertOrUpdate transaction failed, count: %d, err: %w", len(grades), err)
+	err := query.Find(&grades).Error
+	return grades, err
 }
 
-func prepareGradeBatch(grades []model.Grade, ifDetail bool) ([]model.Grade, error) {
-	result := make([]model.Grade, 0, len(grades))
-	seen := make(map[gradeKey]model.Grade, len(grades))
+func (d *gradeDAO) SyncGrades(ctx context.Context, snapshot GradeSnapshot) (GradeSyncResult, error) {
+	if !snapshot.Complete || snapshot.ObservedAt.Unix() <= 0 || strings.TrimSpace(snapshot.StudentID) == "" || snapshot.SourceSystem == "" {
+		return GradeSyncResult{}, errorx.New("dao: incomplete or invalid grade snapshot")
+	}
+	grades, err := prepareGradeBatch(snapshot.Grades)
+	if err != nil {
+		return GradeSyncResult{}, d.gradeSyncError(ctx, snapshot, err)
+	}
 	for _, grade := range grades {
-		grade.JxbId = normalizeJxbId(&grade)
-		if strings.TrimSpace(grade.StudentId) == "" || strings.TrimSpace(grade.JxbId) == "" {
-			return nil, errorx.New("dao: grade identity is empty")
+		if grade.StudentId != snapshot.StudentID {
+			return GradeSyncResult{}, errorx.New("dao: snapshot student mismatch")
+		}
+	}
+	var result GradeSyncResult
+	err = d.gradeTransaction(ctx, func(tx *gorm.DB) error {
+		result = GradeSyncResult{}
+		state, created, err := lockGradeSyncState(tx, snapshot.StudentID)
+		if err != nil {
+			return err
+		}
+		var existing []storedGrade
+		if err := tx.Model(&model.Grade{}).Select("*, cj IS NOT NULL AS has_total_score").
+			Clauses(clause.Locking{Strength: "UPDATE"}).Where("student_id = ?", snapshot.StudentID).Find(&existing).Error; err != nil {
+			return err
+		}
+		// 只在本事务新建状态时继承旧基线，不能把首次导入后留下的未初始化状态误认成老用户。
+		notifyEnabled := state.InitializedAt != 0 || (created && len(existing) > 0)
+		byClass, byIdentity := map[string]storedGrade{}, map[string]storedGrade{}
+		for _, grade := range existing {
+			byClass[grade.JxbId] = grade
+			if grade.NotificationID != nil && grade.ValidNotificationState() {
+				byIdentity[grade.NotificationIdentity()] = grade
+			}
+		}
+		var aliases []model.GradeIdentityAlias
+		if err := tx.Where("student_id = ? AND source_system = ? AND alias_kind = ?", snapshot.StudentID, snapshot.SourceSystem, "jxb_id").Find(&aliases).Error; err != nil {
+			return err
+		}
+		byAlias := map[string]string{}
+		for _, alias := range aliases {
+			byAlias[alias.AliasValue] = alias.NotificationID
+		}
+		unmatchedLegacy := hasUnconfirmedLegacyGrade(existing, grades, byAlias)
+		seen := map[string]bool{}
+		for _, grade := range grades {
+			old, exists := byClass[grade.JxbId]
+			aliasID, confirmed := byAlias[grade.JxbId]
+			if confirmed {
+				mapped, ok := byIdentity[aliasID]
+				if !ok || (exists && old.NotificationIdentity() != aliasID) {
+					return ErrGradeIdentity
+				}
+				old, exists = mapped, true
+			}
+			if exists && !old.ValidNotificationState() {
+				return ErrGradeIdentity
+			}
+			scoreChanged := !exists || !old.HasTotalScore || old.Cj != grade.Cj
+			storageChanged := !exists || !old.HasTotalScore || old.JxbId != grade.JxbId || !isGradeEqual(old.Grade, grade)
+			if !confirmed && isPseudoGradeID(grade) && (!exists || scoreChanged || old.JxbId != grade.JxbId) {
+				return ErrGradeIdentity
+			}
+			if !confirmed && exists && isPseudoGradeID(old.Grade) && (old.Kcmc != grade.Kcmc || old.Xnm != grade.Xnm || old.Xqm != grade.Xqm) {
+				return ErrGradeIdentity
+			}
+			if !exists && !confirmed && unmatchedLegacy {
+				// 未对应的旧伪 ID 可能就是新标识的前身，即使改名也不能直接当作新课。
+				return ErrGradeIdentity
+			}
+			reason := "first_published"
+			if exists {
+				grade.NotificationID, grade.ScoreVersion = old.NotificationID, old.ScoreVersion
+				grade.ChangeVersion = old.ChangeVersion
+				grade.RegularGradePercent, grade.RegularGrade = old.RegularGradePercent, old.RegularGrade
+				grade.FinalGradePercent, grade.FinalGrade = old.FinalGradePercent, old.FinalGrade
+				if storageChanged {
+					grade.ChangeVersion++
+				}
+				if scoreChanged {
+					grade.ScoreVersion++
+					if old.HasTotalScore {
+						reason = "score_changed"
+					}
+				}
+			} else {
+				grade.ChangeVersion, grade.ScoreVersion = 1, 1
+				grade.NotificationID = nil
+			}
+			if (!exists || scoreChanged) && grade.NotificationID == nil {
+				id, err := model.NewNotificationID()
+				if err != nil {
+					return err
+				}
+				grade.NotificationID, grade.ScoreVersion = &id, 1
+			}
+			if !grade.ValidNotificationState() {
+				return ErrGradeIdentity
+			}
+			if grade.NotificationID != nil {
+				id := grade.NotificationIdentity()
+				if seen[id] {
+					return ErrGradeIdentity
+				}
+				seen[id] = true
+			}
+			if storageChanged {
+				if exists {
+					if err := tx.Model(&model.Grade{}).Where("student_id = ? AND jxb_id = ?", old.StudentId, old.JxbId).
+						Select(gradeUpdateColumns(false)).Updates(&grade).Error; err != nil {
+						return err
+					}
+				} else if err := tx.Create(&grade).Error; err != nil {
+					return err
+				}
+				result.Changed = append(result.Changed, grade)
+			}
+			if grade.NotificationID != nil && !confirmed && storageChanged && !isPseudoGradeID(grade) {
+				alias := model.GradeIdentityAlias{StudentID: snapshot.StudentID, SourceSystem: snapshot.SourceSystem,
+					AliasKind: "jxb_id", AliasValue: grade.JxbId, NotificationID: grade.NotificationIdentity()}
+				if err := tx.Create(&alias).Error; err != nil {
+					return err
+				}
+			}
+			if notifyEnabled && scoreChanged {
+				event, err := domain.NewGradeNotification(grade, reason, snapshot.ObservedAt.Unix())
+				if err != nil {
+					return err
+				}
+				if err := tx.Create(&event).Error; err != nil {
+					return err
+				}
+				result.Notify = append(result.Notify, grade)
+			}
+		}
+		if state.InitializedAt == 0 {
+			state.InitializedAt = snapshot.ObservedAt.Unix()
+		}
+		state.LastSuccessAt = snapshot.ObservedAt.Unix()
+		return tx.Save(&state).Error
+	})
+	if err != nil {
+		return GradeSyncResult{}, d.gradeSyncError(ctx, snapshot, err)
+	}
+	return result, nil
+}
+
+// 缺失时插入状态，并发冲突由外层重试；不依赖 INSERT 的 RowsAffected 判断首次创建。
+func lockGradeSyncState(tx *gorm.DB, studentID string) (model.GradeSyncState, bool, error) {
+	var state model.GradeSyncState
+	query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("student_id = ?", studentID).Limit(1).Find(&state)
+	if query.Error != nil || query.RowsAffected > 0 {
+		return state, false, query.Error
+	}
+	state.StudentID = studentID
+	return state, true, tx.Create(&state).Error
+}
+
+func hasUnconfirmedLegacyGrade(existing []storedGrade, grades []model.Grade, aliases map[string]string) bool {
+	present := map[string]bool{}
+	matched := map[string]bool{}
+	for _, grade := range grades {
+		present[grade.JxbId] = true
+		if id, ok := aliases[grade.JxbId]; ok {
+			matched[id] = true
+		}
+	}
+	for _, old := range existing {
+		if !isPseudoGradeID(old.Grade) || present[old.JxbId] {
+			continue
+		}
+		if id := old.NotificationIdentity(); old.NotificationID != nil && old.ValidNotificationState() && (matched[id] || aliases[old.JxbId] == id) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+func (d *gradeDAO) gradeSyncError(ctx context.Context, snapshot GradeSnapshot, err error) error {
+	if !errors.Is(err, ErrGradeIdentity) {
+		return err
+	}
+	// 原始快照只包含结构化成绩，不含 Cookie、Token 或教务原始响应。
+	payload, marshalErr := json.Marshal(snapshot)
+	if marshalErr != nil {
+		return errors.Join(err, marshalErr)
+	}
+	issue := model.GradeSyncIssue{StudentID: snapshot.StudentID, Payload: string(payload), LastError: err.Error()}
+	if saveErr := d.db.WithContext(ctx).Clauses(clause.OnConflict{UpdateAll: true}).Create(&issue).Error; saveErr != nil {
+		return errors.Join(err, saveErr)
+	}
+	return err
+}
+
+func (d *gradeDAO) UpdateGradeDetails(ctx context.Context, grades []model.Grade) error {
+	grades, err := prepareGradeBatch(grades)
+	if err != nil || len(grades) == 0 {
+		return err
+	}
+	return d.gradeTransaction(ctx, func(tx *gorm.DB) error {
+		for _, grade := range grades {
+			var old model.Grade
+			err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&old, "student_id = ? AND jxb_id = ?", grade.StudentId, grade.JxbId).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if gradeDetailsEqual(old, grade) {
+				continue
+			}
+			if old.ChangeVersion != grade.ChangeVersion {
+				return ErrGradeVersionChanged
+			}
+			grade.ChangeVersion++
+			if err := tx.Model(&model.Grade{}).Where("student_id = ? AND jxb_id = ?", grade.StudentId, grade.JxbId).
+				Select(gradeUpdateColumns(true)).Updates(&grade).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (d *gradeDAO) gradeTransaction(ctx context.Context, fn func(*gorm.DB) error) error {
+	var err error
+	for attempt := 1; attempt <= maxGradeTransactionAttempts; attempt++ {
+		err = d.db.WithContext(ctx).Transaction(fn)
+		if err == nil || ctx.Err() != nil || !isRetryableGradeTransactionError(err) || attempt == maxGradeTransactionAttempts {
+			return err
+		}
+		timer := time.NewTimer(time.Duration(attempt) * 10 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
+	}
+	return err
+}
+
+func prepareGradeBatch(grades []model.Grade) ([]model.Grade, error) {
+	result := make([]model.Grade, 0, len(grades))
+	seen := map[gradeKey]model.Grade{}
+	for _, grade := range grades {
+		if strings.TrimSpace(grade.StudentId) == "" {
+			return nil, errorx.New("dao: grade student is empty")
+		}
+		if strings.TrimSpace(grade.JxbId) == "" {
+			return nil, ErrGradeIdentity
 		}
 		if math.IsNaN(float64(grade.Cj)) || math.IsInf(float64(grade.Cj), 0) {
-			return nil, errorx.Errorf("dao: invalid total score, sid: %s, jxb: %s", grade.StudentId, grade.JxbId)
+			return nil, errorx.New("dao: invalid total score")
 		}
 		key := gradeKey{StudentID: grade.StudentId, JxbID: grade.JxbId}
 		if previous, ok := seen[key]; ok {
-			if !isGradeEqual(previous, grade, true) || (ifDetail && previous.ChangeVersion != grade.ChangeVersion) {
-				return nil, errorx.Errorf("dao: conflicting grades in batch, sid: %s, jxb: %s", grade.StudentId, grade.JxbId)
+			if !isGradeEqual(previous, grade) || !gradeDetailsEqual(previous, grade) || previous.ChangeVersion != grade.ChangeVersion {
+				return nil, errorx.New("dao: conflicting grades in snapshot")
 			}
 			continue
 		}
@@ -216,70 +350,33 @@ func isRetryableGradeTransactionError(err error) bool {
 			return true
 		}
 	}
-
-	// SQLite 仅用于 DAO 测试，其并发写锁同样需要重试整个事务。
 	message := strings.ToLower(err.Error())
 	return strings.Contains(message, "database is locked") || strings.Contains(message, "database table is locked")
 }
 
-func gradeUpdateColumns(ifDetail bool) []string {
-	if ifDetail {
+func gradeUpdateColumns(detail bool) []string {
+	if detail {
 		return []string{"regular_grade_percent", "regular_grade", "final_grade_percent", "final_grade", "change_version"}
 	}
-	return []string{
-		"kc_id", "kcmc", "xnm", "xqm", "xf", "kcxzmc", "kclbmc", "kcbj", "jd", "cj", "change_version",
-	}
+	return []string{"jxb_id", "kc_id", "kcmc", "xnm", "xqm", "xf", "kcxzmc", "kclbmc", "kcbj", "jd", "cj", "change_version", "notification_id", "score_version"}
+}
+
+func isPseudoGradeID(g model.Grade) bool {
+	return strings.TrimSpace(g.JxbId) == "" || g.JxbId == g.Kcmc+strconv.FormatInt(g.Xnm, 10)+strconv.FormatInt(g.Xqm, 10)
 }
 
 func gradeDetailsEqual(a, b model.Grade) bool {
-	return a.RegularGradePercent == b.RegularGradePercent &&
-		a.RegularGrade == b.RegularGrade &&
-		a.FinalGradePercent == b.FinalGradePercent &&
-		a.FinalGrade == b.FinalGrade
+	return a.RegularGradePercent == b.RegularGradePercent && a.RegularGrade == b.RegularGrade &&
+		a.FinalGradePercent == b.FinalGradePercent && a.FinalGrade == b.FinalGrade
 }
 
-func (d *gradeDAO) GetDistinctGradeType(ctx context.Context, stuID string) ([]string, error) {
+func isGradeEqual(a, b model.Grade) bool {
+	return a.Kcmc == b.Kcmc && a.KcId == b.KcId && a.Xnm == b.Xnm && a.Xqm == b.Xqm && a.Xf == b.Xf &&
+		a.Kcxzmc == b.Kcxzmc && a.Kclbmc == b.Kclbmc && a.Kcbj == b.Kcbj && a.Jd == b.Jd && a.Cj == b.Cj
+}
+
+func (d *gradeDAO) GetDistinctGradeType(ctx context.Context, studentID string) ([]string, error) {
 	var results []string
-	err := d.db.WithContext(ctx).Model(&model.Grade{}).
-		Where("student_id = ?", stuID).
-		Distinct("kcxzmc").
-		Pluck("kcxzmc", &results).Error
-	if err != nil {
-		return nil, errorx.Errorf("dao: GetDistinctGradeType failed, sid: %s, err: %w", stuID, err)
-	}
-	return results, nil
-}
-
-// 内部辅助函数
-func normalizeJxbId(g *model.Grade) string {
-	if g.JxbId != "" {
-		return g.JxbId
-	}
-	// 兜底逻辑：通过课程名+学年学期生成伪 ID
-	return g.Kcmc + strconv.FormatInt(g.Xnm, 10) + strconv.FormatInt(g.Xqm, 10)
-}
-
-func isGradeEqual(a, b model.Grade, ifDetail bool) bool {
-	// 基础比较字段
-	baseEqual := a.Kcmc == b.Kcmc &&
-		a.KcId == b.KcId &&
-		a.Xnm == b.Xnm &&
-		a.Xqm == b.Xqm &&
-		a.Xf == b.Xf &&
-		a.Kcxzmc == b.Kcxzmc &&
-		a.Kclbmc == b.Kclbmc &&
-		a.Kcbj == b.Kcbj &&
-		a.Jd == b.Jd &&
-		a.Cj == b.Cj
-
-	if !ifDetail {
-		return baseEqual
-	}
-
-	// 详情比较字段
-	return baseEqual &&
-		a.RegularGradePercent == b.RegularGradePercent &&
-		a.RegularGrade == b.RegularGrade &&
-		a.FinalGradePercent == b.FinalGradePercent &&
-		a.FinalGrade == b.FinalGrade
+	err := d.db.WithContext(ctx).Model(&model.Grade{}).Where("student_id = ?", studentID).Distinct("kcxzmc").Pluck("kcxzmc", &results).Error
+	return results, err
 }

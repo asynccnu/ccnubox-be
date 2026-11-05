@@ -27,7 +27,8 @@ func NewGraduate(client *http.Client) (*Graduate, error) {
 }
 
 type GraduateResp struct {
-	Items []GraduatePoints `json:"items"`
+	Items      []GraduatePoints `json:"items"`
+	TotalCount *int64           `json:"totalCount"`
 }
 
 type GraduatePoints struct {
@@ -45,6 +46,13 @@ type GraduatePoints struct {
 }
 
 func (g *Graduate) GetGraduateGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]GraduatePoints, error) {
+	return collectGradePages(ctx, func(page int) ([]GraduatePoints, *int64, error) {
+		response, err := g.getGraduatePage(ctx, cookie, xnm, xqm, showCount, page)
+		return response.Items, response.TotalCount, err
+	}, func(p GraduatePoints) string { return p.JxbID })
+}
+
+func (g *Graduate) getGraduatePage(ctx context.Context, cookie string, xnm, xqm, showCount int64, page int) (GraduateResp, error) {
 	// 研究生系统成绩查询 URL
 	targetURL := "https://grd.ccnu.edu.cn/yjsxt/cjcx/cjcx_cxDgXscj.html?doType=query&gnmkdm=N305005"
 
@@ -79,7 +87,7 @@ func (g *Graduate) GetGraduateGrades(ctx context.Context, cookie string, xnm, xq
 		"_search":                {"false"},
 		"nd":                     {strconv.FormatInt(time.Now().UnixMilli(), 10)},
 		"queryModel.showCount":   {showCountStr},
-		"queryModel.currentPage": {"1"},
+		"queryModel.currentPage": {strconv.Itoa(page)},
 		"queryModel.sortName":    {""},
 		"queryModel.sortOrder":   {"asc"},
 		"time":                   {"1"},
@@ -87,7 +95,7 @@ func (g *Graduate) GetGraduateGrades(ctx context.Context, cookie string, xnm, xq
 
 	req, err := http.NewRequestWithContext(ctx, "POST", targetURL, bytes.NewBufferString(formData.Encode()))
 	if err != nil {
-		return nil, errorx.Errorf("crawler: create graduate request failed, err: %w", err)
+		return GraduateResp{}, errorx.Errorf("crawler: create graduate request failed, err: %w", err)
 	}
 
 	// 注入关键 Header
@@ -99,35 +107,40 @@ func (g *Graduate) GetGraduateGrades(ctx context.Context, cookie string, xnm, xq
 
 	resp, err := g.client.Do(req)
 	if err != nil {
-		return nil, errorx.Errorf("crawler: do graduate request failed, url: %s, err: %w", targetURL, err)
+		return GraduateResp{}, errorx.Errorf("crawler: do graduate request failed, err: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// 增加 HTTP 状态校验：非 200 可能意味着被防火墙拦截或 Session 过期
 	if resp.StatusCode != http.StatusOK {
-		return nil, errorx.Errorf("crawler: graduate system status error, code: %d", resp.StatusCode)
+		return GraduateResp{}, errorx.Errorf("crawler: graduate system status error, code: %d", resp.StatusCode)
 	}
 
 	body, err := httpx.ReadResponse(resp)
 	if err != nil {
-		return nil, errorx.Errorf("crawler: read graduate response failed, err: %w", err)
+		return GraduateResp{}, errorx.Errorf("crawler: read graduate response failed, err: %w", err)
 	}
 
-	return parseGraduateResponse(body)
+	return parseGraduatePage(body)
 }
 
 func parseGraduateResponse(body []byte) ([]GraduatePoints, error) {
+	response, err := parseGraduatePage(body)
+	return response.Items, err
+}
+
+func parseGraduatePage(body []byte) (GraduateResp, error) {
 	var response GraduateResp
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, errorx.New("crawler: unmarshal graduate json failed")
+		return GraduateResp{}, errorx.New("crawler: unmarshal graduate json failed")
 	}
 	if response.Items == nil {
-		return nil, errorx.New("crawler: graduate system returned null grade data")
+		return GraduateResp{}, errorx.New("crawler: graduate system returned null grade data")
 	}
 	for _, grade := range response.Items {
 		if _, err := ParseTotalScore(grade.Cj); err != nil {
-			return nil, err
+			return GraduateResp{}, err
 		}
 	}
-	return response.Items, nil
+	return response, nil
 }

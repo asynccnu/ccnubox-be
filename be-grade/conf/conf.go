@@ -16,8 +16,16 @@ type InfraConf struct {
 // ServerConf 服务配置
 type ServerConf struct {
 	conf.BaseServerConf `mapstructure:",squash"`
-	GradeConf           *GradeConf   `yaml:"gradeConf"`
-	ConsumeConf         *ConsumeConf `yaml:"consumeConf"`
+	NotificationConf    *NotificationConf `yaml:"notificationConf"`
+	GradeConf           *GradeConf        `yaml:"gradeConf"`
+	ConsumeConf         *ConsumeConf      `yaml:"consumeConf"`
+}
+
+type NotificationConf struct {
+	SnapshotVerified bool `yaml:"snapshotVerified"`
+	PollSeconds      int  `yaml:"pollSeconds"`
+	BatchSize        int  `yaml:"batchSize"`
+	RPCSeconds       int  `yaml:"rpcSeconds"`
 }
 
 type ConsumeConf struct {

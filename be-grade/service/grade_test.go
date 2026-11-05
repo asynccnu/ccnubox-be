@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -54,18 +55,16 @@ type cachedGradeDAO struct {
 	findCalls int
 }
 
-func (d *cachedGradeDAO) FirstOrCreate(context.Context, *model.Grade) error {
-	return nil
-}
-
 func (d *cachedGradeDAO) FindGrades(context.Context, string, int64, int64) ([]model.Grade, error) {
 	d.findCalls++
 	return []model.Grade{{StudentId: "cached"}}, nil
 }
 
-func (d *cachedGradeDAO) BatchInsertOrUpdate(context.Context, []model.Grade, bool) (dao.GradeSyncResult, error) {
+func (d *cachedGradeDAO) SyncGrades(context.Context, dao.GradeSnapshot) (dao.GradeSyncResult, error) {
 	return dao.GradeSyncResult{}, nil
 }
+
+func (d *cachedGradeDAO) UpdateGradeDetails(context.Context, []model.Grade) error { return nil }
 
 func (d *cachedGradeDAO) GetDistinctGradeType(context.Context, string) ([]string, error) {
 	return nil, nil
@@ -98,14 +97,15 @@ func TestGetGradeByTermRefreshDoesNotHideFetchErrorWithCache(t *testing.T) {
 }
 
 func TestAggregateGradePreservesDetailRecordID(t *testing.T) {
-	grades := aggregateGrade([]crawler.Grade{{
+	grades, err := aggregateGrade([]crawler.Grade{{
 		CJ0708ID: "grade-record-id",
+		XQMC:     "2020-2021-1",
 		XS0101ID: "student-id",
 		JX0404ID: "class-id",
 	}}, map[string]crawler.Score{})
 
-	if len(grades) != 1 {
-		t.Fatalf("aggregateGrade() count = %d, want 1", len(grades))
+	if err != nil || len(grades) != 1 {
+		t.Fatalf("aggregateGrade() count = %d err=%v", len(grades), err)
 	}
 	if grades[0].KcId != "grade-record-id" {
 		t.Fatalf("aggregateGrade() KcId = %q, want %q", grades[0].KcId, "grade-record-id")
@@ -120,7 +120,7 @@ func TestUndergraduateStudentFetchesOnlyGradeList(t *testing.T) {
 			StatusCode: http.StatusOK,
 			Header:     make(http.Header),
 			Body: io.NopCloser(strings.NewReader(
-				`{"code":0,"msg":"success","data":[{"cj0708id":"grade-id","xs0101id":"student-id","jx0404id":"class-id","xqmc":"2025-2026-1","zcj":80}]}`,
+				`{"code":0,"msg":"success","total":1,"data":[{"cj0708id":"grade-id","xs0101id":"student-id","jx0404id":"class-id","xqmc":"2025-2026-1","zcj":80}]}`,
 			)),
 			Request: req,
 		}, nil
@@ -154,7 +154,7 @@ type detailGradeDAO struct {
 func (d *detailGradeDAO) FindGrades(context.Context, string, int64, int64) ([]model.Grade, error) {
 	return append([]model.Grade(nil), d.grades...), nil
 }
-func (d *detailGradeDAO) BatchInsertOrUpdate(_ context.Context, grades []model.Grade, _ bool) (dao.GradeSyncResult, error) {
+func (d *detailGradeDAO) UpdateGradeDetails(_ context.Context, grades []model.Grade) error {
 	for _, grade := range grades {
 		d.writes = append(d.writes, grade)
 		for i := range d.grades {
@@ -163,7 +163,7 @@ func (d *detailGradeDAO) BatchInsertOrUpdate(_ context.Context, grades []model.G
 			}
 		}
 	}
-	return dao.GradeSyncResult{Changed: grades}, nil
+	return nil
 }
 
 func TestUpdateDetailScorePropagatesPartialFailureAndResumes(t *testing.T) {
@@ -171,7 +171,7 @@ func TestUpdateDetailScorePropagatesPartialFailureAndResumes(t *testing.T) {
 		{StudentId: "s", JxbId: "a", Cj: 90, ChangeVersion: 5, RegularGradePercent: RegularGradePercentMSG, FinalGradePercent: FinalGradePercentMAG},
 		{StudentId: "s", JxbId: "b", Cj: 80, ChangeVersion: 2, RegularGradePercent: RegularGradePercentMSG, FinalGradePercent: FinalGradePercentMAG},
 	}}
-	s := &gradeService{gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
+	s := &gradeService{snapshotVerified: true, gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
 	need := domain.NeedDetailGrade{StudentID: "s", Grades: []model.Grade{{JxbId: "a", Cj: 50, ChangeVersion: 1}, {JxbId: "b"}}}
 	failure := errors.New("detail request failed")
 	err := s.updateDetailScore(context.Background(), need, func(_ context.Context, grade model.Grade) (crawler.Score, error) {
@@ -214,7 +214,7 @@ func TestDetailFailuresAreClassifiedWithoutDroppingTransientCourses(t *testing.T
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			d := &detailGradeDAO{grades: []model.Grade{{StudentId: "s", JxbId: "a", RegularGradePercent: RegularGradePercentMSG}}}
-			s := &gradeService{gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
+			s := &gradeService{snapshotVerified: true, gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
 			need := domain.NeedDetailGrade{StudentID: "s", Grades: d.grades}
 			err := s.updateDetailScore(context.Background(), need, func(context.Context, model.Grade) (crawler.Score, error) { return crawler.Score{}, tc.err })
 			if !errors.Is(err, tc.err) || saramax.IsPermanent(err) != tc.permanent {
@@ -226,7 +226,7 @@ func TestDetailFailuresAreClassifiedWithoutDroppingTransientCourses(t *testing.T
 		{StudentId: "s", JxbId: "a", RegularGradePercent: RegularGradePercentMSG},
 		{StudentId: "s", JxbId: "b", RegularGradePercent: RegularGradePercentMSG},
 	}}
-	s := &gradeService{gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
+	s := &gradeService{snapshotVerified: true, gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop())}
 	err := s.updateDetailScore(context.Background(), domain.NeedDetailGrade{StudentID: "s", Grades: d.grades}, func(_ context.Context, g model.Grade) (crawler.Score, error) {
 		if g.JxbId == "a" {
 			return crawler.Score{}, crawler.ErrDetailParse
@@ -248,10 +248,11 @@ type gradeSyncDAO struct {
 	cacheEmpty bool
 }
 
-func (d *gradeSyncDAO) BatchInsertOrUpdate(_ context.Context, grades []model.Grade, detail bool) (dao.GradeSyncResult, error) {
-	if detail {
-		return dao.GradeSyncResult{}, errors.New("unexpected detail sync")
+func (d *gradeSyncDAO) SyncGrades(_ context.Context, snapshot dao.GradeSnapshot) (dao.GradeSyncResult, error) {
+	if !snapshot.Complete || snapshot.StudentID == "" || snapshot.SourceSystem == "" || snapshot.ObservedAt.IsZero() {
+		return dao.GradeSyncResult{}, errors.New("incomplete snapshot")
 	}
+	grades := snapshot.Grades
 	d.syncCalls++
 	d.synced = append([]model.Grade(nil), grades...)
 	return d.result, nil
@@ -301,9 +302,9 @@ func TestGradeRefreshKeepsNotificationCandidatesSeparateFromQueries(t *testing.T
 				final:  []model.Grade{metadata, notification, unchanged},
 			}
 			producer := &failingDetailProducer{}
-			s := &gradeService{
+			s := &gradeService{snapshotVerified: true,
 				gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop()), userClient: gradeCookieClient{}, producer: producer,
-				proxyClient: gradeProxyClient{body: `{"code":0,"data":[{"xs0101id":"2023212345","jx0404id":"class","xqmc":"2020-2021-1","zcj":0}]}`},
+				proxyClient: gradeProxyClient{body: `{"code":0,"total":1,"data":[{"xs0101id":"2023212345","jx0404id":"class","xqmc":"2020-2021-1","zcj":0}]}`},
 			}
 			switch name {
 			case "notification candidates":
@@ -339,7 +340,7 @@ func TestGradeRefreshKeepsNotificationCandidatesSeparateFromQueries(t *testing.T
 func TestInvalidNumericTotalScoreNeverReachesGradeDAO(t *testing.T) {
 	for _, item := range []string{`{"zcj":"优秀"}`, `{"zcj":1e40}`} {
 		d := &gradeSyncDAO{}
-		s := &gradeService{
+		s := &gradeService{snapshotVerified: true,
 			gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop()), userClient: gradeCookieClient{},
 			proxyClient: gradeProxyClient{body: `{"code":0,"data":[{"zcj":80},` + item + `]}`},
 		}
@@ -352,9 +353,9 @@ func TestInvalidNumericTotalScoreNeverReachesGradeDAO(t *testing.T) {
 func TestGradeRefreshRejectsMissingOrAmbiguousScores(t *testing.T) {
 	for _, fields := range []string{"", `,"zcj":null`, `,"zcj":0,"zcjstr":"缓考"`, `,"zcj":90,"zcjstr":"优秀"`} {
 		d := &gradeSyncDAO{}
-		s := &gradeService{
+		s := &gradeService{snapshotVerified: true,
 			gradeDAO: d, l: zapx.NewZapLogger(zap.NewNop()), userClient: gradeCookieClient{},
-			proxyClient: gradeProxyClient{body: `{"code":0,"data":[{"xs0101id":"2023212345","jx0404id":"class"` + fields + `}]}`},
+			proxyClient: gradeProxyClient{body: `{"code":0,"total":1,"data":[{"xs0101id":"2023212345","jx0404id":"class"` + fields + `}]}`},
 		}
 		if _, err := s.GetUpdateScore(context.Background(), "2023212345"); err == nil || d.syncCalls != 0 {
 			t.Fatalf("fields=%s err=%v sync calls=%d", fields, err, d.syncCalls)
@@ -362,16 +363,86 @@ func TestGradeRefreshRejectsMissingOrAmbiguousScores(t *testing.T) {
 	}
 }
 
-func TestConvertGraduateGradePreservesExistingScoreFallback(t *testing.T) {
-	// 保留既有转换失败回退为零分的行为，不因单条文本成绩拒绝整批数据。
-	for _, score := range []string{"", "优秀", "未发布", "1e40"} {
-		grades := ConvertGraduateGrade([]crawler.GraduatePoints{{Cj: "80"}, {Cj: score}})
-		if len(grades) != 2 || grades[0].Cj != 80 || grades[1].Cj != 0 {
-			t.Fatalf("score %q converted to grades=%+v", score, grades)
+func TestConvertGraduateGradeRejectsInvalidScores(t *testing.T) {
+	for _, score := range []string{"", "优秀", "未发布", "1e40", "NaN", "+Inf"} {
+		grades, err := ConvertGraduateGrade([]crawler.GraduatePoints{{Cj: "80", Xnm: "2020", Xqm: "3"}, {Cj: score, Xnm: "2020", Xqm: "3"}})
+		if err == nil || len(grades) != 0 {
+			t.Fatalf("score %q converted to grades=%+v err=%v", score, grades, err)
 		}
 	}
-	grades := ConvertGraduateGrade([]crawler.GraduatePoints{{Cj: "0", Xnm: "2020", Xqm: "3"}, {Cj: "89.25", Xnm: "2021", Xqm: "12"}})
-	if len(grades) != 2 || grades[0].Cj != 0 || grades[0].Xqm != 1 || grades[1].Cj != 89.25 || grades[1].Xqm != 2 {
-		t.Fatalf("valid graduate scores: grades=%+v", grades)
+	grades, err := ConvertGraduateGrade([]crawler.GraduatePoints{{Cj: "0", Xnm: "2020", Xqm: "3"}, {Cj: "89.25", Xnm: "2021", Xqm: "12"}})
+	if err != nil || len(grades) != 2 || grades[0].Cj != 0 || grades[0].Xqm != 1 || grades[1].Cj != 89.25 || grades[1].Xqm != 2 {
+		t.Fatalf("valid graduate scores: grades=%+v err=%v", grades, err)
+	}
+}
+
+func TestActiveGradeQueryPersistsOutboxWithoutBFF(t *testing.T) {
+	const student = "2023212345"
+	db := newGradeServiceTestDB(t)
+	if err := dao.InitTables(db); err != nil {
+		t.Fatal(err)
+	}
+	s := &gradeService{snapshotVerified: true, gradeDAO: dao.NewGradeDAO(db), l: zapx.NewZapLogger(zap.NewNop()), userClient: gradeCookieClient{}, producer: &failingDetailProducer{}}
+	for _, score := range []int{80, 90} {
+		s.proxyClient = gradeProxyClient{body: fmt.Sprintf(`{"code":0,"total":1,"data":[{"xs0101id":"%s","jx0404id":"class","xqmc":"2020-2021-1","zcj":%d}]}`, student, score)}
+		if grades, err := s.GetGradeByTerm(context.Background(), &domain.GetGradeByTermReq{StudentID: student, Refresh: true}); err != nil || len(grades) != 1 || grades[0].Cj != float32(score) {
+			t.Fatal(grades, err)
+		}
+	}
+	var count int64
+	if err := db.Model(&model.GradeNotificationOutbox{}).Count(&count).Error; err != nil || count != 1 {
+		t.Fatal(count, err)
+	}
+	if grades, err := s.GetUpdateScore(context.Background(), student); err != nil || len(grades) != 0 {
+		t.Fatal(grades, err)
+	}
+	if err := db.Model(&model.GradeNotificationOutbox{}).Count(&count).Error; err != nil || count != 1 {
+		t.Fatal(count, err)
+	}
+}
+
+func TestActiveGradeQueryLazilyActivatesLegacyScore(t *testing.T) {
+	const student = "2023212345"
+	db := newGradeServiceTestDB(t)
+	if err := dao.InitTables(db); err != nil {
+		t.Fatal(err)
+	}
+	legacy := model.Grade{StudentId: student, JxbId: "class", Cj: 80, Jd: calcJd(80), Xnm: 2020, Xqm: 1, Kcbj: "是否辅修字段暂时缺失", ChangeVersion: 19}
+	if err := db.Create(&legacy).Error; err != nil {
+		t.Fatal(err)
+	}
+	s := &gradeService{snapshotVerified: true, gradeDAO: dao.NewGradeDAO(db), l: zapx.NewZapLogger(zap.NewNop()), userClient: gradeCookieClient{}, producer: &failingDetailProducer{}}
+	for i, score := range []int{80, 90, 90} {
+		s.proxyClient = gradeProxyClient{body: fmt.Sprintf(`{"code":0,"total":1,"data":[{"xs0101id":"%s","jx0404id":"class","xqmc":"2020-2021-1","zcj":%d}]}`, student, score)}
+		got, err := s.GetUpdateScore(context.Background(), student)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if i == 1 {
+			if len(got) != 1 || got[0].ScoreVersion != 1 || got[0].ChangeVersion != 20 {
+				t.Fatal(got)
+			}
+		} else if len(got) != 0 {
+			t.Fatal(got)
+		}
+		if i == 0 {
+			stored, err := s.gradeDAO.FindGrades(context.Background(), student, 0, 0)
+			if err != nil || len(stored) != 1 || stored[0].NotificationID != nil || stored[0].ScoreVersion != 0 || stored[0].ChangeVersion != 19 {
+				t.Fatal(stored, err)
+			}
+		}
+	}
+	var count int64
+	if err := db.Model(&model.GradeNotificationOutbox{}).Count(&count).Error; err != nil || count != 1 {
+		t.Fatal(count, err)
+	}
+}
+
+func TestCompleteSnapshotRequiresExplicitProtocolVerification(t *testing.T) {
+	d := &gradeSyncDAO{}
+	// 默认配置不能因第一页恰好较短或空列表就建立首次基线；也不请求 Cookie。
+	s := NewGradeService(d, zapx.NewZapLogger(zap.NewNop()), nil, nil, nil, nil, nil).(*gradeService)
+	if _, err := s.fetchGradesWithSingleFlight(context.Background(), "2023212345"); err == nil || !strings.Contains(err.Error(), "snapshotVerified") || d.syncCalls != 0 {
+		t.Fatalf("gate bypassed: err=%v calls=%d", err, d.syncCalls)
 	}
 }

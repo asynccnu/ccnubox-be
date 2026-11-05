@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
 	"github.com/asynccnu/ccnubox-be/be-grade/crawler"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
@@ -40,19 +41,20 @@ type GradeService interface {
 }
 
 type gradeService struct {
-	userClient      userv1.UserServiceClient
-	proxyClient     proxy.Client
-	classlistClient classlistv1.ClasserClient
-	gradeDAO        dao.GradeDAO
-	l               logger.Logger
-	sf              singleflight.Group
-	producer        producer.Producer
-	refreshMu       sync.Mutex
-	nextRefresh     map[string]time.Time
-	refreshInterval time.Duration
+	userClient       userv1.UserServiceClient
+	proxyClient      proxy.Client
+	classlistClient  classlistv1.ClasserClient
+	gradeDAO         dao.GradeDAO
+	snapshotVerified bool
+	l                logger.Logger
+	sf               singleflight.Group
+	producer         producer.Producer
+	refreshMu        sync.Mutex
+	nextRefresh      map[string]time.Time
+	refreshInterval  time.Duration
 }
 
-func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.UserServiceClient, classlistClient classlistv1.ClasserClient, proxyClient proxy.Client, producer producer.Producer) GradeService {
+func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.UserServiceClient, classlistClient classlistv1.ClasserClient, proxyClient proxy.Client, producer producer.Producer, cfg *conf.ServerConf) GradeService {
 	g := &gradeService{
 		gradeDAO:        gradeDAO,
 		l:               l,
@@ -64,6 +66,7 @@ func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.U
 		refreshInterval: defaultGradeRefreshInterval,
 	}
 
+	g.snapshotVerified = cfg != nil && cfg.NotificationConf != nil && cfg.NotificationConf.SnapshotVerified
 	return g
 }
 
@@ -206,7 +209,7 @@ func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDe
 		grade.FinalGradePercent = detail.Cjxm1bl
 		grade.FinalGrade = detail.Cjxm1
 		// 成功一科就保存，重投后跳过已完成部分，避免每次重试重复爬取整个列表。
-		if _, err := s.gradeDAO.BatchInsertOrUpdate(ctx, []model.Grade{grade}, true); err != nil {
+		if err := s.gradeDAO.UpdateGradeDetails(ctx, []model.Grade{grade}); err != nil {
 			return err
 		}
 	}
@@ -239,6 +242,10 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 			return nil, err
 		}
 
+		if !s.snapshotVerified {
+			return nil, errorx.New("service: complete grade snapshot protocol has not been verified; notificationConf.snapshotVerified is disabled")
+		}
+
 		cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId, Type: string(system)})
 		if err != nil {
 			return nil, errorx.Errorf("service: rpc get cookie failed, sid: %s, err: %w", studentId, err)
@@ -265,7 +272,10 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 			return nil, errorx.Errorf("service: crawler fetch failed, sid: %s, err: %w", studentId, err)
 		}
 
-		syncResult, err := s.gradeDAO.BatchInsertOrUpdate(ctx, remote, false)
+		syncResult, err := s.gradeDAO.SyncGrades(ctx, dao.GradeSnapshot{
+			StudentID: studentId, SourceSystem: string(system), Grades: remote,
+			Complete: true, ObservedAt: time.Now(),
+		})
 		if err != nil {
 			return nil, errorx.Errorf("service: dao batch sync failed, sid: %s, err: %w", studentId, err)
 		}
@@ -291,7 +301,7 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 			})
 			if err != nil {
 				// 基础成绩已提交，不能让详情发布失败隐藏本轮成绩变更。
-				// 未发布详情仍依赖后续刷新补发，持久化 outbox 需要单独实现。
+				// 详情事件仍依赖后续刷新补发，不属于成绩通知 Outbox。
 				s.l.WithContext(ctx).Error(saramax.LogKeySendFailed+" service: send detail event failed",
 					logger.String("sid", studentId), logger.Error(err))
 			}
@@ -440,7 +450,7 @@ func (u *UndergraduateStudent) GetGrades(ctx context.Context, cookie string, xnm
 	}
 
 	// 详情页逐科抓取耗时且部分课程没有详情数据。列表先入库，详情由 GradeDetailEvent 异步补全。
-	return aggregateGrade(grade, make(map[string]crawler.Score)), nil
+	return aggregateGrade(grade, make(map[string]crawler.Score))
 }
 
 type GraduateStudent struct {
@@ -453,5 +463,5 @@ func (g *GraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm
 		return nil, errorx.Errorf("crawler: graduate get grade failed, err: %w", err)
 	}
 
-	return ConvertGraduateGrade(grade), nil
+	return ConvertGraduateGrade(grade)
 }

@@ -3,6 +3,7 @@ package crawler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -150,5 +151,71 @@ func TestParseGraduateResponseRejectsInvalidSnapshots(t *testing.T) {
 		if (err == nil) != tc.ok || (tc.ok && len(grades) != tc.wantCount) {
 			t.Fatalf("body=%s grades=%+v err=%v want success=%v count=%d", tc.body, grades, err, tc.ok, tc.wantCount)
 		}
+	}
+}
+
+func TestUndergradPaginationRequiresCompleteSnapshot(t *testing.T) {
+	// 这些是协议单元测试，不代替上线前的真实上游分页样例核验。
+	for _, name := range []string{"success", "second page failed", "repeated page", "changed total", "missing total", "empty"} {
+		t.Run(name, func(t *testing.T) {
+			calls := 0
+			ug, _ := NewUnderGrad(&http.Client{Transport: detailTransport(func(req *http.Request) (*http.Response, error) {
+				calls++
+				if req.URL.Query().Get("kksj") != "" || req.URL.Query().Get("pageNum") != fmt.Sprint(calls) {
+					t.Fatal("cross-term pagination parameters changed")
+				}
+				body := `{"code":0,"total":2,"data":[{"jx0404id":"old","xqmc":"2020-2021-1","zcj":0}]}`
+				code := http.StatusOK
+				if calls == 2 {
+					body = `{"code":0,"total":2,"data":[{"jx0404id":"new","xqmc":"2025-2026-1","zcj":90}]}`
+				}
+				switch name {
+				case "second page failed":
+					if calls == 2 {
+						code = http.StatusServiceUnavailable
+					}
+				case "repeated page":
+					body = `{"code":0,"total":2,"data":[{"jx0404id":"old","zcj":0}]}`
+				case "changed total":
+					if calls == 2 {
+						body = `{"code":0,"total":3,"data":[]}`
+					}
+				case "missing total":
+					body = `{"code":0,"data":[]}`
+				case "empty":
+					body = `{"code":0,"total":0,"data":[]}`
+				}
+				return &http.Response{StatusCode: code, Body: io.NopCloser(strings.NewReader(body)), Request: req}, nil
+			})})
+			grades, err := ug.GetGrade(context.Background(), 0, 0, 1)
+			if name == "success" {
+				if err != nil || len(grades) != 2 || calls != 2 || grades[0].ZCJ != 0 || grades[0].XQMC != "2020-2021-1" {
+					t.Fatalf("grades=%v err=%v calls=%d", grades, err, calls)
+				}
+			} else if name == "empty" {
+				if err != nil || len(grades) != 0 || calls != 1 {
+					t.Fatal(grades, err, calls)
+				}
+			} else if err == nil || len(grades) != 0 {
+				t.Fatalf("partial snapshot accepted: %v %v", grades, err)
+			}
+		})
+	}
+}
+
+func TestGraduatePaginationUsesAllTerms(t *testing.T) {
+	calls := 0
+	g, _ := NewGraduate(&http.Client{Transport: detailTransport(func(req *http.Request) (*http.Response, error) {
+		calls++
+		_ = req.ParseForm()
+		if req.Form.Get("xnm") != "" || req.Form.Get("xqm") != "" || req.Form.Get("queryModel.currentPage") != fmt.Sprint(calls) {
+			t.Fatal(req.Form)
+		}
+		body := fmt.Sprintf(`{"totalCount":2,"items":[{"jxb_id":"class-%d","cj":"0"}]}`, calls)
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body)), Request: req}, nil
+	})})
+	grades, err := g.GetGraduateGrades(context.Background(), "cookie", 0, 0, 300)
+	if err != nil || len(grades) != 2 || calls != 2 {
+		t.Fatal(grades, err, calls)
 	}
 }

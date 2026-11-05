@@ -8,6 +8,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
+	"github.com/asynccnu/ccnubox-be/be-grade/service"
 	"github.com/asynccnu/ccnubox-be/common/pkg/grpcx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/metricsx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
@@ -24,12 +25,13 @@ func main() {
 }
 
 type App struct {
-	kafkaClient sarama.Client
-	producer    producer.Producer
-	server      grpcx.Server
-	metrics     *metricsx.Server
-	consumers   []saramax.Consumer
-	shutdown    func(ctx context.Context) error
+	kafkaClient   sarama.Client
+	producer      producer.Producer
+	server        grpcx.Server
+	metrics       *metricsx.Server
+	consumers     []saramax.Consumer
+	notifications *service.NotificationPublisher
+	shutdown      func(ctx context.Context) error
 }
 
 func NewApp(
@@ -39,19 +41,30 @@ func NewApp(
 	shutdown func(ctx context.Context) error,
 	kafkaClient sarama.Client,
 	producer producer.Producer,
+	notifications *service.NotificationPublisher,
 ) App {
 	return App{
-		kafkaClient: kafkaClient,
-		producer:    producer,
-		server:      server,
-		metrics:     metrics,
-		consumers:   consumers,
-		shutdown:    shutdown,
+		notifications: notifications,
+		kafkaClient:   kafkaClient,
+		producer:      producer,
+		server:        server,
+		metrics:       metrics,
+		consumers:     consumers,
+		shutdown:      shutdown,
 	}
 }
 
 func (app *App) Start() {
+	notifyCtx, notifyCancel := context.WithCancel(context.Background())
+	notifyDone := make(chan struct{})
+	go func() {
+		defer close(notifyDone)
+		app.notifications.Run(notifyCtx)
+	}()
 	defer func() {
+		notifyCancel()
+		<-notifyDone
+
 		// 消费者可能正卡在一批消息上（单批最多上百条且要逐条处理），
 		// 用独立超时兜住停机，超时后保留未确认位点直接退出。
 		stopCtx, stopCancel := context.WithTimeout(context.Background(), 15*time.Second)

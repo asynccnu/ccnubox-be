@@ -2,11 +2,7 @@ package cron
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -68,73 +64,13 @@ func (p *TieredHandler) Refresh(ctx context.Context, studentId string) error {
 	return nil
 }
 
-func getGradeEventUrl(semester string, courseType string) string {
-	values := url.Values{}
-	values.Add("semester", fmt.Sprintf(`["%s"]`, semester))
-	values.Add("courseType", fmt.Sprintf(`["%s"]`, courseType))
-	return fmt.Sprintf("ccnubox://scoreCalculation?%s", values.Encode())
-}
-
-func formatSemester(xnm int64, xqm int64) string {
-	return fmt.Sprintf("%d-%d", xnm, xqm)
-}
-
-// gradeDedupeKey 以学生、教学班、成绩和变更版本生成稳定消息 ID，同一次变更的重投会被去重。
-func gradeDedupeKey(studentID, jxbId string, score float32, changeVersion int64) string {
-	sum := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%.2f\x00%d", studentID, jxbId, float64(score), changeVersion)))
-	return "grade:" + hex.EncodeToString(sum[:])
-}
-
 func (p *TieredHandler) gradeRefresh(ctx context.Context, studentId string) error {
-	// 获取学生最新成绩
+	// 通知已在 Grade 成绩事务中持久化，由 Outbox 唯一发布；BFF 只负责触发刷新和提速。
 	resp, err := p.gradeClient.GetUpdateScore(ctx, &gradev1.GetUpdateScoreReq{StudentId: studentId})
 	if err != nil {
 		return err
 	}
-
-	// 本人通知优先且逐条发布，同班查询和boost不应阻止任何一条通知。
-	var failures []error
-	for _, g := range resp.GetGrades() {
-		if err := p.publishGradeEvent(ctx, studentId, g); err != nil {
-			failures = append(failures, err)
-		}
-	}
 	p.boostGradeClassmates(ctx, resp.GetGrades())
-	return errors.Join(failures...)
-}
-
-func (p *TieredHandler) publishGradeEvent(ctx context.Context, studentId string, g *gradev1.Grade) error {
-	if g == nil {
-		err := errorx.New("成绩通知缺少成绩数据")
-		p.l.WithContext(ctx).Error("成绩通知发布失败", logger.String("sid", studentId), logger.Error(err))
-		return err
-	}
-	semester := formatSemester(g.Xnm, g.Xqm)
-	url := getGradeEventUrl(semester, g.Kcxzmc)
-	resp, err := p.feedClient.PublicFeedEvent(ctx, &feedv1.PublicFeedEventReq{
-		StudentId: studentId,
-		IsAll:     false,
-		Event: &feedv1.FeedEvent{
-			Type:         feedv1.FeedEventType_GRADE,
-			Title:        "成绩更新提醒",
-			Content:      fmt.Sprintf("您的课程:%s分数更新了,请及时查看", g.Kcmc),
-			Url:          url,
-			ExtendFields: map[string]string{"url": url},
-			DedupeKey:    gradeDedupeKey(studentId, g.JxbId, g.Cj, g.ChangeVersion),
-		},
-	})
-	if err == nil {
-		if resp == nil {
-			err = errorx.New("成绩通知发布返回空响应")
-		} else if resp.Status != feedv1.PublishStatus_ACCEPTED && resp.Status != feedv1.PublishStatus_DUPLICATE {
-			err = errorx.Errorf("成绩通知发布返回异常状态: %s", resp.Status.String())
-		}
-	}
-	if err != nil {
-		p.l.WithContext(ctx).Error("成绩通知发布失败", logger.String("sid", studentId), logger.String("jxb_id", g.JxbId), logger.Error(err))
-		return errorx.Errorf("publish grade event failed, sid: %s, jxb: %s, err: %w", studentId, g.JxbId, err)
-	}
-	p.l.WithContext(ctx).Info("成绩通知发布结果", logger.String("sid", studentId), logger.String("jxb_id", g.JxbId), logger.String("status", resp.Status.String()))
 	return nil
 }
 

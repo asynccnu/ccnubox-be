@@ -46,6 +46,11 @@ type GraduatePoints struct {
 }
 
 func (g *Graduate) GetGraduateGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]GraduatePoints, error) {
+	snapshot, err := g.GetGraduateSnapshot(ctx, cookie, xnm, xqm, showCount)
+	return snapshot.Grades, err
+}
+
+func (g *Graduate) GetGraduateSnapshot(ctx context.Context, cookie string, xnm, xqm, showCount int64) (GradeSnapshot[GraduatePoints], error) {
 	return collectGradePages(ctx, func(page int) ([]GraduatePoints, *int64, error) {
 		response, err := g.getGraduatePage(ctx, cookie, xnm, xqm, showCount, page)
 		return response.Items, response.TotalCount, err
@@ -136,11 +141,6 @@ func parseGraduatePage(body []byte) (GraduateResp, error) {
 	}
 	if response.Items == nil {
 		return GraduateResp{}, errorx.New("crawler: graduate system returned null grade data")
-	}
-	for _, grade := range response.Items {
-		if _, err := ParseTotalScore(grade.Cj); err != nil {
-			return GraduateResp{}, err
-		}
 	}
 	return response, nil
 }

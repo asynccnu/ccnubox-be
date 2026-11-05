@@ -57,7 +57,7 @@ type GradeNotificationOutbox struct {
 	UpdatedAt      int64  `gorm:"autoUpdateTime"`
 }
 
-// 身份不明的原始快照保留待人工核验，不写入正式成绩或通知。
+// 含身份歧义的快照保留待人工核验；仅跳过歧义课程，不影响其他课程同步。
 type GradeSyncIssue struct {
 	StudentID string `gorm:"type:varchar(100);primaryKey"`
 	Payload   string `gorm:"type:longtext;not null"`

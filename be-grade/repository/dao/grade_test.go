@@ -66,20 +66,13 @@ func countRows(t *testing.T, db *gorm.DB, table any, want int64) {
 	}
 }
 
-func TestSyncGradesBaselineEmptyAndIncomplete(t *testing.T) {
+func TestSyncGradesBaselineEmpty(t *testing.T) {
 	db, d := newGradeTestDAO(t)
-	incomplete := snapshot("student", model.Grade{StudentId: "student", JxbId: "class", Cj: 0})
-	incomplete.Complete = false
-	if _, err := d.SyncGrades(context.Background(), incomplete); err == nil {
-		t.Fatal("incomplete snapshot accepted")
-	}
-	countRows(t, db, &model.Grade{}, 0)
-	countRows(t, db, &model.GradeSyncState{}, 0)
 	if got := syncGrades(t, d, "student"); len(got.Notify) != 0 {
 		t.Fatal(got)
 	}
 	countRows(t, db, &model.GradeSyncState{}, 1)
-	got := syncGrades(t, d, "student", incomplete.Grades...)
+	got := syncGrades(t, d, "student", model.Grade{StudentId: "student", JxbId: "class", Cj: 0})
 	if len(got.Notify) != 1 || got.Notify[0].ScoreVersion != 1 || got.Notify[0].ChangeVersion != 1 {
 		t.Fatal(got)
 	}
@@ -260,8 +253,8 @@ func TestSyncGradesIdentityAliasesAndQuarantine(t *testing.T) {
 	}
 	countRows(t, db, &model.Grade{}, 1)
 	bad := snapshot("student", model.Grade{StudentId: "student", JxbId: "", Kcmc: "歧义", Cj: 90})
-	if _, err := d.SyncGrades(context.Background(), bad); !errors.Is(err, ErrGradeIdentity) {
-		t.Fatal(err)
+	if result, err := d.SyncGrades(context.Background(), bad); err != nil || len(result.Skipped) != 1 {
+		t.Fatal(result, err)
 	}
 	countRows(t, db, &model.GradeSyncIssue{}, 1)
 	countRows(t, db, &model.GradeNotificationOutbox{}, 0)
@@ -784,8 +777,8 @@ func TestLegacyPseudoIdentityIsNotRecreatedAsNewCourse(t *testing.T) {
 			if renamed {
 				candidate.Kcmc = "课程也改名"
 			}
-			if _, err := d.SyncGrades(context.Background(), snapshot("legacy", candidate)); !errors.Is(err, ErrGradeIdentity) {
-				t.Fatal("unconfirmed old identity was treated as a new course", err)
+			if result, err := d.SyncGrades(context.Background(), snapshot("legacy", candidate)); err != nil || len(result.Skipped) != 1 || len(result.Notify) != 0 {
+				t.Fatal("unconfirmed old identity was treated as a new course", result, err)
 			}
 			countRows(t, db, &model.Grade{}, 1)
 			countRows(t, db, &model.GradeSyncIssue{}, 1)
@@ -866,3 +859,185 @@ func TestNotificationMigrationRelaxesOldConstraintWithoutReset(t *testing.T) {
 }
 
 func stringPointer(s string) *string { return &s }
+
+func TestPartialGradeImportDoesNotBecomeLegacyBaseline(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	first := model.Grade{StudentId: "student", JxbId: "first", Cj: 80}
+	partial := snapshot("student", first)
+	partial.Complete = false
+	for range 2 {
+		if result, err := d.SyncGrades(context.Background(), partial); err != nil || len(result.Notify) != 0 {
+			t.Fatal(result, err)
+		}
+		var state model.GradeSyncState
+		if err := db.First(&state).Error; err != nil || state.InitializedAt != 0 {
+			t.Fatal(state, err)
+		}
+	}
+	second := model.Grade{StudentId: "student", JxbId: "second", Cj: 90}
+	if result := syncGrades(t, d, "student", first, second); len(result.Notify) != 0 {
+		t.Fatal(result)
+	}
+	countRows(t, db, &model.Grade{}, 2)
+	countRows(t, db, &model.GradeNotificationOutbox{}, 0)
+	first.Cj = 85
+	partial.Grades = []model.Grade{first}
+	if result, err := d.SyncGrades(context.Background(), partial); err != nil || len(result.Notify) != 1 || result.Notify[0].Cj != 85 {
+		t.Fatal(result, err)
+	}
+	countRows(t, db, &model.GradeNotificationOutbox{}, 1)
+}
+
+func TestLegacyEmptyClassIDsStayUntrackedWithoutBlockingOtherCourses(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	old := model.Grade{StudentId: "legacy", JxbId: "课程20201", Kcmc: "课程", Xnm: 2020, Xqm: 1, Cj: 80, ChangeVersion: 3}
+	if err := db.Create(&old).Error; err != nil {
+		t.Fatal(err)
+	}
+	old.JxbId = ""
+	fresh := model.Grade{StudentId: "legacy", JxbId: "real-class", Kcmc: "新课程", Cj: 90}
+	for i, score := range []float32{80, 85, 85} {
+		old.Cj = score
+		got := syncGrades(t, d, "legacy", old, fresh)
+		want := 0
+		if i == 0 {
+			want = 1
+		}
+		if len(got.Notify) != want || len(got.Skipped) != 0 {
+			t.Fatal(got)
+		}
+		var stored model.Grade
+		if err := db.First(&stored, "student_id = ? AND jxb_id = ?", "legacy", "课程20201").Error; err != nil || stored.Cj != score || stored.NotificationID != nil || stored.ScoreVersion != 0 {
+			t.Fatal(stored, err)
+		}
+	}
+	countRows(t, db, &model.Grade{}, 2)
+	countRows(t, db, &model.GradeNotificationOutbox{}, 1)
+	countRows(t, db, &model.GradeSyncIssue{}, 0)
+}
+
+func TestNewPseudoGradesOnlyUpdateLocalCache(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	syncGrades(t, d, "student")
+	grade := model.Grade{StudentId: "student", Kcmc: "课程", Xnm: 2020, Xqm: 1, Cj: 80}
+	for _, score := range []float32{80, 90} {
+		grade.Cj = score
+		got := syncGrades(t, d, "student", grade)
+		if len(got.Changed) != 1 || len(got.Notify) != 0 || got.Changed[0].JxbId != "课程20201" || got.Changed[0].NotificationID != nil || got.Changed[0].ScoreVersion != 0 {
+			t.Fatal(got)
+		}
+	}
+	countRows(t, db, &model.Grade{}, 1)
+	countRows(t, db, &model.GradeNotificationOutbox{}, 0)
+	countRows(t, db, &model.GradeIdentityAlias{}, 0)
+}
+
+func TestAmbiguousPseudoGradesDoNotBlockConfirmedGradeChanges(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	real := model.Grade{StudentId: "student", JxbId: "real", Cj: 80}
+	syncGrades(t, d, "student", real)
+	first := model.Grade{StudentId: "student", Kcmc: "同名课程", Xnm: 2020, Xqm: 1, Cj: 70}
+	legacy := first
+	legacy.JxbId = legacy.LegacyJxbID()
+	if err := db.Create(&legacy).Error; err != nil {
+		t.Fatal(err)
+	}
+	second := first
+	second.Cj = 90
+	real.Cj = 85
+	fresh := model.Grade{StudentId: "student", JxbId: "new-real", Cj: 90}
+	got := syncGrades(t, d, "student", first, second, real, fresh)
+	if len(got.Skipped) != 2 || len(got.Notify) != 2 || got.Notify[0].JxbId != "real" || got.Notify[1].JxbId != "new-real" {
+		t.Fatal(got)
+	}
+	countRows(t, db, &model.Grade{}, 3)
+	countRows(t, db, &model.GradeNotificationOutbox{}, 2)
+	countRows(t, db, &model.GradeSyncIssue{}, 1)
+}
+
+func TestSuppressedNotificationsDoNotStopGradeSync(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	grade := model.Grade{StudentId: "student", JxbId: "real", Cj: 80}
+	for _, score := range []float32{80, 90} {
+		grade.Cj = score
+		s := snapshot("student", grade)
+		s.SuppressNotifications = true
+		got, err := d.SyncGrades(context.Background(), s)
+		if err != nil || len(got.Changed) != 1 || len(got.Notify) != 0 {
+			t.Fatal(got, err)
+		}
+	}
+	// 重新启用后首次完整导入保持静默，不补发关闭期间的历史变化。
+	grade.Cj = 95
+	if got := syncGrades(t, d, "student", grade); len(got.Notify) != 0 {
+		t.Fatal(got)
+	}
+	countRows(t, db, &model.GradeNotificationOutbox{}, 0)
+	grade.Cj = 100
+	if got := syncGrades(t, d, "student", grade); len(got.Notify) != 1 {
+		t.Fatal(got)
+	}
+	countRows(t, db, &model.GradeNotificationOutbox{}, 1)
+}
+
+func TestUnresolvedCourseDoesNotPreventKnownCourseBaseline(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	known := model.Grade{StudentId: "student", JxbId: "known", Cj: 80}
+	unknown := model.Grade{StudentId: "student", Cj: 70}
+	first := syncGrades(t, d, "student", known, unknown)
+	if len(first.Notify) != 0 || len(first.Skipped) != 1 {
+		t.Fatal(first)
+	}
+	known.Cj = 90
+	next := syncGrades(t, d, "student", known, unknown)
+	if len(next.Notify) != 1 || next.Notify[0].JxbId != "known" || len(next.Skipped) != 1 {
+		t.Fatal(next)
+	}
+	countRows(t, db, &model.GradeNotificationOutbox{}, 1)
+}
+
+func TestLegacyBaselineIsInheritedWithoutPaginationTotal(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	old := model.Grade{StudentId: "legacy", JxbId: "old", Cj: 80, ChangeVersion: 3}
+	if err := db.Create(&old).Error; err != nil {
+		t.Fatal(err)
+	}
+	old.Cj = 90
+	s := snapshot("legacy", old, model.Grade{StudentId: "legacy", JxbId: "new", Cj: 0})
+	s.Complete = false
+	got, err := d.SyncGrades(context.Background(), s)
+	if err != nil || len(got.Notify) != 2 {
+		t.Fatal(got, err)
+	}
+	var state model.GradeSyncState
+	if err := db.First(&state).Error; err != nil || state.InitializedAt == 0 {
+		t.Fatal(state, err)
+	}
+	countRows(t, db, &model.GradeNotificationOutbox{}, 2)
+}
+
+func TestUnscoredObservationsAreReadOnlyAndStudentBound(t *testing.T) {
+	db, d := newGradeTestDAO(t)
+	old := model.Grade{StudentId: "legacy", JxbId: "课程20201", Kcmc: "课程", Xnm: 2020, Xqm: 1, Cj: 80, ChangeVersion: 3}
+	if err := db.Create(&old).Error; err != nil {
+		t.Fatal(err)
+	}
+	observation := old
+	observation.JxbId, observation.Cj = "", 999
+	s := snapshot("legacy", model.Grade{StudentId: "legacy", JxbId: "new-real", Cj: 90})
+	s.Unscored = []model.Grade{observation}
+	got, err := d.SyncGrades(context.Background(), s)
+	if err != nil || len(got.Notify) != 1 || len(got.Skipped) != 0 {
+		t.Fatal(got, err)
+	}
+	var stored model.Grade
+	if err := db.First(&stored, "student_id = ? AND jxb_id = ?", old.StudentId, old.JxbId).Error; err != nil || !reflect.DeepEqual(stored, old) {
+		t.Fatal(stored, err)
+	}
+	s.Unscored[0].StudentId = "other-student"
+	if _, err := d.SyncGrades(context.Background(), s); err == nil {
+		t.Fatal("cross-student observations accepted")
+	}
+	countRows(t, db, &model.Grade{}, 2)
+	countRows(t, db, &model.GradeNotificationOutbox{}, 1)
+}

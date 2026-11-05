@@ -68,6 +68,8 @@ type Grade struct {
 	JX0404ID string  `json:"jx0404id"`
 	KSXZ     string  `json:"ksxz"`
 	RowNum   int     `json:"rownum_"`
+
+	ScoreUnavailable bool `json:"-"` // 缺失或未发布的成绩不能写成有效零分
 }
 
 func (g *Grade) UnmarshalJSON(data []byte) error {
@@ -79,22 +81,49 @@ func (g *Grade) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
-	score, err := ParseTotalScore(string(raw.Score))
+	*g = Grade(raw.rawGrade)
+	value := strings.TrimSpace(string(raw.Score))
+	if value == "" || value == "null" {
+		g.ScoreUnavailable = true
+		return nil
+	}
+	if strings.HasPrefix(value, "\"") {
+		if err := json.Unmarshal(raw.Score, &value); err != nil {
+			return err
+		}
+		if _, err := ParseTotalScore(value); err != nil {
+			// 纯文本成绩没有可用的数值，不猜测等级映射，也不拖垮其他课程。
+			g.ScoreUnavailable = true
+			return nil
+		}
+	}
+	score, err := ParseTotalScore(value)
 	if err != nil {
 		return err
 	}
-	if raw.ZCJStr != "" {
-		if _, err := ParseTotalScore(raw.ZCJStr); err != nil {
-			return err
-		}
-	}
-	*g = Grade(raw.rawGrade)
 	g.ZCJ = score
+	g.ScoreUnavailable = !isPublishedScoreDisplay(raw.ZCJStr)
 	return nil
 }
 
-// GetGrade 只有所有分页成功且总数一致时才返回完整快照。
+// 等级文字只用于识别已发布状态，分数始终取上游提供的数值，不自行换算。
+func isPublishedScoreDisplay(value string) bool {
+	value = strings.TrimSpace(value)
+	switch value {
+	case "", "优秀", "良好", "中等", "及格", "不及格", "合格", "不合格", "通过", "不通过", "优", "良", "中":
+		return true
+	default:
+		_, err := ParseTotalScore(value)
+		return err == nil
+	}
+}
+
 func (c *UnderGrad) GetGrade(ctx context.Context, xnm, xqm int64, showCount int) ([]Grade, error) {
+	snapshot, err := c.GetGradeSnapshot(ctx, xnm, xqm, showCount)
+	return snapshot.Grades, err
+}
+
+func (c *UnderGrad) GetGradeSnapshot(ctx context.Context, xnm, xqm int64, showCount int) (GradeSnapshot[Grade], error) {
 	if showCount <= 0 {
 		showCount = 300
 	}

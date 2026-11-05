@@ -66,7 +66,11 @@ func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.U
 		refreshInterval: defaultGradeRefreshInterval,
 	}
 
-	g.snapshotVerified = cfg != nil && cfg.NotificationConf != nil && cfg.NotificationConf.SnapshotVerified
+	// 旧配置未声明通知开关时保持可用；关闭通知也不能阻断基础成绩同步。
+	g.snapshotVerified = true
+	if cfg != nil && cfg.NotificationConf != nil && cfg.NotificationConf.SnapshotVerified != nil {
+		g.snapshotVerified = *cfg.NotificationConf.SnapshotVerified
+	}
 	return g
 }
 
@@ -83,9 +87,6 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, req *domain.GetGradeB
 		if err != nil {
 			l.Warn("service: force refresh failed", logger.String("sid", req.StudentID), logger.Error(err))
 			return nil, ErrGetGrade(errorx.Errorf("service: force refresh fetch failed, sid: %s, err: %w", req.StudentID, err))
-		}
-		if len(fetchdata.final) == 0 {
-			return nil, ErrGetGrade(errorx.Errorf("service: force refresh returned no grades, sid: %s", req.StudentID))
 		}
 		grades = fetchdata.final
 		return modelConvDomainAndFilter(grades, req.Terms, req.Kcxzmcs), nil
@@ -116,9 +117,6 @@ func (s *gradeService) GetGradeScore(ctx context.Context, studentId string) ([]d
 		fetchdata, err := s.fetchGradesWithSingleFlight(ctx, studentId)
 		if err != nil {
 			return nil, ErrGetGrade(errorx.Errorf("service: get grade score fetch failed, sid: %s, err: %w", studentId, err))
-		}
-		if len(fetchdata.final) == 0 {
-			return nil, ErrGetGrade(errorx.Errorf("service: get grade score returned no grades, sid: %s", studentId))
 		}
 		return aggregateGradeScore(fetchdata.final), nil
 	}
@@ -183,7 +181,8 @@ func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDe
 	}
 	var failures, retryable []error
 	for _, grade := range current {
-		if !requested[grade.JxbId] || (grade.RegularGradePercent != RegularGradePercentMSG && grade.FinalGradePercent != FinalGradePercentMAG) {
+		// 兼容积压的旧详情任务，伪教学班 ID 不能传给上游详情接口。
+		if !grade.HasRealJxbID() || !requested[grade.JxbId] || (grade.RegularGradePercent != RegularGradePercentMSG && grade.FinalGradePercent != FinalGradePercentMAG) {
 			continue
 		}
 		if err := ctx.Err(); err != nil {
@@ -242,10 +241,6 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 			return nil, err
 		}
 
-		if !s.snapshotVerified {
-			return nil, errorx.New("service: complete grade snapshot protocol has not been verified; notificationConf.snapshotVerified is disabled")
-		}
-
 		cookieResp, err := s.userClient.GetCookie(ctx, &userv1.GetCookieRequest{StudentId: studentId, Type: string(system)})
 		if err != nil {
 			return nil, errorx.Errorf("service: rpc get cookie failed, sid: %s, err: %w", studentId, err)
@@ -273,11 +268,16 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		}
 
 		syncResult, err := s.gradeDAO.SyncGrades(ctx, dao.GradeSnapshot{
-			StudentID: studentId, SourceSystem: string(system), Grades: remote,
-			Complete: true, ObservedAt: time.Now(),
+			StudentID: studentId, SourceSystem: string(system), Grades: remote.grades, Unscored: remote.unscored,
+			Complete: remote.complete, SuppressNotifications: !s.snapshotVerified, ObservedAt: time.Now(),
 		})
 		if err != nil {
 			return nil, errorx.Errorf("service: dao batch sync failed, sid: %s, err: %w", studentId, err)
+		}
+
+		if len(syncResult.Skipped) > 0 {
+			s.l.WithContext(ctx).Warn("部分成绩身份不明，已保留待核验，其余课程正常同步",
+				logger.String("sid", studentId), logger.Int("count", len(syncResult.Skipped)))
 		}
 
 		final, err := s.gradeDAO.FindGrades(ctx, studentId, 0, 0)
@@ -289,7 +289,7 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		var needDetailgrades []model.Grade
 		for _, g := range final {
 			// 任一边占比还是占位符就需要补抓：单边占位多来自部分成功的详情抓取。
-			if g.RegularGradePercent == RegularGradePercentMSG || g.FinalGradePercent == FinalGradePercentMAG {
+			if g.HasRealJxbID() && (g.RegularGradePercent == RegularGradePercentMSG || g.FinalGradePercent == FinalGradePercentMAG) {
 				needDetailgrades = append(needDetailgrades, g)
 			}
 		}
@@ -436,32 +436,36 @@ func (s *gradeService) GetDistinctGradeType(ctx context.Context, stuID string) (
 
 // Student 接口及实现
 type Student interface {
-	GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]model.Grade, error)
+	GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) (gradeSnapshot, error)
 }
 
 type UndergraduateStudent struct {
 	ug *crawler.UnderGrad
 }
 
-func (u *UndergraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]model.Grade, error) {
-	grade, err := u.ug.GetGrade(ctx, xnm, xqm, int(showCount))
+func (u *UndergraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) (gradeSnapshot, error) {
+	snapshot, err := u.ug.GetGradeSnapshot(ctx, xnm, xqm, int(showCount))
 	if err != nil {
-		return nil, errorx.Errorf("crawler: ug get grade failed, err: %w", err)
+		return gradeSnapshot{}, errorx.Errorf("crawler: ug get grade failed, err: %w", err)
 	}
 
 	// 详情页逐科抓取耗时且部分课程没有详情数据。列表先入库，详情由 GradeDetailEvent 异步补全。
-	return aggregateGrade(grade, make(map[string]crawler.Score))
+	result, err := aggregateGradeSnapshot(snapshot.Grades, make(map[string]crawler.Score))
+	result.complete = snapshot.Complete
+	return result, err
 }
 
 type GraduateStudent struct {
 	gc *crawler.Graduate
 }
 
-func (g *GraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]model.Grade, error) {
-	grade, err := g.gc.GetGraduateGrades(ctx, cookie, xnm, xqm, showCount)
+func (g *GraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) (gradeSnapshot, error) {
+	snapshot, err := g.gc.GetGraduateSnapshot(ctx, cookie, xnm, xqm, showCount)
 	if err != nil {
-		return nil, errorx.Errorf("crawler: graduate get grade failed, err: %w", err)
+		return gradeSnapshot{}, errorx.Errorf("crawler: graduate get grade failed, err: %w", err)
 	}
 
-	return ConvertGraduateGrade(grade)
+	result, err := convertGraduateSnapshot(snapshot.Grades)
+	result.complete = snapshot.Complete
+	return result, err
 }

@@ -3,7 +3,10 @@ package conf
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
 func TestInitInfraConfig(t *testing.T) {
@@ -24,6 +27,39 @@ func TestInitTransConfig(t *testing.T) {
 	}
 
 	fmt.Printf("InitServerConf: %+v\n", trans)
+}
+
+func TestNotificationConfigRemainsOptional(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		yaml    string
+		present bool
+		enabled bool
+	}{
+		{"legacy", "gradeConf:\n  high: 15\nconsumeConf:\n  consumeNum: 100\n", false, false},
+		{"poll only", "notificationConf:\n  pollSeconds: 10\n", false, false},
+		{"disabled", "notificationConf:\n  snapshotVerified: false\n", true, false},
+		{"enabled", "notificationConf:\n  snapshotVerified: true\n", true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			v := viper.New()
+			v.SetConfigType("yaml")
+			if err := v.ReadConfig(strings.NewReader(tc.yaml)); err != nil {
+				t.Fatal(err)
+			}
+			var cfg ServerConf
+			if err := v.Unmarshal(&cfg); err != nil {
+				t.Fatal(err)
+			}
+			var value *bool
+			if cfg.NotificationConf != nil {
+				value = cfg.NotificationConf.SnapshotVerified
+			}
+			if (value != nil) != tc.present || (value != nil && *value != tc.enabled) {
+				t.Fatalf("value=%v want present=%v enabled=%v", value, tc.present, tc.enabled)
+			}
+		})
+	}
 }
 
 func requireNacosIntegration(t *testing.T) {

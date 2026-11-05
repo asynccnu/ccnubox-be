@@ -22,10 +22,10 @@ type ServerConf struct {
 }
 
 type NotificationConf struct {
-	SnapshotVerified bool `yaml:"snapshotVerified"`
-	PollSeconds      int  `yaml:"pollSeconds"`
-	BatchSize        int  `yaml:"batchSize"`
-	RPCSeconds       int  `yaml:"rpcSeconds"`
+	SnapshotVerified *bool `yaml:"snapshotVerified"` // 缺省启用；显式关闭只停止生成通知，不影响成绩同步
+	PollSeconds      int   `yaml:"pollSeconds"`
+	BatchSize        int   `yaml:"batchSize"`
+	RPCSeconds       int   `yaml:"rpcSeconds"`
 }
 
 type ConsumeConf struct {

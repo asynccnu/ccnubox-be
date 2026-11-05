@@ -33,7 +33,7 @@ gradeConf:
   low: 60       # 低优先级刷新间隔(分钟)
 
 notificationConf:
-  snapshotVerified: false # 核验本科/研究生真实分页总数、跨学期参数及成绩状态后才能开启
+  snapshotVerified: true # 可省略；false 只停止生成新通知，不影响查询。首次通知基线仍要求完整分页
   pollSeconds: 5  # 持久化成绩通知轮询间隔
   batchSize: 50   # 每批发布上限
   rpcSeconds: 3   # 单次 Feed RPC 和数据库操作超时

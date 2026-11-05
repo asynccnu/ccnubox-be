@@ -34,7 +34,7 @@ func gradeNotificationColumns(db *gorm.DB) (map[string]gorm.ColumnType, error) {
 }
 
 func notificationSchemaError(reason string) error {
-	return fmt.Errorf("成绩通知需要 DDL 迁移，请先执行 be-grade/cmd/migrate-notifications: %s", reason)
+	return fmt.Errorf("成绩通知表结构与预期不一致（启动迁移已自动执行，请人工核对数据库结构）: %s", reason)
 }
 
 func checkGradeNotificationColumns(db *gorm.DB, columns map[string]gorm.ColumnType, requireNullable bool) error {

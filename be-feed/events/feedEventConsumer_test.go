@@ -15,6 +15,7 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/service"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
 	"github.com/asynccnu/ccnubox-be/common/pkg/saramax"
+	"github.com/asynccnu/ccnubox-be/common/pkg/testx"
 	"github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 )
@@ -112,12 +113,16 @@ func TestFeedInvalidPayloadSkippedAfterThreshold(t *testing.T) {
 }
 
 func TestClosedOrdinarySubscriptionStillStoresRedeliveryIdempotently(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
+	db := testx.MySQL(t)
+	if db == nil {
+		var err error
+		db, err = gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		sqlDB, _ := db.DB()
+		t.Cleanup(func() { _ = sqlDB.Close() })
 	}
-	sqlDB, _ := db.DB()
-	defer sqlDB.Close()
 	if err := db.AutoMigrate(&model.FeedEvent{}, &model.FeedPushDelivery{}, &model.FeedUserConfig{}); err != nil {
 		t.Fatal(err)
 	}

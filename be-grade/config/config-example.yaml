@@ -32,6 +32,12 @@ gradeConf:
   middle: 30    # 中优先级刷新间隔(分钟)
   low: 60       # 低优先级刷新间隔(分钟)
 
+notificationConf:
+  snapshotVerified: true # 可省略；false 只停止生成新通知，不影响查询。首次通知基线仍要求完整分页
+  pollSeconds: 5  # 持久化成绩通知轮询间隔
+  batchSize: 50   # 每批发布上限
+  rpcSeconds: 3   # 单次 Feed RPC 和数据库操作超时
+
 consumeConf:
   consumeTime: 1   # 强制插入的时间(分钟)
   consumeNum: 100  # 批量存入条数上限

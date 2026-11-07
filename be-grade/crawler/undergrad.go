@@ -42,9 +42,10 @@ func NewUnderGrad(client *http.Client) (*UnderGrad, error) {
 }
 
 type GradeResponse struct {
-	Code int     `json:"code"`
-	Msg  string  `json:"msg"`
-	Data []Grade `json:"data"`
+	Code  int     `json:"code"`
+	Msg   string  `json:"msg"`
+	Data  []Grade `json:"data"`
+	Total *int64  `json:"total"`
 }
 
 type Grade struct {
@@ -67,10 +68,72 @@ type Grade struct {
 	JX0404ID string  `json:"jx0404id"`
 	KSXZ     string  `json:"ksxz"`
 	RowNum   int     `json:"rownum_"`
+
+	ScoreUnavailable bool `json:"-"` // 缺失或未发布的成绩不能写成有效零分
 }
 
-// GetGrade 获取本科生成绩列表
+func (g *Grade) UnmarshalJSON(data []byte) error {
+	type rawGrade Grade
+	var raw struct {
+		rawGrade
+		Score json.RawMessage `json:"zcj"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*g = Grade(raw.rawGrade)
+	value := strings.TrimSpace(string(raw.Score))
+	if value == "" || value == "null" {
+		g.ScoreUnavailable = true
+		return nil
+	}
+	if strings.HasPrefix(value, "\"") {
+		if err := json.Unmarshal(raw.Score, &value); err != nil {
+			return err
+		}
+		if _, err := ParseTotalScore(value); err != nil {
+			// 纯文本成绩没有可用的数值，不猜测等级映射，也不拖垮其他课程。
+			g.ScoreUnavailable = true
+			return nil
+		}
+	}
+	score, err := ParseTotalScore(value)
+	if err != nil {
+		return err
+	}
+	g.ZCJ = score
+	g.ScoreUnavailable = !isPublishedScoreDisplay(raw.ZCJStr)
+	return nil
+}
+
+// 等级文字只用于识别已发布状态，分数始终取上游提供的数值，不自行换算。
+func isPublishedScoreDisplay(value string) bool {
+	value = strings.TrimSpace(value)
+	switch value {
+	case "", "优秀", "良好", "中等", "及格", "不及格", "合格", "不合格", "通过", "不通过", "优", "良", "中":
+		return true
+	default:
+		_, err := ParseTotalScore(value)
+		return err == nil
+	}
+}
+
 func (c *UnderGrad) GetGrade(ctx context.Context, xnm, xqm int64, showCount int) ([]Grade, error) {
+	snapshot, err := c.GetGradeSnapshot(ctx, xnm, xqm, showCount)
+	return snapshot.Grades, err
+}
+
+func (c *UnderGrad) GetGradeSnapshot(ctx context.Context, xnm, xqm int64, showCount int) (GradeSnapshot[Grade], error) {
+	if showCount <= 0 {
+		showCount = 300
+	}
+	return collectGradePages(ctx, func(page int) ([]Grade, *int64, error) {
+		response, err := c.getGradePage(ctx, xnm, xqm, showCount, page)
+		return response.Data, response.Total, err
+	}, func(g Grade) string { return g.JX0404ID })
+}
+
+func (c *UnderGrad) getGradePage(ctx context.Context, xnm, xqm int64, showCount, page int) (GradeResponse, error) {
 	var kksj string
 	// 格式转换: 2024-2025-1
 	if xnm != 0 && xqm != 0 {
@@ -78,13 +141,13 @@ func (c *UnderGrad) GetGrade(ctx context.Context, xnm, xqm int64, showCount int)
 	}
 
 	reqURL := fmt.Sprintf(
-		"%s?pageNum=1&pageSize=%d&kksj=%s&kcxz=&kcsx=&kcmc=&xsfs=all&sfxsbcxq=1",
-		GET_GRADE_URL, showCount, kksj,
+		"%s?pageNum=%d&pageSize=%d&kksj=%s&kcxz=&kcsx=&kcmc=&xsfs=all&sfxsbcxq=1",
+		GET_GRADE_URL, page, showCount, kksj,
 	)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
 	if err != nil {
-		return nil, errorx.Errorf("crawler: create undergrad request failed, err: %w", err)
+		return GradeResponse{}, errorx.Errorf("crawler: create undergrad request failed, err: %w", err)
 	}
 
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
@@ -92,40 +155,45 @@ func (c *UnderGrad) GetGrade(ctx context.Context, xnm, xqm int64, showCount int)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, errorx.Errorf("crawler: do undergrad request failed, err: %w", err)
+		return GradeResponse{}, errorx.Errorf("crawler: do undergrad request failed, err: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, errorx.Errorf("crawler: undergrad system status error, code: %d", resp.StatusCode)
+		return GradeResponse{}, errorx.Errorf("crawler: undergrad system status error, code: %d", resp.StatusCode)
 	}
 
 	body, err := httpx.ReadResponse(resp)
 	if err != nil {
-		return nil, errorx.Errorf("crawler: read undergrad body failed, err: %w", err)
+		return GradeResponse{}, errorx.Errorf("crawler: read undergrad body failed, err: %w", err)
 	}
 
 	// 优先检测是否重定向到了登录页
 	if strings.Contains(string(body), Login_URL) ||
 		(resp.Request != nil && resp.Request.URL != nil && strings.Contains(resp.Request.URL.String(), Login_URL)) {
-		return nil, ErrCookieTimeout
+		return GradeResponse{}, ErrCookieTimeout
 	}
 
-	return parseGradeResponse(body)
+	return parseGradePage(body)
 }
 
 func parseGradeResponse(body []byte) ([]Grade, error) {
+	response, err := parseGradePage(body)
+	return response.Data, err
+}
+
+func parseGradePage(body []byte) (GradeResponse, error) {
 	var gradeResp GradeResponse
 	if err := json.Unmarshal(body, &gradeResp); err != nil {
-		return nil, errorx.Errorf("crawler: unmarshal undergrad grade failed, body_sample: %.100s, err: %w", string(body), err)
+		return GradeResponse{}, errorx.New("crawler: unmarshal undergrad grade failed")
 	}
 	if gradeResp.Code != 0 {
-		return nil, errorx.Errorf("crawler: undergrad system returned error, code: %d, msg: %s", gradeResp.Code, gradeResp.Msg)
+		return GradeResponse{}, errorx.Errorf("crawler: undergrad system returned error, code: %d", gradeResp.Code)
 	}
 	if gradeResp.Data == nil {
-		return nil, errorx.New("crawler: undergrad system returned null grade data")
+		return GradeResponse{}, errorx.New("crawler: undergrad system returned null grade data")
 	}
 
-	return gradeResp.Data, nil
+	return gradeResp, nil
 }
 
 // GetDetail 获取成绩详情（平时分、期末分比例等）

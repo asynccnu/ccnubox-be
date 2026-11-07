@@ -19,6 +19,7 @@ type Grade struct {
 	RegularGrade        float32 `json:"regularGrade,omitempty"`        //平时成绩
 	FinalGradePercent   string  `json:"finalGradePercent,omitempty"`   //期末成绩占比
 	FinalGrade          float32 `json:"finalGrade,omitempty"`          //期末成绩
+	ScoreVersion        int64   `json:"scoreVersion,omitempty"`        // 总成绩业务版本
 	ChangeVersion       int64   `json:"changeVersion,omitempty"`       //成绩变更版本
 }
 

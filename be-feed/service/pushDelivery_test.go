@@ -17,7 +17,6 @@ import (
 	"github.com/asynccnu/ccnubox-be/be-feed/repository/model"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger/zapx"
 	"go.uber.org/zap"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 )
@@ -343,11 +342,8 @@ func TestPushAllowedSnapshot(t *testing.T) {
 func TestPushDeliveryPersistenceBranches(t *testing.T) {
 	for _, scenario := range []string{"sent", "claim_false", "missing_event", "no_token", "disabled", "expired", "save_cid_error", "push_error", "mark_sent_error", "cancelled", "recipient_mismatch", "library_closed_before_send", "library_gate_error"} {
 		t.Run(scenario, func(t *testing.T) {
-			dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
-			db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-			if err != nil {
-				t.Fatal(err)
-			}
+			db := newFeedServiceTestDB(t, &gorm.Config{})
+			var err error
 			if err = db.AutoMigrate(&model.FeedEvent{}, &model.FeedPushDelivery{}, &model.FeedUserConfig{}, &model.FeedUserToken{}); err != nil {
 				t.Fatal(err)
 			}
@@ -475,11 +471,8 @@ func (c *closingPushClient) GetCID(ctx context.Context) (string, error) {
 }
 
 func TestPreparePushReadOnly(t *testing.T) {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := newFeedServiceTestDB(t, &gorm.Config{})
+	var err error
 	if err = db.AutoMigrate(&model.FeedUserConfig{}, &model.FeedUserToken{}); err != nil {
 		t.Fatal(err)
 	}
@@ -536,18 +529,16 @@ func TestPushDeliveryBatchTargetReads(t *testing.T) {
 	for _, count := range []int{0, 1, 10, 21, 100} {
 		t.Run(strconv.Itoa(count), func(t *testing.T) {
 			counter := &pushTargetReadLogger{Interface: gormlogger.Default.LogMode(gormlogger.Silent)}
-			dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
-			db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{Logger: counter})
-			if err != nil {
-				t.Fatal(err)
-			}
+			db := newFeedServiceTestDB(t, &gorm.Config{Logger: counter})
+			var err error
 			sqlDB, err := db.DB()
 			if err != nil {
 				t.Fatal(err)
 			}
-			// SQLite 单连接避免并发状态更新的表锁干扰查询次数验证。
-			sqlDB.SetMaxOpenConns(1)
-			t.Cleanup(func() { _ = sqlDB.Close() })
+			// SQLite 单连接避免表锁干扰；MySQL 保留并发连接验证真实行为。
+			if db.Dialector.Name() == "sqlite" {
+				sqlDB.SetMaxOpenConns(1)
+			}
 			if err = db.AutoMigrate(&model.FeedEvent{}, &model.FeedPushDelivery{}, &model.FeedUserConfig{}, &model.FeedUserToken{}); err != nil {
 				t.Fatal(err)
 			}
@@ -612,11 +603,8 @@ func TestPushDeliveryBatchTargetReads(t *testing.T) {
 func TestPushDeliveryPrefetchFailureDoesNotClaim(t *testing.T) {
 	for _, scenario := range []string{"config_error", "token_error", "cancelled"} {
 		t.Run(scenario, func(t *testing.T) {
-			dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
-			db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-			if err != nil {
-				t.Fatal(err)
-			}
+			db := newFeedServiceTestDB(t, &gorm.Config{})
+			var err error
 			if err = db.AutoMigrate(&model.FeedPushDelivery{}, &model.FeedUserConfig{}, &model.FeedUserToken{}); err != nil {
 				t.Fatal(err)
 			}
@@ -660,11 +648,8 @@ func TestPushDeliveryPrefetchFailureDoesNotClaim(t *testing.T) {
 }
 
 func TestPushTargetsSnapshotMatchesSinglePreparation(t *testing.T) {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_busy_timeout=5000", t.Name())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := newFeedServiceTestDB(t, &gorm.Config{})
+	var err error
 	if err = db.AutoMigrate(&model.FeedUserConfig{}, &model.FeedUserToken{}); err != nil {
 		t.Fatal(err)
 	}

@@ -32,7 +32,7 @@ func InitApp() App {
 	saramaClient := ioc.InitKafka(infraConf)
 	metrics := ioc.InitMetrics()
 	producerProducer := producer.NewInstrumentedSaramaProducer(saramaClient, logger, metrics)
-	gradeService := service.NewGradeService(gradeDAO, logger, userServiceClient, classerClient, client2, producerProducer)
+	gradeService := service.NewGradeService(gradeDAO, logger, userServiceClient, classerClient, client2, producerProducer, serverConf)
 	rankDAO := dao.NewRankDAO(db)
 	rankService := service.NewRankService(rankDAO, logger, userServiceClient, client2)
 	gradeServiceServer := grpc.NewGradeGrpcService(gradeService, rankService)
@@ -41,6 +41,9 @@ func InitApp() App {
 	gradeDetailEventConsumerHandler := events.NewGradeDetailEventConsumerHandler(saramaClient, logger, gradeService, serverConf, metrics)
 	v := ioc.InitConsumers(gradeDetailEventConsumerHandler)
 	v2 := ioc.InitOTel(infraConf)
-	app := NewApp(server, metricsxServer, v, v2, saramaClient, producerProducer)
+	notificationDAO := dao.NewNotificationDAO(db)
+	feedServiceClient := ioc.InitFeedClient(client, infraConf)
+	notificationPublisher := service.NewNotificationPublisher(notificationDAO, feedServiceClient, logger, serverConf)
+	app := NewApp(server, metricsxServer, v, v2, saramaClient, producerProducer, notificationPublisher)
 	return app
 }

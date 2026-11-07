@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/asynccnu/ccnubox-be/be-grade/conf"
 	"github.com/asynccnu/ccnubox-be/be-grade/crawler"
 	"github.com/asynccnu/ccnubox-be/be-grade/domain"
 	"github.com/asynccnu/ccnubox-be/be-grade/events/producer"
@@ -40,19 +41,20 @@ type GradeService interface {
 }
 
 type gradeService struct {
-	userClient      userv1.UserServiceClient
-	proxyClient     proxy.Client
-	classlistClient classlistv1.ClasserClient
-	gradeDAO        dao.GradeDAO
-	l               logger.Logger
-	sf              singleflight.Group
-	producer        producer.Producer
-	refreshMu       sync.Mutex
-	nextRefresh     map[string]time.Time
-	refreshInterval time.Duration
+	userClient       userv1.UserServiceClient
+	proxyClient      proxy.Client
+	classlistClient  classlistv1.ClasserClient
+	gradeDAO         dao.GradeDAO
+	snapshotVerified bool
+	l                logger.Logger
+	sf               singleflight.Group
+	producer         producer.Producer
+	refreshMu        sync.Mutex
+	nextRefresh      map[string]time.Time
+	refreshInterval  time.Duration
 }
 
-func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.UserServiceClient, classlistClient classlistv1.ClasserClient, proxyClient proxy.Client, producer producer.Producer) GradeService {
+func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.UserServiceClient, classlistClient classlistv1.ClasserClient, proxyClient proxy.Client, producer producer.Producer, cfg *conf.ServerConf) GradeService {
 	g := &gradeService{
 		gradeDAO:        gradeDAO,
 		l:               l,
@@ -64,6 +66,11 @@ func NewGradeService(gradeDAO dao.GradeDAO, l logger.Logger, userClient userv1.U
 		refreshInterval: defaultGradeRefreshInterval,
 	}
 
+	// 旧配置未声明通知开关时保持可用；关闭通知也不能阻断基础成绩同步。
+	g.snapshotVerified = true
+	if cfg != nil && cfg.NotificationConf != nil && cfg.NotificationConf.SnapshotVerified != nil {
+		g.snapshotVerified = *cfg.NotificationConf.SnapshotVerified
+	}
 	return g
 }
 
@@ -80,9 +87,6 @@ func (s *gradeService) GetGradeByTerm(ctx context.Context, req *domain.GetGradeB
 		if err != nil {
 			l.Warn("service: force refresh failed", logger.String("sid", req.StudentID), logger.Error(err))
 			return nil, ErrGetGrade(errorx.Errorf("service: force refresh fetch failed, sid: %s, err: %w", req.StudentID, err))
-		}
-		if len(fetchdata.final) == 0 {
-			return nil, ErrGetGrade(errorx.Errorf("service: force refresh returned no grades, sid: %s", req.StudentID))
 		}
 		grades = fetchdata.final
 		return modelConvDomainAndFilter(grades, req.Terms, req.Kcxzmcs), nil
@@ -114,9 +118,6 @@ func (s *gradeService) GetGradeScore(ctx context.Context, studentId string) ([]d
 		if err != nil {
 			return nil, ErrGetGrade(errorx.Errorf("service: get grade score fetch failed, sid: %s, err: %w", studentId, err))
 		}
-		if len(fetchdata.final) == 0 {
-			return nil, ErrGetGrade(errorx.Errorf("service: get grade score returned no grades, sid: %s", studentId))
-		}
 		return aggregateGradeScore(fetchdata.final), nil
 	}
 
@@ -130,10 +131,10 @@ func (s *gradeService) GetUpdateScore(ctx context.Context, studentId string) ([]
 	if err != nil {
 		return nil, ErrGetGrade(errorx.Errorf("service: get update score failed, sid: %s, err: %w", studentId, err))
 	}
-	if len(grades.update) == 0 {
+	if len(grades.notify) == 0 {
 		return nil, nil
 	}
-	return modelConvDomain(grades.update), nil
+	return modelConvDomain(grades.notify), nil
 }
 
 func (s *gradeService) UpdateDetailScore(ctx context.Context, need domain.NeedDetailGrade) error {
@@ -180,7 +181,8 @@ func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDe
 	}
 	var failures, retryable []error
 	for _, grade := range current {
-		if !requested[grade.JxbId] || (grade.RegularGradePercent != RegularGradePercentMSG && grade.FinalGradePercent != FinalGradePercentMAG) {
+		// 兼容积压的旧详情任务，伪教学班 ID 不能传给上游详情接口。
+		if !grade.HasRealJxbID() || !requested[grade.JxbId] || (grade.RegularGradePercent != RegularGradePercentMSG && grade.FinalGradePercent != FinalGradePercentMAG) {
 			continue
 		}
 		if err := ctx.Err(); err != nil {
@@ -206,7 +208,7 @@ func (s *gradeService) updateDetailScore(ctx context.Context, need domain.NeedDe
 		grade.FinalGradePercent = detail.Cjxm1bl
 		grade.FinalGrade = detail.Cjxm1
 		// 成功一科就保存，重投后跳过已完成部分，避免每次重试重复爬取整个列表。
-		if _, err := s.gradeDAO.BatchInsertOrUpdate(ctx, []model.Grade{grade}, true); err != nil {
+		if err := s.gradeDAO.UpdateGradeDetails(ctx, []model.Grade{grade}); err != nil {
 			return err
 		}
 	}
@@ -265,9 +267,17 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 			return nil, errorx.Errorf("service: crawler fetch failed, sid: %s, err: %w", studentId, err)
 		}
 
-		update, err := s.gradeDAO.BatchInsertOrUpdate(ctx, remote, false)
+		syncResult, err := s.gradeDAO.SyncGrades(ctx, dao.GradeSnapshot{
+			StudentID: studentId, SourceSystem: string(system), Grades: remote.grades, Unscored: remote.unscored,
+			Invalid: remote.invalid, Complete: remote.complete, SuppressNotifications: !s.snapshotVerified, ObservedAt: time.Now(),
+		})
 		if err != nil {
 			return nil, errorx.Errorf("service: dao batch sync failed, sid: %s, err: %w", studentId, err)
+		}
+
+		if len(syncResult.Skipped) > 0 {
+			s.l.WithContext(ctx).Warn("部分成绩身份或元数据异常，已保留待核验，其余课程正常同步",
+				logger.String("sid", studentId), logger.Int("count", len(syncResult.Skipped)))
 		}
 
 		final, err := s.gradeDAO.FindGrades(ctx, studentId, 0, 0)
@@ -279,7 +289,7 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 		var needDetailgrades []model.Grade
 		for _, g := range final {
 			// 任一边占比还是占位符就需要补抓：单边占位多来自部分成功的详情抓取。
-			if g.RegularGradePercent == RegularGradePercentMSG || g.FinalGradePercent == FinalGradePercentMAG {
+			if g.HasRealJxbID() && (g.RegularGradePercent == RegularGradePercentMSG || g.FinalGradePercent == FinalGradePercentMAG) {
 				needDetailgrades = append(needDetailgrades, g)
 			}
 		}
@@ -291,13 +301,13 @@ func (s *gradeService) fetchGradesWithSingleFlight(ctx context.Context, studentI
 			})
 			if err != nil {
 				// 基础成绩已提交，不能让详情发布失败隐藏本轮成绩变更。
-				// 未发布详情仍依赖后续刷新补发，持久化 outbox 需要单独实现。
+				// 详情事件仍依赖后续刷新补发，不属于成绩通知 Outbox。
 				s.l.WithContext(ctx).Error(saramax.LogKeySendFailed+" service: send detail event failed",
 					logger.String("sid", studentId), logger.Error(err))
 			}
 		}
 
-		return FetchGrades{update: update, final: final}, nil
+		return FetchGrades{notify: syncResult.Notify, final: final}, nil
 	})
 
 	fetchGrades, ok := result.(FetchGrades)
@@ -426,32 +436,36 @@ func (s *gradeService) GetDistinctGradeType(ctx context.Context, stuID string) (
 
 // Student 接口及实现
 type Student interface {
-	GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]model.Grade, error)
+	GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) (gradeSnapshot, error)
 }
 
 type UndergraduateStudent struct {
 	ug *crawler.UnderGrad
 }
 
-func (u *UndergraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]model.Grade, error) {
-	grade, err := u.ug.GetGrade(ctx, xnm, xqm, int(showCount))
+func (u *UndergraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) (gradeSnapshot, error) {
+	snapshot, err := u.ug.GetGradeSnapshot(ctx, xnm, xqm, int(showCount))
 	if err != nil {
-		return nil, errorx.Errorf("crawler: ug get grade failed, err: %w", err)
+		return gradeSnapshot{}, errorx.Errorf("crawler: ug get grade failed, err: %w", err)
 	}
 
 	// 详情页逐科抓取耗时且部分课程没有详情数据。列表先入库，详情由 GradeDetailEvent 异步补全。
-	return aggregateGrade(grade, make(map[string]crawler.Score)), nil
+	result, err := aggregateGradeSnapshot(snapshot.Grades, make(map[string]crawler.Score))
+	result.complete = snapshot.Complete && len(result.invalid) == 0
+	return result, err
 }
 
 type GraduateStudent struct {
 	gc *crawler.Graduate
 }
 
-func (g *GraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) ([]model.Grade, error) {
-	grade, err := g.gc.GetGraduateGrades(ctx, cookie, xnm, xqm, showCount)
+func (g *GraduateStudent) GetGrades(ctx context.Context, cookie string, xnm, xqm, showCount int64) (gradeSnapshot, error) {
+	snapshot, err := g.gc.GetGraduateSnapshot(ctx, cookie, xnm, xqm, showCount)
 	if err != nil {
-		return nil, errorx.Errorf("crawler: graduate get grade failed, err: %w", err)
+		return gradeSnapshot{}, errorx.Errorf("crawler: graduate get grade failed, err: %w", err)
 	}
 
-	return ConvertGraduateGrade(grade), nil
+	result, err := convertGraduateSnapshot(snapshot.Grades)
+	result.complete = snapshot.Complete && len(result.invalid) == 0
+	return result, err
 }

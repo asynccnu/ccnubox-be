@@ -52,6 +52,7 @@ message Grade{
   string KcId=14;
   string JxbId=15;
   int64 changeVersion=16; //成绩变更版本
+  int64 scoreVersion=17; //总成绩业务版本
 }
 
 message GetGradeScoreReq{

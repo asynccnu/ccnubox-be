@@ -85,7 +85,7 @@ func (s *userService) Save(ctx context.Context, studentId string, password strin
 		if decryptErr != nil {
 			return DECRYPT_ERROR(errorx.Errorf("service: decrypt stored password failed, sid: %s, err: %w", studentId, decryptErr))
 		}
-		if storedPassword == password && !s.cryptoClient.NeedsMigration(user.Password) {
+		if subtle.ConstantTimeCompare([]byte(storedPassword), []byte(password)) == 1 && !s.cryptoClient.NeedsMigration(user.Password) {
 			return nil
 		}
 	case errors.Is(err, dao.UserNotFound):

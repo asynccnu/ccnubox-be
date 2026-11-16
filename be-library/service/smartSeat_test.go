@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -632,22 +634,35 @@ func TestMergeSmartSeatGroupSegments(t *testing.T) {
 	})
 }
 
-func TestRemoveSmartSeatSegments(t *testing.T) {
-	segments := []smartSeatSegment{
-		{RoomID: "room-1", SeatID: "seat-1", StartMinute: 9 * 60, EndMinute: 10 * 60},
-		{RoomID: "room-1", SeatID: "seat-2", StartMinute: 10 * 60, EndMinute: 11 * 60},
+func TestRemoveSmartSeatGroupSegments(t *testing.T) {
+	stored := []smartSeatGroupSegment{
+		{RoomID: "room-1", SeatID: "seat-1", Start: "09:00", End: "10:00"},
+		{RoomID: "room-1", SeatID: "seat-2", Start: "10:00", End: "11:00"},
 	}
-	remaining := removeSmartSeatSegments(segments, segments[:1])
+	targets := []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-1", StartMinute: 9 * 60, EndMinute: 10 * 60},
+	}
+	remaining := removeSmartSeatGroupSegments(stored, targets)
 	if len(remaining) != 1 || remaining[0].SeatID != "seat-2" {
 		t.Fatalf("unexpected remaining segments: %+v", remaining)
 	}
 
-	if all := removeSmartSeatSegments(segments, segments); len(all) != 0 {
+	all := removeSmartSeatGroupSegments(stored, []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-1", StartMinute: 9 * 60, EndMinute: 10 * 60},
+		{RoomID: "room-1", SeatID: "seat-2", StartMinute: 10 * 60, EndMinute: 11 * 60},
+	})
+	if len(all) != 0 {
 		t.Fatalf("expected no remaining segments, got %+v", all)
 	}
 }
 
 func newTestSeatService(t *testing.T) *seatService {
+	t.Helper()
+	service, _ := newTestSeatServiceWithServer(t)
+	return service
+}
+
+func newTestSeatServiceWithServer(t *testing.T) (*seatService, *miniredis.Miniredis) {
 	t.Helper()
 	server, err := miniredis.Run()
 	if err != nil {
@@ -656,7 +671,7 @@ func newTestSeatService(t *testing.T) *seatService {
 	t.Cleanup(server.Close)
 	rdb := redis.NewClient(&redis.Options{Addr: server.Addr()})
 	t.Cleanup(func() { _ = rdb.Close() })
-	return &seatService{rdb: rdb}
+	return &seatService{rdb: rdb}, server
 }
 
 func TestSaveSmartSeatGroupKeepsPreviousSegments(t *testing.T) {
@@ -689,6 +704,105 @@ func TestSaveSmartSeatGroupKeepsPreviousSegments(t *testing.T) {
 	for i, want := range []string{"seat-1", "seat-2", "seat-3"} {
 		if segments[i].SeatID != want {
 			t.Fatalf("segment %d = %q, want %q (full: %+v)", i, segments[i].SeatID, want, segments)
+		}
+	}
+}
+
+func TestSaveSmartSeatGroupKeepsGroupWhenRedisFails(t *testing.T) {
+	service, server := newTestSeatServiceWithServer(t)
+	ctx := context.Background()
+	date := "2026-10-08"
+
+	first := []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-1", SeatLabel: "A区 K1", StartMinute: 9 * 60, EndMinute: 10 * 60},
+	}
+	if err := service.saveSmartSeatGroup(ctx, "20260002", date, first); err != nil {
+		t.Fatalf("save first group: %v", err)
+	}
+
+	// 读失败时不能降级为只写本次分段，否则已有分组会静默丢失。
+	server.SetError("boom")
+	err := service.saveSmartSeatGroup(ctx, "20260002", date, []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-2", SeatLabel: "A区 K2", StartMinute: 10 * 60, EndMinute: 11 * 60},
+	})
+	if err == nil {
+		t.Fatal("expected save to fail when redis is unavailable")
+	}
+	for _, want := range []string{"20260002", date, "boom"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("error %q does not mention %q", err, want)
+		}
+	}
+
+	server.SetError("")
+	group, ok, err := service.loadSmartSeatGroup(ctx, "20260002", date)
+	if err != nil || !ok {
+		t.Fatalf("load group: ok=%v err=%v", ok, err)
+	}
+	if len(group.Segments) != 1 || group.Segments[0].SeatID != "seat-1" {
+		t.Fatalf("group changed after failed save: %+v", group.Segments)
+	}
+}
+
+func TestUpdateSmartSeatGroupRetriesAfterConflict(t *testing.T) {
+	service, server := newTestSeatServiceWithServer(t)
+	ctx := context.Background()
+	stuID, date := "20260004", "2026-10-10"
+	key := smartSeatGroupKey(stuID, date)
+
+	first := []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-1", SeatLabel: "A区 K1", StartMinute: 9 * 60, EndMinute: 10 * 60},
+	}
+	if err := service.saveSmartSeatGroup(ctx, stuID, date, first); err != nil {
+		t.Fatalf("save first group: %v", err)
+	}
+
+	// 在事务回调里用另一条连接写入，模拟并发保存抢在本次 EXEC 之前提交；
+	// 本次事务必须冲突重试，且重试后仍以最新分组为基准合并，两份保存的分段都要保留。
+	other := redis.NewClient(&redis.Options{Addr: server.Addr()})
+	t.Cleanup(func() { _ = other.Close() })
+	conflicts := 0
+	incoming := []smartSeatGroupSegment{
+		{RoomID: "room-1", SeatID: "seat-3", SeatLabel: "A区 K3", Start: "14:00", End: "15:00"},
+	}
+	err := service.updateSmartSeatGroup(ctx, stuID, date, func(existing []smartSeatGroupSegment) ([]smartSeatGroupSegment, error) {
+		if conflicts == 0 {
+			conflicts++
+			concurrent := smartSeatGroup{
+				Date: date,
+				Segments: []smartSeatGroupSegment{
+					{RoomID: "room-1", SeatID: "seat-1", SeatLabel: "A区 K1", Start: "09:00", End: "10:00"},
+					{RoomID: "room-1", SeatID: "seat-2", SeatLabel: "A区 K2", Start: "10:00", End: "11:00"},
+				},
+			}
+			data, err := json.Marshal(concurrent)
+			if err != nil {
+				return nil, err
+			}
+			if err := other.Set(ctx, key, data, 0).Err(); err != nil {
+				return nil, err
+			}
+		}
+		return mergeSmartSeatGroupSegments(existing, incoming), nil
+	})
+	if err != nil {
+		t.Fatalf("update with conflict: %v", err)
+	}
+	if conflicts != 1 {
+		t.Fatalf("expected a single forced conflict, got %d", conflicts)
+	}
+
+	group, ok, err := service.loadSmartSeatGroup(ctx, stuID, date)
+	if err != nil || !ok {
+		t.Fatalf("load group: ok=%v err=%v", ok, err)
+	}
+	seen := make(map[string]struct{}, len(group.Segments))
+	for _, segment := range group.Segments {
+		seen[segment.SeatID] = struct{}{}
+	}
+	for _, want := range []string{"seat-1", "seat-2", "seat-3"} {
+		if _, ok := seen[want]; !ok {
+			t.Fatalf("%s lost after conflicting saves: %+v", want, group.Segments)
 		}
 	}
 }

@@ -148,7 +148,7 @@ func (s *userService) Check(ctx context.Context, studentId string, password stri
 		return false, DEFAULT_DAO_ERROR(errorx.Errorf("service: decrypt failed, err: %w", err))
 	}
 
-	if decryptedPwd == password {
+	if subtle.ConstantTimeCompare([]byte(decryptedPwd), []byte(password)) == 1 {
 		return true, nil
 	}
 	tlog.Error("database check failed, login failed")

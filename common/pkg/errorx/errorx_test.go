@@ -107,6 +107,64 @@ func TestErrorfFormat(t *testing.T) {
 	})
 }
 
+func TestErrorfVerbScanning(t *testing.T) {
+	cause := New("boom")
+
+	cases := []struct {
+		name    string
+		format  string
+		args    []any
+		wantMsg string
+		wantErr string
+	}{
+		{
+			// %%w 是字面量，不能被改写成 %%v，也不能因此认为 cause 已渲染。
+			name:    "escaped percent then wrap",
+			format:  "literal %%w: %w",
+			args:    []any{cause},
+			wantMsg: "literal %w: boom",
+			wantErr: "literal %w: boom",
+		},
+		{
+			name:    "explicit index before wrap",
+			format:  "failed: %[1]w",
+			args:    []any{cause},
+			wantMsg: "failed: boom",
+			wantErr: "failed: boom",
+		},
+		{
+			// cause 是第 1 个参数但只被第 2 个占位符消费，Error() 必须补上 cause 文本。
+			name:    "cause argument not consumed",
+			format:  "code: %[2]d",
+			args:    []any{cause, 7},
+			wantMsg: "code: 7",
+			wantErr: "code: 7: boom",
+		},
+		{
+			name:    "escaped percent does not break later wrap",
+			format:  "100%% done: %w",
+			args:    []any{cause},
+			wantMsg: "100% done: boom",
+			wantErr: "100% done: boom",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := Errorf(tc.format, tc.args...)
+			if got := err.(*customError).msg; got != tc.wantMsg {
+				t.Fatalf("msg = %q, want %q", got, tc.wantMsg)
+			}
+			if got := err.Error(); got != tc.wantErr {
+				t.Fatalf("Error() = %q, want %q", got, tc.wantErr)
+			}
+			if got := strings.Count(err.Error(), "boom"); got != 1 {
+				t.Fatalf("Error() contains cause %d times, want 1: %q", got, err.Error())
+			}
+		})
+	}
+}
+
 func TestWrapAppendsCauseOnce(t *testing.T) {
 	cause := New("boom")
 

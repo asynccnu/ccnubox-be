@@ -14,12 +14,14 @@ type customError struct {
 	line  int
 	funcN string
 	cause error
+	// causeRendered 表示 msg 里已经渲染过 cause 文本，Error() 不再重复拼接。
+	causeRendered bool
 }
 
 // Error 保持简洁：只负责返回单行错误链
 // 效果：层级1: 层级2: 底层错误
 func (e *customError) Error() string {
-	if e.cause == nil {
+	if e.cause == nil || e.causeRendered {
 		return e.msg
 	}
 	return fmt.Sprintf("%s: %v", e.msg, e.cause)
@@ -41,7 +43,12 @@ func (e *customError) Format(s fmt.State, verb rune) {
 			fmt.Fprintf(s, "\n\t%s:%d %s", e.file, e.line, e.funcN)
 			// 3. 递归打印子错误堆栈
 			if e.cause != nil {
-				fmt.Fprintf(s, "\n%+v", e.cause)
+				if e.causeRendered {
+					// msg 里已经渲染过 cause 文本，只补各层位置，避免文本重复。
+					writeCausePositions(s, e.cause)
+				} else {
+					fmt.Fprintf(s, "\n%+v", e.cause)
+				}
 			}
 			return
 		}
@@ -49,6 +56,18 @@ func (e *customError) Format(s fmt.State, verb rune) {
 		io.WriteString(s, e.Error())
 	case 's':
 		io.WriteString(s, e.Error())
+	}
+}
+
+// writeCausePositions 只打印 cause 链上各层的位置，不打印文本（文本已在上层 msg 中）。
+func writeCausePositions(s fmt.State, err error) {
+	for err != nil {
+		cause, ok := err.(*customError)
+		if !ok {
+			return
+		}
+		fmt.Fprintf(s, "\n\t%s:%d %s", cause.file, cause.line, cause.funcN)
+		err = cause.cause
 	}
 }
 
@@ -94,53 +113,32 @@ func As(err error, target any) bool {
 // 优化：msg 字段只保留当前层的格式化结果，不合并子错误文本
 func Errorf(format string, args ...any) error {
 	var cause error
-	var causeIdx = -1
 
-	// 1. 找到第一个 error 类型的参数作为 cause，并记录它的下标
-	for i, arg := range args {
+	// 1. 找到第一个 error 类型的参数作为 cause
+	for _, arg := range args {
 		if err, ok := arg.(error); ok {
 			cause = err
-			causeIdx = i
 			break
 		}
 	}
 
-	// 2. 准备渲染当前层 msg 的参数
-	// 我们需要从 args 中剔除掉那个被当作 cause 的 error，否则 Sprintf 会多出一个参数
-	renderArgs := make([]any, 0)
-	for i, arg := range args {
-		if i == causeIdx {
-			continue // 跳过 cause
-		}
-		renderArgs = append(renderArgs, arg)
-	}
-
-	// 3. 处理 format 字符串，去掉 %w 或 %v 占位符
-	// 我们只渲染当前层的逻辑描述
-	msgFormat := format
-	if idx := strings.Index(format, "%w"); idx != -1 {
-		msgFormat = strings.TrimSuffix(format[:idx], ": ")
-	} else if cause != nil {
-		// 如果没有 %w 但有 error，且 format 里有 %v，通常最后一个 %v 是给 error 的
-		if idx := strings.LastIndex(format, "%v"); idx != -1 {
-			msgFormat = strings.TrimSuffix(format[:idx], ": ")
-		}
-	}
-
-	// 4. 渲染当前层的 msg
-	msg := msgFormat
-	// 捕获可能由于占位符不匹配导致的 panic 或错误格式
-	if strings.Contains(msgFormat, "%") && len(renderArgs) > 0 {
-		msg = fmt.Sprintf(msgFormat, renderArgs...)
+	// 2. 渲染当前层 msg：%w 只用于标记 cause，渲染时按 %v 处理，
+	// 参数列表保持完整，避免占位符与参数位置错位。
+	msg := format
+	causeRendered := false
+	if len(args) > 0 && strings.Contains(format, "%") {
+		msg = fmt.Sprintf(strings.ReplaceAll(format, "%w", "%v"), args...)
+		causeRendered = cause != nil
 	}
 
 	file, line, fn := getCallerInfo(2)
 	return &customError{
-		msg:   msg,
-		file:  file,
-		line:  line,
-		funcN: fn,
-		cause: cause,
+		msg:           msg,
+		file:          file,
+		line:          line,
+		funcN:         fn,
+		cause:         cause,
+		causeRendered: causeRendered,
 	}
 }
 

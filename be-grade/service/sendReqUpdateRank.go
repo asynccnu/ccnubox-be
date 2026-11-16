@@ -1,9 +1,7 @@
 package service
 
 import (
-	"compress/gzip"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -84,7 +82,6 @@ func Send(cookie, ksxq, jsxq string, pc proxy.Client) (*domain.GetRankByTermResp
 
 	// 模拟浏览器 Header
 	req.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
-	req.Header.Set("Accept-Encoding", "gzip, deflate, br, zstd")
 	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Content-Length", strconv.Itoa(len(formData.Encode())))
@@ -113,20 +110,7 @@ func Send(cookie, ksxq, jsxq string, pc proxy.Client) (*domain.GetRankByTermResp
 		return nil, errorx.Errorf("crawler: school system status exception, code: %d", resp.StatusCode)
 	}
 
-	// 动态处理 Gzip 解压
-	var reader io.ReadCloser
-	if resp.Header.Get("Content-Encoding") == "gzip" {
-		gzipReader, err := gzip.NewReader(resp.Body)
-		if err != nil {
-			return nil, errorx.Errorf("crawler: init gzip reader failed, err: %w", err)
-		}
-		defer gzipReader.Close()
-		reader = gzipReader
-	} else {
-		reader = resp.Body
-	}
-
-	body, err := httpx.ReadLimited(reader, httpx.DefaultMaxBodyBytes)
+	body, err := httpx.ReadLimited(resp.Body, httpx.DefaultMaxBodyBytes)
 	if err != nil {
 		return nil, errorx.Errorf("crawler: read response body failed, err: %w", err)
 	}

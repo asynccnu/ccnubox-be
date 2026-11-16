@@ -785,15 +785,16 @@ func (s *seatService) CancelSmartSeatPlan(ctx context.Context, req *v1.CancelSma
 		})
 	}
 
-	matched, missing := matchSmartSeatRecords(records, req.Date, segments)
+	matched, matchedSegments, missing := matchSmartSeatRecords(records, req.Date, segments)
 	// 记录拉取可能不完整（如 lastMake 只返回部分记录、非当日记录不在历史中），
-	// 存在未匹配分段时直接中止并保留分组，避免静默丢失取消能力。
-	if len(missing) > 0 {
+	// 全部匹配不到时保持原行为：整体中止并保留分组，避免静默丢失取消能力。
+	if len(matched) == 0 {
 		return nil, ErrGetSeat(errorx.Errorf("cancel smart seat aborted: %d segment(s) not found (seats: %s), stuId: %s", len(missing), smartSeatSegmentLabels(missing), req.StuId))
 	}
 	canceled := 0
 	var firstErr error
-	for _, record := range matched {
+	canceledSegments := make([]smartSeatSegment, 0, len(matched))
+	for i, record := range matched {
 		if _, err := s.crawler.CancelReserve(ctx, token, record.ID); err != nil {
 			if firstErr == nil {
 				firstErr = errorx.Errorf("cancel record %s failed: %w", record.ID, err)
@@ -801,12 +802,24 @@ func (s *seatService) CancelSmartSeatPlan(ctx context.Context, req *v1.CancelSma
 			continue
 		}
 		canceled++
+		canceledSegments = append(canceledSegments, matchedSegments[i])
 	}
-	if firstErr != nil {
-		return nil, ErrGetSeat(errorx.Errorf("cancel smart seat partially failed (canceled %d), stuId: %s, err: %w", canceled, req.StuId, firstErr))
-	}
-	if err := s.deleteSmartSeatGroup(ctx, req.StuId, req.Date); err != nil {
+
+	// 已取消的分段从分组里剔除，未匹配或取消失败的分段保留，避免残留分段堵死后续整组取消。
+	remaining := removeSmartSeatSegments(segments, canceledSegments)
+	if len(remaining) > 0 {
+		if err := s.storeSmartSeatGroup(ctx, req.StuId, req.Date, toSmartSeatGroupSegments(remaining)); err != nil {
+			s.logWarn("smart seat: update group after cancel failed, stuId: %s, date: %s, err: %v", req.StuId, req.Date, err)
+		}
+	} else if err := s.deleteSmartSeatGroup(ctx, req.StuId, req.Date); err != nil {
 		s.logWarn("smart seat: delete group failed, stuId: %s, date: %s, err: %v", req.StuId, req.Date, err)
+	}
+
+	if firstErr != nil {
+		return nil, ErrGetSeat(errorx.Errorf("cancel smart seat partially failed (canceled %d, %d not found), stuId: %s, err: %w", canceled, len(missing), req.StuId, firstErr))
+	}
+	if len(missing) > 0 {
+		return nil, ErrGetSeat(errorx.Errorf("cancel smart seat partially done: canceled %d, %d segment(s) not found (seats: %s), stuId: %s", canceled, len(missing), smartSeatSegmentLabels(missing), req.StuId))
 	}
 	return &v1.CancelSmartSeatPlanResponse{Message: fmt.Sprintf("已取消 %d 个座位", canceled)}, nil
 }
@@ -820,7 +833,7 @@ func (s *seatService) rollbackSmartSeat(ctx context.Context, token, date string,
 	if err != nil {
 		return nil, err
 	}
-	matched, _ := matchSmartSeatRecords(records, date, segments)
+	matched, _, _ := matchSmartSeatRecords(records, date, segments)
 	var residue []smartSeatSegment
 	var firstErr error
 	for _, record := range matched {
@@ -868,9 +881,10 @@ func (s *seatService) seatRecordsForDate(ctx context.Context, token, date string
 	return result, nil
 }
 
-// matchSmartSeatRecords 按座位与时间匹配预约记录；返回未找到的记录分段。
-func matchSmartSeatRecords(records []*crawler.Record, date string, segments []smartSeatSegment) ([]*crawler.Record, []smartSeatSegment) {
+// matchSmartSeatRecords 按座位与时间匹配预约记录；返回匹配到的记录、被匹配的分段，以及未找到的分段。
+func matchSmartSeatRecords(records []*crawler.Record, date string, segments []smartSeatSegment) ([]*crawler.Record, []smartSeatSegment, []smartSeatSegment) {
 	var matched []*crawler.Record
+	var matchedSegments []smartSeatSegment
 	var missing []smartSeatSegment
 	used := make(map[int]struct{})
 	for _, segment := range segments {
@@ -896,6 +910,7 @@ func matchSmartSeatRecords(records []*crawler.Record, date string, segments []sm
 			}
 			used[i] = struct{}{}
 			matched = append(matched, record)
+			matchedSegments = append(matchedSegments, segment)
 			found = true
 			break
 		}
@@ -903,7 +918,23 @@ func matchSmartSeatRecords(records []*crawler.Record, date string, segments []sm
 			missing = append(missing, segment)
 		}
 	}
-	return matched, missing
+	return matched, matchedSegments, missing
+}
+
+// removeSmartSeatSegments 从 segments 中剔除 targets，按 (RoomID, SeatID, Start, End) 匹配。
+func removeSmartSeatSegments(segments, targets []smartSeatSegment) []smartSeatSegment {
+	removed := make(map[string]struct{}, len(targets))
+	for _, target := range targets {
+		removed[fmt.Sprintf("%s|%s|%d|%d", target.RoomID, target.SeatID, target.StartMinute, target.EndMinute)] = struct{}{}
+	}
+	remaining := make([]smartSeatSegment, 0, len(segments))
+	for _, segment := range segments {
+		if _, ok := removed[fmt.Sprintf("%s|%s|%d|%d", segment.RoomID, segment.SeatID, segment.StartMinute, segment.EndMinute)]; ok {
+			continue
+		}
+		remaining = append(remaining, segment)
+	}
+	return remaining
 }
 
 // smartSeatSegmentLabels 拼接分段座位标签，便于错误信息定位。
@@ -923,13 +954,43 @@ func (s *seatService) saveSmartSeatGroup(ctx context.Context, stuID, date string
 	if s.rdb == nil {
 		return errorx.New("redis client is not configured")
 	}
+	incoming := toSmartSeatGroupSegments(segments)
+	// 同一学号同一日期可能多次预约，分组必须并集写入，否则旧分段会丢失、无法被取消接口匹配。
+	existing, ok, err := s.loadSmartSeatGroup(ctx, stuID, date)
+	if err != nil {
+		// 读失败时降级为只写入本次分段，不放弃落盘，至少保证新预约还能被取消。
+		s.logWarn("smart seat: load group before save failed, fallback to current segments only, stuId: %s, date: %s, err: %v", stuID, date, err)
+		return s.storeSmartSeatGroup(ctx, stuID, date, incoming)
+	}
+	var oldSegments []smartSeatGroupSegment
+	if ok {
+		oldSegments = existing.Segments
+	}
+	return s.storeSmartSeatGroup(ctx, stuID, date, mergeSmartSeatGroupSegments(oldSegments, incoming))
+}
+
+// storeSmartSeatGroup 用给定分段覆盖写入分组。
+func (s *seatService) storeSmartSeatGroup(ctx context.Context, stuID, date string, segments []smartSeatGroupSegment) error {
+	if s.rdb == nil {
+		return errorx.New("redis client is not configured")
+	}
 	group := smartSeatGroup{
 		Date:      date,
 		CreatedAt: time.Now().Unix(),
-		Segments:  make([]smartSeatGroupSegment, 0, len(segments)),
+		Segments:  segments,
 	}
+	data, err := json.Marshal(group)
+	if err != nil {
+		return err
+	}
+	return s.rdb.Set(ctx, smartSeatGroupKey(stuID, date), data, smartSeatGroupTTL(date, time.Now())).Err()
+}
+
+// toSmartSeatGroupSegments 把分段转换成 Redis 分组里的存储形态。
+func toSmartSeatGroupSegments(segments []smartSeatSegment) []smartSeatGroupSegment {
+	result := make([]smartSeatGroupSegment, 0, len(segments))
 	for _, segment := range segments {
-		group.Segments = append(group.Segments, smartSeatGroupSegment{
+		result = append(result, smartSeatGroupSegment{
 			SeatID:    segment.SeatID,
 			SeatLabel: segment.SeatLabel,
 			RoomID:    segment.RoomID,
@@ -937,11 +998,24 @@ func (s *seatService) saveSmartSeatGroup(ctx context.Context, stuID, date string
 			End:       crawler.FormatMinute(segment.EndMinute),
 		})
 	}
-	data, err := json.Marshal(group)
-	if err != nil {
-		return err
+	return result
+}
+
+// mergeSmartSeatGroupSegments 合并分组内的分段：按 (RoomID, SeatID, Start, End) 去重，已有分段在前、新增分段在后。
+func mergeSmartSeatGroupSegments(existing, incoming []smartSeatGroupSegment) []smartSeatGroupSegment {
+	merged := make([]smartSeatGroupSegment, 0, len(existing)+len(incoming))
+	seen := make(map[string]struct{}, len(existing)+len(incoming))
+	for _, batch := range [][]smartSeatGroupSegment{existing, incoming} {
+		for _, segment := range batch {
+			key := segment.RoomID + "|" + segment.SeatID + "|" + segment.Start + "|" + segment.End
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			merged = append(merged, segment)
+		}
 	}
-	return s.rdb.Set(ctx, smartSeatGroupKey(stuID, date), data, smartSeatGroupTTL(date, time.Now())).Err()
+	return merged
 }
 
 func (s *seatService) loadSmartSeatGroup(ctx context.Context, stuID, date string) (smartSeatGroup, bool, error) {

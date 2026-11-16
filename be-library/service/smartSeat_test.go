@@ -1,13 +1,16 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/asynccnu/ccnubox-be/be-library/crawler"
 	"github.com/asynccnu/ccnubox-be/be-library/tool"
 	v1 "github.com/asynccnu/ccnubox-be/common/api/gen/proto/library/v1"
+	"github.com/redis/go-redis/v9"
 )
 
 func newTimeline(roomID, seatID string, intervals ...[2]int) seatTimeline {
@@ -499,7 +502,7 @@ func TestMatchSmartSeatRecords(t *testing.T) {
 		{RoomID: "room-2", SeatID: "seat-2", SeatLabel: "B区 K2", StartMinute: 10 * 60, EndMinute: 12 * 60},
 	}
 
-	matched, missing := matchSmartSeatRecords(records, "2026-10-06", segments)
+	matched, _, missing := matchSmartSeatRecords(records, "2026-10-06", segments)
 	if len(matched) != 2 || len(missing) != 0 {
 		t.Fatalf("expected all matched, got matched=%d missing=%d", len(matched), len(missing))
 	}
@@ -508,7 +511,7 @@ func TestMatchSmartSeatRecords(t *testing.T) {
 	}
 
 	t.Run("time mismatch becomes missing", func(t *testing.T) {
-		_, missing := matchSmartSeatRecords(records, "2026-10-06", []smartSeatSegment{
+		_, _, missing := matchSmartSeatRecords(records, "2026-10-06", []smartSeatSegment{
 			{SeatID: "seat-1", StartMinute: 9 * 60, EndMinute: 11 * 60},
 		})
 		if len(missing) != 1 {
@@ -517,14 +520,14 @@ func TestMatchSmartSeatRecords(t *testing.T) {
 	})
 
 	t.Run("date mismatch becomes missing", func(t *testing.T) {
-		_, missing := matchSmartSeatRecords(records, "2026-10-05", segments)
+		_, _, missing := matchSmartSeatRecords(records, "2026-10-05", segments)
 		if len(missing) != len(segments) {
 			t.Fatalf("expected %d missing, got %d", len(segments), len(missing))
 		}
 	})
 
 	t.Run("record cannot be reused", func(t *testing.T) {
-		matched, missing := matchSmartSeatRecords(records, "2026-10-06", []smartSeatSegment{
+		matched, _, missing := matchSmartSeatRecords(records, "2026-10-06", []smartSeatSegment{
 			{RoomID: "room-1", SeatID: "seat-1", StartMinute: 9 * 60, EndMinute: 10 * 60},
 			{RoomID: "room-1", SeatID: "seat-1", StartMinute: 9 * 60, EndMinute: 10 * 60},
 		})
@@ -541,5 +544,151 @@ func TestSmartSeatSegmentLabels(t *testing.T) {
 	})
 	if got != "A区 K1, seat-2" {
 		t.Fatalf("got %q, want %q", got, "A区 K1, seat-2")
+	}
+}
+
+// smartSeatSegmentsFromGroup 还原分组里的分段，供取消流程匹配使用。
+func smartSeatSegmentsFromGroup(group []smartSeatGroupSegment) []smartSeatSegment {
+	result := make([]smartSeatSegment, 0, len(group))
+	for _, item := range group {
+		start, err := crawler.ParseMinute(item.Start)
+		if err != nil {
+			continue
+		}
+		end, err := crawler.ParseMinute(item.End)
+		if err != nil {
+			continue
+		}
+		result = append(result, smartSeatSegment{
+			RoomID:      item.RoomID,
+			SeatID:      item.SeatID,
+			SeatLabel:   item.SeatLabel,
+			StartMinute: start,
+			EndMinute:   end,
+		})
+	}
+	return result
+}
+
+func TestMergeSmartSeatGroupSegments(t *testing.T) {
+	date := "2026-10-06"
+	loc := tool.GetLocation()
+	first := []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-1", SeatLabel: "A区 K1", StartMinute: 9 * 60, EndMinute: 10 * 60},
+		{RoomID: "room-1", SeatID: "seat-2", SeatLabel: "A区 K2", StartMinute: 10 * 60, EndMinute: 11 * 60},
+	}
+	second := []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-3", SeatLabel: "A区 K3", StartMinute: 14 * 60, EndMinute: 15 * 60},
+	}
+
+	group := mergeSmartSeatGroupSegments(nil, toSmartSeatGroupSegments(first))
+	group = mergeSmartSeatGroupSegments(group, toSmartSeatGroupSegments(second))
+	if len(group) != 3 {
+		t.Fatalf("got %d segments after two writes, want 3: %+v", len(group), group)
+	}
+
+	// 两批分段都必须能匹配到预约记录，否则取消接口会中止。
+	segments := smartSeatSegmentsFromGroup(group)
+	records := make([]*crawler.Record, 0, len(segments))
+	for i, segment := range segments {
+		records = append(records, &crawler.Record{
+			ID:        fmt.Sprintf("rec-%d", i+1),
+			RoomID:    segment.RoomID,
+			SeatID:    segment.SeatID,
+			SeatLabel: segment.SeatLabel,
+			MakeDate:  time.Date(2026, 10, 6, 0, 0, 0, 0, loc),
+			MakeBegin: time.Date(2026, 10, 6, 0, segment.StartMinute, 0, 0, loc),
+			MakeEnd:   time.Date(2026, 10, 6, 0, segment.EndMinute, 0, 0, loc),
+		})
+	}
+	matched, _, missing := matchSmartSeatRecords(records, date, segments)
+	if len(missing) != 0 {
+		t.Fatalf("expected all merged segments matched, missing: %+v", missing)
+	}
+	if len(matched) != 3 {
+		t.Fatalf("got %d matched records, want 3", len(matched))
+	}
+
+	t.Run("duplicate segments are deduped", func(t *testing.T) {
+		merged := mergeSmartSeatGroupSegments(toSmartSeatGroupSegments(first), toSmartSeatGroupSegments(first))
+		if len(merged) != len(first) {
+			t.Fatalf("got %d segments, want %d: %+v", len(merged), len(first), merged)
+		}
+	})
+
+	t.Run("existing segments keep their order", func(t *testing.T) {
+		merged := mergeSmartSeatGroupSegments(toSmartSeatGroupSegments(first), toSmartSeatGroupSegments(second))
+		if len(merged) != 3 || merged[0].SeatID != "seat-1" || merged[1].SeatID != "seat-2" || merged[2].SeatID != "seat-3" {
+			t.Fatalf("unexpected order: %+v", merged)
+		}
+	})
+
+	t.Run("same seat in different rooms is kept", func(t *testing.T) {
+		existing := []smartSeatGroupSegment{{RoomID: "room-1", SeatID: "seat-1", Start: "09:00", End: "10:00"}}
+		incoming := []smartSeatGroupSegment{{RoomID: "room-2", SeatID: "seat-1", Start: "09:00", End: "10:00"}}
+		if got := mergeSmartSeatGroupSegments(existing, incoming); len(got) != 2 {
+			t.Fatalf("got %d segments, want 2: %+v", len(got), got)
+		}
+	})
+}
+
+func TestRemoveSmartSeatSegments(t *testing.T) {
+	segments := []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-1", StartMinute: 9 * 60, EndMinute: 10 * 60},
+		{RoomID: "room-1", SeatID: "seat-2", StartMinute: 10 * 60, EndMinute: 11 * 60},
+	}
+	remaining := removeSmartSeatSegments(segments, segments[:1])
+	if len(remaining) != 1 || remaining[0].SeatID != "seat-2" {
+		t.Fatalf("unexpected remaining segments: %+v", remaining)
+	}
+
+	if all := removeSmartSeatSegments(segments, segments); len(all) != 0 {
+		t.Fatalf("expected no remaining segments, got %+v", all)
+	}
+}
+
+func newTestSeatService(t *testing.T) *seatService {
+	t.Helper()
+	server, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("start miniredis: %v", err)
+	}
+	t.Cleanup(server.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: server.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	return &seatService{rdb: rdb}
+}
+
+func TestSaveSmartSeatGroupKeepsPreviousSegments(t *testing.T) {
+	service := newTestSeatService(t)
+	ctx := context.Background()
+	date := "2026-10-06"
+
+	first := []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-1", SeatLabel: "A区 K1", StartMinute: 9 * 60, EndMinute: 10 * 60},
+		{RoomID: "room-1", SeatID: "seat-2", SeatLabel: "A区 K2", StartMinute: 10 * 60, EndMinute: 11 * 60},
+	}
+	second := []smartSeatSegment{
+		{RoomID: "room-1", SeatID: "seat-3", SeatLabel: "A区 K3", StartMinute: 14 * 60, EndMinute: 15 * 60},
+	}
+	if err := service.saveSmartSeatGroup(ctx, "20260001", date, first); err != nil {
+		t.Fatalf("save first group: %v", err)
+	}
+	if err := service.saveSmartSeatGroup(ctx, "20260001", date, second); err != nil {
+		t.Fatalf("save second group: %v", err)
+	}
+
+	group, ok, err := service.loadSmartSeatGroup(ctx, "20260001", date)
+	if err != nil || !ok {
+		t.Fatalf("load group: ok=%v err=%v", ok, err)
+	}
+	segments := smartSeatSegmentsFromGroup(group.Segments)
+	if len(segments) != 3 {
+		t.Fatalf("group has %d segments after two saves, want 3: %+v", len(segments), group.Segments)
+	}
+	for i, want := range []string{"seat-1", "seat-2", "seat-3"} {
+		if segments[i].SeatID != want {
+			t.Fatalf("segment %d = %q, want %q (full: %+v)", i, segments[i].SeatID, want, segments)
+		}
 	}
 }

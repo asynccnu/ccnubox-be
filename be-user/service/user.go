@@ -285,7 +285,9 @@ func (s *userService) GetLibraryToken(ctx context.Context, studentId string, ser
 		}
 
 		go func(sid, cky string) {
-			if err := s.cache.SetLibraryToken(context.Background(), sid, cky, serviceType.String()); err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+			if err := s.cache.SetLibraryToken(ctx, sid, cky, serviceType.String()); err != nil {
 				s.l.Error("async fill library cache failed", logger.Error(err))
 			}
 		}(studentId, newToken)

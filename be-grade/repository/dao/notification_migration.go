@@ -104,6 +104,6 @@ func alterGradeNotifications(db *gorm.DB, changes string) error {
 			defer cancel()
 			_ = conn.WithContext(ctx).Exec("SET SESSION lock_wait_timeout = ?", oldTimeout).Error
 		}()
-		return conn.Exec("ALTER TABLE ? "+changes+", ALGORITHM=INPLACE, LOCK=NONE", clause.Table{Name: statement.Table}).Error
+		return conn.Exec("ALTER TABLE ? "+changes+", ALGORITHM=INPLACE, LOCK=SHARED", clause.Table{Name: statement.Table}).Error
 	})
 }

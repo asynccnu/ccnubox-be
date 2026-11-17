@@ -54,6 +54,7 @@ func (h *HealthHandler) ReadyCheck(c *gin.Context) (web.Response, error) {
 		if err != nil {
 			res[n] = err.Error()
 			log.Printf("服务 %s 健康检查失败: %v", n, err)
+			continue
 		}
 		res[n] = resp.Status.String()
 	}

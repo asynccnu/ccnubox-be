@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/asynccnu/ccnubox-be/be-proxy/conf"
 	"github.com/asynccnu/ccnubox-be/common/pkg/logger"
 )
 
@@ -117,5 +118,28 @@ func TestRotateAddrsUsesTwoFreshAddresses(t *testing.T) {
 	}
 	if svc.AddrBackup != "http://new-backup:4" {
 		t.Fatalf("AddrBackup = %q", svc.AddrBackup)
+	}
+}
+
+func TestNewProxyServicePanicsWithEmptyConfigError(t *testing.T) {
+	cases := map[string]*conf.ServerConf{
+		"nil server conf":     nil,
+		"nil shen long conf":  {},
+		"empty shen long api": {ShenLongConf: &conf.ShenLongConf{}},
+	}
+
+	for name, cfg := range cases {
+		t.Run(name, func(t *testing.T) {
+			defer func() {
+				got := recover()
+				if got == nil {
+					t.Fatal("expected panic on missing proxy config")
+				}
+				if got != ErrEmptyConfig {
+					t.Fatalf("panic value = %v, want ErrEmptyConfig", got)
+				}
+			}()
+			NewProxyService(nopLogger{}, cfg)
+		})
 	}
 }

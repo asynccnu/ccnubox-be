@@ -85,7 +85,7 @@ func (s *userService) Save(ctx context.Context, studentId string, password strin
 		if decryptErr != nil {
 			return DECRYPT_ERROR(errorx.Errorf("service: decrypt stored password failed, sid: %s, err: %w", studentId, decryptErr))
 		}
-		if storedPassword == password && !s.cryptoClient.NeedsMigration(user.Password) {
+		if subtle.ConstantTimeCompare([]byte(storedPassword), []byte(password)) == 1 && !s.cryptoClient.NeedsMigration(user.Password) {
 			return nil
 		}
 	case errors.Is(err, dao.UserNotFound):
@@ -148,7 +148,7 @@ func (s *userService) Check(ctx context.Context, studentId string, password stri
 		return false, DEFAULT_DAO_ERROR(errorx.Errorf("service: decrypt failed, err: %w", err))
 	}
 
-	if decryptedPwd == password {
+	if subtle.ConstantTimeCompare([]byte(decryptedPwd), []byte(password)) == 1 {
 		return true, nil
 	}
 	tlog.Error("database check failed, login failed")
@@ -285,7 +285,9 @@ func (s *userService) GetLibraryToken(ctx context.Context, studentId string, ser
 		}
 
 		go func(sid, cky string) {
-			if err := s.cache.SetLibraryToken(context.Background(), sid, cky, serviceType.String()); err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+			if err := s.cache.SetLibraryToken(ctx, sid, cky, serviceType.String()); err != nil {
 				s.l.Error("async fill library cache failed", logger.Error(err))
 			}
 		}(studentId, newToken)
